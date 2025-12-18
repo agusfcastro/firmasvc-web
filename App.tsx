@@ -7,7 +7,6 @@ import { Testimonials } from './components/Testimonials';
 import { Contact } from './components/Contact';
 import { Footer } from './components/Footer';
 import { ChatBot } from './components/ChatBot';
-import { ImageGenerator } from './components/ImageGenerator';
 
 function App() {
   return (
@@ -17,7 +16,6 @@ function App() {
         <Hero />
         <About />
         <Services />
-        <ImageGenerator />
         <Testimonials />
         <Contact />
       </main>
