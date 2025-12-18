@@ -72,4 +72,59 @@ export const About: React.FC = () => {
              </div>
 
              {/* Tarjeta Flotante (Centrada) */}
-             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-xl shadow-xl border border-gray-100 text-center w-48 z-
+             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-xl shadow-xl border border-gray-100 text-center w-48 z-20 hidden md:block">
+                <p className="text-firma font-bold text-sm">"Resultados reales"</p>
+                <p className="text-gray-500 text-[10px] mt-1">Más allá de la formalidad.</p>
+             </div>
+          </div>
+          
+          {/* Contenido de Texto */}
+          <div className="flex flex-col justify-center h-full mt-8 md:mt-0">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-firma text-xs font-bold uppercase tracking-wider mb-4 self-start">
+              <span className="w-2 h-2 rounded-full bg-firma"></span>
+              Sobre el Fundador
+            </div>
+            <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6 leading-tight">
+              De las aulas de la <span className="text-firma">UBA</span> al ecosistema digital global.
+            </h3>
+            
+            <div className="space-y-6 text-lg text-gray-600 text-justify">
+              <p>
+                Hola, soy <strong>Agustín</strong>. Mi carrera comenzó entre libros de <span className="text-firma font-medium">Derecho Internacional Privado</span> y pasillos académicos. Me apasionaba investigar cómo las leyes cruzan fronteras, participando en congresos y seminarios de alto nivel.
+              </p>
+              <p>
+                Pero mientras me formaba en la teoría, también vivía la práctica: gestionaba mi propia consultora B2B. Ahí entendí una verdad incómoda: <strong>el mundo legal tradicional es lento y burocrático</strong>, justo lo opuesto a lo que necesita un negocio digital.
+              </p>
+              <p>
+                Fundé <strong>firma</strong> para cerrar esa brecha. Unimos el rigor académico y la seguridad jurídica con la velocidad y flexibilidad que exige el mercado online actual.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 mt-10 border-t border-gray-100 pt-8">
+              <div className="flex flex-col items-center text-center p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                <div className="text-firma mb-2">
+                    <GraduationCap size={24} />
+                </div>
+                <span className="text-sm font-bold text-gray-900 leading-tight">Formación<br/>UBA</span>
+              </div>
+              
+              <div className="flex flex-col items-center text-center p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                <div className="text-firma mb-2">
+                    <Briefcase size={24} />
+                </div>
+                <span className="text-sm font-bold text-gray-900 leading-tight">Experiencia<br/>B2B</span>
+              </div>
+
+              <div className="flex flex-col items-center text-center p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                <div className="text-firma mb-2">
+                    <UserCheck size={24} />
+                </div>
+                <span className="text-sm font-bold text-gray-900 leading-tight">Trato<br/>Directo</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
