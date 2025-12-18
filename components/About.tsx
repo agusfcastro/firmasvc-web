@@ -17,7 +17,7 @@ export const About: React.FC = () => {
                {/* Foto 1: Graduación/Diploma (Vertical) */}
                <div className="relative group overflow-hidden rounded-2xl shadow-lg transition-transform hover:-translate-y-1 duration-300">
                   <img 
-                    src="./assets/diploma.jpg" 
+                    src="./diploma.jpg" 
                     alt="Agustín recibiendo diploma UBA" 
                     className="w-full object-cover aspect-[3/4] group-hover:scale-105 transition-transform duration-700"
                   />
@@ -29,7 +29,7 @@ export const About: React.FC = () => {
                {/* Foto 2: Laptop/Contrato (Horizontal/Cuadrada) */}
                <div className="relative group overflow-hidden rounded-2xl shadow-lg transition-transform hover:-translate-y-1 duration-300">
                  <img 
-                    src="./assets/trabajo.jpg" 
+                    src="./trabajo.jpg" 
                     alt="Trabajo con contratos digitales" 
                     className="w-full object-cover aspect-video group-hover:scale-105 transition-transform duration-700"
                   />
@@ -41,7 +41,7 @@ export const About: React.FC = () => {
                 {/* Foto 3: Panel/Charla (Horizontal) */}
                 <div className="relative group overflow-hidden rounded-2xl shadow-lg transition-transform hover:-translate-y-1 duration-300">
                   <img 
-                    src="./assets/conferencia.jpg" 
+                    src="./conferencia.jpg" 
                     alt="Disertando en conferencia" 
                     className="w-full object-cover aspect-video group-hover:scale-105 transition-transform duration-700"
                   />
@@ -53,7 +53,7 @@ export const About: React.FC = () => {
                 {/* Foto 4: Casual/Playa (Vertical) */}
                  <div className="relative group overflow-hidden rounded-2xl shadow-lg transition-transform hover:-translate-y-1 duration-300">
                   <img 
-                    src="./assets/perfil.jpg" 
+                    src="./perfil.jpg" 
                     alt="Perfil personal Agustín" 
                     className="w-full object-cover aspect-[3/4] group-hover:scale-105 transition-transform duration-700"
                   />
