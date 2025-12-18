@@ -18,7 +18,7 @@ export const Header: React.FC = () => {
   const navLinks = [
     { name: 'Nosotros', href: '#about' },
     { name: 'Servicios', href: '#services' },
-    { name: 'Recursos', href: 'https://www.youtube.com' }, // Vinculado a YouTube como solicitado
+    { name: 'Recursos', href: 'https://www.youtube.com/@agusfcastro' },
     { name: 'Testimonios', href: '#testimonials' },
   ];
 
