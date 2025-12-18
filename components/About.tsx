@@ -1,9 +1,11 @@
 import React from 'react';
 import { Globe, UserCheck, Briefcase, GraduationCap } from 'lucide-react';
+
+// 1. Imports corregidos con nombres únicos
 import diplomaImg from '../assets/diploma.jpg';
 import trabajoImg from '../assets/trabajo.jpg';
-import diplomaImg from '../assets/conferencia.jpg';
-import trabajoImg from '../assets/perfil.jpg';
+import conferenciaImg from '../assets/conferencia.jpg';
+import perfilImg from '../assets/perfil.jpg';
 
 export const About: React.FC = () => {
   return (
@@ -30,10 +32,10 @@ export const About: React.FC = () => {
                   </div>
                </div>
                
-               {/* Foto 2: Laptop/Contrato (Horizontal/Cuadrada) */}
+               {/* Foto 2: Laptop/Contrato (Horizontal/Cuadrada) - CORREGIDO AQUÍ */}
                <div className="relative group overflow-hidden rounded-2xl shadow-lg transition-transform hover:-translate-y-1 duration-300">
                  <img 
-                    src="{trabajoImg}
+                    src={trabajoImg}
                     alt="Trabajo con contratos digitales" 
                     className="w-full object-cover aspect-video group-hover:scale-105 transition-transform duration-700"
                   />
@@ -54,7 +56,7 @@ export const About: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Foto 4: Casual/Playa (Vertical) */}
+                {/* Foto 4: Perfil (Vertical) */}
                  <div className="relative group overflow-hidden rounded-2xl shadow-lg transition-transform hover:-translate-y-1 duration-300">
                   <img 
                     src={perfilImg} 
@@ -80,7 +82,7 @@ export const About: React.FC = () => {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-firma text-xs font-bold uppercase tracking-wider mb-4">
               <span className="w-2 h-2 rounded-full bg-firma"></span>
-              Founding
+              Sobre el Fundador
             </div>
             <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6 leading-tight">
               De las aulas de la <span className="text-firma">UBA</span> al ecosistema digital global.
