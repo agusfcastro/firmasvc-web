@@ -82,7 +82,7 @@ export const About: React.FC = () => {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-firma text-xs font-bold uppercase tracking-wider mb-4">
               <span className="w-2 h-2 rounded-full bg-firma"></span>
-              Sobre el Fundador
+              Founding
             </div>
             <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6 leading-tight">
               De las aulas de la <span className="text-firma">UBA</span> al ecosistema digital global.
