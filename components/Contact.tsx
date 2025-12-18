@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Mail } from 'lucide-react';
+import { Calendar, Mail, MessageCircle } from 'lucide-react';
 import { Button } from './Button';
 
 export const Contact: React.FC = () => {
@@ -17,10 +17,23 @@ export const Contact: React.FC = () => {
               Agenda una llamada de descubrimiento de 15 minutos. Sin compromiso. Analicemos juntos qué necesita tu negocio para blindarse.
             </p>
             <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-3 text-gray-700">
-                <Mail className="text-firma" size={20} />
-                <span>agustin@firmasvc.com</span>
-              </div>
+              <a href="mailto:agustin@firmasvc.com" className="flex items-center gap-3 text-gray-700 hover:text-firma transition-colors w-fit">
+                <div className="w-10 h-10 rounded-full bg-blue-50 text-firma flex items-center justify-center">
+                   <Mail size={20} />
+                </div>
+                <span className="font-medium">agustin@firmasvc.com</span>
+              </a>
+              <a 
+                href="https://wa.me/5491124617035?text=Hola%20Agust%C3%ADn,%20me%20interesa%20conocer%20m%C3%A1s%20sobre%20tus%20servicios." 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 text-gray-700 hover:text-[#25D366] transition-colors w-fit"
+              >
+                <div className="w-10 h-10 rounded-full bg-green-50 text-[#25D366] flex items-center justify-center">
+                   <MessageCircle size={20} />
+                </div>
+                <span className="font-medium">+54 9 11 2461-7035</span>
+              </a>
             </div>
           </div>
 

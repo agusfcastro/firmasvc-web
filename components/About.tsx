@@ -1,88 +1,82 @@
 import React from 'react';
 import { Globe, UserCheck, Briefcase, GraduationCap } from 'lucide-react';
 
-// 1. Imports corregidos con nombres únicos
-import diplomaImg from '../assets/diploma.jpg';
-import trabajoImg from '../assets/trabajo.jpg';
-import conferenciaImg from '../assets/conferencia.jpg';
-import perfilImg from '../assets/perfil.jpg';
-
 export const About: React.FC = () => {
   return (
     <section id="about" className="py-20 bg-white overflow-hidden">
       <div className="container mx-auto px-4 md:px-6">
-        <div className="grid md:grid-cols-2 gap-16 items-center">
+        <div className="grid md:grid-cols-2 gap-16 items-start">
           
-          {/* Image Masonry Grid */}
-          <div className="grid grid-cols-2 gap-4 relative">
-             {/* Decorative Background Blob */}
-             <div className="absolute inset-0 bg-firma/5 blur-3xl rounded-full transform scale-150 z-0"></div>
+          {/* Columna de Imágenes (Diseño Estructurado/Bento) */}
+          <div className="relative pr-4">
+             {/* Elemento decorativo de fondo más sutil */}
+             <div className="absolute top-10 left-10 right-0 bottom-0 bg-gray-100 rounded-[3rem] -z-10 transform rotate-2"></div>
              
-             {/* Column 1 */}
-             <div className="space-y-4 z-10 mt-8">
-               {/* Foto 1: Graduación/Diploma (Vertical) */}
-               <div className="relative group overflow-hidden rounded-2xl shadow-lg transition-transform hover:-translate-y-1 duration-300">
-                  <img 
-                    src={diplomaImg} 
-                    alt="Agustín recibiendo diploma UBA" 
-                    className="w-full object-cover aspect-[3/4] group-hover:scale-105 transition-transform duration-700"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
-                    <p className="text-white text-xs font-bold flex items-center gap-1"><GraduationCap size={12}/> Formación Académica</p>
+             <div className="grid grid-cols-2 gap-4">
+               {/* Columna Izquierda de Fotos */}
+               <div className="space-y-4">
+                  {/* Foto 1: Graduación (Vertical - Grande) */}
+                  <div className="relative rounded-2xl overflow-hidden shadow-md group">
+                    <img 
+                      src="./assets/diploma.jpg" 
+                      alt="Agustín recibiendo diploma UBA" 
+                      className="w-full h-72 object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                       <p className="text-white text-xs font-bold flex items-center gap-1"><GraduationCap size={12}/> Formación UBA</p>
+                    </div>
+                  </div>
+
+                  {/* Foto 2: Trabajo (Horizontal - Pequeña) */}
+                  <div className="relative rounded-2xl overflow-hidden shadow-md group">
+                    <img 
+                      src="./assets/trabajo.jpg" 
+                      alt="Trabajo con contratos" 
+                      className="w-full h-40 object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
                   </div>
                </div>
-               
-               {/* Foto 2: Laptop/Contrato (Horizontal/Cuadrada) - CORREGIDO AQUÍ */}
-               <div className="relative group overflow-hidden rounded-2xl shadow-lg transition-transform hover:-translate-y-1 duration-300">
-                 <img 
-                    src={trabajoImg}
-                    alt="Trabajo con contratos digitales" 
-                    className="w-full object-cover aspect-video group-hover:scale-105 transition-transform duration-700"
-                  />
+
+               {/* Columna Derecha de Fotos (Desplazada hacia abajo) */}
+               <div className="space-y-4 pt-8">
+                  {/* Foto 3: Conferencia (Horizontal - Pequeña) */}
+                  <div className="relative rounded-2xl overflow-hidden shadow-md group">
+                    <img 
+                      src="./assets/conferencia.jpg" 
+                      alt="Disertando en conferencia" 
+                      className="w-full h-40 object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                       <p className="text-white text-xs font-bold flex items-center gap-1"><Globe size={12}/> Autoridad</p>
+                    </div>
+                  </div>
+
+                  {/* Foto 4: Perfil (Vertical - Grande) */}
+                  <div className="relative rounded-2xl overflow-hidden shadow-md group">
+                    <img 
+                      src="./assets/perfil.jpg" 
+                      alt="Perfil personal Agustín" 
+                      className="w-full h-72 object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                       <p className="text-white text-xs font-bold flex items-center gap-1"><UserCheck size={12}/> Cercanía</p>
+                    </div>
+                  </div>
                </div>
              </div>
 
-             {/* Column 2 - Offset vertically */}
-             <div className="space-y-4 z-10 -mt-8">
-                {/* Foto 3: Panel/Charla (Horizontal) */}
-                <div className="relative group overflow-hidden rounded-2xl shadow-lg transition-transform hover:-translate-y-1 duration-300">
-                  <img 
-                    src={conferenciaImg}
-                    alt="Disertando en conferencia" 
-                    className="w-full object-cover aspect-video group-hover:scale-105 transition-transform duration-700"
-                  />
-                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
-                    <p className="text-white text-xs font-bold flex items-center gap-1"><Globe size={12}/> Autoridad & Experiencia</p>
-                  </div>
-                </div>
-
-                {/* Foto 4: Perfil (Vertical) */}
-                 <div className="relative group overflow-hidden rounded-2xl shadow-lg transition-transform hover:-translate-y-1 duration-300">
-                  <img 
-                    src={perfilImg} 
-                    alt="Perfil personal Agustín" 
-                    className="w-full object-cover aspect-[3/4] group-hover:scale-105 transition-transform duration-700"
-                  />
-                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
-                    <p className="text-white text-xs font-bold flex items-center gap-1"><UserCheck size={12}/> Humano & Cercano</p>
-                  </div>
-                </div>
-             </div>
-
-             {/* Floating Quote Card */}
-             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20 w-48 hover:scale-105 transition-transform cursor-default">
-                <div className="bg-white/95 backdrop-blur-md p-4 rounded-xl shadow-2xl border border-gray-100 text-center">
-                    <p className="text-firma font-bold text-sm">"No era por usar camisa"</p>
-                    <p className="text-gray-500 text-[10px] mt-1 leading-tight">La seriedad no está en la ropa, está en los resultados.</p>
-                </div>
+             {/* Tarjeta Flotante (Centrada) */}
+             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-xl shadow-xl border border-gray-100 text-center w-48 z-20 hidden md:block">
+                <p className="text-firma font-bold text-sm">"Resultados reales"</p>
+                <p className="text-gray-500 text-[10px] mt-1">Más allá de la formalidad.</p>
              </div>
           </div>
           
-          {/* Text Content */}
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-firma text-xs font-bold uppercase tracking-wider mb-4">
+          {/* Contenido de Texto */}
+          <div className="flex flex-col justify-center h-full mt-8 md:mt-0">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-firma text-xs font-bold uppercase tracking-wider mb-4 self-start">
               <span className="w-2 h-2 rounded-full bg-firma"></span>
-              Founding
+              Sobre el Fundador
             </div>
             <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6 leading-tight">
               De las aulas de la <span className="text-firma">UBA</span> al ecosistema digital global.
@@ -100,29 +94,26 @@ export const About: React.FC = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-10 border-t border-gray-100 pt-8">
-              <div className="flex flex-col items-center text-center p-2">
-                <div className="w-10 h-10 rounded-full bg-blue-50 text-firma flex items-center justify-center mb-3">
-                    <GraduationCap size={20} />
+            <div className="grid grid-cols-3 gap-2 mt-10 border-t border-gray-100 pt-8">
+              <div className="flex flex-col items-center text-center p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                <div className="text-firma mb-2">
+                    <GraduationCap size={24} />
                 </div>
-                <span className="text-sm font-bold text-gray-900">Formación UBA</span>
-                <span className="text-xs text-gray-500 mt-1">Derecho Internacional</span>
+                <span className="text-sm font-bold text-gray-900 leading-tight">Formación<br/>UBA</span>
               </div>
               
-              <div className="flex flex-col items-center text-center p-2">
-                <div className="w-10 h-10 rounded-full bg-blue-50 text-firma flex items-center justify-center mb-3">
-                    <Briefcase size={20} />
+              <div className="flex flex-col items-center text-center p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                <div className="text-firma mb-2">
+                    <Briefcase size={24} />
                 </div>
-                <span className="text-sm font-bold text-gray-900">Experiencia B2B</span>
-                <span className="text-xs text-gray-500 mt-1">Negocios Reales</span>
+                <span className="text-sm font-bold text-gray-900 leading-tight">Experiencia<br/>B2B</span>
               </div>
 
-              <div className="flex flex-col items-center text-center p-2">
-                <div className="w-10 h-10 rounded-full bg-blue-50 text-firma flex items-center justify-center mb-3">
-                    <UserCheck size={20} />
+              <div className="flex flex-col items-center text-center p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                <div className="text-firma mb-2">
+                    <UserCheck size={24} />
                 </div>
-                <span className="text-sm font-bold text-gray-900">Trato Directo</span>
-                <span className="text-xs text-gray-500 mt-1">Sin Intermediarios</span>
+                <span className="text-sm font-bold text-gray-900 leading-tight">Trato<br/>Directo</span>
               </div>
             </div>
           </div>
