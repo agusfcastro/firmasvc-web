@@ -1,5 +1,9 @@
 import React from 'react';
 import { Globe, UserCheck, Briefcase, GraduationCap } from 'lucide-react';
+import diplomaImg from '../assets/diploma.jpg';
+import trabajoImg from '../assets/trabajo.jpg';
+import diplomaImg from '../assets/conferencia.jpg';
+import trabajoImg from '../assets/perfil.jpg';
 
 export const About: React.FC = () => {
   return (
@@ -17,7 +21,7 @@ export const About: React.FC = () => {
                {/* Foto 1: Graduación/Diploma (Vertical) */}
                <div className="relative group overflow-hidden rounded-2xl shadow-lg transition-transform hover:-translate-y-1 duration-300">
                   <img 
-                    src="../assets/diploma.jpg" 
+                    src={diplomaImg} 
                     alt="Agustín recibiendo diploma UBA" 
                     className="w-full object-cover aspect-[3/4] group-hover:scale-105 transition-transform duration-700"
                   />
@@ -29,7 +33,7 @@ export const About: React.FC = () => {
                {/* Foto 2: Laptop/Contrato (Horizontal/Cuadrada) */}
                <div className="relative group overflow-hidden rounded-2xl shadow-lg transition-transform hover:-translate-y-1 duration-300">
                  <img 
-                    src="../assets/trabajo.jpg" 
+                    src="{trabajoImg}
                     alt="Trabajo con contratos digitales" 
                     className="w-full object-cover aspect-video group-hover:scale-105 transition-transform duration-700"
                   />
@@ -41,7 +45,7 @@ export const About: React.FC = () => {
                 {/* Foto 3: Panel/Charla (Horizontal) */}
                 <div className="relative group overflow-hidden rounded-2xl shadow-lg transition-transform hover:-translate-y-1 duration-300">
                   <img 
-                    src="../assets/conferencia.jpg" 
+                    src={conferenciaImg}
                     alt="Disertando en conferencia" 
                     className="w-full object-cover aspect-video group-hover:scale-105 transition-transform duration-700"
                   />
@@ -53,7 +57,7 @@ export const About: React.FC = () => {
                 {/* Foto 4: Casual/Playa (Vertical) */}
                  <div className="relative group overflow-hidden rounded-2xl shadow-lg transition-transform hover:-translate-y-1 duration-300">
                   <img 
-                    src="../assets/perfil.jpg" 
+                    src={perfilImg} 
                     alt="Perfil personal Agustín" 
                     className="w-full object-cover aspect-[3/4] group-hover:scale-105 transition-transform duration-700"
                   />
@@ -76,7 +80,7 @@ export const About: React.FC = () => {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-firma text-xs font-bold uppercase tracking-wider mb-4">
               <span className="w-2 h-2 rounded-full bg-firma"></span>
-              Sobre el Fundador
+              Founding
             </div>
             <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6 leading-tight">
               De las aulas de la <span className="text-firma">UBA</span> al ecosistema digital global.
