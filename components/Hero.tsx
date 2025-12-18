@@ -17,7 +17,7 @@ export const Hero: React.FC = () => {
           </div>
           
           <h1 className="text-5xl md:text-7xl font-bold text-gray-900 tracking-tight mb-6 leading-tight">
-            Blindamos legalmente <br/>
+            blindamos legalmente <br/>
             <span className="text-firma">tu negocio digital</span>
           </h1>
           

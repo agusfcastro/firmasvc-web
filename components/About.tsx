@@ -1,56 +1,122 @@
 import React from 'react';
-import { Globe, UserCheck, Briefcase } from 'lucide-react';
+import { Globe, UserCheck, Briefcase, GraduationCap } from 'lucide-react';
 
 export const About: React.FC = () => {
   return (
-    <section id="about" className="py-20 bg-white">
+    <section id="about" className="py-20 bg-white overflow-hidden">
       <div className="container mx-auto px-4 md:px-6">
-        <div className="grid md:grid-cols-2 gap-12 items-center">
-          <div className="relative">
-             <div className="absolute inset-0 bg-firma rounded-2xl rotate-3 opacity-20 transform translate-x-2 translate-y-2"></div>
-             {/* Placeholder for Agustin's Image - using a generic professional image */}
-             <img 
-              src="https://picsum.photos/600/800?grayscale" 
-              alt="Agustín, Fundador de Firma" 
-              className="relative rounded-2xl shadow-xl w-full h-[600px] object-cover"
-             />
-             <div className="absolute bottom-8 left-8 bg-white p-6 rounded-xl shadow-lg max-w-xs">
-                <p className="text-firma font-bold text-lg">"No era por usar camisa"</p>
-                <p className="text-gray-600 text-sm mt-1">Nuestros clientes decían que éramos más serios que la competencia.</p>
+        <div className="grid md:grid-cols-2 gap-16 items-center">
+          
+          {/* Image Masonry Grid */}
+          <div className="grid grid-cols-2 gap-4 relative">
+             {/* Decorative Background Blob */}
+             <div className="absolute inset-0 bg-firma/5 blur-3xl rounded-full transform scale-150 z-0"></div>
+             
+             {/* Column 1 */}
+             <div className="space-y-4 z-10 mt-8">
+               {/* Foto 1: Graduación/Diploma (Vertical) */}
+               <div className="relative group overflow-hidden rounded-2xl shadow-lg transition-transform hover:-translate-y-1 duration-300">
+                  <img 
+                    src="https://placehold.co/400x500/e2e8f0/475569?text=Foto+Diploma" 
+                    alt="Agustín recibiendo diploma UBA" 
+                    className="w-full object-cover aspect-[3/4] group-hover:scale-105 transition-transform duration-700"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+                    <p className="text-white text-xs font-bold flex items-center gap-1"><GraduationCap size={12}/> Formación Académica</p>
+                  </div>
+               </div>
+               
+               {/* Foto 2: Laptop/Contrato (Horizontal/Cuadrada) */}
+               <div className="relative group overflow-hidden rounded-2xl shadow-lg transition-transform hover:-translate-y-1 duration-300">
+                 <img 
+                    src="https://placehold.co/400x300/e2e8f0/475569?text=Foto+Laptop+y+Contrato" 
+                    alt="Trabajo con contratos digitales" 
+                    className="w-full object-cover aspect-video group-hover:scale-105 transition-transform duration-700"
+                  />
+               </div>
+             </div>
+
+             {/* Column 2 - Offset vertically */}
+             <div className="space-y-4 z-10 -mt-8">
+                {/* Foto 3: Panel/Charla (Horizontal) */}
+                <div className="relative group overflow-hidden rounded-2xl shadow-lg transition-transform hover:-translate-y-1 duration-300">
+                  <img 
+                    src="https://placehold.co/400x300/e2e8f0/475569?text=Foto+Panel+Charla" 
+                    alt="Disertando en conferencia" 
+                    className="w-full object-cover aspect-video group-hover:scale-105 transition-transform duration-700"
+                  />
+                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+                    <p className="text-white text-xs font-bold flex items-center gap-1"><Globe size={12}/> Autoridad & Experiencia</p>
+                  </div>
+                </div>
+
+                {/* Foto 4: Casual/Playa (Vertical) */}
+                 <div className="relative group overflow-hidden rounded-2xl shadow-lg transition-transform hover:-translate-y-1 duration-300">
+                  <img 
+                    src="https://placehold.co/400x500/e2e8f0/475569?text=Foto+Casual+Playa" 
+                    alt="Perfil personal Agustín" 
+                    className="w-full object-cover aspect-[3/4] group-hover:scale-105 transition-transform duration-700"
+                  />
+                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+                    <p className="text-white text-xs font-bold flex items-center gap-1"><UserCheck size={12}/> Humano & Cercano</p>
+                  </div>
+                </div>
+             </div>
+
+             {/* Floating Quote Card */}
+             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20 w-48 hover:scale-105 transition-transform cursor-default">
+                <div className="bg-white/95 backdrop-blur-md p-4 rounded-xl shadow-2xl border border-gray-100 text-center">
+                    <p className="text-firma font-bold text-sm">"No era por usar camisa"</p>
+                    <p className="text-gray-500 text-[10px] mt-1 leading-tight">La seriedad no está en la ropa, está en los resultados.</p>
+                </div>
              </div>
           </div>
           
+          {/* Text Content */}
           <div>
-            <h2 className="text-sm font-bold text-firma uppercase tracking-wider mb-2">Sobre Nosotros</h2>
-            <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">De las Aulas Internacionales al Emprendimiento Digital</h3>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-firma text-xs font-bold uppercase tracking-wider mb-4">
+              <span className="w-2 h-2 rounded-full bg-firma"></span>
+              Sobre el Fundador
+            </div>
+            <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6 leading-tight">
+              De las aulas de la <span className="text-firma">UBA</span> al ecosistema digital global.
+            </h3>
             
             <div className="space-y-6 text-lg text-gray-600 text-justify">
               <p>
-                Hola, soy <strong>Agustín</strong>. Durante años, mi mundo fue el <span className="text-firma font-medium">Derecho Internacional Privado</span>. Me fascinaba cómo las leyes se cruzaban entre países en un mundo cada vez más interconectado.
+                Hola, soy <strong>Agustín</strong>. Mi carrera comenzó entre libros de <span className="text-firma font-medium">Derecho Internacional Privado</span> y pasillos académicos. Me apasionaba investigar cómo las leyes cruzan fronteras, participando en congresos y seminarios de alto nivel.
               </p>
               <p>
-                Investigaba y enseñaba sobre los desafíos de la globalización en aulas y seminarios. Pero había otra faceta en mi vida: era dueño de un negocio digital.
+                Pero mientras me formaba en la teoría, también vivía la práctica: gestionaba mi propia consultora B2B. Ahí entendí una verdad incómoda: <strong>el mundo legal tradicional es lento y burocrático</strong>, justo lo opuesto a lo que necesita un negocio digital.
               </p>
               <p>
-                Durante dos años estuve al frente de una consultora B2B. Ahí entendí que la seriedad no se mide por la vestimenta, sino por la seguridad que transmites.
-              </p>
-              <p>
-                Así nació <strong>firma</strong>. Una propuesta orientada a dueños de negocio que buscan diferenciarse. Unimos el rigor legal con la agilidad del ecosistema online.
+                Fundé <strong>firma</strong> para cerrar esa brecha. Unimos el rigor académico y la seguridad jurídica con la velocidad y flexibilidad que exige el mercado online actual.
               </p>
             </div>
 
-            <div className="grid grid-cols-3 gap-4 mt-10">
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <Globe className="mx-auto text-firma mb-2" size={24} />
-                <span className="text-sm font-semibold block">Visión Global</span>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-10 border-t border-gray-100 pt-8">
+              <div className="flex flex-col items-center text-center p-2">
+                <div className="w-10 h-10 rounded-full bg-blue-50 text-firma flex items-center justify-center mb-3">
+                    <GraduationCap size={20} />
+                </div>
+                <span className="text-sm font-bold text-gray-900">Formación UBA</span>
+                <span className="text-xs text-gray-500 mt-1">Derecho Internacional</span>
               </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <Briefcase className="mx-auto text-firma mb-2" size={24} />
-                <span className="text-sm font-semibold block">Exp. B2B</span>
+              
+              <div className="flex flex-col items-center text-center p-2">
+                <div className="w-10 h-10 rounded-full bg-blue-50 text-firma flex items-center justify-center mb-3">
+                    <Briefcase size={20} />
+                </div>
+                <span className="text-sm font-bold text-gray-900">Experiencia B2B</span>
+                <span className="text-xs text-gray-500 mt-1">Negocios Reales</span>
               </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <UserCheck className="mx-auto text-firma mb-2" size={24} />
-                <span className="text-sm font-semibold block">Trato Personal</span>
+
+              <div className="flex flex-col items-center text-center p-2">
+                <div className="w-10 h-10 rounded-full bg-blue-50 text-firma flex items-center justify-center mb-3">
+                    <UserCheck size={20} />
+                </div>
+                <span className="text-sm font-bold text-gray-900">Trato Directo</span>
+                <span className="text-xs text-gray-500 mt-1">Sin Intermediarios</span>
               </div>
             </div>
           </div>
