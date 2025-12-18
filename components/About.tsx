@@ -1,7 +1,7 @@
 import React from 'react';
-import { Globe, UserCheck, Briefcase, GraduationCap } from 'lucide-center';
+import { Globe, UserCheck, Briefcase, GraduationCap } from 'lucide-react';
 
-// 1. IMPORTACIÓN DE IMÁGENES (Indispensable para que el deploy no falle)
+// 1. IMPORTACIÓN DE IMÁGENES
 import diplomaImg from '../assets/diploma.jpg';
 import trabajoImg from '../assets/trabajo.jpg';
 import conferenciaImg from '../assets/conferencia.jpg';
@@ -21,7 +21,6 @@ export const About: React.FC = () => {
              <div className="grid grid-cols-2 gap-4">
                {/* Columna Izquierda de Fotos */}
                <div className="space-y-4">
-                  {/* Foto 1: Graduación */}
                   <div className="relative rounded-2xl overflow-hidden shadow-md group">
                     <img 
                       src={diplomaImg} 
@@ -33,7 +32,6 @@ export const About: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Foto 2: Trabajo */}
                   <div className="relative rounded-2xl overflow-hidden shadow-md group">
                     <img 
                       src={trabajoImg} 
@@ -43,9 +41,8 @@ export const About: React.FC = () => {
                   </div>
                </div>
 
-               {/* Columna Derecha de Fotos (Desplazada hacia abajo) */}
+               {/* Columna Derecha de Fotos */}
                <div className="space-y-4 pt-8">
-                  {/* Foto 3: Conferencia */}
                   <div className="relative rounded-2xl overflow-hidden shadow-md group">
                     <img 
                       src={conferenciaImg} 
@@ -57,7 +54,6 @@ export const About: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Foto 4: Perfil */}
                   <div className="relative rounded-2xl overflow-hidden shadow-md group">
                     <img 
                       src={perfilImg} 
@@ -71,10 +67,10 @@ export const About: React.FC = () => {
                </div>
              </div>
 
-             {/* Tarjeta Flotante (Centrada) */}
+             {/* Tarjeta Flotante */}
              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-xl shadow-xl border border-gray-100 text-center w-48 z-20 hidden md:block">
                 <p className="text-firma font-bold text-sm">"Resultados reales"</p>
-                <p className="text-gray-500 text-[10px] mt-1">Más allá de la formalidad.</p>
+                <p className="text-gray-500 text-[10px] mt-1 leading-tight">Más allá de la formalidad.</p>
              </div>
           </div>
           
