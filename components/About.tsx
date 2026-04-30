@@ -1,5 +1,6 @@
 import React from 'react';
 import { Globe, UserCheck, Briefcase, GraduationCap } from 'lucide-react';
+import { Reveal } from './Reveal';
 
 // 1. IMPORTACIÓN DE IMÁGENES
 import diplomaImg from '../assets/diploma.jpg';
@@ -12,9 +13,9 @@ export const About: React.FC = () => {
     <section id="about" className="py-20 bg-white overflow-hidden">
       <div className="container mx-auto px-4 md:px-6">
         <div className="grid md:grid-cols-2 gap-16 items-start">
-          
+
           {/* Columna de Imágenes (Diseño Estructurado/Bento) */}
-          <div className="relative pr-4">
+          <Reveal className="relative pr-4">
              {/* Elemento decorativo de fondo */}
              <div className="absolute top-10 left-10 right-0 bottom-0 bg-gray-100 rounded-[3rem] -z-10 transform rotate-2"></div>
              
@@ -80,10 +81,10 @@ export const About: React.FC = () => {
                 <p className="text-firma font-bold text-sm">"Resultados reales"</p>
                 <p className="text-gray-500 text-[10px] mt-1 leading-tight">Más allá de la formalidad.</p>
              </div>
-          </div>
-          
+          </Reveal>
+
           {/* Contenido de Texto */}
-          <div className="flex flex-col justify-center h-full mt-8 md:mt-0">
+          <Reveal delay={150} className="flex flex-col justify-center h-full mt-8 md:mt-0">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-firma text-xs font-bold uppercase tracking-wider mb-4 self-start">
               <span className="w-2 h-2 rounded-full bg-firma"></span>
               Sobre el Fundador
@@ -126,7 +127,7 @@ export const About: React.FC = () => {
                 <span className="text-sm font-bold text-gray-900 leading-tight">Trato<br/>Directo</span>
               </div>
             </div>
-          </div>
+          </Reveal>
         </div>
       </div>
     </section>

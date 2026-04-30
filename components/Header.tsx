@@ -2,12 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
 import { Logo } from './Logo';
 import { Button } from './Button';
-
-const CALENDLY_URL = 'https://calendly.com/agustinlegales/30min';
-
-const openCalendly = () => {
-  window.Calendly?.initPopupWidget({ url: CALENDLY_URL });
-};
+import { openCalendly } from '../lib/calendly';
 
 export const Header: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);

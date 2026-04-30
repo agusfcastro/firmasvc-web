@@ -1,12 +1,26 @@
 import React from 'react';
 import { ArrowRight, ShieldCheck } from 'lucide-react';
 import { Button } from './Button';
-
-const CALENDLY_URL = 'https://calendly.com/agustinlegales/30min';
+import { openCalendly } from '../lib/calendly';
 
 export const Hero: React.FC = () => {
   return (
     <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
+      {/* Subtle grid pattern — fades at the edges via radial mask */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage:
+            'linear-gradient(rgba(75,107,255,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(75,107,255,0.07) 1px, transparent 1px)',
+          backgroundSize: '64px 64px',
+          maskImage:
+            'radial-gradient(ellipse 70% 60% at 50% 40%, black 30%, transparent 80%)',
+          WebkitMaskImage:
+            'radial-gradient(ellipse 70% 60% at 50% 40%, black 30%, transparent 80%)',
+        }}
+      />
+
       {/* Background Elements */}
       <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-firma/10 rounded-full blur-3xl opacity-50"></div>
       <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-blue-300/10 rounded-full blur-3xl opacity-50"></div>
@@ -30,7 +44,7 @@ export const Hero: React.FC = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Button
               className="w-full sm:w-auto text-lg px-8 py-4"
-              onClick={() => window.Calendly?.initPopupWidget({ url: CALENDLY_URL })}
+              onClick={openCalendly}
             >
               Agendar auditoría
               <ArrowRight size={20} />
@@ -47,6 +61,22 @@ export const Hero: React.FC = () => {
           <p className="mt-8 text-sm text-gray-400 font-medium tracking-wide uppercase">
             porque cada acuerdo es una oportunidad para construir seguridad
           </p>
+
+          {/* Stat strip — reemplazá los números por los reales cuando los tengas */}
+          <div className="mt-14 pt-10 border-t border-gray-200/70 grid grid-cols-3 gap-4 max-w-2xl mx-auto">
+            <div className="text-center">
+              <div className="text-3xl md:text-4xl font-bold text-firma">+30</div>
+              <div className="text-xs md:text-sm text-gray-500 uppercase tracking-wider mt-1">Contratos a medida</div>
+            </div>
+            <div className="text-center border-x border-gray-200/70">
+              <div className="text-3xl md:text-4xl font-bold text-firma">+15</div>
+              <div className="text-xs md:text-sm text-gray-500 uppercase tracking-wider mt-1">Sociedades constituidas</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl md:text-4xl font-bold text-firma">5+</div>
+              <div className="text-xs md:text-sm text-gray-500 uppercase tracking-wider mt-1">Años de práctica</div>
+            </div>
+          </div>
         </div>
       </div>
     </section>

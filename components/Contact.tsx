@@ -1,13 +1,14 @@
 import React from 'react';
 import { Calendar, Mail, MessageCircle } from 'lucide-react';
 import { Button } from './Button';
-
-const CALENDLY_URL = 'https://calendly.com/agustinlegales/30min';
+import { Reveal } from './Reveal';
+import { openCalendly } from '../lib/calendly';
 
 export const Contact: React.FC = () => {
   return (
     <section id="contact" className="py-20 bg-blue-50">
       <div className="container mx-auto px-4 md:px-6">
+        <Reveal>
         <div className="bg-white rounded-3xl p-8 md:p-12 shadow-xl flex flex-col md:flex-row items-center justify-between gap-12 overflow-hidden relative">
           <div className="absolute top-0 right-0 w-64 h-64 bg-firma/5 rounded-full -mr-16 -mt-16"></div>
           
@@ -49,7 +50,7 @@ export const Contact: React.FC = () => {
              {/* Mock Calendar Button acting as the main CTA */}
              <Button
                 fullWidth
-                onClick={() => window.Calendly?.initPopupWidget({ url: CALENDLY_URL })}
+                onClick={openCalendly}
              >
                 Ver Disponibilidad
              </Button>
@@ -58,6 +59,7 @@ export const Contact: React.FC = () => {
              </p>
           </div>
         </div>
+        </Reveal>
       </div>
     </section>
   );
