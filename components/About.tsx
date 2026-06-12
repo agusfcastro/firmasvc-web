@@ -3,7 +3,7 @@ import { Reveal } from './Reveal';
 
 export const About: React.FC = () => {
   return (
-    <section id="about" className="py-20 bg-white overflow-hidden">
+    <section id="about" className="pt-6 pb-20 bg-white overflow-hidden">
       <div className="container mx-auto px-4 md:px-6">
         <Reveal className="relative max-w-3xl mx-auto">
            {/* Elemento decorativo de fondo */}

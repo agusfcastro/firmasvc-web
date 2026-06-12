@@ -5,7 +5,7 @@ import { openCalendly } from '../lib/calendly';
 
 export const Hero: React.FC = () => {
   return (
-    <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
+    <section className="relative pt-32 pb-10 lg:pt-48 lg:pb-14 overflow-hidden">
       {/* Subtle grid pattern — fades at the edges via radial mask */}
       <div
         aria-hidden="true"
@@ -62,19 +62,19 @@ export const Hero: React.FC = () => {
             porque cada acuerdo es una oportunidad para construir seguridad
           </p>
 
-          {/* Stat strip — reemplazá los números por los reales cuando los tengas */}
+          {/* Stat strip */}
           <div className="mt-14 pt-10 border-t border-gray-200/70 grid grid-cols-3 gap-4 max-w-2xl mx-auto">
             <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-firma">+30</div>
+              <div className="text-3xl md:text-4xl font-bold text-firma">+55</div>
               <div className="text-xs md:text-sm text-gray-500 uppercase tracking-wider mt-1">Contratos</div>
             </div>
             <div className="text-center border-x border-gray-200/70">
-              <div className="text-3xl md:text-4xl font-bold text-firma">+10</div>
-              <div className="text-xs md:text-sm text-gray-500 uppercase tracking-wider mt-1">Sociedades constituidas</div>
+              <div className="text-3xl md:text-4xl font-bold text-firma">+20</div>
+              <div className="text-xs md:text-sm text-gray-500 uppercase tracking-wider mt-1">Marcas registradas</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-firma">5+</div>
-              <div className="text-xs md:text-sm text-gray-500 uppercase tracking-wider mt-1">Años de práctica</div>
+              <div className="text-3xl md:text-4xl font-bold text-firma">+10</div>
+              <div className="text-xs md:text-sm text-gray-500 uppercase tracking-wider mt-1">Sociedades constituidas</div>
             </div>
           </div>
         </div>

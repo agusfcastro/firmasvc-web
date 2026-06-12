@@ -5,6 +5,9 @@ import brauniLogo from '../assets/clients/brauni.png';
 import f14Logo from '../assets/clients/f14.jpg';
 import exportingExpertsLogo from '../assets/clients/exportingexperts.png';
 import realPlusLogo from '../assets/clients/realplus.png';
+import aumentaTuValorLogo from '../assets/clients/aumentatuvalor.png';
+import nexusLogo from '../assets/clients/nexus.png';
+import cocinaEmprendedoraLogo from '../assets/clients/cocinaempre.png';
 
 interface Client {
   name: string;
@@ -37,6 +40,24 @@ const clients: Client[] = [
     logo: realPlusLogo,
     bg: '#7B1535',
     url: 'https://www.instagram.com/alejo.growth/',
+  },
+  {
+    name: 'Aumenta Tu Valor',
+    logo: aumentaTuValorLogo,
+    bg: '#000000',
+    url: 'https://www.instagram.com/juanxcarrizo/',
+  },
+  {
+    name: 'Nexus',
+    logo: nexusLogo,
+    bg: '#FFFFFF',
+    url: 'https://www.instagram.com/facundoledesma.ok/',
+  },
+  {
+    name: 'Cocina Emprendedora',
+    logo: cocinaEmprendedoraLogo,
+    bg: '#FFFFFF',
+    url: 'https://www.instagram.com/cocinaemprendedora.oficial/',
   },
 ];
 
