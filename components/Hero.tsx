@@ -38,7 +38,7 @@ export const Hero: React.FC = () => {
           </h1>
 
           <p className="text-xl md:text-2xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Soluciones legales prácticas y estratégicas que evitan reembolsos, problemas con socios y proveedores.
+            Soluciones estratégicas que evitan reembolsos, problemas con socios y proveedores.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -66,10 +66,10 @@ export const Hero: React.FC = () => {
           <div className="mt-14 pt-10 border-t border-gray-200/70 grid grid-cols-3 gap-4 max-w-2xl mx-auto">
             <div className="text-center">
               <div className="text-3xl md:text-4xl font-bold text-firma">+30</div>
-              <div className="text-xs md:text-sm text-gray-500 uppercase tracking-wider mt-1">Contratos a medida</div>
+              <div className="text-xs md:text-sm text-gray-500 uppercase tracking-wider mt-1">Contratos</div>
             </div>
             <div className="text-center border-x border-gray-200/70">
-              <div className="text-3xl md:text-4xl font-bold text-firma">+15</div>
+              <div className="text-3xl md:text-4xl font-bold text-firma">+10</div>
               <div className="text-xs md:text-sm text-gray-500 uppercase tracking-wider mt-1">Sociedades constituidas</div>
             </div>
             <div className="text-center">

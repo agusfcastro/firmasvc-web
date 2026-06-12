@@ -19,19 +19,19 @@ const steps: Step[] = [
   {
     number: '02',
     title: 'Estrategia',
-    description: 'Diseñamos la solución legal a medida de tu modelo de negocio y de los próximos 12 meses.',
+    description: 'Diseñamos la solución legal a medida de tu modelo de negocio. Nada de soluciones modelo',
     icon: Target,
   },
   {
     number: '03',
     title: 'Implementación',
-    description: 'Ejecutamos: contratos, registros, sociedades, protocolos. Sin demoras burocráticas.',
+    description: 'Ejecutamos: contratos, registros, sociedades y protocolos. Sin demoras burocráticas.',
     icon: Cog,
   },
   {
     number: '04',
     title: 'Soporte continuo',
-    description: 'Te acompañamos a medida que tu negocio crece y aparecen nuevos desafíos legales.',
+    description: 'Te acompañamos a medida que tu negocio crece para enfrentar los nuevos desafíos legales.',
     icon: LifeBuoy,
   },
 ];
