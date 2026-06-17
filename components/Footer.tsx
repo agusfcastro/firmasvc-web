@@ -82,9 +82,12 @@ export const Footer: React.FC = () => {
 
         {/* Bottom bar */}
         <div className="pt-8 border-t border-gray-200 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-gray-500">
-            © {new Date().getFullYear()} Firma. Todos los derechos reservados.
-          </p>
+          <div className="flex flex-col sm:flex-row items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+            <p>© {new Date().getFullYear()} Firma. Todos los derechos reservados.</p>
+            <a href="/privacidad" className="hover:text-firma transition-colors">
+              Política de Privacidad
+            </a>
+          </div>
           <div className="flex items-center gap-3">
             <a
               href="https://www.instagram.com/firmaservices/"

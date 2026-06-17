@@ -8,8 +8,14 @@ import { Testimonials } from './components/Testimonials';
 import { Contact } from './components/Contact';
 import { Footer } from './components/Footer';
 import { WhatsAppButton } from './components/WhatsAppButton';
+import { PrivacyPolicy } from './components/PrivacyPolicy';
 
 function App() {
+  const path = window.location.pathname.replace(/\/$/, '');
+  if (path === '/privacidad' || path === '/privacy') {
+    return <PrivacyPolicy />;
+  }
+
   return (
     <div className="min-h-screen bg-white">
       <Header />
