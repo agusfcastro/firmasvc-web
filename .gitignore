@@ -25,3 +25,7 @@ dist-ssr
 
 .claude/
 metadata.json
+
+# Media pesada: el MP4 de presentación se sube aparte a public/video/
+design_handoff_firma_home/video/
+public/video/*.mp4

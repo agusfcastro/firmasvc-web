@@ -1,6 +1,8 @@
 import React from 'react';
 import { Search, Target, Cog, LifeBuoy } from 'lucide-react';
+import { Button } from './Button';
 import { Reveal } from './Reveal';
+import { openCalendly } from '../lib/calendly';
 
 interface Step {
   number: string;
@@ -19,7 +21,7 @@ const steps: Step[] = [
   {
     number: '02',
     title: 'Estrategia',
-    description: 'Diseñamos la solución legal a medida de tu modelo de negocio. Nada de soluciones modelo',
+    description: 'Diseñamos la solución legal a medida de tu modelo de negocio. Nada de soluciones modelo.',
     icon: Target,
   },
   {
@@ -38,62 +40,39 @@ const steps: Step[] = [
 
 export const Process: React.FC = () => {
   return (
-    <section id="process" className="py-20 bg-white">
-      <div className="container mx-auto px-4 md:px-6">
-        {/* Heading */}
-        <Reveal>
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-sm font-bold text-firma uppercase tracking-wider mb-2">
-              Cómo trabajamos
-            </h2>
-            <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Un proceso claro, sin sorpresas
-            </h3>
-            <p className="text-gray-600 text-lg">
-              Cuatro etapas diseñadas para darte resultados desde la primera conversación.
-            </p>
-          </div>
-        </Reveal>
+    <section id="process" className="section">
+      <div className="wrap flex flex-col gap-14">
+        <div className="flex flex-col items-center gap-4 max-w-[60ch] mx-auto text-center">
+          <p className="eyebrow text-piedra">Cómo trabajamos</p>
+          <h2 className="h2">¿Cómo ayudamos a nuestros clientes?</h2>
+          <p className="text-[17px] leading-[1.55] text-piedra">
+            Cuatro etapas diseñadas para darte resultados desde la primera conversación.
+          </p>
+        </div>
 
-        {/* Steps */}
-        <div className="relative">
-          {/* Subtle connecting line on desktop */}
-          <div
-            aria-hidden="true"
-            className="hidden md:block absolute top-12 left-[12.5%] right-[12.5%] h-px"
-            style={{
-              backgroundImage:
-                'repeating-linear-gradient(to right, #4B6BFF40 0 6px, transparent 6px 14px)',
-            }}
-          />
+        <div className="steps">
+          <div className="steps-line" aria-hidden="true" />
 
-          <div className="grid md:grid-cols-4 gap-10 md:gap-6 relative">
-            {steps.map((step, idx) => (
-              <Reveal key={step.number} delay={idx * 120}>
-                <div className="relative flex flex-col items-center text-center">
-                {/* Number badge with icon */}
-                <div className="relative w-24 h-24 mb-6">
-                  {/* Big number watermark */}
-                  <span className="absolute inset-0 flex items-center justify-center text-7xl font-black text-firma/10 leading-none select-none">
-                    {step.number}
-                  </span>
-                  {/* Icon circle */}
-                  <div className="relative z-10 w-24 h-24 bg-white border-2 border-firma rounded-full flex items-center justify-center shadow-sm">
-                    <step.icon size={32} className="text-firma" />
+          {steps.map((step, idx) => (
+            <Reveal key={step.number} delay={idx * 120}>
+              <div className="relative flex flex-col items-center text-center gap-2.5">
+                <div className="step-badge">
+                  <span aria-hidden="true" className="wm">{step.number}</span>
+                  <div className="step-circle">
+                    <step.icon size={32} strokeWidth={1.8} className="text-tinta" />
                   </div>
                 </div>
 
-                <div className="text-xs font-bold text-firma uppercase tracking-widest mb-2">
-                  Paso {step.number}
-                </div>
-                <h4 className="text-xl font-bold text-gray-900 mb-3">{step.title}</h4>
-                <p className="text-gray-600 text-sm leading-relaxed max-w-xs">
-                  {step.description}
-                </p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
+                <span className="eyebrow text-piedra">Paso {step.number}</span>
+                <h3 className="h3">{step.title}</h3>
+                <p className="text-[15px] leading-[1.6] text-piedra max-w-[30ch]">{step.description}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+
+        <div className="text-center">
+          <Button onClick={openCalendly}>Agendar auditoría</Button>
         </div>
       </div>
     </section>

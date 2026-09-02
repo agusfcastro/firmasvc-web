@@ -10,13 +10,13 @@ export const WhatsAppButton: React.FC = () => {
       href={whatsappUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="fixed bottom-6 right-6 z-40 bg-[#25D366] hover:bg-[#20bd5a] text-white p-4 rounded-full shadow-xl transition-transform duration-300 hover:scale-110 flex items-center justify-center group"
+      className="fixed bottom-6 right-6 z-40 bg-tinta hover:bg-bosque text-marfil w-14 h-14 transition-colors duration-150 flex items-center justify-center group"
       aria-label="Contactar por WhatsApp"
     >
       <svg 
         viewBox="0 0 24 24" 
-        width="28" 
-        height="28" 
+        width="26" 
+        height="26" 
         fill="currentColor" 
         className="fill-current"
       >
@@ -24,7 +24,7 @@ export const WhatsAppButton: React.FC = () => {
       </svg>
       
       {/* Tooltip on hover (ahora a la izquierda) */}
-      <span className="absolute right-full mr-4 bg-white text-gray-800 px-3 py-1 rounded-lg shadow-md text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+      <span className="absolute right-full mr-3 bg-tinta text-marfil px-3 py-1.5 text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none">
         ¡Hablemos por WhatsApp!
       </span>
     </a>

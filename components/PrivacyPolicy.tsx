@@ -16,12 +16,12 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title
 
 export const PrivacyPolicy: React.FC = () => {
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-marfil flex flex-col">
       {/* Simple header */}
-      <header className="border-b border-gray-100">
-        <div className="container mx-auto px-4 md:px-6 h-20 flex items-center justify-between">
-          <a href="/" className="text-3xl select-none">
-            <Logo />
+      <header className="border-b border-tinta/15">
+        <div className="container mx-auto px-4 md:px-6 h-28 flex items-center justify-between">
+          <a href="/" className="flex items-center select-none">
+            <Logo className="h-12 max-w-[62vw]" />
           </a>
           <a
             href="/"

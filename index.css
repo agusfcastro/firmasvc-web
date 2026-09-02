@@ -1,19 +1,95 @@
 @import "tailwindcss";
 
 @theme {
-  --color-firma: #4B6BFF;
-  --color-firma-dark: #3550D0;
-  --color-firma-light: #7A91FF;
-  --font-sans: 'Inter', sans-serif;
+  /* Paleta Firma — marfil dominante, carbón/tinta para contraste, verde bosque como único acento */
+  --color-marfil: #F5F3EC;
+  --color-marfil-oscuro: #EDEBE2;
+  --color-carbon: #2B2B2B;
+  --color-tinta: #1B1F1B;
+  --color-piedra: #6B6553;
+  --color-calido: #A9A79E;
+  --color-bosque: #173A2F;
+  --color-bosque-dark: #12302A;
+
+  /* Alias heredado: el resto del sitio (Política de Privacidad) lo usa como acento */
+  --color-firma: #173A2F;
+  --color-firma-dark: #12302A;
+  --color-firma-light: #2B5646;
+
+  --font-sans: 'Archivo', system-ui, sans-serif;
+  --font-heading: 'Bitter', Georgia, serif;
+
+  /* Breakpoints del diseño (720 / 900 / 1000) */
+  --breakpoint-tab: 720px;
+  --breakpoint-desk: 900px;
+  --breakpoint-wide: 1000px;
 }
 
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 100px;
+  scroll-padding-top: 112px;
 }
 
 body {
   font-family: var(--font-sans);
+  background: var(--color-marfil);
+  color: var(--color-tinta);
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-heading);
+  text-wrap: pretty;
+}
+
+/* ---- Primitivas del sistema (valores exactos del handoff) ---- */
+
+.wrap {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+@media (min-width: 900px) {
+  .wrap { padding: 0 48px; }
+}
+
+.section { padding: 72px 0; }
+@media (min-width: 900px) {
+  .section { padding: 112px 0; }
+}
+
+.rule { border-top: 1px solid rgba(27, 31, 27, 0.15); }
+
+.h1 { font-size: clamp(36px, 7vw, 72px); line-height: 1.02; letter-spacing: -0.02em; font-weight: 900; }
+.h2 { font-size: clamp(28px, 4.5vw, 44px); line-height: 1.08; letter-spacing: -0.015em; font-weight: 900; }
+.h3 { font-size: clamp(20px, 2.4vw, 24px); line-height: 1.2; font-weight: 700; }
+
+.eyebrow {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+/* ---- Marquee de clientes: track triplicado, 40s, pausa en hover ---- */
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-33.3333%); }
+}
+
+.marquee-track {
+  animation: marquee 40s linear infinite;
+  will-change: transform;
+}
+
+.marquee-container:hover .marquee-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation: none; }
 }
 
 .scrollbar-hide::-webkit-scrollbar {
@@ -24,16 +100,129 @@ body {
   scrollbar-width: none;
 }
 
-@keyframes marquee {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
+/* ---- Tarjetas de Servicios (fondo carbón) ---- */
+
+.card {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-tinta);
+  border: 1px solid rgba(245, 243, 236, 0.12);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: 100%;
+  transition: transform 0.3s, border-color 0.3s;
+}
+.card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(245, 243, 236, 0.4);
 }
 
-.marquee-track {
-  animation: marquee 28s linear infinite;
-  will-change: transform;
+.card .wm {
+  position: absolute;
+  top: -10px;
+  right: 2px;
+  font-family: var(--font-heading);
+  font-weight: 900;
+  font-size: 88px;
+  line-height: 1;
+  color: rgba(245, 243, 236, 0.06);
+  user-select: none;
+  pointer-events: none;
+  transition: color 0.3s;
+}
+.card:hover .wm { color: rgba(245, 243, 236, 0.12); }
+
+.icon-box {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-marfil);
+  color: var(--color-tinta);
+  transition: background 0.3s, color 0.3s;
+}
+.card:hover .icon-box {
+  background: var(--color-bosque);
+  color: var(--color-marfil);
 }
 
-.marquee-container:hover .marquee-track {
-  animation-play-state: paused;
+@media (prefers-reduced-motion: reduce) {
+  .card, .card .wm, .icon-box { transition: none; }
+  .card:hover { transform: none; }
+}
+
+/* ---- Proceso: 4 pasos unidos por una línea punteada ---- */
+
+.steps { position: relative; display: grid; grid-template-columns: 1fr; gap: 48px; }
+@media (min-width: 900px) {
+  .steps { grid-template-columns: repeat(4, 1fr); gap: 24px; }
+}
+
+.steps-line { display: none; }
+@media (min-width: 900px) {
+  .steps-line {
+    display: block;
+    position: absolute;
+    top: 48px;
+    left: 12.5%;
+    right: 12.5%;
+    height: 1px;
+    background-image: repeating-linear-gradient(to right, rgba(27, 31, 27, 0.35) 0 6px, transparent 6px 14px);
+  }
+}
+
+.step-badge {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+.step-badge .wm {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-weight: 900;
+  font-size: 84px;
+  line-height: 1;
+  color: rgba(27, 31, 27, 0.07);
+  user-select: none;
+  pointer-events: none;
+}
+.step-circle {
+  position: relative;
+  z-index: 1;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 2px solid var(--color-tinta);
+  background: var(--color-marfil);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---- Contacto: a partir de 900px el h2 no se rompe ---- */
+
+.contact-heading { font-size: clamp(28px, 4.5vw, 44px); }
+@media (min-width: 900px) {
+  .contact-heading { font-size: clamp(26px, 3.2vw, 40px); white-space: nowrap; }
+}
+
+/* ---- Cifras del hero ---- */
+
+/* A 375px la columna mide ~95px útiles y "REGISTRADAS" con ls 0.2em no entra:
+   aflojamos el tracking sólo en pantallas angostas. */
+.stat-label { font-size: 11px; }
+@media (max-width: 479px) {
+  .stat-label { letter-spacing: 0.12em; }
 }

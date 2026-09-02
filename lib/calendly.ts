@@ -9,11 +9,11 @@ export function openCalendly() {
   window.Calendly?.initPopupWidget({
     url: CALENDLY_URL,
     pageSettings: {
-      backgroundColor: 'ffffff',
+      backgroundColor: 'F5F3EC',
       hideEventTypeDetails: false,
       hideLandingPageDetails: false,
-      primaryColor: '4B6BFF',
-      textColor: '111827',
+      primaryColor: '173A2F',
+      textColor: '1B1F1B',
     },
   });
 }

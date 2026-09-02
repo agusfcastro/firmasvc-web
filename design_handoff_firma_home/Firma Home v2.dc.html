@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Firma — blindamos legalmente tu negocio digital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Bitter:wght@700;900&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;padding:0;background:#F5F3EC;color:#1B1F1B;font-family:Archivo,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:inherit;text-decoration:none}
+a:hover{color:#173A2F}
+h1,h2,h3,h4{margin:0;font-family:Bitter,Georgia,serif;text-wrap:pretty}
+p{margin:0;text-wrap:pretty}
+.wrap{width:100%;max-width:1200px;margin:0 auto;padding:0 20px}
+@media(min-width:900px){.wrap{padding:0 48px}}
+.h1{font-size:clamp(36px,7vw,72px);line-height:1.02;letter-spacing:-0.02em;font-weight:900}
+.h2{font-size:clamp(28px,4.5vw,44px);line-height:1.08;letter-spacing:-0.015em;font-weight:900}
+.h3{font-size:clamp(20px,2.4vw,24px);line-height:1.2;font-weight:700}
+.eyebrow{font-family:Archivo,sans-serif;font-weight:500;font-size:12px;letter-spacing:0.2em;text-transform:uppercase}
+.nav-links{display:none;gap:28px;font-size:14px;font-weight:500;align-items:center}
+@media(min-width:900px){.nav-links{display:flex}}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;height:52px;padding:0 24px;font-family:Archivo,sans-serif;font-weight:500;font-size:15px;white-space:nowrap;transition:background .15s,color .15s}
+.btn-dark{background:#1B1F1B;color:#F5F3EC}.btn-dark:hover{background:#2B2B2B;color:#F5F3EC}
+.btn-light{background:#F5F3EC;color:#1B1F1B}.btn-light:hover{background:#fff;color:#1B1F1B}
+.btn-green{background:#173A2F;color:#F5F3EC}.btn-green:hover{background:#12302a;color:#F5F3EC}
+.btn-ghost{border:1px solid #1B1F1B;color:#1B1F1B;background:transparent}.btn-ghost:hover{background:#1B1F1B;color:#F5F3EC}
+.section{padding:72px 0}
+@media(min-width:900px){.section{padding:112px 0}}
+.rule{border-top:1px solid rgba(27,31,27,0.15)}
+.g2{display:grid;grid-template-columns:1fr;gap:16px}
+@media(min-width:720px){.g2{grid-template-columns:1fr 1fr}}
+.g4{display:grid;grid-template-columns:1fr;gap:0}
+@media(min-width:720px){.g4{grid-template-columns:1fr 1fr}}
+@media(min-width:1000px){.g4{grid-template-columns:repeat(4,1fr)}}
+.cell{padding:28px 24px 28px 0;border-top:1px solid rgba(27,31,27,0.15);display:flex;flex-direction:column;gap:12px}
+@media(min-width:1000px){.cell{padding-right:24px;padding-left:24px;border-left:1px solid rgba(27,31,27,0.15)}.cell:first-child{padding-left:0;border-left:none}}
+.dcell{padding:28px 24px 28px 0;border-top:1px solid rgba(245,243,236,0.16);display:flex;flex-direction:column;gap:12px}
+@media(min-width:1000px){.dcell{padding-left:24px;border-left:1px solid rgba(245,243,236,0.16)}.dcell:first-child{padding-left:0;border-left:none}}
+.split{display:grid;grid-template-columns:1fr;gap:32px}
+@media(min-width:900px){.split{grid-template-columns:5fr 7fr;gap:64px}}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);max-width:720px;margin:0 auto;border-top:1px solid rgba(27,31,27,0.15)}
+.stat{padding:24px 8px 0;text-align:center;display:flex;flex-direction:column;gap:6px}
+.stat+.stat{border-left:1px solid rgba(27,31,27,0.15)}
+.marquee-wrap{overflow:hidden;position:relative;mask-image:linear-gradient(90deg,transparent,black 10%,black 90%,transparent);-webkit-mask-image:linear-gradient(90deg,transparent,black 10%,black 90%,transparent)}
+.marquee-track{display:flex;gap:24px;width:max-content;animation:mq 40s linear infinite}
+.marquee-wrap:hover .marquee-track{animation-play-state:paused}
+@keyframes mq{from{transform:translateX(0)}to{transform:translateX(-33.3333%)}}
+.logo-tile{flex:0 0 auto;width:192px;height:88px;display:flex;align-items:center;justify-content:center;padding:18px 24px}
+.logo-tile img{max-width:100%;max-height:100%;object-fit:contain;opacity:0.85;transition:opacity .15s}
+.logo-tile:hover img{opacity:1}
+.hide-m{display:none}
+@media(min-width:720px){.hide-m{display:inline}}
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.reveal.in{opacity:1;transform:none}
+.cards{display:grid;grid-template-columns:1fr;gap:20px}
+@media(min-width:720px){.cards{grid-template-columns:1fr 1fr}}
+@media(min-width:1000px){.cards{grid-template-columns:repeat(4,1fr)}}
+.card{position:relative;overflow:hidden;background:#1B1F1B;border:1px solid rgba(245,243,236,0.12);padding:32px;display:flex;flex-direction:column;gap:14px;transition:transform .3s,border-color .3s}
+.card:hover{transform:translateY(-4px);border-color:rgba(245,243,236,0.4)}
+.card .wm{position:absolute;top:-10px;right:2px;font-family:Bitter,serif;font-weight:900;font-size:88px;line-height:1;color:rgba(245,243,236,0.06);user-select:none;transition:color .3s}
+.card:hover .wm{color:rgba(245,243,236,0.12)}
+.icon-box{width:56px;height:56px;display:flex;align-items:center;justify-content:center;background:#F5F3EC;color:#1B1F1B;transition:background .3s,color .3s}
+.card:hover .icon-box{background:#173A2F;color:#F5F3EC}
+.steps{position:relative;display:grid;grid-template-columns:1fr;gap:48px}
+@media(min-width:900px){.steps{grid-template-columns:repeat(4,1fr);gap:24px}}
+.steps-line{display:none}
+@media(min-width:900px){.steps-line{display:block;position:absolute;top:48px;left:12.5%;right:12.5%;height:1px;background-image:repeating-linear-gradient(to right,rgba(27,31,27,0.35) 0 6px,transparent 6px 14px)}}
+.step{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px}
+.step-badge{position:relative;width:96px;height:96px;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+.step-badge .wm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:Bitter,serif;font-weight:900;font-size:84px;line-height:1;color:rgba(27,31,27,0.07);user-select:none}
+.step-circle{position:relative;z-index:1;width:96px;height:96px;border-radius:50%;border:2px solid #1B1F1B;background:#F5F3EC;display:flex;align-items:center;justify-content:center}
+.contact{display:grid;grid-template-columns:1fr;gap:40px}
+@media(min-width:900px){.contact{grid-template-columns:7fr 5fr;gap:64px;align-items:center}.contact .h2{font-size:clamp(26px,3.2vw,40px);white-space:nowrap}}
+</style>
+</helmet>
+
+<div style="background:#F5F3EC;color:#1B1F1B;min-height:100vh" data-screen-label="Home">
+
+<header style="position:sticky;top:0;z-index:20;background:#F5F3EC;border-bottom:1px solid rgba(27,31,27,0.12)">
+  <div class="wrap" style="display:flex;align-items:center;justify-content:space-between;height:112px;gap:16px">
+    <a href="#top" style="display:flex;align-items:center;min-width:0"><img src="brand/lockup-claro.png" alt="firma — Castro &amp; Company / Legal Consulting" style="height:72px;width:auto;display:block;max-width:62vw;object-fit:contain"></a>
+    <nav class="nav-links">
+      <a href="#about">Nosotros</a>
+      <a href="#services">Servicios</a>
+      <a href="https://www.youtube.com/@agusfcastro" target="_blank">Recursos</a>
+      <a href="#testimonials">Clientes</a>
+      <a href="{{ agenda }}" class="btn {{ btnPrimary }}" style="height:40px;padding:0 18px;font-size:14px">Agenda</a>
+    </nav>
+    <a href="{{ agenda }}" class="btn {{ btnPrimary }}" style="height:40px;padding:0 16px;font-size:14px;display:{{ mobileCtaDisplay }}">Agenda</a>
+  </div>
+</header>
+
+<!-- HERO -->
+<section id="top" style="padding:80px 0 64px;text-align:center;position:relative;overflow:hidden" data-screen-label="Hero">
+  <img src="brand/simbolo-claro.png" alt="" aria-hidden="true" style="position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);width:min(140vw,1400px);max-width:none;opacity:0.06;pointer-events:none;user-select:none">
+  <div class="wrap" style="display:flex;flex-direction:column;align-items:center;gap:32px;position:relative">
+    <h1 class="h1" style="margin-top:24px">blindamos legalmente<br><span style="color:{{ accentText }}">tu negocio digital</span></h1>
+    <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center">
+      <a href="{{ agenda }}" class="btn {{ btnPrimary }}" style="height:56px;padding:0 32px;font-size:16px">Agendar auditoría →</a>
+      <a href="#services" class="btn btn-ghost" style="height:56px;padding:0 32px;font-size:16px">Conocer servicios</a>
+    </div>
+    <p style="font-size:clamp(17px,2vw,22px);line-height:1.45;color:#6B6553;text-wrap:balance;max-width:26em">Soluciones estratégicas que evitan que reembolsos, morosos y tu equipo se coman tu facturación.</p>
+    <div class="stats" style="margin-top:24px;width:100%">
+      <div class="stat"><span style="font-family:Bitter,serif;font-weight:900;font-size:clamp(28px,4vw,40px);color:{{ accentText }}">+55</span><span class="eyebrow" style="color:#6B6553;font-size:11px">Contratos</span></div>
+      <div class="stat"><span style="font-family:Bitter,serif;font-weight:900;font-size:clamp(28px,4vw,40px);color:{{ accentText }}">+20</span><span class="eyebrow" style="color:#6B6553;font-size:11px">Marcas registradas</span></div>
+      <div class="stat"><span style="font-family:Bitter,serif;font-weight:900;font-size:clamp(28px,4vw,40px);color:{{ accentText }}">+10</span><span class="eyebrow" style="color:#6B6553;font-size:11px">Sociedades constituidas</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- VIDEO (About) -->
+<section id="about" style="padding:0 0 88px" data-screen-label="Video">
+  <div class="wrap" style="max-width:960px">
+    <div style="position:relative;aspect-ratio:16/9;background:#2B2B2B;overflow:hidden">
+      <video src="assets/video/presentacion.mp4" poster="brand/og.png" controls preload="metadata" playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#2B2B2B"></video>
+    </div>
+    <div style="display:flex;justify-content:space-between;gap:16px;padding-top:14px;font-size:13px;color:#6B6553;flex-wrap:wrap">
+      <span>Conocé a Agustín, fundador de firma</span>
+      <span class="eyebrow" style="font-size:11px">Resultados reales. Más allá de la formalidad.</span>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICIOS -->
+<section id="services" class="section" style="background:#2B2B2B;color:#F5F3EC" data-screen-label="Servicios">
+  <div class="wrap" style="display:flex;flex-direction:column;gap:56px">
+    <div style="display:flex;flex-direction:column;gap:16px;max-width:60ch;margin:0 auto;text-align:center;align-items:center">
+      <p class="eyebrow" style="color:#A9A79E">Nuestros servicios</p>
+      <h2 class="h2">Soluciones de alto valor</h2>
+      <p style="font-size:17px;line-height:1.55;color:#A9A79E">No vendemos papeles, vendemos la infraestructura legal para que tu negocio escale sin techos de cristal.</p>
+    </div>
+    <div class="cards">
+      <div class="card reveal" style="transition-delay:0ms"><span class="wm">01</span>
+        <div class="icon-box"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18"></path><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"></path><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"></path><path d="M10 6h4M10 10h4M10 14h4M10 18h4"></path></svg></div>
+        <h3 class="h3">Sociedad constituida</h3><p style="color:#A9A79E;line-height:1.6;font-size:15px">Estructuramos legalmente tu empresa para garantizar seguridad jurídica para ambas partes desde el día uno.</p></div>
+      <div class="card reveal" style="transition-delay:100ms"><span class="wm">02</span>
+        <div class="icon-box"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M8 13h8M8 17h8M8 9h2"></path></svg></div>
+        <h3 class="h3">Contratos a medida</h3><p style="color:#A9A79E;line-height:1.6;font-size:15px">Cada cierre es único. Olvidate de plantillas genéricas. Redactamos contratos específicos para tu modelo de negocio.</p></div>
+      <div class="card reveal" style="transition-delay:200ms"><span class="wm">03</span>
+        <div class="icon-box"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h12a2 2 0 0 0 2-2v-2H10v2a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v3h4"></path><path d="M19 17V5a2 2 0 0 0-2-2H4"></path><path d="M15 8h-5M15 12h-5"></path></svg></div>
+        <h3 class="h3">Protocolos de rendición</h3><p style="color:#A9A79E;line-height:1.6;font-size:15px">Establecemos protocolos claros para una correcta rendición de cuentas, vital para la salud financiera y legal.</p></div>
+      <div class="card reveal" style="transition-delay:300ms"><span class="wm">04</span>
+        <div class="icon-box"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg></div>
+        <h3 class="h3">Registro de marcas</h3><p style="color:#A9A79E;line-height:1.6;font-size:15px">Protegemos tu activo más valioso. Registro de todas y cada una de tus marcas comerciales.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- PROCESO -->
+<section id="process" class="section" data-screen-label="Proceso">
+  <div class="wrap" style="display:flex;flex-direction:column;gap:56px">
+    <div style="display:flex;flex-direction:column;gap:16px;max-width:60ch;margin:0 auto;text-align:center;align-items:center">
+      <p class="eyebrow" style="color:#6B6553">Cómo trabajamos</p>
+      <h2 class="h2">¿Cómo ayudamos a nuestros clientes?</h2>
+      <p style="font-size:17px;line-height:1.55;color:#6B6553">Cuatro etapas diseñadas para darte resultados desde la primera conversación.</p>
+    </div>
+    <div class="steps">
+      <div class="steps-line" aria-hidden="true"></div>
+      <div class="step reveal" style="transition-delay:0ms">
+        <div class="step-badge"><span class="wm">01</span><div class="step-circle"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1B1F1B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg></div></div>
+        <span class="eyebrow" style="color:#6B6553">Paso 01</span><h3 class="h3">Diagnóstico</h3><p style="color:#6B6553;line-height:1.6;font-size:15px;max-width:30ch">Analizamos tu negocio y detectamos los riesgos legales prioritarios sin tecnicismos innecesarios.</p></div>
+      <div class="step reveal" style="transition-delay:120ms">
+        <div class="step-badge"><span class="wm">02</span><div class="step-circle"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1B1F1B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="5"></circle><circle cx="12" cy="12" r="1"></circle></svg></div></div>
+        <span class="eyebrow" style="color:#6B6553">Paso 02</span><h3 class="h3">Estrategia</h3><p style="color:#6B6553;line-height:1.6;font-size:15px;max-width:30ch">Diseñamos la solución legal a medida de tu modelo de negocio. Nada de soluciones modelo.</p></div>
+      <div class="step reveal" style="transition-delay:240ms">
+        <div class="step-badge"><span class="wm">03</span><div class="step-circle"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1B1F1B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"></path></svg></div></div>
+        <span class="eyebrow" style="color:#6B6553">Paso 03</span><h3 class="h3">Implementación</h3><p style="color:#6B6553;line-height:1.6;font-size:15px;max-width:30ch">Ejecutamos: contratos, registros, sociedades y protocolos. Sin demoras burocráticas.</p></div>
+      <div class="step reveal" style="transition-delay:360ms">
+        <div class="step-badge"><span class="wm">04</span><div class="step-circle"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1B1F1B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3.5"></circle><path d="M5.6 5.6l3.9 3.9M14.5 14.5l3.9 3.9M5.6 18.4l3.9-3.9M14.5 9.5l3.9-3.9"></path></svg></div></div>
+        <span class="eyebrow" style="color:#6B6553">Paso 04</span><h3 class="h3">Soporte continuo</h3><p style="color:#6B6553;line-height:1.6;font-size:15px;max-width:30ch">Te acompañamos a medida que tu negocio crece para enfrentar los nuevos desafíos legales.</p></div>
+    </div>
+    <div style="text-align:center"><a href="{{ agenda }}" class="btn {{ btnPrimary }}">Agendar auditoría</a></div>
+  </div>
+</section>
+
+<!-- CLIENTES -->
+<section id="testimonials" class="section rule" style="padding-left:0;padding-right:0" data-screen-label="Clientes">
+  <div class="wrap" style="display:flex;flex-direction:column;gap:12px;text-align:center;align-items:center;margin-bottom:48px">
+    <p class="eyebrow" style="color:#6B6553">Negocios que confían en nosotros</p>
+    <h2 class="h2">Clientes de la firma</h2>
+  </div>
+  <div class="marquee-wrap">
+    <div class="marquee-track">
+      <sc-for list="{{ clientes }}" as="c" hint-placeholder-count="21">
+        <a href="{{ c.url }}" target="_blank" class="logo-tile" aria-label="{{ c.name }}"><img src="{{ c.logo }}" alt="{{ c.name }}"></a>
+      </sc-for>
+    </div>
+  </div>
+</section>
+
+<!-- QUIÉN ESTÁ DETRÁS -->
+<section id="quien" class="section rule" data-screen-label="Quién">
+  <div class="wrap split" style="align-items:start">
+    <div style="position:relative;aspect-ratio:4/5;background:#2B2B2B;overflow:hidden;max-width:420px">
+      <img src="brand/retrato.png" alt="Agustín Castro" style="width:100%;height:100%;object-fit:cover;object-position:top;display:block;filter:grayscale(1) contrast(1.05)">
+      <div style="position:absolute;left:0;right:0;bottom:0;padding:10px 14px;background:#2B2B2B;color:#A9A79E;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;display:flex;justify-content:space-between;gap:8px"><span>Retrato provisorio</span><span>Sesión pendiente</span></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:24px">
+      <p class="eyebrow" style="color:#6B6553">Carta a futuros clientes</p>
+      <h2 class="h2">Hola, soy Agustín Castro.</h2>
+      <p style="font-size:17px;line-height:1.6;max-width:52ch">Abogado (UBA) y docente universitario. Antes de ejercer construí una agencia de marketing y otros proyectos propios. Sé lo que es cobrar tarde, perder un cliente por un malentendido y armar un equipo sin saber qué papel firmarle a cada uno.</p>
+      <p style="font-size:17px;line-height:1.6;max-width:52ch;color:#6B6553">Por eso Firma piensa como los negocios que asesora: primero la operación, después el derecho. Lo que enseño en el aula lo aplico en tu contrato, y lo que aprendí emprendiendo lo uso para que no repitas mis errores.</p>
+      <p style="font-family:Bitter,serif;font-weight:700;font-size:clamp(20px,2.2vw,26px);line-height:1.3;max-width:30ch">Construiste algo que vale la pena defender. Hagamos que crezca sin que nadie te lo pueda discutir.</p>
+      <p style="font-size:14px;color:#6B6553">— Agustín</p>
+      <div style="display:flex;gap:24px;flex-wrap:wrap">
+        <a href="https://instagram.com/agustin.legales" target="_blank" style="font-size:14px;font-weight:500;text-decoration:underline;text-underline-offset:4px">@agustin.legales</a>
+        <a href="https://www.linkedin.com/in/agusfcastro/" target="_blank" style="font-size:14px;font-weight:500;text-decoration:underline;text-underline-offset:4px">LinkedIn</a>
+        <a href="https://www.youtube.com/@agusfcastro" target="_blank" style="font-size:14px;font-weight:500;text-decoration:underline;text-underline-offset:4px">YouTube</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACTO -->
+<section id="contact" class="section rule" data-screen-label="Contacto">
+  <div class="wrap contact">
+    <div style="display:flex;flex-direction:column;gap:24px">
+      <h2 class="h2">Poner orden en tu negocio<br>está a una <span style="color:{{ accentText }}">firma</span> de distancia.</h2>
+      <p style="font-size:17px;line-height:1.55;color:#6B6553;max-width:46ch">Una llamada de 30 minutos puede cambiar el rumbo legal de tu negocio. Es momento de tomarte en serio.</p>
+      <div style="display:flex;flex-direction:column;gap:10px;font-size:15px;font-weight:500">
+        <a href="mailto:agustin@firmasvc.com" style="text-decoration:underline;text-underline-offset:4px">agustin@firmasvc.com</a>
+        <a href="https://wa.me/5491124617035?text=Hola%20Agust%C3%ADn,%20me%20interesa%20conocer%20m%C3%A1s%20sobre%20tus%20servicios." target="_blank" style="text-decoration:underline;text-underline-offset:4px">+54 9 11 2461-7035 · WhatsApp</a>
+      </div>
+    </div>
+    <div style="background:#2B2B2B;color:#F5F3EC;padding:40px 32px;display:flex;flex-direction:column;gap:20px;align-items:flex-start">
+      <img src="brand/simbolo-oscuro.png" alt="" style="height:22px;width:auto">
+      <h3 class="h3">Agendá tu llamada</h3>
+      <p style="color:#A9A79E;font-size:15px;line-height:1.5">Seleccioná un horario disponible. Te enviamos un enlace de Google Meet.</p>
+      <a href="{{ agenda }}" class="btn {{ btnOnDark }}" style="width:100%">Ver disponibilidad</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer style="background:#2B2B2B;color:#A9A79E" data-screen-label="Footer">
+  <div class="wrap" style="padding-top:72px;padding-bottom:40px;display:flex;flex-direction:column;gap:56px">
+    <img src="brand/lockup-oscuro.png" alt="firma — Castro &amp; Company / Legal Consulting" style="height:48px;width:auto;align-self:flex-start;max-width:100%;object-fit:contain">
+    <div class="g4" style="gap:32px">
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:14px;line-height:1.6">
+        <span style="color:#F5F3EC;font-weight:500">Agustín Castro</span>
+        <span>Abogado (UBA)</span>
+        <span>Buenos Aires, Argentina</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:14px;line-height:1.6">
+        <a href="#about" style-hover="color:#F5F3EC">Sobre nosotros</a>
+        <a href="#services" style-hover="color:#F5F3EC">Servicios</a>
+        <a href="#process" style-hover="color:#F5F3EC">Proceso</a>
+        <a href="#testimonials" style-hover="color:#F5F3EC">Clientes</a>
+        <a href="#contact" style-hover="color:#F5F3EC">Contacto</a>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:14px;line-height:1.6">
+        <a href="mailto:agustin@firmasvc.com" style-hover="color:#F5F3EC">agustin@firmasvc.com</a>
+        <a href="https://wa.me/5491124617035" target="_blank" style-hover="color:#F5F3EC">+54 9 11 2461-7035</a>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:14px;line-height:1.6">
+        <a href="https://instagram.com/agustin.legales" target="_blank" style-hover="color:#F5F3EC">Instagram</a>
+        <a href="https://www.linkedin.com/in/agusfcastro/" target="_blank" style-hover="color:#F5F3EC">LinkedIn</a>
+        <a href="https://www.youtube.com/@agusfcastro" target="_blank" style-hover="color:#F5F3EC">YouTube</a>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-top:24px;border-top:1px solid rgba(245,243,236,0.14);font-size:12px">
+      <span>© 2026 Firma. Todos los derechos reservados.</span>
+      <a href="/privacidad" style-hover="color:#F5F3EC">Política de Privacidad</a>
+    </div>
+  </div>
+</footer>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;heroVariant&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;A&quot;,&quot;B&quot;],&quot;default&quot;:&quot;B&quot;,&quot;tsType&quot;:&quot;'A'|'B'&quot;,&quot;section&quot;:&quot;Hero&quot;}}">
+class Component extends DCLogic {
+  state = { narrow: typeof window !== 'undefined' && window.innerWidth < 900 };
+  componentDidMount() {
+    this._r = () => this.setState({ narrow: window.innerWidth < 900 });
+    window.addEventListener('resize', this._r);
+    this._io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); this._io.unobserve(e.target); } }), { threshold: 0.15 });
+    this._obs = () => document.querySelectorAll('.reveal:not(.in)').forEach(el => this._io.observe(el));
+    this._obs(); this._t = setInterval(this._obs, 1000);
+  }
+  componentWillUnmount() { window.removeEventListener('resize', this._r); this._io && this._io.disconnect(); clearInterval(this._t); }
+  renderVals() {
+    const v = this.props.heroVariant ?? 'B';
+    const base = [
+      { name: 'Brauni', logo: 'assets/clients/mono/brauni.png', url: 'https://brauni.io' },
+      { name: 'f14 studio', logo: 'assets/clients/mono/f14.png', url: 'https://www.instagram.com/f14.studio/' },
+      { name: 'Exporting Experts', logo: 'assets/clients/mono/exportingexperts.png', url: 'https://www.instagram.com/nicolasbartoli.experts/' },
+      { name: 'Real+', logo: 'assets/clients/mono/realplus.png', url: 'https://www.instagram.com/alejo.growth/' },
+      { name: 'Aumenta Tu Valor', logo: 'assets/clients/mono/aumentatuvalor.png', url: 'https://www.instagram.com/juanxcarrizo/' },
+      { name: 'Nexus', logo: 'assets/clients/mono/nexus.png', url: 'https://www.instagram.com/facundoledesma.ok/' },
+      { name: 'Cocina Emprendedora', logo: 'assets/clients/mono/cocinaempre.png', url: 'https://www.instagram.com/cocinaemprendedora.oficial/' }
+    ];
+    return {
+      agenda: 'https://calendly.com/agustinlegales/30min',
+      btnPrimary: v === 'B' ? 'btn-green' : 'btn-dark',
+      btnOnDark: v === 'B' ? 'btn-green' : 'btn-light',
+      accentText: v === 'B' ? '#173A2F' : '#6B6553',
+      mobileCtaDisplay: this.state.narrow ? 'inline-flex' : 'none',
+      clientes: [...base, ...base, ...base]
+    };
+  }
+}
+</script>
+</body>
+</html>
