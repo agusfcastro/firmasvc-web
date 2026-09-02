@@ -21,17 +21,12 @@ export const Letter: React.FC = () => {
               className="w-full h-full object-cover object-top block"
               style={{ filter: 'grayscale(1) contrast(1.05)' }}
             />
-            {/* Franja provisoria: quitar cuando llegue la foto de la sesión */}
-            <div className="absolute inset-x-0 bottom-0 flex justify-between gap-2 px-3.5 py-2.5 bg-carbon text-calido text-[11px] uppercase tracking-[0.12em]">
-              <span>Retrato provisorio</span>
-              <span>Sesión pendiente</span>
-            </div>
           </div>
         </Reveal>
 
         <Reveal delay={120}>
           <div className="flex flex-col gap-6">
-            <p className="eyebrow text-piedra">Carta a futuros clientes</p>
+            <p className="eyebrow text-piedra">Carta a dueños de negocio</p>
             <h2 className="h2">Hola, soy Agustín Castro.</h2>
             <p className="text-[17px] leading-[1.6] max-w-[52ch]">
               Abogado (UBA) y docente universitario. Antes de ejercer construí una agencia de marketing y otros

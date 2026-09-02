@@ -8,11 +8,16 @@ import realPlusLogo from '../assets/clients/mono/realplus.png';
 import aumentaTuValorLogo from '../assets/clients/mono/aumentatuvalor.png';
 import nexusLogo from '../assets/clients/mono/nexus.png';
 import cocinaEmprendedoraLogo from '../assets/clients/mono/cocinaempre.png';
+import ecomProjectLogo from '../assets/clients/mono/ecom-project.png';
+import momentumLogo from '../assets/clients/mono/momentum.png';
+import circulosLogo from '../assets/clients/mono/circulos.png';
+import logoSVerde from '../assets/clients/mono/logo-s-verde.png';
 
 interface Client {
   name: string;
   logo: string;
-  url: string;
+  /** Sin url el logo se muestra igual, pero como tile no clickeable */
+  url?: string;
 }
 
 const clients: Client[] = [
@@ -23,6 +28,10 @@ const clients: Client[] = [
   { name: 'Aumenta Tu Valor', logo: aumentaTuValorLogo, url: 'https://www.instagram.com/juanxcarrizo/' },
   { name: 'Nexus', logo: nexusLogo, url: 'https://www.instagram.com/facundoledesma.ok/' },
   { name: 'Cocina Emprendedora', logo: cocinaEmprendedoraLogo, url: 'https://www.instagram.com/cocinaemprendedora.oficial/' },
+  { name: 'E-com Project', logo: ecomProjectLogo },
+  { name: 'Momentum', logo: momentumLogo },
+  { name: 'Círculos', logo: circulosLogo },
+  { name: 'Logo S', logo: logoSVerde },
 ];
 
 // Tripled so the seam never appears even on very wide screens
@@ -47,15 +56,9 @@ export const Testimonials: React.FC = () => {
         }}
       >
         <div className="marquee-track flex gap-6 w-max">
-          {track.map((client, i) => (
-            <a
-              key={i}
-              href={client.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={client.name}
-              className="flex-none w-48 h-22 flex items-center justify-center px-6 py-[18px] group"
-            >
+          {track.map((client, i) => {
+            const tileClass = 'flex-none w-48 h-22 flex items-center justify-center px-6 py-[18px] group';
+            const logo = (
               <img
                 src={client.logo}
                 alt={`Logo ${client.name}`}
@@ -63,8 +66,25 @@ export const Testimonials: React.FC = () => {
                 decoding="async"
                 className="max-w-full max-h-full object-contain opacity-85 transition-opacity duration-150 group-hover:opacity-100"
               />
-            </a>
-          ))}
+            );
+
+            return client.url ? (
+              <a
+                key={i}
+                href={client.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={client.name}
+                className={tileClass}
+              >
+                {logo}
+              </a>
+            ) : (
+              <div key={i} aria-label={client.name} className={tileClass}>
+                {logo}
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>
