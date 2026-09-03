@@ -12,7 +12,7 @@ interface LogoProps {
 export const Logo: React.FC<LogoProps> = ({ variant = 'claro', className = '' }) => (
   <img
     src={variant === 'claro' ? lockupClaro : lockupOscuro}
-    alt="firma — Castro & Company / Legal Consulting"
+    alt="firma — Castro & Partners / Legal Consulting"
     className={`w-auto block object-contain ${className}`}
   />
 );

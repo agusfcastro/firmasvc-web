@@ -11,7 +11,7 @@ import cocinaEmprendedoraLogo from '../assets/clients/mono/cocinaempre.png';
 import ecomProjectLogo from '../assets/clients/mono/ecom-project.png';
 import momentumLogo from '../assets/clients/mono/momentum.png';
 import circulosLogo from '../assets/clients/mono/circulos.png';
-import logoSVerde from '../assets/clients/mono/logo-s-verde.png';
+import testoBoostLogo from '../assets/clients/mono/testoboost.png';
 
 interface Client {
   name: string;
@@ -27,11 +27,11 @@ const clients: Client[] = [
   { name: 'Real+', logo: realPlusLogo, url: 'https://www.instagram.com/alejo.growth/' },
   { name: 'Aumenta Tu Valor', logo: aumentaTuValorLogo, url: 'https://www.instagram.com/juanxcarrizo/' },
   { name: 'Nexus', logo: nexusLogo, url: 'https://www.instagram.com/facundoledesma.ok/' },
-  { name: 'Cocina Emprendedora', logo: cocinaEmprendedoraLogo, url: 'https://www.instagram.com/cocinaemprendedora.oficial/' },
-  { name: 'E-com Project', logo: ecomProjectLogo },
-  { name: 'Momentum', logo: momentumLogo },
+  { name: 'Cocina Emprendedora', logo: cocinaEmprendedoraLogo, url: 'https://www.instagram.com/cocinaemprendedora.arg/' },
+  { name: 'E-com Project', logo: ecomProjectLogo, url: 'https://ecom-project.com' },
+  { name: 'Momentum Tank', logo: momentumLogo, url: 'https://momentumtank.com' },
   { name: 'Círculos', logo: circulosLogo },
-  { name: 'Logo S', logo: logoSVerde },
+  { name: 'Testo Boost', logo: testoBoostLogo, url: 'https://testoboostoficial.com/' },
 ];
 
 // Tripled so the seam never appears even on very wide screens
