@@ -5,7 +5,7 @@ import { openCalendly } from '../lib/calendly';
 import simboloClaro from '../assets/brand/simbolo-claro.png';
 
 const stats = [
-  { value: '+55', label: 'Contratos' },
+  { value: '+150', label: 'Contratos' },
   { value: '+20', label: 'Marcas registradas' },
   { value: '+10', label: 'Sociedades constituidas' },
 ];

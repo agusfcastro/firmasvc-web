@@ -34,7 +34,7 @@ export const Footer: React.FC = () => {
   return (
     <footer className="bg-carbon text-calido">
       {/* Pie compacto: la navegación ya vive en el header, acá sólo membrete y contacto */}
-      <div className="wrap pt-24 pb-10 flex flex-col gap-14">
+      <div className="wrap pt-12 pb-10 flex flex-col gap-14">
         <div className="grid grid-cols-1 tab:grid-cols-[2fr_1fr_1fr] gap-8">
           <div className="flex flex-col gap-5">
             <Logo variant="oscuro" className="h-12 self-start max-w-full" />
