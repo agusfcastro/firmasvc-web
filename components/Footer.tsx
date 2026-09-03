@@ -34,10 +34,10 @@ export const Footer: React.FC = () => {
   return (
     <footer className="bg-carbon text-calido">
       {/* Pie compacto: la navegación ya vive en el header, acá sólo membrete y contacto */}
-      <div className="wrap pt-14 pb-8 flex flex-col gap-10">
+      <div className="wrap pt-24 pb-10 flex flex-col gap-14">
         <div className="grid grid-cols-1 tab:grid-cols-[2fr_1fr_1fr] gap-8">
           <div className="flex flex-col gap-5">
-            <Logo variant="oscuro" className="h-10 self-start max-w-full" />
+            <Logo variant="oscuro" className="h-12 self-start max-w-full" />
             <div className="flex flex-col gap-1 text-sm leading-[1.6]">
               <span className="text-marfil font-medium">Agustín Castro</span>
               <span>Abogado (UBA)</span>
@@ -50,7 +50,7 @@ export const Footer: React.FC = () => {
         </div>
 
         <div
-          className="flex flex-wrap justify-between gap-4 pt-5 text-xs"
+          className="flex flex-wrap justify-between gap-4 pt-6 text-xs"
           style={{ borderTop: '1px solid rgba(245,243,236,0.14)' }}
         >
           <span>© {new Date().getFullYear()} Firma. Todos los derechos reservados.</span>
