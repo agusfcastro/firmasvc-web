@@ -20,8 +20,8 @@ export const Hero: React.FC = () => {
         src={simboloClaro}
         alt=""
         aria-hidden="true"
-        className="absolute left-1/2 top-[38%] -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none"
-        style={{ width: 'min(140vw, 1400px)', maxWidth: 'none', opacity: 0.06 }}
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none"
+        style={{ width: 'min(140vw, 1400px)', maxWidth: 'none', maxHeight: '100%', objectFit: 'contain', opacity: 0.06 }}
       />
 
       <div className="wrap relative flex flex-col items-center gap-8">

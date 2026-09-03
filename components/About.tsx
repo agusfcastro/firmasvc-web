@@ -9,8 +9,8 @@ const VIDEO_SRC = '/video/presentacion.mp4';
 export const About: React.FC = () => {
   return (
     <section id="about" className="pb-[88px]">
-      <div className="wrap max-w-[960px]">
-        <Reveal>
+      <div className="wrap">
+        <Reveal className="max-w-[960px] mx-auto">
           <div className="relative aspect-video bg-carbon overflow-hidden">
             <video
               src={VIDEO_SRC}
