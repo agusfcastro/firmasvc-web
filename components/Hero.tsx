@@ -26,9 +26,9 @@ export const Hero: React.FC = () => {
 
       <div className="wrap relative flex flex-col items-center gap-8">
         <h1 className="h1 mt-6">
-          Sistemas legales para
+          blindamos legalmente
           <br />
-          <span className="text-bosque">negocios de alta facturación</span>
+          <span className="text-bosque">tu negocio digital</span>
         </h1>
 
         <div className="flex flex-wrap justify-center gap-3">
