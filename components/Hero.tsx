@@ -1,16 +1,9 @@
 import React from 'react';
 import { Button } from './Button';
+import { Counter } from './Counter';
 import { openCalendly } from '../lib/calendly';
 
 import simboloClaro from '../assets/brand/simbolo-claro.png';
-
-const stats = [
-  { value: '+150', label: 'Contratos' },
-  { value: '+20', label: 'Marcas registradas' },
-  { value: '+10', label: 'Sociedades constituidas' },
-];
-
-const RULE = '1px solid rgba(27,31,27,0.15)';
 
 export const Hero: React.FC = () => {
   return (
@@ -51,26 +44,7 @@ export const Hero: React.FC = () => {
           Soluciones estratégicas que evitan que reembolsos, morosos y tu equipo se coman tu facturación.
         </p>
 
-        <div
-          className="mt-6 w-full max-w-[720px] mx-auto grid grid-cols-3"
-          style={{ borderTop: RULE }}
-        >
-          {stats.map((stat, i) => (
-            <div
-              key={stat.label}
-              className="flex flex-col gap-1.5 pt-6 px-2 text-center"
-              style={i > 0 ? { borderLeft: RULE } : undefined}
-            >
-              <span
-                className="font-heading font-black text-bosque"
-                style={{ fontSize: 'clamp(28px,4vw,40px)' }}
-              >
-                {stat.value}
-              </span>
-              <span className="eyebrow stat-label text-piedra">{stat.label}</span>
-            </div>
-          ))}
-        </div>
+        <Counter />
       </div>
     </section>
   );
