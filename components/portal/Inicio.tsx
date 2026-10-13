@@ -17,7 +17,7 @@ interface Modulo {
 
 const MODULOS: Modulo[] = [
   { titulo: 'Panel de administración', texto: 'Clientes, usuarios, roles y registro de accesos.', icono: ShieldCheck, ruta: '/portal/admin', soloAdmin: true },
-  { titulo: 'CRM', texto: 'Clientes, asuntos, vencimientos, honorarios y abonos.', icono: Kanban, soloAdmin: true },
+  { titulo: 'CRM legal', texto: 'Clientes, contratos, firmas y plan de pagos.', icono: Kanban, ruta: '/portal/crm' },
   { titulo: 'Documentos', texto: 'Contratos y documentación que preparamos para tu empresa.', icono: FileText },
   { titulo: 'Estado de asuntos', texto: 'Seguimiento de cada trámite en curso.', icono: ClipboardList },
   { titulo: 'Abonos y pagos', texto: 'Tu plan, vencimientos y facturación.', icono: Wallet, soloTitular: true },

@@ -8,6 +8,7 @@ import { Ingresar } from './Ingresar';
 import { DefinirClave } from './DefinirClave';
 import { Inicio } from './Inicio';
 
+const CrmApp = lazy(() => import('./crm/CrmApp'));
 const PanelAdmin = lazy(() => import('./admin/PanelAdmin').then((m) => ({ default: m.PanelAdmin })));
 
 /**
@@ -71,6 +72,14 @@ export const PortalApp: React.FC = () => {
           Salir
         </Button>
       </Marco>
+    );
+  }
+
+  if (ruta === '/portal/crm' || ruta.startsWith('/portal/crm/')) {
+    return (
+      <Suspense fallback={<Cargando />}>
+        <CrmApp perfil={perfil} organizacion={estado.organizacion} ruta={ruta} />
+      </Suspense>
     );
   }
 
