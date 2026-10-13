@@ -90,7 +90,7 @@ export const Usuarios: React.FC<{ yo: Perfil }> = ({ yo }) => {
       {mensaje && <Aviso tipo={mensaje.tipo}>{mensaje.texto}</Aviso>}
 
       {borrador ? (
-        <form onSubmit={guardar} className="bg-white border border-[rgba(27,31,27,0.15)] p-6 space-y-5 max-w-[640px]">
+        <form onSubmit={guardar} className="bg-marfil-oscuro p-6 desk:p-8 space-y-5 max-w-[680px]">
           <h2 className="h3">{borrador.usuario_id ? 'Editar usuario' : 'Invitar usuario'}</h2>
           <Campo etiqueta="Mail" ayuda={borrador.usuario_id ? 'El mail no se puede cambiar.' : 'Le llega una invitación para que defina su contraseña.'}>
             <input type="email" required disabled={Boolean(borrador.usuario_id)} className={claseInput} value={borrador.email} onChange={(e) => setBorrador({ ...borrador, email: e.target.value })} />
@@ -162,7 +162,7 @@ export const Usuarios: React.FC<{ yo: Perfil }> = ({ yo }) => {
             <UserPlus size={16} /> Invitar usuario
           </Button>
           <div className="flex-1" />
-          <select className={`${claseInput} w-auto`} value={filtroOrg} onChange={(e) => setFiltroOrg(e.target.value)} aria-label="Filtrar por cliente">
+          <select className={`${claseInput} !w-auto min-w-[200px]`} value={filtroOrg} onChange={(e) => setFiltroOrg(e.target.value)} aria-label="Filtrar por cliente">
             <option value="todas">Todos los clientes</option>
             <option value="firma">Equipo FIRMA</option>
             {orgs.map((o) => (
@@ -171,20 +171,20 @@ export const Usuarios: React.FC<{ yo: Perfil }> = ({ yo }) => {
               </option>
             ))}
           </select>
-          <input className={`${claseInput} w-full tab:w-60`} placeholder="Buscar por nombre o mail" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
+          <input className={`${claseInput} !w-full tab:!w-64`} placeholder="Buscar por nombre o mail" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
         </div>
       )}
 
-      <div className="overflow-x-auto border border-[rgba(27,31,27,0.15)]">
-        <table className="w-full text-sm">
-          <thead className="bg-marfil-oscuro text-left">
+      <div className="overflow-x-auto">
+        <table className="tabla min-w-[760px]">
+          <thead>
             <tr>
-              <th className="p-3 font-medium">Usuario</th>
-              <th className="p-3 font-medium">Cliente</th>
-              <th className="p-3 font-medium">Rol</th>
-              <th className="p-3 font-medium">Último ingreso</th>
-              <th className="p-3 font-medium">Estado</th>
-              <th className="p-3" />
+              <th>Usuario</th>
+              <th>Cliente</th>
+              <th>Rol</th>
+              <th>Último ingreso</th>
+              <th>Estado</th>
+              <th />
             </tr>
           </thead>
           <tbody>
@@ -196,18 +196,18 @@ export const Usuarios: React.FC<{ yo: Perfil }> = ({ yo }) => {
               </tr>
             )}
             {visibles.map((u) => (
-              <tr key={u.id} className="border-t border-[rgba(27,31,27,0.1)] bg-white align-top">
-                <td className="p-3">
-                  <div className="font-medium">{u.nombre || '·'}</div>
+              <tr key={u.id}>
+                <td>
+                  <div className="font-heading font-bold text-[16px] leading-tight">{u.nombre || '·'}</div>
                   <div className="text-xs text-piedra">{u.email}</div>
                   {u.areas.length > 0 && <div className="text-xs text-piedra mt-1">{u.areas.map((a) => areas.find((x) => x.clave === a)?.nombre ?? a).join(', ')}</div>}
                 </td>
-                <td className="p-3">{u.rol === 'admin' ? 'FIRMA' : nombreOrg[u.organizacion_id ?? ''] ?? '·'}</td>
-                <td className="p-3 whitespace-nowrap">{ROTULO_ROL[u.rol]}</td>
-                <td className="p-3 whitespace-nowrap">{u.ultimo_ingreso ? fechaCorta(u.ultimo_ingreso) : <Etiqueta>Invitación pendiente</Etiqueta>}</td>
-                <td className="p-3">{u.activo ? <Etiqueta tono="bosque">Activo</Etiqueta> : <Etiqueta tono="alerta">Desactivado</Etiqueta>}</td>
-                <td className="p-3">
-                  <div className="flex flex-col items-end gap-1.5 whitespace-nowrap">
+                <td>{u.rol === 'admin' ? 'FIRMA' : nombreOrg[u.organizacion_id ?? ''] ?? '·'}</td>
+                <td className="whitespace-nowrap">{ROTULO_ROL[u.rol]}</td>
+                <td className="whitespace-nowrap">{u.ultimo_ingreso ? fechaCorta(u.ultimo_ingreso) : <Etiqueta>Invitación pendiente</Etiqueta>}</td>
+                <td>{u.activo ? <Etiqueta tono="bosque">Activo</Etiqueta> : <Etiqueta tono="alerta">Desactivado</Etiqueta>}</td>
+                <td>
+                  <div className="flex flex-wrap justify-end gap-x-4 gap-y-1.5 whitespace-nowrap max-w-[260px] ml-auto">
                     <button
                       type="button"
                       className="underline underline-offset-4 hover:text-bosque"

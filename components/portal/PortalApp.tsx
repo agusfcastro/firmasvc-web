@@ -3,7 +3,8 @@ import { Button } from '../Button';
 import { supabase } from './supabase';
 import { navegar, useRuta } from './navegacion';
 import { useSesion } from './useSesion';
-import { Aviso, Cargando, Marco } from './ui';
+import { Aviso, Cargando } from './ui';
+import { LayoutAcceso } from './LayoutAcceso';
 import { Ingresar } from './Ingresar';
 import { DefinirClave } from './DefinirClave';
 import { Inicio } from './Inicio';
@@ -48,10 +49,10 @@ export const PortalApp: React.FC = () => {
 
   if (!supabase) {
     return (
-      <Marco ancho="angosto">
+      <LayoutAcceso>
         <h1 className="h2 mb-6">Portal sin configurar</h1>
         <Aviso tipo="error">Faltan las variables VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY. Revisá la guía PORTAL.md.</Aviso>
-      </Marco>
+      </LayoutAcceso>
     );
   }
 
@@ -61,8 +62,11 @@ export const PortalApp: React.FC = () => {
 
   if (!perfil || !perfil.activo || (perfil.rol !== 'admin' && !estado.organizacion)) {
     return (
-      <Marco ancho="angosto">
-        <h1 className="h2 mb-6">Tu cuenta no está habilitada</h1>
+      <LayoutAcceso>
+        <p className="eyebrow text-piedra mb-4">Acceso</p>
+        <h1 className="h2 mb-6">
+          Tu cuenta no está <span className="text-bosque">habilitada</span>
+        </h1>
         <p className="text-piedra mb-8">Ingresaste como {sesion.user.email}, pero esta cuenta no tiene acceso activo al portal. Escribinos y lo revisamos.</p>
         <Button
           variant="ghost"
@@ -73,7 +77,7 @@ export const PortalApp: React.FC = () => {
         >
           Salir
         </Button>
-      </Marco>
+      </LayoutAcceso>
     );
   }
 

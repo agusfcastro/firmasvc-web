@@ -1,6 +1,5 @@
 import React from 'react';
-import { navegar } from '../navegacion';
-import { Marco } from '../ui';
+import { Encabezado, Enlace, Marco } from '../ui';
 import type { Perfil } from '../tipos';
 import { Usuarios } from './Usuarios';
 import { Clientes } from './Clientes';
@@ -14,26 +13,32 @@ const PESTANAS = [
 
 export const PanelAdmin: React.FC<{ perfil: Perfil; ruta: string }> = ({ perfil, ruta }) => (
   <Marco perfil={perfil}>
-    <p className="eyebrow text-piedra mb-3">Panel de administración</p>
-    <h1 className="h2 mb-8">Accesos al portal</h1>
-    <nav className="flex gap-6 mb-8 text-sm font-medium overflow-x-auto" style={{ borderBottom: '1px solid rgba(27,31,27,0.15)' }}>
-      {PESTANAS.map((p) => {
-        const activa = ruta === p.ruta;
-        return (
-          <a
-            key={p.ruta}
-            href={p.ruta}
-            onClick={(e) => {
-              e.preventDefault();
-              navegar(p.ruta);
-            }}
-            className={`pb-3 -mb-px whitespace-nowrap border-b-2 ${activa ? 'border-bosque text-bosque' : 'border-transparent hover:text-bosque'}`}
-          >
-            {p.titulo}
-          </a>
-        );
-      })}
-    </nav>
-    {ruta === '/portal/admin/clientes' ? <Clientes /> : ruta === '/portal/admin/registro' ? <Registro /> : <Usuarios yo={perfil} />}
+    <Encabezado
+      eyebrow="Administración"
+      titulo={
+        <>
+          Accesos al <span className="text-bosque">portal</span>
+        </>
+      }
+      bajada="Empresas, usuarios y permisos de todos tus clientes. Desde acá también podés ver el portal como lo ve cada uno."
+    />
+    <div className="wrap py-10 desk:py-12 flex flex-col gap-8">
+      <nav className="flex gap-6 overflow-x-auto scrollbar-hide" style={{ borderBottom: '1px solid rgba(27,31,27,0.15)' }}>
+        {PESTANAS.map((p) => {
+          const activa = ruta === p.ruta;
+          return (
+            <Enlace
+              key={p.ruta}
+              a={p.ruta}
+              aria-current={activa ? 'page' : undefined}
+              className={`pb-3 -mb-px text-sm font-medium whitespace-nowrap border-b-2 transition-colors duration-150 ${activa ? 'border-bosque text-bosque' : 'border-transparent text-piedra hover:text-tinta'}`}
+            >
+              {p.titulo}
+            </Enlace>
+          );
+        })}
+      </nav>
+      {ruta === '/portal/admin/clientes' ? <Clientes /> : ruta === '/portal/admin/registro' ? <Registro /> : <Usuarios yo={perfil} />}
+    </div>
   </Marco>
 );

@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Button } from '../Button';
 import { supabase } from './supabase';
 import { navegar } from './navegacion';
-import { Aviso, Campo, Marco, claseInput } from './ui';
+import { Aviso, Campo, claseInput } from './ui';
+import { LayoutAcceso } from './LayoutAcceso';
 
 export const Ingresar: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -39,9 +40,20 @@ export const Ingresar: React.FC = () => {
   }
 
   return (
-    <Marco ancho="angosto">
-      <p className="eyebrow text-piedra mb-3">Portal de clientes</p>
-      <h1 className="h2 mb-8">{modo === 'ingreso' ? 'Ingresá a tu cuenta' : 'Recuperá tu acceso'}</h1>
+    <LayoutAcceso>
+      <p className="eyebrow text-piedra mb-4">{modo === 'ingreso' ? 'Bienvenido' : 'Acceso'}</p>
+      <h1 className="h2 mb-3">
+        {modo === 'ingreso' ? (
+          <>
+            Ingresá a tu <span className="text-bosque">cuenta</span>
+          </>
+        ) : (
+          <>
+            Recuperá tu <span className="text-bosque">acceso</span>
+          </>
+        )}
+      </h1>
+      <p className="text-piedra mb-10">{modo === 'ingreso' ? 'Usá el mail con el que te invitamos.' : 'Te enviamos un enlace para definir una contraseña nueva.'}</p>
 
       <form onSubmit={modo === 'ingreso' ? ingresar : recuperar} className="space-y-5">
         {error && <Aviso tipo="error">{error}</Aviso>}
@@ -54,7 +66,7 @@ export const Ingresar: React.FC = () => {
             <input type="password" required autoComplete="current-password" className={claseInput} value={clave} onChange={(e) => setClave(e.target.value)} />
           </Campo>
         )}
-        <Button type="submit" fullWidth disabled={enviando}>
+        <Button type="submit" size="lg" fullWidth disabled={enviando}>
           {enviando ? 'Un momento…' : modo === 'ingreso' ? 'Ingresar' : 'Enviarme el enlace'}
         </Button>
       </form>
@@ -71,9 +83,9 @@ export const Ingresar: React.FC = () => {
         {modo === 'ingreso' ? 'Olvidé mi contraseña' : 'Volver a ingresar'}
       </button>
 
-      <p className="mt-10 text-xs text-piedra leading-relaxed">
+      <p className="mt-12 pt-6 text-xs text-piedra leading-relaxed" style={{ borderTop: '1px solid rgba(27,31,27,0.15)' }}>
         El acceso es solo por invitación. Si sos parte del equipo de un cliente de FIRMA y todavía no tenés cuenta, pedíselo a la persona responsable de tu empresa.
       </p>
-    </Marco>
+    </LayoutAcceso>
   );
 };

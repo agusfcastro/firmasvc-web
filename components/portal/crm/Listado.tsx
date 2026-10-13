@@ -3,7 +3,7 @@ import { AlertTriangle, Download, Plus, Search } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
-import { Aviso, Etiqueta, claseInput } from '../ui';
+import { Aviso, Cifras, Encabezado, Etiqueta, Monto, Pestanas, claseInput } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
 import { TONO_FIRMA, dinero, fecha, hoyISO, type ClienteResumen } from './tipos';
 
@@ -11,7 +11,7 @@ type Filtro = 'todos' | 'vencidas' | 'revisar' | 'Pendiente' | 'Firmado' | 'Baja
 
 const FILTROS: { clave: Filtro; titulo: string }[] = [
   { clave: 'todos', titulo: 'Todos' },
-  { clave: 'vencidas', titulo: 'Cuotas vencidas' },
+  { clave: 'vencidas', titulo: 'Vencidas' },
   { clave: 'Pendiente', titulo: 'Firma pendiente' },
   { clave: 'Firmado', titulo: 'Firmados' },
   { clave: 'Baja', titulo: 'Bajas' },
@@ -42,7 +42,7 @@ function csv(filas: ClienteResumen[]): string {
   return [cols.map((c) => c[0]).join(';'), ...filas.map((f) => cols.map(([, g]) => esc(g(f))).join(';'))].join('\n');
 }
 
-export const Listado: React.FC<{ orgId: string }> = ({ orgId }) => {
+export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: React.ReactNode }> = ({ orgId, orgNombre, selector }) => {
   const [filas, setFilas] = useState<ClienteResumen[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,14 +66,16 @@ export const Listado: React.FC<{ orgId: string }> = ({ orgId }) => {
   }, [orgId]);
 
   const activos = filas.filter((f) => f.estado_firma !== 'Baja');
+  const conVencidas = activos.filter((f) => f.cuotas_vencidas > 0);
   const resumen = {
     firmados: filas.filter((f) => f.estado_firma === 'Firmado').length,
     pendientes: filas.filter((f) => f.estado_firma === 'Pendiente').length,
     acordado: activos.reduce((a, f) => a + (f.monto_total ?? 0), 0),
     cobrado: activos.reduce((a, f) => a + f.cobrado, 0),
     porCobrar: activos.reduce((a, f) => a + f.pendiente, 0),
-    vencidas: activos.filter((f) => f.cuotas_vencidas > 0).length,
   };
+  const cuenta = (c: Filtro) =>
+    c === 'todos' ? filas.length : c === 'vencidas' ? conVencidas.length : c === 'revisar' ? filas.filter((f) => f.revisar_pagos).length : filas.filter((f) => f.estado_firma === c).length;
 
   const visibles = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
@@ -87,7 +89,7 @@ export const Listado: React.FC<{ orgId: string }> = ({ orgId }) => {
   }, [filas, filtro, busqueda]);
 
   function descargar() {
-    const blob = new Blob(['﻿' + csv(visibles)], { type: 'text/csv;charset=utf-8' });
+    const blob = new Blob(['\ufeff' + csv(visibles)], { type: 'text/csv;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `crm-${hoyISO()}.csv`;
@@ -95,128 +97,136 @@ export const Listado: React.FC<{ orgId: string }> = ({ orgId }) => {
     URL.revokeObjectURL(a.href);
   }
 
-  const tarjetas = [
-    { titulo: 'Contratos firmados', valor: String(resumen.firmados) },
-    { titulo: 'Firmas pendientes', valor: String(resumen.pendientes) },
-    { titulo: 'Monto acordado', valor: dinero(resumen.acordado) },
-    { titulo: 'Cobrado', valor: dinero(resumen.cobrado) },
-    { titulo: 'Por cobrar', valor: dinero(resumen.porCobrar) },
-    { titulo: 'Clientes con cuotas vencidas', valor: String(resumen.vencidas), alerta: resumen.vencidas > 0 },
-  ];
+  const pct = resumen.acordado ? Math.round((resumen.cobrado / resumen.acordado) * 100) : 0;
 
   return (
-    <div className="space-y-8">
-      {error && <Aviso tipo="error">{error}</Aviso>}
-
-      <div className="grid grid-cols-2 tab:grid-cols-3 wide:grid-cols-6 gap-px bg-[rgba(27,31,27,0.15)] border border-[rgba(27,31,27,0.15)]">
-        {tarjetas.map((t) => (
-          <div key={t.titulo} className="bg-marfil p-4">
-            <div className="text-xs text-piedra mb-1">{t.titulo}</div>
-            <div className={`text-xl font-heading font-bold tabular-nums ${t.alerta ? 'text-[#8a2b20]' : ''}`}>{cargando ? '·' : t.valor}</div>
-          </div>
-        ))}
-      </div>
-
-      <div className="flex flex-wrap gap-3 items-center">
-        {!soloLectura && (
-          <Button onClick={() => navegar('/portal/crm/nuevo')}>
-            <Plus size={16} /> Nuevo cliente
-          </Button>
-        )}
-        <div className="relative flex-1 min-w-[200px] max-w-[360px]">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-piedra" />
-          <input className={`${claseInput} pl-9`} placeholder="Buscar por nombre, código, mail o DNI" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
-        </div>
-        <div className="flex-1" />
-        <Button variant="ghost" size="sm" onClick={descargar} disabled={!visibles.length}>
-          <Download size={16} /> Exportar
-        </Button>
-      </div>
-
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {FILTROS.map((f) => (
-          <button
-            key={f.clave}
-            type="button"
-            onClick={() => setFiltro(f.clave)}
-            aria-pressed={filtro === f.clave}
-            className={`px-3 h-9 text-sm whitespace-nowrap border ${filtro === f.clave ? 'bg-tinta text-marfil border-tinta' : 'bg-white border-[rgba(27,31,27,0.25)] hover:border-tinta'}`}
-          >
-            {f.titulo}
-          </button>
-        ))}
-      </div>
-
-      <div className="overflow-x-auto border border-[rgba(27,31,27,0.15)]">
-        <table className="w-full text-sm">
-          <thead className="bg-marfil-oscuro text-left">
-            <tr>
-              <th className="p-3 font-medium">Cliente</th>
-              <th className="p-3 font-medium">Servicio</th>
-              <th className="p-3 font-medium text-right">Acordado</th>
-              <th className="p-3 font-medium text-right">Cobrado</th>
-              <th className="p-3 font-medium">Próxima cuota</th>
-              <th className="p-3 font-medium">Firma</th>
-              <th className="p-3 font-medium">Responsable</th>
-            </tr>
-          </thead>
-          <tbody>
-            {!cargando && visibles.length === 0 && (
-              <tr>
-                <td colSpan={7} className="p-6 text-piedra">
-                  No hay clientes para mostrar.
-                </td>
-              </tr>
+    <>
+      <Encabezado
+        eyebrow="CRM legal"
+        titulo={
+          <>
+            Clientes de <span className="text-bosque">{orgNombre}</span>
+          </>
+        }
+        bajada="Contratos, firmas y plan de pagos de cada cliente, con el respaldo legal de FIRMA."
+        acciones={
+          <>
+            {selector}
+            {!soloLectura && (
+              <Button size="lg" onClick={() => navegar('/portal/crm/nuevo')} className="self-end">
+                <Plus size={18} /> Nuevo cliente
+              </Button>
             )}
-            {visibles.map((f) => (
-              <tr
-                key={f.id}
-                onClick={() => navegar(`/portal/crm/${f.id}`)}
-                className="border-t border-[rgba(27,31,27,0.1)] bg-white hover:bg-marfil cursor-pointer align-top"
-              >
-                <td className="p-3">
-                  <div className="font-medium">
-                    <a
-                      href={`/portal/crm/${f.id}`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                      }}
-                    >
-                      {f.nombre}
-                    </a>
-                  </div>
-                  <div className="text-xs text-piedra">
-                    {f.codigo}
-                    {f.revisar_pagos && (
-                      <span className="ml-2 inline-flex items-center gap-1 text-[#8a2b20]">
-                        <AlertTriangle size={12} /> revisar pagos
-                      </span>
-                    )}
-                  </div>
-                </td>
-                <td className="p-3">{f.servicio ?? '·'}</td>
-                <td className="p-3 text-right tabular-nums whitespace-nowrap">{dinero(f.monto_total, f.moneda)}</td>
-                <td className="p-3 text-right tabular-nums whitespace-nowrap">{dinero(f.cobrado, f.moneda)}</td>
-                <td className="p-3 whitespace-nowrap">
-                  {f.pendiente > 0 ? (
-                    <>
-                      <div className={f.cuotas_vencidas > 0 && f.estado_firma !== 'Baja' ? 'text-[#8a2b20] font-medium' : ''}>{fecha(f.proximo_vencimiento)}</div>
-                      {f.cuotas_vencidas > 0 && f.estado_firma !== 'Baja' && <div className="text-xs text-[#8a2b20]">{f.cuotas_vencidas === 1 ? '1 vencida' : `${f.cuotas_vencidas} vencidas`}</div>}
-                    </>
-                  ) : (
-                    <span className="text-bosque">Pagado</span>
-                  )}
-                </td>
-                <td className="p-3">
-                  <Etiqueta tono={TONO_FIRMA[f.estado_firma]}>{f.estado_firma}</Etiqueta>
-                </td>
-                <td className="p-3">{f.responsable ?? '·'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          </>
+        }
+      />
+
+      <div className="wrap py-10 desk:py-14 flex flex-col gap-10">
+        {error && <Aviso tipo="error">{error}</Aviso>}
+
+        <Cifras
+          cargando={cargando}
+          items={[
+            { titulo: 'Contratos firmados', valor: resumen.firmados },
+            { titulo: 'Firmas pendientes', valor: resumen.pendientes },
+            { titulo: 'Monto acordado', valor: <Monto n={resumen.acordado} /> },
+            { titulo: 'Cobrado', valor: <Monto n={resumen.cobrado} />, nota: `${pct}% del acordado` },
+            { titulo: 'Por cobrar', valor: <Monto n={resumen.porCobrar} /> },
+            { titulo: 'Con cuotas vencidas', valor: conVencidas.length, alerta: conVencidas.length > 0 },
+          ]}
+        />
+
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-wrap gap-3 items-center justify-between">
+            <div className="relative flex-1 min-w-[220px] max-w-[420px]">
+              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-piedra" aria-hidden="true" />
+              <input className={`${claseInput} pl-10`} placeholder="Buscar por nombre, código, mail o DNI" aria-label="Buscar cliente" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
+            </div>
+            <Button variant="ghost" size="sm" onClick={descargar} disabled={!visibles.length}>
+              <Download size={16} /> Exportar CSV
+            </Button>
+          </div>
+
+          <Pestanas items={FILTROS.map((f) => ({ ...f, cuenta: cargando ? undefined : cuenta(f.clave) }))} activa={filtro} alCambiar={setFiltro} />
+
+          <div className="overflow-x-auto">
+            <table className="tabla min-w-[900px]">
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Servicio</th>
+                  <th className="num">Acordado</th>
+                  <th>Cobrado</th>
+                  <th>Próxima cuota</th>
+                  <th>Firma</th>
+                  <th>Responsable</th>
+                </tr>
+              </thead>
+              <tbody>
+                {!cargando && visibles.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="text-piedra py-10">
+                      No hay clientes para mostrar con este filtro.
+                    </td>
+                  </tr>
+                )}
+                {visibles.map((f) => {
+                  const avance = f.monto_total ? Math.min(100, Math.round((f.cobrado / f.monto_total) * 100)) : 0;
+                  const vencida = f.cuotas_vencidas > 0 && f.estado_firma !== 'Baja';
+                  return (
+                    <tr key={f.id} className="fila-link" onClick={() => navegar(`/portal/crm/${f.id}`)}>
+                      <td className="min-w-[220px]">
+                        <a
+                          href={`/portal/crm/${f.id}`}
+                          onClick={(e) => e.preventDefault()}
+                          className="font-heading font-bold text-[16px] leading-tight hover:text-bosque"
+                        >
+                          {f.nombre}
+                        </a>
+                        <div className="text-xs text-piedra mt-1 flex flex-wrap items-center gap-x-2">
+                          <span className="tabular-nums">{f.codigo}</span>
+                          {f.revisar_pagos && (
+                            <span className="inline-flex items-center gap-1 text-[#8a2b20]">
+                              <AlertTriangle size={12} aria-hidden="true" /> revisar pagos
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        <span className="font-medium">{f.servicio ?? '·'}</span>
+                      </td>
+                      <td className="num">{dinero(f.monto_total, f.moneda)}</td>
+                      <td className="min-w-[150px]">
+                        <div className="tabular-nums whitespace-nowrap">{dinero(f.cobrado, f.moneda)}</div>
+                        <div className="mt-2 h-1 bg-marfil-oscuro" aria-hidden="true">
+                          <div className="h-1 bg-bosque" style={{ width: `${avance}%` }} />
+                        </div>
+                      </td>
+                      <td className="whitespace-nowrap">
+                        {f.pendiente > 0 ? (
+                          <>
+                            <div className={vencida ? 'text-[#8a2b20] font-medium' : ''}>{fecha(f.proximo_vencimiento)}</div>
+                            {vencida && <div className="text-xs text-[#8a2b20] mt-0.5">{f.cuotas_vencidas === 1 ? '1 cuota vencida' : `${f.cuotas_vencidas} cuotas vencidas`}</div>}
+                          </>
+                        ) : (
+                          <span className="text-bosque font-medium">Pagado</span>
+                        )}
+                      </td>
+                      <td>
+                        <Etiqueta tono={TONO_FIRMA[f.estado_firma]}>{f.estado_firma}</Etiqueta>
+                      </td>
+                      <td className="text-piedra">{f.responsable ?? '·'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-piedra">
+            {visibles.length} de {filas.length} clientes
+          </p>
+        </div>
       </div>
-      <p className="text-xs text-piedra">{visibles.length} de {filas.length} clientes</p>
-    </div>
+    </>
   );
 };

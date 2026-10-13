@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ArrowLeft, Check, ExternalLink, Lock, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
-import { navegar } from '../navegacion';
-import { Aviso, Campo, Etiqueta, claseInput } from '../ui';
+import { Aviso, Campo, Cifras, Encabezado, Enlace, Etiqueta, Monto, TituloSeccion, claseInput } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
 import { TONO_FIRMA, dinero, fecha, hoyISO, type CambioHistorial, type ClienteCrm, type ContratoReservado, type EstadoFirma, type Pago, type Servicio } from './tipos';
 
@@ -27,7 +26,7 @@ function valorLegible(v: unknown): string {
   return String(v).length > 60 ? String(v).slice(0, 57) + '…' : String(v);
 }
 
-export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boolean }> = ({ id, esAdmin, puedeGestionar }) => {
+export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boolean; orgNombre: string }> = ({ id, esAdmin, puedeGestionar, orgNombre }) => {
   const [cliente, setCliente] = useState<ClienteCrm | null>(null);
   const [borrador, setBorrador] = useState<ClienteCrm | null>(null);
   const [pagos, setPagos] = useState<Pago[]>([]);
@@ -62,8 +61,13 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
     void cargar();
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (noExiste) return <Aviso tipo="error">No existe ese cliente o no tenés acceso.</Aviso>;
-  if (!cliente || !borrador) return <p className="text-piedra text-sm">Cargando…</p>;
+  if (noExiste)
+    return (
+      <div className="wrap py-14">
+        <Aviso tipo="error">No existe ese cliente o no tenés acceso.</Aviso>
+      </div>
+    );
+  if (!cliente || !borrador) return <div className="wrap py-14 eyebrow text-piedra">Cargando</div>;
 
   const moneda = cliente.moneda;
   const cobrado = pagos.filter((p) => p.estado === 'pagado').reduce((a, p) => a + p.monto, 0);
@@ -144,305 +148,325 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
 
   const set = <K extends keyof ClienteCrm>(k: K, v: ClienteCrm[K]) => setBorrador({ ...borrador, [k]: v });
 
-  return (
-    <div className="space-y-10">
-      <div className="flex flex-wrap items-center gap-4">
-        <button type="button" onClick={() => navegar('/portal/crm')} className="inline-flex items-center gap-2 text-sm hover:text-bosque">
-          <ArrowLeft size={16} /> Volver al listado
-        </button>
-        <div className="flex-1" />
-        <Etiqueta tono={TONO_FIRMA[cliente.estado_firma]}>{cliente.estado_firma}</Etiqueta>
-      </div>
-
-      <div>
-        <p className="text-sm text-piedra">{cliente.codigo}</p>
-        <h2 className="h2">{cliente.nombre}</h2>
-      </div>
-
-      {mensaje && <Aviso tipo={mensaje.tipo}>{mensaje.texto}</Aviso>}
-      {cliente.revisar_pagos && (
-        <Aviso tipo="error">
-          El plan de pagos se migró desde la planilla y necesita revisión. Texto original: «{cliente.plan_pagos_original}»
-        </Aviso>
-      )}
-
-      {/* Pagos */}
-      <fieldset disabled={soloLectura} className="contents">
-      <section>
-        <h3 className="h3 mb-4">Plan de pagos</h3>
-        <div className="grid grid-cols-2 tab:grid-cols-4 gap-px bg-[rgba(27,31,27,0.15)] border border-[rgba(27,31,27,0.15)] mb-4">
-          {[
-            ['Acordado', dinero(cliente.monto_total, moneda)],
-            ['Cobrado', dinero(cobrado, moneda)],
-            ['Pendiente', dinero(pendiente, moneda)],
-            ['Diferencia', diferencia === 0 ? 'Cierra' : dinero(diferencia, moneda)],
-          ].map(([t, v]) => (
-            <div key={t} className="bg-marfil p-4">
-              <div className="text-xs text-piedra">{t}</div>
-              <div className={`text-lg font-bold tabular-nums ${t === 'Diferencia' && diferencia !== 0 ? 'text-[#8a2b20]' : ''}`}>{v}</div>
-            </div>
-          ))}
-        </div>
-        {diferencia !== 0 && (
-          <p className="text-sm text-[#8a2b20] mb-4">
-            Las cuotas no suman el monto acordado. {diferencia > 0 ? 'Falta asignar' : 'Sobran'} {dinero(Math.abs(diferencia), moneda)}.
-          </p>
-        )}
-
-        <div className="overflow-x-auto border border-[rgba(27,31,27,0.15)]">
-          <table className="w-full text-sm">
-            <thead className="bg-marfil-oscuro text-left">
-              <tr>
-                <th className="p-3 font-medium">Vencimiento</th>
-                <th className="p-3 font-medium text-right">Monto</th>
-                <th className="p-3 font-medium">Estado</th>
-                <th className="p-3 font-medium">Nota</th>
-                <th className="p-3" />
+  const tablaPagos = (
+    <div className="overflow-x-auto">
+      <table className="tabla tabla-media min-w-[780px]">
+        <thead>
+          <tr>
+            <th>Vencimiento</th>
+            <th className="num">Monto</th>
+            <th>Estado</th>
+            <th>Nota</th>
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {pagos.map((p) => {
+            const vencida = p.estado === 'pendiente' && p.vencimiento && p.vencimiento < hoy;
+            return (
+              <tr key={p.id}>
+                <td className="!py-2.5">
+                  {p.estado === 'pendiente' ? (
+                    <input
+                      type="date"
+                      aria-label="Vencimiento"
+                      className={`${claseInput} h-10 w-[160px] ${vencida ? 'text-[#8a2b20] border-[#8a2b20]' : ''}`}
+                      defaultValue={p.vencimiento ?? ''}
+                      onBlur={(e) => e.target.value !== (p.vencimiento ?? '') && actualizarPago(p, { vencimiento: e.target.value || null })}
+                    />
+                  ) : (
+                    <span className="text-piedra">{p.fecha_pago ? `Pagó el ${fecha(p.fecha_pago)}` : 'Pagado'}</span>
+                  )}
+                </td>
+                <td className="num !py-2.5">
+                  {p.estado === 'pendiente' ? (
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      aria-label="Monto"
+                      className={`${claseInput} h-10 w-28 text-right`}
+                      defaultValue={p.monto}
+                      onBlur={(e) => Number(e.target.value) > 0 && Number(e.target.value) !== p.monto && actualizarPago(p, { monto: Number(e.target.value) })}
+                    />
+                  ) : (
+                    <span className="font-medium">{dinero(p.monto, moneda)}</span>
+                  )}
+                </td>
+                <td>
+                  {p.estado === 'pagado' ? <Etiqueta tono="bosque">Pagada</Etiqueta> : vencida ? <Etiqueta tono="alerta">Vencida</Etiqueta> : <Etiqueta>Pendiente</Etiqueta>}
+                </td>
+                <td className="!py-2.5">
+                  <input
+                    aria-label="Nota"
+                    className={`${claseInput} h-10 min-w-[180px]`}
+                    defaultValue={p.nota ?? ''}
+                    placeholder="Agregar nota"
+                    onBlur={(e) => e.target.value !== (p.nota ?? '') && actualizarPago(p, { nota: e.target.value.trim() || null })}
+                  />
+                </td>
+                <td className="!py-2.5">
+                  <div className="flex gap-2 justify-end whitespace-nowrap">
+                    {p.estado === 'pendiente' ? (
+                      <button type="button" className="inline-flex items-center gap-1.5 px-3 h-10 bg-bosque text-marfil text-sm font-medium hover:bg-bosque-dark disabled:opacity-40" onClick={() => actualizarPago(p, { estado: 'pagado', fecha_pago: hoy })}>
+                        <Check size={15} /> Marcar pagada
+                      </button>
+                    ) : (
+                      <button type="button" className="inline-flex items-center gap-1.5 px-3 h-10 border border-tinta text-sm font-medium hover:bg-tinta hover:text-marfil disabled:opacity-40" onClick={() => actualizarPago(p, { estado: 'pendiente', fecha_pago: null })}>
+                        <RotateCcw size={15} /> Deshacer
+                      </button>
+                    )}
+                    {puedeGestionar && (
+                      <button type="button" aria-label="Eliminar cuota" className="px-3 h-10 text-[#8a2b20] hover:bg-[#f6e7e4] disabled:opacity-40" onClick={() => borrarPago(p)}>
+                        <Trash2 size={15} />
+                      </button>
+                    )}
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {pagos.map((p) => {
-                const vencida = p.estado === 'pendiente' && p.vencimiento && p.vencimiento < hoy;
-                return (
-                  <tr key={p.id} className="border-t border-[rgba(27,31,27,0.1)] bg-white">
-                    <td className="p-2">
-                      {p.estado === 'pendiente' ? (
-                        <input
-                          type="date"
-                          className={`${claseInput} h-9 ${vencida ? 'text-[#8a2b20] border-[#8a2b20]' : ''}`}
-                          defaultValue={p.vencimiento ?? ''}
-                          onBlur={(e) => e.target.value !== (p.vencimiento ?? '') && actualizarPago(p, { vencimiento: e.target.value || null })}
-                        />
-                      ) : (
-                        <span className="px-1">{p.fecha_pago ? `Pagó ${fecha(p.fecha_pago)}` : 'Pagado'}</span>
-                      )}
-                    </td>
-                    <td className="p-2 text-right">
-                      {p.estado === 'pendiente' ? (
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0.01"
-                          className={`${claseInput} h-9 w-32 text-right`}
-                          defaultValue={p.monto}
-                          onBlur={(e) => Number(e.target.value) > 0 && Number(e.target.value) !== p.monto && actualizarPago(p, { monto: Number(e.target.value) })}
-                        />
-                      ) : (
-                        <span className="tabular-nums px-1">{dinero(p.monto, moneda)}</span>
-                      )}
-                    </td>
-                    <td className="p-3">
-                      {p.estado === 'pagado' ? <Etiqueta tono="bosque">Pagado</Etiqueta> : vencida ? <Etiqueta tono="alerta">Vencida</Etiqueta> : <Etiqueta>Pendiente</Etiqueta>}
-                    </td>
-                    <td className="p-2">
-                      <input
-                        className={`${claseInput} h-9 min-w-[160px]`}
-                        defaultValue={p.nota ?? ''}
-                        placeholder="Nota"
-                        onBlur={(e) => e.target.value !== (p.nota ?? '') && actualizarPago(p, { nota: e.target.value.trim() || null })}
-                      />
-                    </td>
-                    <td className="p-2">
-                      <div className="flex gap-2 justify-end whitespace-nowrap">
-                        {p.estado === 'pendiente' ? (
-                          <button type="button" title="Marcar como pagada" className="inline-flex items-center gap-1 px-2 h-9 border border-bosque text-bosque hover:bg-bosque hover:text-marfil" onClick={() => actualizarPago(p, { estado: 'pagado', fecha_pago: hoy })}>
-                            <Check size={14} /> Pagada
-                          </button>
-                        ) : (
-                          <button type="button" title="Volver a pendiente" className="inline-flex items-center gap-1 px-2 h-9 border border-[rgba(27,31,27,0.25)] hover:border-tinta" onClick={() => actualizarPago(p, { estado: 'pendiente', fecha_pago: null })}>
-                            <RotateCcw size={14} /> Deshacer
-                          </button>
-                        )}
-                        {puedeGestionar && (
-                          <button type="button" title="Eliminar" aria-label="Eliminar cuota" className="px-2 h-9 text-[#8a2b20] hover:bg-[#f6e7e4]" onClick={() => borrarPago(p)}>
-                            <Trash2 size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-              {pagos.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="p-4 text-piedra">
-                    Sin cuotas cargadas.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {nueva ? (
-          <form onSubmit={agregarPago} className="mt-4 flex flex-wrap gap-3 items-end bg-white border border-[rgba(27,31,27,0.15)] p-4">
-            <Campo etiqueta={`Monto (${moneda})`}>
-              <input required type="number" step="0.01" min="0.01" className={`${claseInput} w-36`} value={nueva.monto} onChange={(e) => setNueva({ ...nueva, monto: e.target.value })} />
-            </Campo>
-            <Campo etiqueta="Vencimiento">
-              <input type="date" className={claseInput} value={nueva.vencimiento} onChange={(e) => setNueva({ ...nueva, vencimiento: e.target.value })} />
-            </Campo>
-            <div className="flex-1 min-w-[180px]">
-              <Campo etiqueta="Nota">
-                <input className={claseInput} value={nueva.nota} onChange={(e) => setNueva({ ...nueva, nota: e.target.value })} />
-              </Campo>
-            </div>
-            <Button type="submit">Agregar</Button>
-            <Button type="button" variant="ghost" onClick={() => setNueva(null)}>
-              Cancelar
-            </Button>
-          </form>
-        ) : (
-          <Button variant="ghost" size="sm" className="mt-4" onClick={() => setNueva({ monto: diferencia > 0 ? String(diferencia) : '', vencimiento: '', nota: '' })}>
-            <Plus size={16} /> Agregar cuota
-          </Button>
-        )}
-      </section>
-      </fieldset>
-
-      {/* Datos */}
-      <form onSubmit={guardarDatos}>
-      <fieldset disabled={soloLectura} className="space-y-6 min-w-0">
-        <h3 className="h3">Datos del cliente</h3>
-        <div className="grid gap-5 tab:grid-cols-2">
-          <Campo etiqueta="Nombre completo">
-            <input required className={claseInput} value={borrador.nombre} onChange={(e) => set('nombre', e.target.value)} />
-          </Campo>
-          <Campo etiqueta="DNI">
-            <input className={claseInput} value={borrador.dni ?? ''} onChange={(e) => set('dni', e.target.value)} />
-          </Campo>
-          <Campo etiqueta="Mail">
-            <input type="email" className={claseInput} value={borrador.email ?? ''} onChange={(e) => set('email', e.target.value)} />
-          </Campo>
-          <Campo etiqueta="Teléfono">
-            <input className={claseInput} value={borrador.telefono ?? ''} onChange={(e) => set('telefono', e.target.value)} />
-          </Campo>
-          <Campo etiqueta="Servicio">
-            <select className={claseInput} value={borrador.servicio ?? ''} onChange={(e) => set('servicio', e.target.value)}>
-              <option value="">Sin definir</option>
-              {servicios.map((s) => (
-                <option key={s.id} value={s.clave}>
-                  {s.clave}
-                  {s.nombre ? ` · ${s.nombre}` : ''}
-                </option>
-              ))}
-              {borrador.servicio && !servicios.some((s) => s.clave === borrador.servicio) && <option value={borrador.servicio}>{borrador.servicio}</option>}
-            </select>
-          </Campo>
-          <Campo etiqueta={`Monto total acordado (${moneda})`}>
-            <input type="number" step="0.01" className={claseInput} value={borrador.monto_total ?? ''} onChange={(e) => set('monto_total', e.target.value === '' ? null : (e.target.value as unknown as number))} />
-          </Campo>
-          <Campo etiqueta="Modalidad">
-            <select className={claseInput} value={borrador.modalidad} onChange={(e) => set('modalidad', e.target.value as ClienteCrm['modalidad'])}>
-              <option value="Cuotas">Cuotas</option>
-              <option value="PIF">PIF (pago total)</option>
-            </select>
-          </Campo>
-          <Campo etiqueta="Onboarding">
-            <input
-              type="datetime-local"
-              className={claseInput}
-              value={aLocal(borrador.fecha_onboarding)}
-              onChange={(e) => set('fecha_onboarding', e.target.value ? new Date(e.target.value).toISOString() : null)}
-            />
-          </Campo>
-          <Campo etiqueta="Responsable (CSM o AM)">
-            <input className={claseInput} value={borrador.responsable ?? ''} onChange={(e) => set('responsable', e.target.value)} />
-          </Campo>
-        </div>
-        <Campo etiqueta="Notas" ayuda="Cualquier información que pueda ser relevante.">
-          <textarea rows={3} className={`${claseInput} h-auto py-2`} value={borrador.notas ?? ''} onChange={(e) => set('notas', e.target.value)} />
-        </Campo>
-
-        <div className="border border-[rgba(27,31,27,0.15)] bg-white p-5 space-y-5">
-          <div className="flex items-center gap-2">
-            <Lock size={16} className="text-piedra" />
-            <h4 className="font-medium">Contratos y firma</h4>
-            <span className="text-xs text-piedra">{esAdmin ? 'Lo gestiona FIRMA' : 'Solo lectura, lo gestiona FIRMA'}</span>
-          </div>
-          <div className="grid gap-5 tab:grid-cols-2">
-            <Campo etiqueta="Estado de la firma">
-              <select disabled={!esAdmin} className={claseInput} value={borrador.estado_firma} onChange={(e) => set('estado_firma', e.target.value as EstadoFirma)}>
-                <option>Pendiente</option>
-                <option>Firmado</option>
-                <option>Baja</option>
-              </select>
-            </Campo>
-            <Campo etiqueta="Contrato de servicio" ayuda="Para revisar los datos cargados. No se firma desde acá.">
-              {esAdmin ? (
-                <input className={claseInput} value={borrador.link_contrato_servicio ?? ''} onChange={(e) => set('link_contrato_servicio', e.target.value)} />
-              ) : borrador.link_contrato_servicio ? (
-                <a href={borrador.link_contrato_servicio} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 underline underline-offset-4 h-11">
-                  Ver contrato de servicio <ExternalLink size={14} />
-                </a>
-              ) : (
-                <span className="text-piedra text-sm">Sin cargar</span>
-              )}
-            </Campo>
-            {puedeGestionar && contrato && (
-              <>
-                <Campo etiqueta="Contrato del cliente" ayuda="Reservado. Solo lo ven FIRMA y el titular.">
-                  {esAdmin ? (
-                    <input className={claseInput} value={contrato.link_contrato_cliente ?? ''} onChange={(e) => setContrato({ ...contrato, link_contrato_cliente: e.target.value })} />
-                  ) : contrato.link_contrato_cliente ? (
-                    <a href={contrato.link_contrato_cliente} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 underline underline-offset-4 h-11">
-                      Ver contrato firmado <ExternalLink size={14} />
-                    </a>
-                  ) : (
-                    <span className="text-piedra text-sm">Sin cargar</span>
-                  )}
-                </Campo>
-                <Campo etiqueta="Documento generado">
-                  {esAdmin ? (
-                    <input className={claseInput} value={contrato.link_documento ?? ''} onChange={(e) => setContrato({ ...contrato, link_documento: e.target.value })} />
-                  ) : contrato.link_documento ? (
-                    <a href={contrato.link_documento} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 underline underline-offset-4 h-11">
-                      Ver documento <ExternalLink size={14} />
-                    </a>
-                  ) : (
-                    <span className="text-piedra text-sm">Sin cargar</span>
-                  )}
-                </Campo>
-              </>
-            )}
-          </div>
-          {esAdmin && (
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={borrador.revisar_pagos} onChange={(e) => set('revisar_pagos', e.target.checked)} />
-              Marcar plan de pagos para revisar
-            </label>
+            );
+          })}
+          {pagos.length === 0 && (
+            <tr>
+              <td colSpan={5} className="text-piedra py-8">
+                Sin cuotas cargadas.
+              </td>
+            </tr>
           )}
-        </div>
-
-        {!soloLectura && (
-          <Button type="submit" disabled={guardando}>
-            {guardando ? 'Guardando…' : 'Guardar cambios'}
-          </Button>
-        )}
-      </fieldset>
-      </form>
-
-      {puedeGestionar && historial.length > 0 && (
-        <section>
-          <h3 className="h3 mb-4">Historial de cambios</h3>
-          <ul className="space-y-2 text-sm">
-            {historial.map((h) => (
-              <li key={h.id} className="border-l-2 border-[rgba(27,31,27,0.2)] pl-3">
-                <span className="text-piedra">{new Date(h.creado_en).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })} · </span>
-                {h.operacion === 'insert' ? (h.tabla === 'crm_pagos' ? 'Cuota agregada' : 'Alta') : h.operacion === 'delete' ? 'Cuota eliminada' : 'Cambio'}
-                {h.operacion === 'update' &&
-                  (Object.entries(h.cambios) as [string, { antes: unknown; despues: unknown }][])
-                    .filter(([k]) => !OCULTOS.has(k))
-                    .map(([k, v]) => (
-                      <span key={k} className="block text-xs text-piedra">
-                        {ROTULOS[k] ?? k}: {valorLegible(v.antes)} → {valorLegible(v.despues)}
-                      </span>
-                    ))}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+        </tbody>
+      </table>
     </div>
+  );
+
+  const enlaceOscuro = (url: string | null, texto: string) =>
+    url ? (
+      <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 font-medium underline underline-offset-4 hover:no-underline">
+        {texto} <ExternalLink size={14} aria-hidden="true" />
+      </a>
+    ) : (
+      <span className="text-calido text-sm">Sin cargar</span>
+    );
+
+  const etiquetaOscura = (t: string) => <span className="block text-[11px] font-medium uppercase tracking-[0.16em] text-calido mb-2">{t}</span>;
+
+  return (
+    <>
+      <Encabezado
+        eyebrow={
+          <>
+            <Enlace a="/portal/crm" className="inline-flex items-center gap-1.5 hover:text-bosque">
+              <ArrowLeft size={13} aria-hidden="true" /> {orgNombre || 'CRM'}
+            </Enlace>
+            <span className="mx-2">·</span>
+            <span className="tabular-nums">{cliente.codigo}</span>
+          </>
+        }
+        titulo={cliente.nombre}
+        bajada={[cliente.servicio && `Programa ${cliente.servicio}`, cliente.email, cliente.responsable && `Responsable ${cliente.responsable}`].filter(Boolean).join(' · ')}
+        acciones={<Etiqueta tono={TONO_FIRMA[cliente.estado_firma]}>{`Firma ${cliente.estado_firma.toLowerCase()}`}</Etiqueta>}
+      />
+
+      <div className="wrap py-10 desk:py-14 flex flex-col gap-14">
+        {mensaje && <Aviso tipo={mensaje.tipo}>{mensaje.texto}</Aviso>}
+        {cliente.revisar_pagos && (
+          <Aviso tipo="error">
+            <strong className="font-medium">Plan de pagos a revisar.</strong> Se migró desde la planilla y no se pudo interpretar del todo. Texto original «{cliente.plan_pagos_original}».
+          </Aviso>
+        )}
+
+        {/* Plan de pagos */}
+        <section>
+          <TituloSeccion eyebrow="Cobranza" titulo="Plan de pagos" />
+          <Cifras
+            items={[
+              { titulo: 'Acordado', valor: <Monto n={cliente.monto_total} moneda={moneda} /> },
+              { titulo: 'Cobrado', valor: <Monto n={cobrado} moneda={moneda} /> },
+              { titulo: 'Pendiente', valor: <Monto n={pendiente} moneda={moneda} /> },
+              { titulo: 'Diferencia', valor: diferencia === 0 ? 'Cierra' : <Monto n={Math.abs(diferencia)} moneda={moneda} />, alerta: diferencia !== 0, nota: diferencia === 0 ? undefined : diferencia > 0 ? 'Falta asignar en cuotas' : 'Las cuotas superan el total' },
+            ]}
+          />
+          <fieldset disabled={soloLectura} className="mt-8 min-w-0">
+            {tablaPagos}
+            {nueva ? (
+              <form onSubmit={agregarPago} className="mt-6 grid gap-4 tab:grid-cols-[160px_180px_1fr_auto_auto] items-end bg-marfil-oscuro p-5">
+                <Campo etiqueta={`Monto (${moneda})`}>
+                  <input required type="number" step="0.01" min="0.01" className={claseInput} value={nueva.monto} onChange={(e) => setNueva({ ...nueva, monto: e.target.value })} />
+                </Campo>
+                <Campo etiqueta="Vencimiento">
+                  <input type="date" className={claseInput} value={nueva.vencimiento} onChange={(e) => setNueva({ ...nueva, vencimiento: e.target.value })} />
+                </Campo>
+                <Campo etiqueta="Nota">
+                  <input className={claseInput} value={nueva.nota} onChange={(e) => setNueva({ ...nueva, nota: e.target.value })} />
+                </Campo>
+                <Button type="submit">Agregar</Button>
+                <Button type="button" variant="ghost" onClick={() => setNueva(null)}>
+                  Cancelar
+                </Button>
+              </form>
+            ) : (
+              !soloLectura && (
+                <Button variant="ghost" size="sm" className="mt-6" onClick={() => setNueva({ monto: diferencia > 0 ? String(diferencia) : '', vencimiento: '', nota: '' })}>
+                  <Plus size={16} /> Agregar cuota
+                </Button>
+              )
+            )}
+          </fieldset>
+        </section>
+
+        <div className="grid gap-12 desk:grid-cols-[7fr_5fr] desk:gap-14 items-start">
+          {/* Datos */}
+          <form onSubmit={guardarDatos} className="min-w-0">
+            <TituloSeccion eyebrow="Ficha" titulo="Datos del cliente" />
+            <fieldset disabled={soloLectura} className="flex flex-col gap-6 min-w-0">
+              <div className="grid gap-5 tab:grid-cols-2">
+                <Campo etiqueta="Nombre completo">
+                  <input required className={claseInput} value={borrador.nombre} onChange={(e) => set('nombre', e.target.value)} />
+                </Campo>
+                <Campo etiqueta="DNI">
+                  <input className={claseInput} value={borrador.dni ?? ''} onChange={(e) => set('dni', e.target.value)} />
+                </Campo>
+                <Campo etiqueta="Mail">
+                  <input type="email" className={claseInput} value={borrador.email ?? ''} onChange={(e) => set('email', e.target.value)} />
+                </Campo>
+                <Campo etiqueta="Teléfono">
+                  <input className={claseInput} value={borrador.telefono ?? ''} onChange={(e) => set('telefono', e.target.value)} />
+                </Campo>
+                <Campo etiqueta="Servicio">
+                  <select className={claseInput} value={borrador.servicio ?? ''} onChange={(e) => set('servicio', e.target.value)}>
+                    <option value="">Sin definir</option>
+                    {servicios.map((sv) => (
+                      <option key={sv.id} value={sv.clave}>
+                        {sv.clave}
+                        {sv.nombre ? ` · ${sv.nombre}` : ''}
+                      </option>
+                    ))}
+                    {borrador.servicio && !servicios.some((sv) => sv.clave === borrador.servicio) && <option value={borrador.servicio}>{borrador.servicio}</option>}
+                  </select>
+                </Campo>
+                <Campo etiqueta={`Monto total (${moneda})`}>
+                  <input type="number" step="0.01" className={claseInput} value={borrador.monto_total ?? ''} onChange={(e) => set('monto_total', e.target.value === '' ? null : (e.target.value as unknown as number))} />
+                </Campo>
+                <Campo etiqueta="Modalidad">
+                  <select className={claseInput} value={borrador.modalidad} onChange={(e) => set('modalidad', e.target.value as ClienteCrm['modalidad'])}>
+                    <option value="Cuotas">Cuotas</option>
+                    <option value="PIF">PIF (pago total)</option>
+                  </select>
+                </Campo>
+                <Campo etiqueta="Onboarding">
+                  <input type="datetime-local" className={claseInput} value={aLocal(borrador.fecha_onboarding)} onChange={(e) => set('fecha_onboarding', e.target.value ? new Date(e.target.value).toISOString() : null)} />
+                </Campo>
+                <Campo etiqueta="Responsable (CSM o AM)">
+                  <input className={claseInput} value={borrador.responsable ?? ''} onChange={(e) => set('responsable', e.target.value)} />
+                </Campo>
+              </div>
+              <Campo etiqueta="Notas" ayuda="Cualquier información que pueda ser relevante.">
+                <textarea rows={4} className={`${claseInput} h-auto py-3`} value={borrador.notas ?? ''} onChange={(e) => set('notas', e.target.value)} />
+              </Campo>
+
+              {esAdmin && (
+                <div className="grid gap-5 tab:grid-cols-2 pt-6" style={{ borderTop: '1px solid rgba(27,31,27,0.15)' }}>
+                  <p className="tab:col-span-2 eyebrow text-piedra">Solo FIRMA</p>
+                  <Campo etiqueta="Estado de la firma">
+                    <select className={claseInput} value={borrador.estado_firma} onChange={(e) => set('estado_firma', e.target.value as EstadoFirma)}>
+                      <option>Pendiente</option>
+                      <option>Firmado</option>
+                      <option>Baja</option>
+                    </select>
+                  </Campo>
+                  <Campo etiqueta="Link contrato de servicio">
+                    <input className={claseInput} value={borrador.link_contrato_servicio ?? ''} onChange={(e) => set('link_contrato_servicio', e.target.value)} />
+                  </Campo>
+                  {contrato && (
+                    <>
+                      <Campo etiqueta="Link contrato del cliente">
+                        <input className={claseInput} value={contrato.link_contrato_cliente ?? ''} onChange={(e) => setContrato({ ...contrato, link_contrato_cliente: e.target.value })} />
+                      </Campo>
+                      <Campo etiqueta="Link documento generado">
+                        <input className={claseInput} value={contrato.link_documento ?? ''} onChange={(e) => setContrato({ ...contrato, link_documento: e.target.value })} />
+                      </Campo>
+                    </>
+                  )}
+                  <label className="tab:col-span-2 flex items-center gap-2.5 text-sm">
+                    <input type="checkbox" className="w-4 h-4 accent-[#173A2F]" checked={borrador.revisar_pagos} onChange={(e) => set('revisar_pagos', e.target.checked)} />
+                    Marcar el plan de pagos para revisar
+                  </label>
+                </div>
+              )}
+
+              {!soloLectura && (
+                <div>
+                  <Button type="submit" size="lg" disabled={guardando}>
+                    {guardando ? 'Guardando…' : 'Guardar cambios'}
+                  </Button>
+                </div>
+              )}
+            </fieldset>
+          </form>
+
+          {/* Columna lateral */}
+          <aside className="flex flex-col gap-10 min-w-0 desk:sticky desk:top-32">
+            <div className="panel-carbon relative overflow-hidden p-7 flex flex-col gap-6">
+              <div className="flex items-center gap-3">
+                <span className="w-10 h-10 bg-marfil text-tinta flex items-center justify-center">
+                  <Lock size={18} aria-hidden="true" />
+                </span>
+                <div>
+                  <h3 className="font-heading font-bold text-[20px] leading-tight">Contratos y firma</h3>
+                  <p className="text-xs text-calido">Lo gestiona FIRMA</p>
+                </div>
+              </div>
+              <div>
+                {etiquetaOscura('Estado de la firma')}
+                <span className="font-heading font-black text-[28px] leading-none">{cliente.estado_firma}</span>
+              </div>
+              <div>
+                {etiquetaOscura('Contrato de servicio')}
+                {enlaceOscuro(cliente.link_contrato_servicio, 'Ver contrato de servicio')}
+                <p className="text-xs text-calido mt-1.5">Para revisar los datos cargados. No se firma desde acá.</p>
+              </div>
+              {puedeGestionar && contrato && (
+                <>
+                  <div>
+                    {etiquetaOscura('Contrato del cliente')}
+                    {enlaceOscuro(contrato.link_contrato_cliente, 'Ver contrato firmado')}
+                    <p className="text-xs text-calido mt-1.5">Reservado. Solo lo ven FIRMA y el titular.</p>
+                  </div>
+                  <div>
+                    {etiquetaOscura('Documento generado')}
+                    {enlaceOscuro(contrato.link_documento, 'Ver documento')}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {puedeGestionar && historial.length > 0 && (
+              <section>
+                <TituloSeccion eyebrow="Trazabilidad" titulo="Historial" />
+                <ol className="flex flex-col">
+                  {historial.map((h) => (
+                    <li key={h.id} className="py-3.5 text-sm" style={{ borderTop: '1px solid rgba(27,31,27,0.12)' }}>
+                      <div className="flex justify-between gap-3">
+                        <span className="font-medium">
+                          {h.operacion === 'insert' ? (h.tabla === 'crm_pagos' ? 'Cuota agregada' : h.tabla === 'crm_contratos' ? 'Contrato cargado' : 'Alta del cliente') : h.operacion === 'delete' ? 'Cuota eliminada' : h.tabla === 'crm_pagos' ? 'Cuota modificada' : 'Ficha modificada'}
+                        </span>
+                        <span className="text-piedra text-xs whitespace-nowrap">{new Date(h.creado_en).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                      </div>
+                      {h.operacion === 'update' &&
+                        (Object.entries(h.cambios) as [string, { antes: unknown; despues: unknown }][])
+                          .filter(([k]) => !OCULTOS.has(k))
+                          .map(([k, v]) => (
+                            <span key={k} className="block text-xs text-piedra mt-1">
+                              {ROTULOS[k] ?? k}: {valorLegible(v.antes)} → {valorLegible(v.despues)}
+                            </span>
+                          ))}
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            )}
+          </aside>
+        </div>
+      </div>
+    </>
   );
 };

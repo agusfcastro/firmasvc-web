@@ -61,7 +61,7 @@ export const Clientes: React.FC = () => {
       {error && <Aviso tipo="error">{error}</Aviso>}
 
       {borrador ? (
-        <form onSubmit={guardar} className="bg-white border border-[rgba(27,31,27,0.15)] p-6 space-y-5 max-w-[640px]">
+        <form onSubmit={guardar} className="bg-marfil-oscuro p-6 desk:p-8 space-y-5 max-w-[680px]">
           <h2 className="h3">{borrador.id ? 'Editar cliente' : 'Nuevo cliente'}</h2>
           <Campo etiqueta="Nombre comercial">
             <input required className={claseInput} value={borrador.nombre} onChange={(e) => setBorrador({ ...borrador, nombre: e.target.value })} />
@@ -100,15 +100,15 @@ export const Clientes: React.FC = () => {
         </Button>
       )}
 
-      <div className="overflow-x-auto border border-[rgba(27,31,27,0.15)]">
-        <table className="w-full text-sm">
-          <thead className="bg-marfil-oscuro text-left">
+      <div className="overflow-x-auto">
+        <table className="tabla min-w-[760px]">
+          <thead>
             <tr>
-              <th className="p-3 font-medium">Cliente</th>
-              <th className="p-3 font-medium">País</th>
-              <th className="p-3 font-medium">Usuarios</th>
-              <th className="p-3 font-medium">Estado</th>
-              <th className="p-3" />
+              <th>Cliente</th>
+              <th>País</th>
+              <th>Usuarios</th>
+              <th>Estado</th>
+              <th />
             </tr>
           </thead>
           <tbody>
@@ -120,15 +120,15 @@ export const Clientes: React.FC = () => {
               </tr>
             )}
             {lista.map((o) => (
-              <tr key={o.id} className="border-t border-[rgba(27,31,27,0.1)] bg-white">
-                <td className="p-3">
-                  <div className="font-medium">{o.nombre}</div>
+              <tr key={o.id}>
+                <td>
+                  <div className="font-heading font-bold text-[16px] leading-tight">{o.nombre}</div>
                   {o.razon_social && <div className="text-xs text-piedra">{o.razon_social}</div>}
                 </td>
-                <td className="p-3">{PAISES[o.pais] ?? o.pais}</td>
-                <td className="p-3">{conteo[o.id] ?? 0}</td>
-                <td className="p-3">{o.activa ? <Etiqueta tono="bosque">Activo</Etiqueta> : <Etiqueta tono="alerta">Inactivo</Etiqueta>}</td>
-                <td className="p-3 text-right whitespace-nowrap">
+                <td>{PAISES[o.pais] ?? o.pais}</td>
+                <td>{conteo[o.id] ?? 0}</td>
+                <td>{o.activa ? <Etiqueta tono="bosque">Activo</Etiqueta> : <Etiqueta tono="alerta">Inactivo</Etiqueta>}</td>
+                <td className="text-right whitespace-nowrap">
                   <button type="button" className="underline underline-offset-4 hover:text-bosque mr-4" onClick={() => iniciarVistaPrevia({ orgId: o.id, orgNombre: o.nombre, rol: 'titular', areas: [] })}>
                     Ver como titular
                   </button>

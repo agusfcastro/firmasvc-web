@@ -228,3 +228,82 @@ h1, h2, h3, h4 {
 @media (max-width: 479px) {
   .stat-label { letter-spacing: 0.12em; }
 }
+
+/* =================================================================== */
+/* Portal de clientes                                                   */
+/* =================================================================== */
+
+/* Cifras: mismo lenguaje que el contador del hero */
+.cifras {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid rgba(27, 31, 27, 0.15);
+  border-bottom: 1px solid rgba(27, 31, 27, 0.15);
+}
+@media (min-width: 720px) { .cifras { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1000px) { .cifras { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); } }
+.cifra {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 22px 20px 20px 0;
+}
+.cifra + .cifra { padding-left: 20px; border-left: 1px solid rgba(27, 31, 27, 0.12); }
+@media (max-width: 719px) {
+  .cifra:nth-child(2n+1) { padding-left: 0; border-left: 0; }
+  .cifra:nth-child(n+3) { border-top: 1px solid rgba(27, 31, 27, 0.12); }
+}
+@media (min-width: 720px) and (max-width: 999px) {
+  .cifra:nth-child(3n+1) { padding-left: 0; border-left: 0; }
+  .cifra:nth-child(n+4) { border-top: 1px solid rgba(27, 31, 27, 0.12); }
+}
+.cifra-valor {
+  font-family: var(--font-heading);
+  font-weight: 900;
+  font-size: clamp(24px, 2.1vw, 30px);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Tablas editoriales: encabezados en eyebrow, filetes finos */
+.tabla { width: 100%; font-size: 14px; border-collapse: collapse; }
+.tabla thead th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-piedra);
+  padding: 0 16px 12px;
+  border-bottom: 1px solid var(--color-tinta);
+  white-space: nowrap;
+}
+.tabla tbody td { padding: 16px; border-bottom: 1px solid rgba(27, 31, 27, 0.12); vertical-align: top; }
+.tabla th:first-child, .tabla td:first-child { padding-left: 0; }
+.tabla th:last-child, .tabla td:last-child { padding-right: 0; }
+.tabla tbody tr { transition: background-color 0.15s; }
+.tabla tbody tr.fila-link { cursor: pointer; }
+.tabla tbody tr.fila-link:hover { background: var(--color-marfil-oscuro); }
+.tabla .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tabla.tabla-media tbody td { vertical-align: middle; }
+
+/* Tarjetas de módulo: la .card de Servicios, en versión enlace */
+a.card { color: inherit; text-decoration: none; }
+.card .ir {
+  margin-top: auto;
+  padding-top: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-marfil);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.card.card-apagada { opacity: 0.55; }
+.card.card-apagada:hover { transform: none; border-color: rgba(245, 243, 236, 0.12); }
+.card.card-apagada:hover .icon-box { background: var(--color-marfil); color: var(--color-tinta); }
+
+/* Panel oscuro (como la tarjeta de agenda de Contacto) */
+.panel-carbon { background: var(--color-carbon); color: var(--color-marfil); }

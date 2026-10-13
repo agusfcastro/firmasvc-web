@@ -36,23 +36,23 @@ export const Registro: React.FC = () => {
     <div className="space-y-4">
       {error && <Aviso tipo="error">{error}</Aviso>}
       <p className="text-sm text-piedra">Últimos 300 movimientos. Sirve como respaldo de quién accedió y quién cambió permisos.</p>
-      <div className="overflow-x-auto border border-[rgba(27,31,27,0.15)]">
-        <table className="w-full text-sm">
-          <thead className="bg-marfil-oscuro text-left">
+      <div className="overflow-x-auto">
+        <table className="tabla min-w-[760px]">
+          <thead>
             <tr>
-              <th className="p-3 font-medium">Fecha</th>
-              <th className="p-3 font-medium">Movimiento</th>
-              <th className="p-3 font-medium">Usuario</th>
-              <th className="p-3 font-medium">Hecho por</th>
+              <th>Fecha</th>
+              <th>Movimiento</th>
+              <th>Usuario</th>
+              <th>Hecho por</th>
             </tr>
           </thead>
           <tbody>
             {filas.map((f) => (
-              <tr key={f.id} className="border-t border-[rgba(27,31,27,0.1)] bg-white">
-                <td className="p-3 whitespace-nowrap">{fechaCorta(f.creado_en)}</td>
-                <td className="p-3">{ACCIONES[f.accion] ?? f.accion}</td>
-                <td className="p-3">{(f.usuario_id && mails[f.usuario_id]) || '·'}</td>
-                <td className="p-3">{(f.actor_id && mails[f.actor_id]) || '·'}</td>
+              <tr key={f.id}>
+                <td className="whitespace-nowrap">{fechaCorta(f.creado_en)}</td>
+                <td>{ACCIONES[f.accion] ?? f.accion}</td>
+                <td>{(f.usuario_id && mails[f.usuario_id]) || '·'}</td>
+                <td>{(f.actor_id && mails[f.actor_id]) || '·'}</td>
               </tr>
             ))}
           </tbody>

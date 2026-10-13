@@ -1,7 +1,6 @@
 import React from 'react';
-import { BookOpen, FileText, GraduationCap, Kanban, ShieldCheck, Wallet, ClipboardList, Users } from 'lucide-react';
-import { navegar } from './navegacion';
-import { Etiqueta, Marco } from './ui';
+import { ArrowRight, BookOpen, ClipboardList, FileText, GraduationCap, Kanban, ShieldCheck, Users, Wallet } from 'lucide-react';
+import { Encabezado, Enlace, Marco } from './ui';
 import type { EstadoSesion } from './useSesion';
 import { ROTULO_ROL } from './tipos';
 
@@ -16,15 +15,20 @@ interface Modulo {
 }
 
 const MODULOS: Modulo[] = [
-  { titulo: 'Panel de administración', texto: 'Clientes, usuarios, roles y registro de accesos.', icono: ShieldCheck, ruta: '/portal/admin', soloAdmin: true },
-  { titulo: 'CRM legal', texto: 'Clientes, contratos, firmas y plan de pagos.', icono: Kanban, ruta: '/portal/crm' },
+  { titulo: 'CRM legal', texto: 'Clientes, contratos, firmas y plan de pagos, al día y con historial.', icono: Kanban, ruta: '/portal/crm' },
+  { titulo: 'Administración', texto: 'Empresas, usuarios, roles y registro de accesos.', icono: ShieldCheck, ruta: '/portal/admin', soloAdmin: true },
+  { titulo: 'Protocolos', texto: 'Los protocolos de trabajo de cada área de tu equipo.', icono: BookOpen, ruta: '/protocolo-llamadas', externo: true },
   { titulo: 'Documentos', texto: 'Contratos y documentación que preparamos para tu empresa.', icono: FileText },
   { titulo: 'Estado de asuntos', texto: 'Seguimiento de cada trámite en curso.', icono: ClipboardList },
-  { titulo: 'Abonos y pagos', texto: 'Tu plan, vencimientos y facturación.', icono: Wallet, soloTitular: true },
-  { titulo: 'Protocolos', texto: 'Protocolos de trabajo para cada área de tu equipo.', icono: BookOpen, ruta: '/protocolo-llamadas', externo: true },
+  { titulo: 'Abonos y pagos', texto: 'Tu plan con FIRMA, vencimientos y facturación.', icono: Wallet, soloTitular: true },
   { titulo: 'Formación', texto: 'Videos por área para capacitar a tu equipo.', icono: GraduationCap },
   { titulo: 'Mi equipo', texto: 'Personas de tu empresa con acceso al portal.', icono: Users, soloTitular: true },
 ];
+
+function saludo(): string {
+  const h = new Date().getHours();
+  return h < 13 ? 'Buen día' : h < 20 ? 'Buenas tardes' : 'Buenas noches';
+}
 
 export const Inicio: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
   const { perfil, organizacion } = estado;
@@ -35,50 +39,68 @@ export const Inicio: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
 
   return (
     <Marco perfil={perfil}>
-      <p className="eyebrow text-piedra mb-3">{esAdmin ? 'FIRMA' : organizacion?.nombre}</p>
-      <h1 className="h2 mb-2">Hola{nombre ? `, ${nombre}` : ''}</h1>
-      <p className="text-piedra mb-10">
-        <Etiqueta tono="bosque">{ROTULO_ROL[perfil.rol]}</Etiqueta>
-      </p>
+      <Encabezado
+        grande
+        eyebrow={`${esAdmin ? 'FIRMA' : organizacion?.nombre ?? ''} · ${ROTULO_ROL[perfil.rol]}`}
+        titulo={
+          <>
+            {saludo()}
+            {nombre ? ',' : ''}
+            <br />
+            <span className="text-bosque">{nombre || 'bienvenido'}</span>
+          </>
+        }
+        bajada={esAdmin ? 'Desde acá gestionás los CRM y los accesos de todos tus clientes.' : 'Todo lo legal de tu empresa, ordenado y en un solo lugar.'}
+      />
 
-      <div className="grid gap-px bg-[rgba(27,31,27,0.15)] border border-[rgba(27,31,27,0.15)] tab:grid-cols-2 wide:grid-cols-3">
-        {visibles.map((m) => {
-          const Icono = m.icono;
-          const disponible = Boolean(m.ruta);
-          const contenido = (
-            <>
-              <Icono size={22} className={disponible ? 'text-bosque' : 'text-calido'} />
-              <h2 className="h3 mt-4 mb-2">{m.titulo}</h2>
-              <p className="text-sm text-piedra">{m.texto}</p>
-              {!disponible && (
-                <span className="mt-4 inline-block">
-                  <Etiqueta>Próximamente</Etiqueta>
-                </span>
-              )}
-            </>
-          );
-          return disponible ? (
-            <a
-              key={m.titulo}
-              href={m.ruta}
-              target={m.externo ? '_blank' : undefined}
-              rel={m.externo ? 'noopener' : undefined}
-              onClick={(e) => {
-                if (m.externo) return;
-                e.preventDefault();
-                navegar(m.ruta!);
-              }}
-              className="block bg-marfil p-6 hover:bg-white transition-colors"
-            >
-              {contenido}
-            </a>
-          ) : (
-            <div key={m.titulo} className="bg-marfil p-6">
-              {contenido}
-            </div>
-          );
-        })}
-      </div>
+      <section className="section bg-carbon text-marfil">
+        <div className="wrap flex flex-col gap-10">
+          <div className="flex flex-col gap-3">
+            <p className="eyebrow text-calido">Tu portal</p>
+            <h2 className="h2">Herramientas</h2>
+          </div>
+          <div className="grid grid-cols-1 tab:grid-cols-2 wide:grid-cols-3 gap-5">
+            {visibles.map((m, i) => {
+              const Icono = m.icono;
+              const contenido = (
+                <>
+                  <span aria-hidden="true" className="wm">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <div className="icon-box">
+                    <Icono size={26} strokeWidth={1.8} />
+                  </div>
+                  <h3 className="h3 relative">{m.titulo}</h3>
+                  <p className="relative text-[15px] leading-[1.6] text-calido">{m.texto}</p>
+                  {m.ruta ? (
+                    <span className="ir relative">
+                      Entrar <ArrowRight size={16} />
+                    </span>
+                  ) : (
+                    <span className="ir relative eyebrow text-[11px] text-calido">Próximamente</span>
+                  )}
+                </>
+              );
+              if (!m.ruta) {
+                return (
+                  <article key={m.titulo} className="card card-apagada" aria-disabled="true">
+                    {contenido}
+                  </article>
+                );
+              }
+              return m.externo ? (
+                <a key={m.titulo} href={m.ruta} target="_blank" rel="noopener" className="card">
+                  {contenido}
+                </a>
+              ) : (
+                <Enlace key={m.titulo} a={m.ruta} className="card">
+                  {contenido}
+                </Enlace>
+              );
+            })}
+          </div>
+        </div>
+      </section>
     </Marco>
   );
 };

@@ -34,3 +34,6 @@ public/video/*.mp4
 .env
 .env.*
 !.env.example
+
+# Build local para revisar el portal
+.preview-build

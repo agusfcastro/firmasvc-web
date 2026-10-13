@@ -3,7 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
-import { Aviso, Campo, claseInput } from '../ui';
+import { Aviso, Campo, Encabezado, Enlace, TituloSeccion, claseInput } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
 import { dinero, hoyISO, type Servicio } from './tipos';
 
@@ -15,7 +15,7 @@ function sumarMeses(iso: string, n: number): string {
   return base.toISOString().slice(0, 10);
 }
 
-export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean }> = ({ orgId, esAdmin }) => {
+export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre: string }> = ({ orgId, esAdmin, orgNombre }) => {
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [f, setF] = useState({
     nombre: '', dni: '', email: '', telefono: '', servicio: '', monto_total: '', modalidad: 'Cuotas' as 'Cuotas' | 'PIF',
@@ -89,14 +89,30 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean }> = ({ org
 
   const set = (k: keyof typeof f, v: string) => setF({ ...f, [k]: v });
 
-  if (soloLectura) return <Aviso tipo="info">En la vista previa no se pueden crear clientes.</Aviso>;
+  if (soloLectura)
+    return (
+      <div className="wrap py-14">
+        <Aviso tipo="info">En la vista previa no se pueden crear clientes.</Aviso>
+      </div>
+    );
 
   return (
-    <form onSubmit={guardar} className="space-y-8 max-w-[760px]">
-      <button type="button" onClick={() => navegar('/portal/crm')} className="inline-flex items-center gap-2 text-sm hover:text-bosque">
-        <ArrowLeft size={16} /> Volver al listado
-      </button>
-      <h2 className="h3">Nuevo cliente</h2>
+    <>
+    <Encabezado
+      eyebrow={
+        <Enlace a="/portal/crm" className="inline-flex items-center gap-1.5 hover:text-bosque">
+          <ArrowLeft size={13} aria-hidden="true" /> {orgNombre || 'CRM'}
+        </Enlace>
+      }
+      titulo={
+        <>
+          Nuevo <span className="text-bosque">cliente</span>
+        </>
+      }
+      bajada="Cargá los datos y el plan de pagos. FIRMA genera el contrato y actualiza el estado de la firma."
+    />
+    <form onSubmit={guardar} className="wrap py-10 desk:py-14 flex flex-col gap-10 max-w-[860px] desk:ml-0">
+      <TituloSeccion eyebrow="Paso 1" titulo="Datos del cliente" />
       {error && <Aviso tipo="error">{error}</Aviso>}
       {!esAdmin && <Aviso tipo="info">El cliente queda con la firma pendiente. FIRMA genera el contrato y actualiza el estado.</Aviso>}
 
@@ -143,8 +159,8 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean }> = ({ org
         </Campo>
       </div>
 
-      <fieldset className="border border-[rgba(27,31,27,0.15)] bg-white p-5 space-y-5">
-        <legend className="px-2 font-medium">Plan de pagos</legend>
+      <fieldset className="flex flex-col gap-5 pt-8" style={{ borderTop: '1px solid rgba(27,31,27,0.15)' }}>
+        <TituloSeccion eyebrow="Paso 2" titulo="Plan de pagos" />
         <div className="grid gap-5 tab:grid-cols-4">
           <Campo etiqueta="Modalidad">
             <select className={claseInput} value={f.modalidad} onChange={(e) => set('modalidad', e.target.value)}>
@@ -165,13 +181,15 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean }> = ({ org
           </Campo>
         </div>
         {plan.length > 0 && (
-          <ul className="text-sm space-y-1">
+          <ol className="grid grid-cols-2 tab:grid-cols-4 gap-px bg-[rgba(27,31,27,0.15)] border border-[rgba(27,31,27,0.15)]">
             {plan.map((p, i) => (
-              <li key={i} className="tabular-nums">
-                {p.vencimiento.split('-').reverse().join('/')} · {dinero(p.monto)}
+              <li key={i} className="bg-marfil p-4 flex flex-col gap-1">
+                <span className="eyebrow text-[11px] text-piedra">Cuota {i + 1}</span>
+                <span className="font-heading font-black text-[22px] text-bosque tabular-nums leading-none">{dinero(p.monto)}</span>
+                <span className="text-xs text-piedra">{p.vencimiento.split('-').reverse().join('/')}</span>
               </li>
             ))}
-          </ul>
+          </ol>
         )}
         <p className="text-xs text-piedra">Después podés ajustar montos y fechas de cada cuota desde la ficha.</p>
       </fieldset>
@@ -180,9 +198,12 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean }> = ({ org
         <textarea rows={3} className={`${claseInput} h-auto py-2`} value={f.notas} onChange={(e) => set('notas', e.target.value)} />
       </Campo>
 
-      <Button type="submit" disabled={guardando}>
-        {guardando ? 'Guardando…' : 'Crear cliente'}
-      </Button>
+      <div>
+        <Button type="submit" size="lg" disabled={guardando}>
+          {guardando ? 'Guardando…' : 'Crear cliente'}
+        </Button>
+      </div>
     </form>
+    </>
   );
 };

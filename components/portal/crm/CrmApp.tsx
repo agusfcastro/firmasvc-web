@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabase';
-import { navegar } from '../navegacion';
-import { Marco } from '../ui';
+import { Encabezado, Marco } from '../ui';
 import type { Organizacion, Perfil } from '../tipos';
 import { Listado } from './Listado';
 import { Ficha } from './Ficha';
@@ -9,7 +8,7 @@ import { AltaCliente } from './AltaCliente';
 
 /**
  * CRM legal de cada cliente de FIRMA.
- *   /portal/crm                lista (el admin elige la organización con ?org=)
+ *   /portal/crm                lista (el admin elige la organización)
  *   /portal/crm/nuevo          alta
  *   /portal/crm/<id>           ficha del cliente final
  */
@@ -35,7 +34,7 @@ export const CrmApp: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
       .then(({ data }) => {
         const lista = (data as Organizacion[]) ?? [];
         setOrgs(lista);
-        if (!orgId && lista.length) setOrgId(lista[0].id);
+        if (!orgId || !lista.some((o) => o.id === orgId)) setOrgId(lista[0]?.id ?? null);
       });
   }, [esAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -52,51 +51,34 @@ export const CrmApp: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
   const orgActual = esAdmin ? orgs.find((o) => o.id === orgId) ?? null : organizacion;
   const puedeGestionar = esAdmin || perfil.rol === 'titular';
 
+  const selector =
+    esAdmin && orgs.length > 1 ? (
+      <label className="flex flex-col gap-2">
+        <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-piedra">Cliente de FIRMA</span>
+        <select
+          className="h-12 pl-3.5 pr-10 bg-white border border-tinta font-medium text-[15px] focus:outline-none focus:ring-1 focus:ring-bosque"
+          value={orgId ?? ''}
+          onChange={(e) => setOrgId(e.target.value)}
+        >
+          {orgs.map((o) => (
+            <option key={o.id} value={o.id}>
+              {o.nombre}
+            </option>
+          ))}
+        </select>
+      </label>
+    ) : null;
+
   return (
     <Marco perfil={perfil}>
-      <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
-        <div>
-          <p className="eyebrow text-piedra mb-3">
-            <a
-              href="/portal"
-              onClick={(e) => {
-                e.preventDefault();
-                navegar('/portal');
-              }}
-              className="hover:text-bosque"
-            >
-              Portal
-            </a>{' '}
-            / CRM legal
-          </p>
-          <h1 className="h2">{orgActual?.nombre ?? 'CRM legal'}</h1>
-        </div>
-        {esAdmin && orgs.length > 0 && !sub && (
-          <label className="text-sm">
-            <span className="block mb-1 text-piedra">Cliente de FIRMA</span>
-            <select
-              className="h-11 px-3 bg-white border border-[rgba(27,31,27,0.25)]"
-              value={orgId ?? ''}
-              onChange={(e) => setOrgId(e.target.value)}
-            >
-              {orgs.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.nombre}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-      </div>
-
       {!orgId ? (
-        <p className="text-piedra">Todavía no hay clientes cargados en el portal.</p>
+        <Encabezado eyebrow="CRM legal" titulo="Sin clientes todavía" bajada="Cuando des de alta una empresa en Administración, su CRM aparece acá." />
       ) : sub === 'nuevo' ? (
-        <AltaCliente orgId={orgId} esAdmin={esAdmin} />
+        <AltaCliente orgId={orgId} esAdmin={esAdmin} orgNombre={orgActual?.nombre ?? ''} />
       ) : sub ? (
-        <Ficha id={sub} esAdmin={esAdmin} puedeGestionar={puedeGestionar} />
+        <Ficha id={sub} esAdmin={esAdmin} puedeGestionar={puedeGestionar} orgNombre={orgActual?.nombre ?? ''} />
       ) : (
-        <Listado orgId={orgId} />
+        <Listado orgId={orgId} orgNombre={orgActual?.nombre ?? ''} selector={selector} />
       )}
     </Marco>
   );

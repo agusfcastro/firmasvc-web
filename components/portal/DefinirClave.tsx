@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Button } from '../Button';
 import { supabase } from './supabase';
 import { navegar } from './navegacion';
-import { Aviso, Campo, Marco, claseInput } from './ui';
+import { Aviso, Campo, claseInput } from './ui';
+import { LayoutAcceso } from './LayoutAcceso';
 import type { EstadoSesion } from './useSesion';
 
 const MINIMO = 10;
@@ -21,11 +22,14 @@ export const DefinirClave: React.FC<{ estado: EstadoSesion }> = ({ estado }) => 
 
   if (!estado.sesion) {
     return (
-      <Marco ancho="angosto">
-        <h1 className="h2 mb-6">El enlace venció</h1>
+      <LayoutAcceso>
+        <p className="eyebrow text-piedra mb-4">Acceso</p>
+        <h1 className="h2 mb-6">
+          El enlace <span className="text-bosque">venció</span>
+        </h1>
         <p className="text-piedra mb-8">Los enlaces de acceso duran poco tiempo y se pueden usar una sola vez. Pedí uno nuevo desde la pantalla de ingreso.</p>
-        <Button onClick={() => navegar('/portal/ingresar')}>Ir al ingreso</Button>
-      </Marco>
+        <Button size="lg" onClick={() => navegar('/portal/ingresar')}>Ir al ingreso</Button>
+      </LayoutAcceso>
     );
   }
 
@@ -50,9 +54,11 @@ export const DefinirClave: React.FC<{ estado: EstadoSesion }> = ({ estado }) => 
   }
 
   return (
-    <Marco ancho="angosto">
-      <p className="eyebrow text-piedra mb-3">Portal de clientes</p>
-      <h1 className="h2 mb-3">Definí tu contraseña</h1>
+    <LayoutAcceso>
+      <p className="eyebrow text-piedra mb-4">Primer ingreso</p>
+      <h1 className="h2 mb-3">
+        Definí tu <span className="text-bosque">contraseña</span>
+      </h1>
       <p className="text-piedra mb-8">Cuenta {estado.sesion.user.email}. Solo vos la vas a conocer, nadie en FIRMA puede verla.</p>
       <form onSubmit={guardar} className="space-y-5">
         {error && <Aviso tipo="error">{error}</Aviso>}
@@ -62,10 +68,10 @@ export const DefinirClave: React.FC<{ estado: EstadoSesion }> = ({ estado }) => 
         <Campo etiqueta="Repetila">
           <input type="password" required autoComplete="new-password" className={claseInput} value={repetir} onChange={(e) => setRepetir(e.target.value)} />
         </Campo>
-        <Button type="submit" fullWidth disabled={enviando}>
+        <Button type="submit" size="lg" fullWidth disabled={enviando}>
           {enviando ? 'Guardando…' : 'Guardar y entrar'}
         </Button>
       </form>
-    </Marco>
+    </LayoutAcceso>
   );
 };
