@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { Aviso, Campo, Etiqueta, claseInput } from '../ui';
+import { iniciarVistaPrevia } from '../vistaPrevia';
 import { PAISES, type Organizacion } from '../tipos';
 
 type Borrador = Pick<Organizacion, 'nombre' | 'razon_social' | 'pais' | 'activa' | 'notas'> & { id?: string };
@@ -127,7 +128,13 @@ export const Clientes: React.FC = () => {
                 <td className="p-3">{PAISES[o.pais] ?? o.pais}</td>
                 <td className="p-3">{conteo[o.id] ?? 0}</td>
                 <td className="p-3">{o.activa ? <Etiqueta tono="bosque">Activo</Etiqueta> : <Etiqueta tono="alerta">Inactivo</Etiqueta>}</td>
-                <td className="p-3 text-right">
+                <td className="p-3 text-right whitespace-nowrap">
+                  <button type="button" className="underline underline-offset-4 hover:text-bosque mr-4" onClick={() => iniciarVistaPrevia({ orgId: o.id, orgNombre: o.nombre, rol: 'titular', areas: [] })}>
+                    Ver como titular
+                  </button>
+                  <button type="button" className="underline underline-offset-4 hover:text-bosque mr-4" onClick={() => iniciarVistaPrevia({ orgId: o.id, orgNombre: o.nombre, rol: 'miembro', areas: [] })}>
+                    Ver como miembro
+                  </button>
                   <button type="button" className="underline underline-offset-4 hover:text-bosque" onClick={() => setBorrador({ ...o })}>
                     Editar
                   </button>

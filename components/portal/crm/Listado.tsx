@@ -4,6 +4,7 @@ import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
 import { Aviso, Etiqueta, claseInput } from '../ui';
+import { useVistaPrevia } from '../vistaPrevia';
 import { TONO_FIRMA, dinero, fecha, hoyISO, type ClienteResumen } from './tipos';
 
 type Filtro = 'todos' | 'vencidas' | 'revisar' | 'Pendiente' | 'Firmado' | 'Baja';
@@ -47,6 +48,7 @@ export const Listado: React.FC<{ orgId: string }> = ({ orgId }) => {
   const [error, setError] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<Filtro>('todos');
   const [busqueda, setBusqueda] = useState('');
+  const soloLectura = Boolean(useVistaPrevia());
 
   useEffect(() => {
     if (!supabase) return;
@@ -116,9 +118,11 @@ export const Listado: React.FC<{ orgId: string }> = ({ orgId }) => {
       </div>
 
       <div className="flex flex-wrap gap-3 items-center">
-        <Button onClick={() => navegar('/portal/crm/nuevo')}>
-          <Plus size={16} /> Nuevo cliente
-        </Button>
+        {!soloLectura && (
+          <Button onClick={() => navegar('/portal/crm/nuevo')}>
+            <Plus size={16} /> Nuevo cliente
+          </Button>
+        )}
         <div className="relative flex-1 min-w-[200px] max-w-[360px]">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-piedra" />
           <input className={`${claseInput} pl-9`} placeholder="Buscar por nombre, código, mail o DNI" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />

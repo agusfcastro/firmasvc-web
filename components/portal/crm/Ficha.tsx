@@ -4,6 +4,7 @@ import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
 import { Aviso, Campo, Etiqueta, claseInput } from '../ui';
+import { useVistaPrevia } from '../vistaPrevia';
 import { TONO_FIRMA, dinero, fecha, hoyISO, type CambioHistorial, type ClienteCrm, type ContratoReservado, type EstadoFirma, type Pago, type Servicio } from './tipos';
 
 const ROTULOS: Record<string, string> = {
@@ -37,6 +38,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
   const [guardando, setGuardando] = useState(false);
   const [nueva, setNueva] = useState<{ monto: string; vencimiento: string; nota: string } | null>(null);
   const [noExiste, setNoExiste] = useState(false);
+  const soloLectura = Boolean(useVistaPrevia());
 
   async function cargar() {
     if (!supabase) return;
@@ -165,6 +167,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
       )}
 
       {/* Pagos */}
+      <fieldset disabled={soloLectura} className="contents">
       <section>
         <h3 className="h3 mb-4">Plan de pagos</h3>
         <div className="grid grid-cols-2 tab:grid-cols-4 gap-px bg-[rgba(27,31,27,0.15)] border border-[rgba(27,31,27,0.15)] mb-4">
@@ -295,9 +298,11 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
           </Button>
         )}
       </section>
+      </fieldset>
 
       {/* Datos */}
-      <form onSubmit={guardarDatos} className="space-y-6">
+      <form onSubmit={guardarDatos}>
+      <fieldset disabled={soloLectura} className="space-y-6 min-w-0">
         <h3 className="h3">Datos del cliente</h3>
         <div className="grid gap-5 tab:grid-cols-2">
           <Campo etiqueta="Nombre completo">
@@ -409,9 +414,12 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
           )}
         </div>
 
-        <Button type="submit" disabled={guardando}>
-          {guardando ? 'Guardando…' : 'Guardar cambios'}
-        </Button>
+        {!soloLectura && (
+          <Button type="submit" disabled={guardando}>
+            {guardando ? 'Guardando…' : 'Guardar cambios'}
+          </Button>
+        )}
+      </fieldset>
       </form>
 
       {puedeGestionar && historial.length > 0 && (

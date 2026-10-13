@@ -7,6 +7,8 @@ import { Aviso, Cargando, Marco } from './ui';
 import { Ingresar } from './Ingresar';
 import { DefinirClave } from './DefinirClave';
 import { Inicio } from './Inicio';
+import { VistaPreviaContexto, leerVistaPrevia } from './vistaPrevia';
+import type { Organizacion, Perfil } from './tipos';
 
 const CrmApp = lazy(() => import('./crm/CrmApp'));
 const PanelAdmin = lazy(() => import('./admin/PanelAdmin').then((m) => ({ default: m.PanelAdmin })));
@@ -72,6 +74,25 @@ export const PortalApp: React.FC = () => {
           Salir
         </Button>
       </Marco>
+    );
+  }
+
+  // Modo "Ver como": el admin navega con la perspectiva de un cliente.
+  const vista = perfil.rol === 'admin' ? leerVistaPrevia() : null;
+  if (vista) {
+    const perfilVista: Perfil = { ...perfil, rol: vista.rol, organizacion_id: vista.orgId, areas: vista.areas, nombre: vista.nombre ?? perfil.nombre };
+    const orgVista = { id: vista.orgId, nombre: vista.orgNombre, activa: true } as Organizacion;
+    const enCrm = ruta === '/portal/crm' || ruta.startsWith('/portal/crm/');
+    return (
+      <VistaPreviaContexto.Provider value={vista}>
+        {enCrm ? (
+          <Suspense fallback={<Cargando />}>
+            <CrmApp perfil={perfilVista} organizacion={orgVista} ruta={ruta} />
+          </Suspense>
+        ) : (
+          <Inicio estado={{ ...estado, perfil: perfilVista, organizacion: orgVista }} />
+        )}
+      </VistaPreviaContexto.Provider>
     );
   }
 

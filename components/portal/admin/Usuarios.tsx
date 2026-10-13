@@ -4,6 +4,7 @@ import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { llamarApiAdmin } from '../useSesion';
 import { Aviso, Campo, Etiqueta, claseInput } from '../ui';
+import { iniciarVistaPrevia } from '../vistaPrevia';
 import { ROTULO_ROL, fechaCorta, type Area, type Organizacion, type Perfil, type Rol } from '../tipos';
 
 interface Borrador {
@@ -214,6 +215,23 @@ export const Usuarios: React.FC<{ yo: Perfil }> = ({ yo }) => {
                     >
                       Editar
                     </button>
+                    {u.rol !== 'admin' && u.organizacion_id && (
+                      <button
+                        type="button"
+                        className="underline underline-offset-4 hover:text-bosque"
+                        onClick={() =>
+                          iniciarVistaPrevia({
+                            orgId: u.organizacion_id!,
+                            orgNombre: nombreOrg[u.organizacion_id!] ?? 'Cliente',
+                            rol: u.rol as 'titular' | 'miembro',
+                            areas: u.areas,
+                            nombre: u.nombre ?? u.email,
+                          })
+                        }
+                      >
+                        Ver como
+                      </button>
+                    )}
                     {u.activo && (
                       <button
                         type="button"

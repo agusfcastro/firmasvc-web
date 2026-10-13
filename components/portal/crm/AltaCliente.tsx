@@ -4,6 +4,7 @@ import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
 import { Aviso, Campo, claseInput } from '../ui';
+import { useVistaPrevia } from '../vistaPrevia';
 import { dinero, hoyISO, type Servicio } from './tipos';
 
 function sumarMeses(iso: string, n: number): string {
@@ -22,6 +23,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean }> = ({ org
   });
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const soloLectura = Boolean(useVistaPrevia());
 
   useEffect(() => {
     supabase
@@ -86,6 +88,8 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean }> = ({ org
   }
 
   const set = (k: keyof typeof f, v: string) => setF({ ...f, [k]: v });
+
+  if (soloLectura) return <Aviso tipo="info">En la vista previa no se pueden crear clientes.</Aviso>;
 
   return (
     <form onSubmit={guardar} className="space-y-8 max-w-[760px]">

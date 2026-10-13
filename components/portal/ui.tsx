@@ -1,5 +1,7 @@
 import React from 'react';
-import { LogOut } from 'lucide-react';
+import { Eye, LogOut } from 'lucide-react';
+import { salirVistaPrevia, useVistaPrevia } from './vistaPrevia';
+import { ROTULO_ROL } from './tipos';
 import { Logo } from '../Logo';
 import { supabase } from './supabase';
 import { navegar } from './navegacion';
@@ -9,8 +11,24 @@ export const Marco: React.FC<{ perfil?: Perfil | null; children: React.ReactNode
   perfil,
   children,
   ancho = 'normal',
-}) => (
+}) => {
+  const vista = useVistaPrevia();
+  return (
   <div className="min-h-screen bg-marfil text-tinta flex flex-col">
+    {vista && (
+      <div className="bg-tinta text-marfil text-sm sticky top-0 z-50">
+        <div className="wrap flex flex-wrap items-center gap-x-4 gap-y-1 py-2.5">
+          <Eye size={16} />
+          <span className="flex-1 min-w-[200px]">
+            Viendo como <strong>{vista.nombre ?? ROTULO_ROL[vista.rol]}</strong> · {ROTULO_ROL[vista.rol]} de {vista.orgNombre}
+            {vista.rol === 'miembro' && vista.areas.length > 0 ? ` · áreas ${vista.areas.join(', ')}` : ''}. Solo lectura.
+          </span>
+          <button type="button" onClick={salirVistaPrevia} className="underline underline-offset-4 font-medium">
+            Salir de la vista
+          </button>
+        </div>
+      </div>
+    )}
     <header className="bg-marfil" style={{ borderBottom: '1px solid rgba(27,31,27,0.12)' }}>
       <div className="wrap flex items-center justify-between gap-4 h-20">
         <a
@@ -45,7 +63,8 @@ export const Marco: React.FC<{ perfil?: Perfil | null; children: React.ReactNode
       FIRMA · Portal de clientes · Acceso restringido. La información de este portal es confidencial.
     </footer>
   </div>
-);
+  );
+};
 
 export const Campo: React.FC<{ etiqueta: string; ayuda?: string; children: React.ReactNode }> = ({ etiqueta, ayuda, children }) => (
   <label className="block">
