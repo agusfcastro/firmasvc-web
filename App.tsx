@@ -16,10 +16,20 @@ const ProtocoloLlamadas = lazy(() =>
   import('./components/ProtocoloLlamadas').then((m) => ({ default: m.ProtocoloLlamadas })),
 );
 
+// Portal de clientes, también aparte. Supabase solo se descarga al entrar al portal.
+const PortalApp = lazy(() => import('./components/portal/PortalApp'));
+
 function App() {
   const path = window.location.pathname.replace(/\/$/, '');
   if (path === '/privacidad' || path === '/privacy') {
     return <PrivacyPolicy />;
+  }
+  if (path === '/portal' || path.startsWith('/portal/')) {
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-marfil" />}>
+        <PortalApp />
+      </Suspense>
+    );
   }
   if (path === '/protocolo-llamadas') {
     return (
