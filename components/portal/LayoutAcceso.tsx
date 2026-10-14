@@ -16,12 +16,15 @@ export const LayoutAcceso: React.FC<{ children: React.ReactNode }> = ({ children
       <a href="/" className="relative self-start" aria-label="Ir a firmasvc.com">
         <Logo variant="oscuro" className="h-12 desk:h-14" />
       </a>
-      <div className="relative flex flex-col gap-5 max-w-[30ch]">
+      {/* El título va siempre en dos renglones. Ninguno se corta y el tamaño se ajusta al ancho del panel. */}
+      <div className="relative flex flex-col gap-5" style={{ containerType: 'inline-size' }}>
         <p className="eyebrow text-calido">Portal de clientes</p>
-        <p className="font-heading font-black leading-[1.04] tracking-[-0.02em]" style={{ fontSize: 'clamp(30px, 4.4vw, 52px)' }}>
-          tu estructura legal,
-          <br />
-          <span className="text-calido">en un solo lugar</span>
+        <p
+          className="font-heading font-black leading-[1.04] tracking-[-0.02em]"
+          style={{ fontSize: 'min(clamp(30px, 4.4vw, 52px), 10.6cqi)' }}
+        >
+          <span className="block whitespace-nowrap">tu estructura legal,</span>
+          <span className="block whitespace-nowrap text-calido">en un solo lugar</span>
         </p>
         <p className="hidden desk:block text-calido text-[16px] leading-[1.6] max-w-[38ch]">
           Contratos, firmas, pagos y protocolos de tu equipo, con el respaldo de FIRMA.
