@@ -4,6 +4,7 @@ import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { Aviso, Campo, Cifras, Encabezado, Enlace, Etiqueta, Monto, TituloSeccion, claseInput } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
+import { BotonCopiar, MENSAJE_CONTRATO, generarContrato } from './firma';
 import { TONO_FIRMA, dinero, fecha, hoyISO, type CambioHistorial, type ClienteCrm, type ContratoReservado, type EstadoFirma, type Pago, type Servicio } from './tipos';
 
 const ROTULOS: Record<string, string> = {
@@ -11,8 +12,9 @@ const ROTULOS: Record<string, string> = {
   modalidad: 'Modalidad', fecha_onboarding: 'Onboarding', estado_firma: 'Estado de la firma', link_contrato_servicio: 'Contrato de servicio',
   responsable: 'Responsable', notas: 'Notas', revisar_pagos: 'Revisar pagos', monto: 'Monto', vencimiento: 'Vencimiento', estado: 'Estado',
   fecha_pago: 'Fecha de pago', nota: 'Nota', link_contrato_cliente: 'Contrato del cliente', link_documento: 'Documento generado',
+  firma_url: 'Link de firma', contrato_estado: 'Contrato', contrato_error: 'Error del contrato',
 };
-const OCULTOS = new Set(['id', 'organizacion_id', 'cliente_id', 'creado_por', 'codigo', 'plan_pagos_original']);
+const OCULTOS = new Set(['id', 'organizacion_id', 'cliente_id', 'creado_por', 'codigo', 'plan_pagos_original', 'zapsign_doc', 'contrato_generado_en']);
 
 function aLocal(iso: string | null): string {
   if (!iso) return '';
@@ -26,7 +28,7 @@ function valorLegible(v: unknown): string {
   return String(v).length > 60 ? String(v).slice(0, 57) + '…' : String(v);
 }
 
-export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boolean; orgNombre: string; cobranza: boolean }> = ({ id, esAdmin, puedeGestionar, orgNombre, cobranza }) => {
+export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boolean; orgNombre: string; cobranza: boolean; zapsign?: boolean }> = ({ id, esAdmin, puedeGestionar, orgNombre, cobranza, zapsign = false }) => {
   const [cliente, setCliente] = useState<ClienteCrm | null>(null);
   const [borrador, setBorrador] = useState<ClienteCrm | null>(null);
   const [pagos, setPagos] = useState<Pago[]>([]);
@@ -37,6 +39,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
   const [guardando, setGuardando] = useState(false);
   const [nueva, setNueva] = useState<{ monto: string; vencimiento: string; nota: string } | null>(null);
   const [noExiste, setNoExiste] = useState(false);
+  const [generando, setGenerando] = useState(false);
   const soloLectura = Boolean(useVistaPrevia());
 
   async function cargar() {
@@ -113,6 +116,16 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
     setGuardando(false);
     setMensaje(error ? { tipo: 'error', texto: error.message } : { tipo: 'ok', texto: 'Cambios guardados.' });
     if (!error) void cargar();
+  }
+
+  async function generar(regenerar = false) {
+    if (regenerar && !window.confirm('¿Generar un contrato nuevo en ZapSign? El link anterior deja de usarse en el CRM.')) return;
+    setGenerando(true);
+    setMensaje(null);
+    const r = await generarContrato(id, regenerar);
+    setGenerando(false);
+    setMensaje(r.ok ? { tipo: 'ok', texto: 'Contrato generado. Ya podés copiar el link de firma.' } : { tipo: 'error', texto: r.error ?? 'No se pudo generar el contrato.' });
+    void cargar();
   }
 
   async function actualizarPago(p: Pago, cambios: Partial<Pago>) {
@@ -498,6 +511,49 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                 {etiquetaOscura('Estado de la firma')}
                 <span className="font-heading font-black text-[28px] leading-none">{cliente.estado_firma}</span>
               </div>
+              {(zapsign || cliente.firma_url || cliente.contrato_estado) && (
+                <div>
+                  {etiquetaOscura('Link de firma')}
+                  {cliente.firma_url ? (
+                    <>
+                      <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+                        {cliente.estado_firma === 'Pendiente' && <BotonCopiar variante="claro" texto={cliente.firma_url} etiqueta="Copiar link" descripcion="Copiar el link de firma" />}
+                        <a href={cliente.firma_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 font-medium underline underline-offset-4 hover:no-underline">
+                          Abrir <ExternalLink size={14} aria-hidden="true" />
+                        </a>
+                      </div>
+                      <p className="text-xs text-calido mt-2">
+                        {cliente.estado_firma === 'Firmado'
+                          ? 'Firmado en ZapSign.'
+                          : `${cliente.contrato_generado_en ? `Generado el ${new Date(cliente.contrato_generado_en).toLocaleDateString('es-AR')}. ` : ''}Mandáselo al cliente para que firme.`}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-calido">
+                      {cliente.contrato_estado === 'error' && cliente.contrato_error
+                        ? `No se pudo generar el contrato. ${cliente.contrato_error}`
+                        : cliente.contrato_estado
+                          ? MENSAJE_CONTRATO[cliente.contrato_estado]
+                          : 'Todavía no se generó el contrato.'}
+                    </p>
+                  )}
+                  {!soloLectura && zapsign && cliente.estado_firma === 'Pendiente' && !cliente.firma_url && (
+                    <button
+                      type="button"
+                      disabled={generando}
+                      onClick={() => generar(false)}
+                      className="mt-4 inline-flex items-center gap-2 h-11 px-5 bg-marfil text-tinta text-sm font-medium transition-colors duration-150 hover:bg-white disabled:opacity-60"
+                    >
+                      <RotateCcw size={15} aria-hidden="true" /> {generando ? 'Generando…' : cliente.contrato_estado ? 'Reintentar' : 'Generar contrato'}
+                    </button>
+                  )}
+                  {!soloLectura && esAdmin && zapsign && cliente.firma_url && cliente.estado_firma !== 'Baja' && (
+                    <button type="button" disabled={generando} onClick={() => generar(true)} className="mt-4 block text-xs text-calido underline underline-offset-4 hover:text-marfil disabled:opacity-60">
+                      {generando ? 'Generando…' : 'Generar un contrato nuevo'}
+                    </button>
+                  )}
+                </div>
+              )}
               <div>
                 {etiquetaOscura('Contrato de servicio')}
                 {enlaceOscuro(cliente.link_contrato_servicio, 'Ver contrato de servicio')}

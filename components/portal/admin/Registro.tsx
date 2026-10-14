@@ -11,6 +11,8 @@ const ACCIONES: Record<string, string> = {
   desactivacion: 'Acceso desactivado',
   envio_acceso: 'Enlace de acceso reenviado',
   descarga_documento: 'Descargó un documento',
+  zapsign_conectado: 'ZapSign conectado',
+  zapsign_desconectado: 'ZapSign desconectado',
 };
 
 export const Registro: React.FC = () => {
@@ -53,7 +55,9 @@ export const Registro: React.FC = () => {
                 <td className="whitespace-nowrap">{fechaCorta(f.creado_en)}</td>
                 <td>
                   {ACCIONES[f.accion] ?? f.accion}
-                  {typeof f.detalle?.titulo === 'string' && <div className="text-xs text-piedra mt-1">{String(f.detalle.titulo)}</div>}
+                  {(typeof f.detalle?.titulo === 'string' || typeof f.detalle?.empresa === 'string') && (
+                    <div className="text-xs text-piedra mt-1">{String(f.detalle.titulo ?? f.detalle.empresa)}</div>
+                  )}
                 </td>
                 <td>{(f.usuario_id && mails[f.usuario_id]) || '·'}</td>
                 <td>{(f.actor_id && mails[f.actor_id]) || '·'}</td>

@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Download, Plus, Search } from 'lucide-react';
+import { AlertTriangle, ChevronLeft, ChevronRight, Download, Plus, Search } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
 import { Aviso, Cifras, Encabezado, Etiqueta, Monto, Pestanas, claseInput } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
+import { BotonCopiar } from './firma';
 import { TONO_FIRMA, dinero, fecha, hoyISO, type ClienteResumen } from './tipos';
 
 type Filtro = 'todos' | 'vencidas' | 'revisar' | 'Pendiente' | 'Firmado' | 'Baja';
@@ -31,7 +32,10 @@ function csv(filas: ClienteResumen[]): string {
     ['Próximo vencimiento', (c) => c.proximo_vencimiento],
     ['Cuotas pactadas', (c) => c.cuotas_pactadas],
     ['Cuotas vencidas', (c) => c.cuotas_vencidas],
+    ['Monto próxima cuota', (c) => c.proxima_cuota_monto],
+    ['Por cobrar en 30 días', (c) => c.por_cobrar_30_dias],
     ['Estado firma', (c) => c.estado_firma],
+    ['Link de firma', (c) => c.firma_url],
     ['Responsable', (c) => c.responsable],
     ['Onboarding', (c) => c.fecha_onboarding?.slice(0, 16).replace('T', ' ')],
     ['Notas', (c) => c.notas],
@@ -49,6 +53,15 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
   const [error, setError] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<Filtro>('todos');
   const [busqueda, setBusqueda] = useState('');
+  const [pagina, setPagina] = useState(0);
+  const [porPagina, setPorPagina] = useState<number>(() => {
+    try {
+      const v = Number(window.localStorage.getItem('firma-crm-por-pagina'));
+      return [10, 20, 50].includes(v) ? v : 20;
+    } catch {
+      return 20;
+    }
+  });
   const soloLectura = Boolean(useVistaPrevia());
 
   const cobranzaRef = cobranza;
@@ -62,7 +75,7 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
       .order('codigo', { ascending: false })
       .then(({ data, error: e }) => {
         if (e) setError(e.message);
-        setFilas(((data as ClienteResumen[]) ?? []).map((f) => ({ ...f, cobrado: Number(f.cobrado), pendiente: Number(f.pendiente), cuotas_vencidas: cobranzaRef ? Number(f.cuotas_vencidas) : 0, cuotas_pactadas: Number(f.cuotas_pactadas ?? 0), monto_total: f.monto_total === null ? null : Number(f.monto_total) })));
+        setFilas(((data as ClienteResumen[]) ?? []).map((f) => ({ ...f, cobrado: Number(f.cobrado), pendiente: Number(f.pendiente), cuotas_vencidas: cobranzaRef ? Number(f.cuotas_vencidas) : 0, cuotas_pactadas: Number(f.cuotas_pactadas ?? 0), monto_total: f.monto_total === null ? null : Number(f.monto_total), proxima_cuota_monto: f.proxima_cuota_monto === null || f.proxima_cuota_monto === undefined ? null : Number(f.proxima_cuota_monto), por_cobrar_30_dias: Number(f.por_cobrar_30_dias ?? 0) })));
         setCargando(false);
       });
   }, [orgId, cobranzaRef]);
@@ -75,6 +88,7 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
     acordado: activos.reduce((a, f) => a + (f.monto_total ?? 0), 0),
     cobrado: activos.reduce((a, f) => a + f.cobrado, 0),
     porCobrar: activos.reduce((a, f) => a + f.pendiente, 0),
+    proximos30: activos.reduce((a, f) => a + f.por_cobrar_30_dias, 0),
   };
   const cuenta = (c: Filtro) =>
     c === 'todos' ? filas.length : c === 'vencidas' ? conVencidas.length : c === 'revisar' ? filas.filter((f) => f.revisar_pagos).length : filas.filter((f) => f.estado_firma === c).length;
@@ -89,6 +103,24 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
       return [f.codigo, f.nombre, f.email, f.dni, f.responsable].some((v) => (v ?? '').toLowerCase().includes(q));
     });
   }, [filas, filtro, busqueda]);
+
+  // Paginación de la tabla. Vuelve a la primera página al cambiar el filtro o la búsqueda.
+  useEffect(() => {
+    setPagina(0);
+  }, [filtro, busqueda, porPagina, orgId]);
+  const paginas = Math.max(1, Math.ceil(visibles.length / porPagina));
+  const paginaActual = Math.min(pagina, paginas - 1);
+  const desde = paginaActual * porPagina;
+  const filasPagina = visibles.slice(desde, desde + porPagina);
+
+  function cambiarPorPagina(n: number) {
+    setPorPagina(n);
+    try {
+      window.localStorage.setItem('firma-crm-por-pagina', String(n));
+    } catch {
+      /* sin almacenamiento */
+    }
+  }
 
   function descargar() {
     const blob = new Blob(['\ufeff' + csv(visibles)], { type: 'text/csv;charset=utf-8' });
@@ -135,14 +167,12 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
             { titulo: 'Firmas pendientes', valor: resumen.pendientes },
             { titulo: 'Monto acordado', valor: <Monto n={resumen.acordado} /> },
             { titulo: 'Cobrado', valor: <Monto n={resumen.cobrado} />, nota: `${pct}% del acordado` },
-            { titulo: 'Por cobrar', valor: <Monto n={resumen.porCobrar} /> },
+            { titulo: 'Por cobrar el próximo mes', valor: <Monto n={resumen.proximos30} />, nota: 'Vence en los próximos 30 días' },
             { titulo: 'Con cuotas vencidas', valor: conVencidas.length, alerta: conVencidas.length > 0 },
           ] : [
             { titulo: 'Contratos firmados', valor: resumen.firmados },
             { titulo: 'Firmas pendientes', valor: resumen.pendientes },
             { titulo: 'Monto acordado', valor: <Monto n={resumen.acordado} /> },
-            { titulo: 'Anticipos', valor: <Monto n={resumen.cobrado} />, nota: `${pct}% del acordado` },
-            { titulo: 'Financiado en cuotas', valor: <Monto n={resumen.porCobrar} /> },
             { titulo: 'Planes a revisar', valor: filas.filter((f) => f.revisar_pagos).length, alerta: filas.some((f) => f.revisar_pagos) },
           ]}
         />
@@ -158,7 +188,7 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
             </Button>
           </div>
 
-          <Pestanas items={FILTROS.filter((f) => cobranza || f.clave !== 'vencidas').map((f) => ({ ...f, cuenta: cargando ? undefined : cuenta(f.clave) }))} activa={filtro} alCambiar={setFiltro} />
+          <Pestanas<Filtro> items={FILTROS.filter((f) => cobranza || f.clave !== 'vencidas').map((f) => ({ ...f, cuenta: cargando ? undefined : cuenta(f.clave) }))} activa={filtro} alCambiar={setFiltro} />
 
           <div className="overflow-x-auto">
             <table className="tabla min-w-[900px]">
@@ -168,7 +198,7 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
                   <th>Servicio</th>
                   <th className="num">Acordado</th>
                   <th>{cobranza ? 'Cobrado' : 'Plan pactado'}</th>
-                  <th>{cobranza ? 'Próxima cuota' : 'Primera cuota'}</th>
+                  {cobranza && <th>Próxima cuota</th>}
                   <th>Firma</th>
                   <th>Responsable</th>
                 </tr>
@@ -176,12 +206,12 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
               <tbody>
                 {!cargando && visibles.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="text-piedra py-10">
+                    <td colSpan={cobranza ? 7 : 6} className="text-piedra py-10">
                       No hay clientes para mostrar con este filtro.
                     </td>
                   </tr>
                 )}
-                {visibles.map((f) => {
+                {filasPagina.map((f) => {
                   const avance = f.monto_total ? Math.min(100, Math.round((f.cobrado / f.monto_total) * 100)) : 0;
                   const vencida = f.cuotas_vencidas > 0 && f.estado_firma !== 'Baja';
                   return (
@@ -222,20 +252,24 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
                           </>
                         )}
                       </td>
-                      <td className="whitespace-nowrap">
-                        {!cobranza ? (
-                          <span>{f.pendiente > 0 ? fecha(f.proximo_vencimiento) : '·'}</span>
-                        ) : f.pendiente > 0 ? (
-                          <>
-                            <div className={vencida ? 'text-[#8a2b20] font-medium' : ''}>{fecha(f.proximo_vencimiento)}</div>
-                            {vencida && <div className="text-xs text-[#8a2b20] mt-0.5">{f.cuotas_vencidas === 1 ? '1 cuota vencida' : `${f.cuotas_vencidas} cuotas vencidas`}</div>}
-                          </>
-                        ) : (
-                          <span className="text-bosque font-medium">Pagado</span>
-                        )}
-                      </td>
+                      {cobranza && (
+                        <td className="whitespace-nowrap">
+                          {f.pendiente > 0 ? (
+                            <>
+                              <div className={vencida ? 'text-[#8a2b20] font-medium' : ''}>{fecha(f.proximo_vencimiento)}</div>
+                              {f.proxima_cuota_monto !== null && <div className="text-xs text-piedra mt-0.5 tabular-nums">{dinero(f.proxima_cuota_monto, f.moneda)}</div>}
+                              {vencida && <div className="text-xs text-[#8a2b20] mt-0.5">{f.cuotas_vencidas === 1 ? '1 cuota vencida' : `${f.cuotas_vencidas} cuotas vencidas`}</div>}
+                            </>
+                          ) : (
+                            <span className="text-bosque font-medium">Pagado</span>
+                          )}
+                        </td>
+                      )}
                       <td>
-                        <Etiqueta tono={TONO_FIRMA[f.estado_firma]}>{f.estado_firma}</Etiqueta>
+                        <div className="flex items-center gap-2.5">
+                          <Etiqueta tono={TONO_FIRMA[f.estado_firma]}>{f.estado_firma}</Etiqueta>
+                          {f.firma_url && f.estado_firma === 'Pendiente' && <BotonCopiar texto={f.firma_url} descripcion={`Copiar el link de firma de ${f.nombre}`} />}
+                        </div>
                       </td>
                       <td className="text-piedra">{f.responsable ?? '·'}</td>
                     </tr>
@@ -244,9 +278,50 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
               </tbody>
             </table>
           </div>
-          <p className="text-xs text-piedra">
-            {visibles.length} de {filas.length} clientes
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-4 text-sm">
+            <label className="flex items-center gap-2.5 text-piedra">
+              Mostrar
+              <select
+                className="h-10 pl-3 pr-8 bg-white border border-[rgba(27,31,27,0.22)] text-tinta font-medium focus:outline-none focus:border-bosque focus:ring-1 focus:ring-bosque"
+                value={porPagina}
+                onChange={(e) => cambiarPorPagina(Number(e.target.value))}
+              >
+                {[10, 20, 50].map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+              clientes por página
+            </label>
+            <div className="flex items-center gap-3">
+              <span className="text-piedra tabular-nums">
+                {visibles.length === 0 ? '0' : `${desde + 1}–${Math.min(desde + porPagina, visibles.length)}`} de {visibles.length}
+                {visibles.length !== filas.length ? ` (${filas.length} en total)` : ''}
+              </span>
+              <button
+                type="button"
+                aria-label="Página anterior"
+                disabled={paginaActual === 0}
+                onClick={() => setPagina(paginaActual - 1)}
+                className="w-10 h-10 inline-flex items-center justify-center border border-[rgba(27,31,27,0.22)] bg-white transition-colors duration-150 hover:border-tinta disabled:opacity-40 disabled:hover:border-[rgba(27,31,27,0.22)]"
+              >
+                <ChevronLeft size={16} aria-hidden="true" />
+              </button>
+              <span className="tabular-nums font-medium">
+                {paginaActual + 1} / {paginas}
+              </span>
+              <button
+                type="button"
+                aria-label="Página siguiente"
+                disabled={paginaActual >= paginas - 1}
+                onClick={() => setPagina(paginaActual + 1)}
+                className="w-10 h-10 inline-flex items-center justify-center border border-[rgba(27,31,27,0.22)] bg-white transition-colors duration-150 hover:border-tinta disabled:opacity-40 disabled:hover:border-[rgba(27,31,27,0.22)]"
+              >
+                <ChevronRight size={16} aria-hidden="true" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </>

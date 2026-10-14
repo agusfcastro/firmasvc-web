@@ -19,6 +19,11 @@ export interface ClienteCrm {
   notas: string | null;
   plan_pagos_original: string | null;
   revisar_pagos: boolean;
+  firma_url: string | null;
+  zapsign_doc: string | null;
+  contrato_estado: 'listo' | 'error' | 'sin_cuenta' | 'sin_modelo' | null;
+  contrato_error: string | null;
+  contrato_generado_en: string | null;
   creado_en: string;
   actualizado_en: string;
 }
@@ -29,6 +34,8 @@ export interface ClienteResumen extends ClienteCrm {
   proximo_vencimiento: string | null;
   cuotas_vencidas: number;
   cuotas_pactadas: number;
+  proxima_cuota_monto: number | null;
+  por_cobrar_30_dias: number;
 }
 
 export interface Pago {
@@ -50,9 +57,12 @@ export interface ContratoReservado {
 
 export interface Servicio {
   id: string;
+  organizacion_id?: string;
   clave: string;
   nombre: string | null;
   precio: number | null;
+  activo?: boolean;
+  zapsign_modelo?: string | null;
 }
 
 export interface CambioHistorial {

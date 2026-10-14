@@ -133,3 +133,33 @@ Cada descarga de un cliente queda en **Registro de accesos**. Formatos admitidos
 | `components/portal/Documentos.tsx` | Vista del cliente con las tres secciones |
 | `components/portal/admin/Documentos.tsx` | Carga, reemplazo y visibilidad desde Administración |
 | `components/portal/descargas.ts` | Secciones, formatos y descargas |
+
+## CRM con contratos en ZapSign
+
+Al dar de alta un cliente en el CRM se genera su contrato en ZapSign con el modelo del servicio. El link de firma queda en la ficha y en el listado, con un botón para copiarlo. Cuando el cliente firma, ZapSign avisa y el estado pasa a Firmado.
+
+### Puesta en marcha
+
+1. En Supabase corré `supabase/migraciones/0006_crm_zapsign.sql` en **SQL Editor**.
+2. No hacen falta variables nuevas en Vercel. El aviso de firma usa una clave que arma el servidor con `SUPABASE_SERVICE_ROLE_KEY` y la dirección de `PORTAL_URL`. Si algún día cambiás la clave service role, volvé a conectar ZapSign en cada empresa.
+
+### Por empresa
+
+1. En ZapSign, dentro de la organización del cliente, creá el modelo DOCX con las variables que lista **Administración › ZapSign**.
+2. En **Administración › ZapSign** elegí la empresa, pegá el token de la API de esa organización (Configuración › Integración) y apretá **Conectar**. El portal valida el token y registra solo el aviso de firma.
+3. Elegí el modelo por defecto y, si hace falta, uno distinto por servicio.
+
+### Reglas
+
+- Anticipo más cuotas tiene que sumar exacto el monto acordado. Si no cierra, el alta no se guarda.
+- Si el contrato no se pudo generar, cualquier usuario de la empresa lo reintenta desde la ficha. Generar uno nuevo cuando ya hay link lo hace solo FIRMA.
+- ZapSign no le manda mails al cliente. El link lo envía el equipo.
+- El token nunca llega al navegador. Vive en la tabla `zapsign_cuentas`, que solo lee el servidor.
+
+| Archivo | Para qué |
+|---|---|
+| `supabase/migraciones/0006_crm_zapsign.sql` | Columnas del contrato, tokens privados y vista con próxima cuota y 30 días |
+| `api/crm/contrato.ts` | Genera el contrato en ZapSign y guarda el link |
+| `api/zapsign/webhook.ts` | Recibe el aviso de firma y pasa el cliente a Firmado |
+| `api/admin/zapsign.ts` | Conecta y desconecta cada empresa y lista sus modelos |
+| `components/portal/admin/ZapSign.tsx` | Pestaña de Administración con conexión, modelos, servicios y variables |

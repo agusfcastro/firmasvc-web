@@ -1,13 +1,17 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { ArrowLeft, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
 import { Aviso, Campo, Encabezado, Enlace, TituloSeccion, claseInput } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
+import { generarContrato } from './firma';
 import { dinero, hoyISO, type Servicio } from './tipos';
 
+const FECHA_VALIDA = /^\d{4}-\d{2}-\d{2}$/;
+
 function sumarMeses(iso: string, n: number): string {
+  if (!FECHA_VALIDA.test(iso)) return '';
   const [y, m, d] = iso.split('-').map(Number);
   const base = new Date(Date.UTC(y, m - 1 + n, 1));
   const ultimo = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth() + 1, 0)).getUTCDate();
@@ -15,14 +19,39 @@ function sumarMeses(iso: string, n: number): string {
   return base.toISOString().slice(0, 10);
 }
 
-export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre: string; cobranza: boolean }> = ({ orgId, esAdmin, orgNombre, cobranza }) => {
+/** Los montos se comparan en centavos para que la suma cierre exacta. */
+function aCentavos(v: string): number {
+  const n = Number(String(v).replace(',', '.'));
+  return Number.isFinite(n) ? Math.round(n * 100) : 0;
+}
+
+function aTexto(centavos: number): string {
+  return (centavos / 100).toFixed(2).replace(/\.00$/, '');
+}
+
+interface Cuota {
+  monto: string;
+  vencimiento: string;
+}
+
+/** Reparte el saldo en partes iguales. La diferencia de redondeo va en la última cuota. */
+function repartir(saldo: number, cantidad: number, primera: string): Cuota[] {
+  if (saldo <= 0 || cantidad < 1) return [];
+  const base = Math.floor(saldo / cantidad);
+  const resto = saldo - base * cantidad;
+  return Array.from({ length: cantidad }, (_, i) => ({ monto: aTexto(i === cantidad - 1 ? base + resto : base), vencimiento: sumarMeses(primera, i) }));
+}
+
+export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre: string; cobranza: boolean; zapsign?: boolean }> = ({ orgId, esAdmin, orgNombre, zapsign = false }) => {
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [f, setF] = useState({
     nombre: '', dni: '', email: '', telefono: '', servicio: '', monto_total: '', modalidad: 'Cuotas' as 'Cuotas' | 'PIF',
-    fecha_onboarding: '', responsable: '', notas: '', pagado: '', cuotas: '2', primera: hoyISO(),
+    fecha_onboarding: '', responsable: '', notas: '', anticipo: '', cantidad: '2', primera: hoyISO(),
   });
+  const [cuotas, setCuotas] = useState<Cuota[]>([]);
+  const [manual, setManual] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [guardando, setGuardando] = useState(false);
+  const [etapa, setEtapa] = useState<'' | 'guardando' | 'contrato'>('');
   const soloLectura = Boolean(useVistaPrevia());
 
   useEffect(() => {
@@ -35,24 +64,58 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
       .then(({ data }) => setServicios((data as Servicio[]) ?? []));
   }, [orgId]);
 
-  const total = Number(f.monto_total.replace(',', '.')) || 0;
-  const pagado = Number(f.pagado.replace(',', '.')) || 0;
-  const plan = useMemo(() => {
-    const saldo = Math.round((total - pagado) * 100) / 100;
-    if (saldo <= 0) return [];
-    if (f.modalidad === 'PIF') return [{ monto: saldo, vencimiento: f.primera }];
-    const n = Math.max(1, Math.min(24, parseInt(f.cuotas, 10) || 1));
-    const base = Math.floor((saldo / n) * 100) / 100;
-    const resto = Math.round((saldo - base * n) * 100) / 100;
-    return Array.from({ length: n }, (_, i) => ({ monto: i === n - 1 ? Math.round((base + resto) * 100) / 100 : base, vencimiento: sumarMeses(f.primera, i) }));
-  }, [total, pagado, f.modalidad, f.cuotas, f.primera]);
+  const total = aCentavos(f.monto_total);
+  const anticipo = aCentavos(f.anticipo);
+  const cantidad = f.modalidad === 'PIF' ? 1 : Math.max(1, Math.min(36, parseInt(f.cantidad, 10) || 1));
+
+  // Mientras no se toquen las cuotas a mano, el plan se reparte solo.
+  useEffect(() => {
+    if (manual) return;
+    setCuotas(repartir(total - anticipo, cantidad, f.primera));
+  }, [manual, total, anticipo, cantidad, f.primera]);
+
+  // Validación. Anticipo más la suma de las cuotas tiene que dar el monto acordado.
+  const montos = cuotas.map((c) => aCentavos(c.monto));
+  const sumaCuotas = montos.reduce((a, b) => a + b, 0);
+  const suma = anticipo + sumaCuotas;
+  const diferencia = total - suma;
+  let problema: string | null = null;
+  if (total <= 0) problema = 'Cargá el monto total acordado para armar el plan.';
+  else if (anticipo > total) problema = 'El anticipo supera el monto total acordado.';
+  else if (montos.some((m) => m <= 0)) problema = 'Cada cuota necesita un monto mayor a cero.';
+  else if (cuotas.some((c) => !FECHA_VALIDA.test(c.vencimiento))) problema = 'Cada cuota necesita su fecha de vencimiento.';
+  else if (diferencia !== 0)
+    problema = `Anticipo más cuotas suman ${dinero(suma / 100)} y el monto acordado es ${dinero(total / 100)}. ${diferencia > 0 ? 'Faltan' : 'Sobran'} ${dinero(Math.abs(diferencia) / 100)}.`;
+  const valido = problema === null;
+  const tonoResumen = valido ? 'ok' : total <= 0 ? 'info' : 'error';
+
+  function editarCuota(i: number, cambios: Partial<Cuota>) {
+    setManual(true);
+    setCuotas(cuotas.map((c, j) => (j === i ? { ...c, ...cambios } : c)));
+  }
+
+  function quitarCuota(i: number) {
+    setManual(true);
+    setCuotas(cuotas.filter((_, j) => j !== i));
+  }
+
+  function agregarCuota() {
+    setManual(true);
+    const ultima = cuotas[cuotas.length - 1]?.vencimiento;
+    setCuotas([...cuotas, { monto: diferencia > 0 ? aTexto(diferencia) : '', vencimiento: ultima ? sumarMeses(ultima, 1) : f.primera }]);
+  }
+
+  function cambiarPrimera(v: string) {
+    setF({ ...f, primera: v });
+    // Con cuotas editadas a mano se corren las fechas y se respetan los montos.
+    if (manual && FECHA_VALIDA.test(v)) setCuotas(cuotas.map((c, i) => ({ ...c, vencimiento: sumarMeses(v, i) })));
+  }
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
     if (!supabase) return;
-    if (!total) return setError('Cargá el monto total acordado.');
-    if (pagado > total) return setError('El pago inicial no puede superar el total.');
-    setGuardando(true);
+    if (!valido) return setError(problema);
+    setEtapa('guardando');
     setError(null);
     const { data, error: e1 } = await supabase
       .from('crm_clientes')
@@ -63,7 +126,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
         email: f.email.trim().toLowerCase() || null,
         telefono: f.telefono.trim() || null,
         servicio: f.servicio || null,
-        monto_total: total,
+        monto_total: total / 100,
         modalidad: f.modalidad,
         fecha_onboarding: f.fecha_onboarding ? new Date(f.fecha_onboarding).toISOString() : null,
         responsable: f.responsable.trim() || null,
@@ -72,18 +135,24 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
       .select('id')
       .single();
     if (e1 || !data) {
-      setGuardando(false);
+      setEtapa('');
       return setError(e1?.message ?? 'No se pudo crear.');
     }
     const filas = [
-      ...(pagado > 0 ? [{ cliente_id: data.id, organizacion_id: orgId, monto: pagado, estado: 'pagado', fecha_pago: hoyISO(), nota: cobranza ? 'Pago inicial' : 'Anticipo' }] : []),
-      ...plan.map((p) => ({ cliente_id: data.id, organizacion_id: orgId, monto: p.monto, vencimiento: p.vencimiento, estado: 'pendiente' })),
+      ...(anticipo > 0 ? [{ cliente_id: data.id, organizacion_id: orgId, monto: anticipo / 100, estado: 'pagado', fecha_pago: hoyISO(), nota: 'Anticipo' }] : []),
+      ...cuotas.map((c) => ({ cliente_id: data.id, organizacion_id: orgId, monto: aCentavos(c.monto) / 100, vencimiento: c.vencimiento, estado: 'pendiente' })),
     ];
+    let planOk = true;
     if (filas.length) {
       const { error: e2 } = await supabase.from('crm_pagos').insert(filas);
-      if (e2) setError(`El cliente se creó pero no se pudieron cargar las cuotas. ${e2.message}`);
+      planOk = !e2;
     }
-    setGuardando(false);
+    // El contrato se genera con el plan completo. Si algo falla, la ficha muestra el estado y permite reintentar.
+    if (zapsign && planOk) {
+      setEtapa('contrato');
+      await generarContrato(data.id);
+    }
+    setEtapa('');
     navegar(`/portal/crm/${data.id}`);
   }
 
@@ -95,6 +164,12 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
         <Aviso tipo="info">En la vista previa no se pueden crear clientes.</Aviso>
       </div>
     );
+
+  const estiloResumen = {
+    ok: 'border-bosque bg-[#E4E9E3] text-bosque',
+    error: 'border-[#8a2b20] bg-[#f6e7e4] text-[#5c1d15]',
+    info: 'border-tinta bg-marfil-oscuro text-tinta',
+  }[tonoResumen];
 
   return (
     <>
@@ -109,12 +184,22 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
           Nuevo <span className="text-bosque">cliente</span>
         </>
       }
-      bajada="Cargá los datos y el plan de pagos. FIRMA genera el contrato y actualiza el estado de la firma."
+      bajada={
+        zapsign
+          ? 'Cargá los datos y el plan de pagos. Al crear el cliente se genera el contrato en ZapSign con su link de firma.'
+          : 'Cargá los datos y el plan de pagos. FIRMA genera el contrato y actualiza el estado de la firma.'
+      }
     />
     <form onSubmit={guardar} className="wrap py-10 desk:py-14 flex flex-col gap-10 max-w-[860px] desk:ml-0">
       <TituloSeccion eyebrow="Paso 1" titulo="Datos del cliente" />
       {error && <Aviso tipo="error">{error}</Aviso>}
-      {!esAdmin && <Aviso tipo="info">El cliente queda con la firma pendiente. FIRMA genera el contrato y actualiza el estado.</Aviso>}
+      {!esAdmin && (
+        <Aviso tipo="info">
+          {zapsign
+            ? 'El cliente queda con la firma pendiente. El contrato se genera solo y el estado pasa a Firmado cuando firma.'
+            : 'El cliente queda con la firma pendiente. FIRMA genera el contrato y actualiza el estado.'}
+        </Aviso>
+      )}
 
       <div className="grid gap-5 tab:grid-cols-2">
         <Campo etiqueta="Nombre completo">
@@ -159,38 +244,116 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
         </Campo>
       </div>
 
-      <fieldset className="flex flex-col gap-5 pt-8" style={{ borderTop: '1px solid rgba(27,31,27,0.15)' }}>
+      <fieldset className="flex flex-col gap-6 pt-8 min-w-0" style={{ borderTop: '1px solid rgba(27,31,27,0.15)' }}>
         <TituloSeccion eyebrow="Paso 2" titulo="Plan de pagos" />
-        <div className="grid gap-5 tab:grid-cols-4">
+        <div className="grid gap-5 tab:grid-cols-2 desk:grid-cols-4">
           <Campo etiqueta="Modalidad">
-            <select className={claseInput} value={f.modalidad} onChange={(e) => set('modalidad', e.target.value)}>
+            <select
+              className={claseInput}
+              value={f.modalidad}
+              onChange={(e) => {
+                set('modalidad', e.target.value);
+                setManual(false);
+              }}
+            >
               <option value="Cuotas">Cuotas</option>
               <option value="PIF">PIF (pago total)</option>
             </select>
           </Campo>
-          <Campo etiqueta={cobranza ? 'Ya pagó' : 'Anticipo'}>
-            <input type="number" step="0.01" min="0" className={claseInput} value={f.pagado} onChange={(e) => set('pagado', e.target.value)} />
+          <Campo etiqueta="Anticipo (USD) *" ayuda="* Todo lo que se pague antes del día del onboarding.">
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              className={claseInput}
+              title="Todo lo que se pague antes del día del onboarding."
+              value={f.anticipo}
+              onChange={(e) => set('anticipo', e.target.value)}
+            />
           </Campo>
           {f.modalidad === 'Cuotas' && (
-            <Campo etiqueta="Cuotas del saldo">
-              <input type="number" min="1" max="24" className={claseInput} value={f.cuotas} onChange={(e) => set('cuotas', e.target.value)} />
+            <Campo etiqueta="Cantidad de cuotas">
+              <input
+                type="number"
+                min="1"
+                max="36"
+                className={claseInput}
+                value={f.cantidad}
+                onChange={(e) => {
+                  set('cantidad', e.target.value);
+                  setManual(false);
+                }}
+              />
             </Campo>
           )}
           <Campo etiqueta={f.modalidad === 'PIF' ? 'Vence el saldo' : 'Primera cuota'}>
-            <input type="date" className={claseInput} value={f.primera} onChange={(e) => set('primera', e.target.value)} />
+            <input type="date" className={claseInput} value={f.primera} onChange={(e) => cambiarPrimera(e.target.value)} />
           </Campo>
         </div>
-        {plan.length > 0 && (
-          <ol className="grid grid-cols-2 tab:grid-cols-4 gap-px bg-[rgba(27,31,27,0.15)] border border-[rgba(27,31,27,0.15)]">
-            {plan.map((p, i) => (
-              <li key={i} className="bg-marfil p-4 flex flex-col gap-1">
-                <span className="eyebrow text-[11px] text-piedra">Cuota {i + 1}</span>
-                <span className="font-heading font-black text-[22px] text-bosque tabular-nums leading-none">{dinero(p.monto)}</span>
-                <span className="text-xs text-piedra">{p.vencimiento.split('-').reverse().join('/')}</span>
-              </li>
-            ))}
-          </ol>
-        )}
+
+        <div className="flex flex-col gap-3">
+          {cuotas.length > 0 && (
+            <div className="grid grid-cols-[36px_minmax(0,1fr)_minmax(0,1fr)_44px] gap-3 text-[11px] font-medium uppercase tracking-[0.16em] text-piedra">
+              <span>#</span>
+              <span>Monto (USD)</span>
+              <span>Vencimiento</span>
+              <span />
+            </div>
+          )}
+          {cuotas.map((c, i) => (
+            <div key={i} className="grid grid-cols-[36px_minmax(0,1fr)_minmax(0,1fr)_44px] gap-3 items-center">
+              <span className="font-heading font-black text-[20px] text-bosque tabular-nums">{i + 1}</span>
+              <input
+                type="number"
+                step="0.01"
+                min="0.01"
+                aria-label={`Monto de la cuota ${i + 1}`}
+                className={claseInput}
+                value={c.monto}
+                onChange={(e) => editarCuota(i, { monto: e.target.value })}
+              />
+              <input
+                type="date"
+                aria-label={`Vencimiento de la cuota ${i + 1}`}
+                className={claseInput}
+                value={c.vencimiento}
+                onChange={(e) => editarCuota(i, { vencimiento: e.target.value })}
+              />
+              <button
+                type="button"
+                aria-label={`Quitar la cuota ${i + 1}`}
+                title="Quitar cuota"
+                onClick={() => quitarCuota(i)}
+                className="h-12 w-11 inline-flex items-center justify-center text-piedra hover:text-[#8a2b20] transition-colors duration-150"
+              >
+                <Trash2 size={16} aria-hidden="true" />
+              </button>
+            </div>
+          ))}
+          <div className="flex flex-wrap gap-3">
+            <Button type="button" variant="ghost" size="sm" onClick={agregarCuota}>
+              <Plus size={16} /> Agregar cuota
+            </Button>
+            {manual && (
+              <Button type="button" variant="ghost" size="sm" onClick={() => setManual(false)}>
+                <RotateCcw size={16} /> Repartir el saldo en partes iguales
+              </Button>
+            )}
+          </div>
+        </div>
+
+        <div role="status" aria-live="polite" className={`border-l-[3px] px-4 py-3 text-sm leading-[1.5] ${estiloResumen}`}>
+          <div className="flex flex-wrap gap-x-6 gap-y-1 tabular-nums">
+            <span>Anticipo {dinero(anticipo / 100)}</span>
+            <span>
+              Cuotas {dinero(sumaCuotas / 100)} en {cuotas.length} {cuotas.length === 1 ? 'pago' : 'pagos'}
+            </span>
+            <span>
+              Total {dinero(suma / 100)} de {dinero(total / 100)}
+            </span>
+          </div>
+          <p className="mt-1 font-medium">{problema ?? 'El plan cierra exacto con el monto acordado.'}</p>
+        </div>
         <p className="text-xs text-piedra">Después podés ajustar montos y fechas de cada cuota desde la ficha.</p>
       </fieldset>
 
@@ -198,10 +361,11 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
         <textarea rows={3} className={`${claseInput} h-auto py-2`} value={f.notas} onChange={(e) => set('notas', e.target.value)} />
       </Campo>
 
-      <div>
-        <Button type="submit" size="lg" disabled={guardando}>
-          {guardando ? 'Guardando…' : 'Crear cliente'}
+      <div className="flex flex-col gap-3 items-start">
+        <Button type="submit" size="lg" disabled={!valido || etapa !== ''} className="disabled:opacity-45 disabled:cursor-not-allowed">
+          {etapa === 'guardando' ? 'Guardando…' : etapa === 'contrato' ? 'Generando contrato…' : 'Crear cliente'}
         </Button>
+        {!valido && <p className="text-xs text-piedra">Se habilita cuando anticipo más cuotas suman exacto el monto acordado.</p>}
       </div>
     </form>
     </>

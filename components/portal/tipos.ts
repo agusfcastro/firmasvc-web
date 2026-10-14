@@ -10,6 +10,8 @@ export interface Organizacion {
   creado_en: string;
   prefijo_crm?: string | null;
   seguimiento_cobranza?: boolean;
+  zapsign_modelo?: string | null;
+  zapsign_conectado?: boolean;
 }
 
 export interface Perfil {
