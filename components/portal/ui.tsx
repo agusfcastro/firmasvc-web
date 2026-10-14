@@ -36,6 +36,7 @@ export const Marco: React.FC<{ perfil?: Perfil | null; children: React.ReactNode
     ? [
         { a: '/portal', titulo: 'Inicio', activo: ruta === '/portal' },
         { a: '/portal/crm', titulo: 'CRM legal', activo: ruta.startsWith('/portal/crm') },
+        { a: '/portal/documentos', titulo: 'Documentos', activo: ruta.startsWith('/portal/documentos') },
         { a: '/portal/agenda', titulo: 'Agenda', activo: ruta === '/portal/agenda' },
         ...(perfil.rol === 'admin' ? [{ a: '/portal/admin', titulo: 'Administración', activo: ruta.startsWith('/portal/admin') }] : []),
       ]

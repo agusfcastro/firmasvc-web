@@ -10,6 +10,7 @@ const ACCIONES: Record<string, string> = {
   activacion: 'Acceso activado',
   desactivacion: 'Acceso desactivado',
   envio_acceso: 'Enlace de acceso reenviado',
+  descarga_documento: 'Descargó un documento',
 };
 
 export const Registro: React.FC = () => {
@@ -35,7 +36,7 @@ export const Registro: React.FC = () => {
   return (
     <div className="space-y-4">
       {error && <Aviso tipo="error">{error}</Aviso>}
-      <p className="text-sm text-piedra">Últimos 300 movimientos. Sirve como respaldo de quién accedió y quién cambió permisos.</p>
+      <p className="text-sm text-piedra">Últimos 300 movimientos. Sirve como respaldo de quién accedió, quién cambió permisos y quién descargó documentos.</p>
       <div className="overflow-x-auto">
         <table className="tabla min-w-[760px]">
           <thead>
@@ -50,7 +51,10 @@ export const Registro: React.FC = () => {
             {filas.map((f) => (
               <tr key={f.id}>
                 <td className="whitespace-nowrap">{fechaCorta(f.creado_en)}</td>
-                <td>{ACCIONES[f.accion] ?? f.accion}</td>
+                <td>
+                  {ACCIONES[f.accion] ?? f.accion}
+                  {typeof f.detalle?.titulo === 'string' && <div className="text-xs text-piedra mt-1">{String(f.detalle.titulo)}</div>}
+                </td>
                 <td>{(f.usuario_id && mails[f.usuario_id]) || '·'}</td>
                 <td>{(f.actor_id && mails[f.actor_id]) || '·'}</td>
               </tr>

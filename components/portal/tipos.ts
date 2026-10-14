@@ -50,6 +50,26 @@ export interface Agenda {
   activa: boolean;
 }
 
+export type SeccionDocumento = 'servicio' | 'equipo' | 'otros';
+
+export interface Documento {
+  id: string;
+  seccion: SeccionDocumento;
+  organizacion_id: string | null;
+  titulo: string;
+  descripcion: string | null;
+  version: string | null;
+  areas: string[];
+  archivo_ruta: string | null;
+  archivo_nombre: string | null;
+  archivo_bytes: number | null;
+  url: string | null;
+  orden: number;
+  activo: boolean;
+  creado_en: string;
+  actualizado_en: string;
+}
+
 export const ROTULO_ROL: Record<Rol, string> = {
   admin: 'Admin FIRMA',
   titular: 'Titular del cliente',

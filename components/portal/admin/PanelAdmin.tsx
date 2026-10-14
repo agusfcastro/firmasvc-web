@@ -5,11 +5,13 @@ import { Usuarios } from './Usuarios';
 import { Clientes } from './Clientes';
 import { Registro } from './Registro';
 import { Agendas } from './Agendas';
+import { Documentos } from './Documentos';
 
 const PESTANAS = [
   { ruta: '/portal/admin', titulo: 'Usuarios' },
   { ruta: '/portal/admin/clientes', titulo: 'Clientes' },
   { ruta: '/portal/admin/agendas', titulo: 'Agendas' },
+  { ruta: '/portal/admin/documentos', titulo: 'Documentos' },
   { ruta: '/portal/admin/registro', titulo: 'Registro de accesos' },
 ];
 
@@ -40,7 +42,7 @@ export const PanelAdmin: React.FC<{ perfil: Perfil; ruta: string }> = ({ perfil,
           );
         })}
       </nav>
-      {ruta === '/portal/admin/clientes' ? <Clientes /> : ruta === '/portal/admin/agendas' ? <Agendas /> : ruta === '/portal/admin/registro' ? <Registro /> : <Usuarios yo={perfil} />}
+      {ruta === '/portal/admin/clientes' ? <Clientes /> : ruta === '/portal/admin/agendas' ? <Agendas /> : ruta === '/portal/admin/documentos' ? <Documentos /> : ruta === '/portal/admin/registro' ? <Registro /> : <Usuarios yo={perfil} />}
     </div>
   </Marco>
 );

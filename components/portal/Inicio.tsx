@@ -16,10 +16,10 @@ interface Modulo {
 
 const MODULOS: Modulo[] = [
   { titulo: 'CRM legal', texto: 'Clientes, contratos, firmas y plan de pagos, al día y con historial.', icono: Kanban, ruta: '/portal/crm' },
+  { titulo: 'Documentos', texto: 'Modelos de contrato, contratos con tu equipo y otros documentos de tu empresa.', icono: FileText, ruta: '/portal/documentos' },
   { titulo: 'Agenda', texto: 'Reservá una reunión con FIRMA en el horario que te quede mejor.', icono: CalendarDays, ruta: '/portal/agenda' },
   { titulo: 'Administración', texto: 'Empresas, usuarios, roles y registro de accesos.', icono: ShieldCheck, ruta: '/portal/admin', soloAdmin: true },
   { titulo: 'Protocolos', texto: 'Los protocolos de trabajo de cada área de tu equipo.', icono: BookOpen, ruta: '/protocolo-llamadas', externo: true },
-  { titulo: 'Documentos', texto: 'Contratos y documentación que preparamos para tu empresa.', icono: FileText },
   { titulo: 'Estado de asuntos', texto: 'Seguimiento de cada trámite en curso.', icono: ClipboardList },
   { titulo: 'Abonos y pagos', texto: 'Tu plan con FIRMA, vencimientos y facturación.', icono: Wallet, soloTitular: true },
   { titulo: 'Formación', texto: 'Videos por área para capacitar a tu equipo.', icono: GraduationCap },

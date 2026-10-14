@@ -9,6 +9,7 @@ import { Ingresar } from './Ingresar';
 import { DefinirClave } from './DefinirClave';
 import { Inicio } from './Inicio';
 import { Agenda } from './Agenda';
+import { Documentos } from './Documentos';
 import { VistaPreviaContexto, leerVistaPrevia } from './vistaPrevia';
 import type { Organizacion, Perfil } from './tipos';
 
@@ -20,6 +21,7 @@ const PanelAdmin = lazy(() => import('./admin/PanelAdmin').then((m) => ({ defaul
  *   /portal/ingresar   login
  *   /portal/clave      definir o cambiar contraseña (desde el enlace del mail)
  *   /portal            inicio según rol
+ *   /portal/documentos contratos de servicio, con el equipo y otros (más /equipo y /otros)
  *   /portal/admin/...  panel de administración (solo admin)
  */
 export const PortalApp: React.FC = () => {
@@ -88,12 +90,15 @@ export const PortalApp: React.FC = () => {
     const perfilVista: Perfil = { ...perfil, rol: vista.rol, organizacion_id: vista.orgId, areas: vista.areas, nombre: vista.nombre ?? perfil.nombre };
     const orgVista = { id: vista.orgId, nombre: vista.orgNombre, activa: true } as Organizacion;
     const enCrm = ruta === '/portal/crm' || ruta.startsWith('/portal/crm/');
+    const enDocumentos = ruta === '/portal/documentos' || ruta.startsWith('/portal/documentos/');
     return (
       <VistaPreviaContexto.Provider value={vista}>
         {enCrm ? (
           <Suspense fallback={<Cargando />}>
             <CrmApp perfil={perfilVista} organizacion={orgVista} ruta={ruta} />
           </Suspense>
+        ) : enDocumentos ? (
+          <Documentos perfil={perfilVista} organizacion={orgVista} ruta={ruta} />
         ) : ruta === '/portal/agenda' ? (
           <Agenda perfil={perfilVista} organizacion={orgVista} />
         ) : (
@@ -109,6 +114,10 @@ export const PortalApp: React.FC = () => {
         <CrmApp perfil={perfil} organizacion={estado.organizacion} ruta={ruta} />
       </Suspense>
     );
+  }
+
+  if (ruta === '/portal/documentos' || ruta.startsWith('/portal/documentos/')) {
+    return <Documentos perfil={perfil} organizacion={estado.organizacion} ruta={ruta} />;
   }
 
   if (ruta === '/portal/agenda') return <Agenda perfil={perfil} organizacion={estado.organizacion} />;

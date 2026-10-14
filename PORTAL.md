@@ -107,3 +107,29 @@ Los permisos los aplica la base de datos. Aunque alguien manipule la página, un
 | `api/admin/usuarios.ts` | Invitar, editar, activar y desactivar (servidor) |
 | `components/portal/` | Pantallas del portal y del panel |
 | `vercel.json` | Excluye `/api` del rewrite y marca `/portal` como no indexable |
+
+## Módulo Documentos
+
+Contratos de servicio, contratos con el equipo y otros documentos, en `firmasvc.com/portal/documentos`.
+
+### Puesta en marcha
+
+1. En Supabase abrí **SQL Editor › New query**, pegá todo `supabase/migraciones/0005_documentos.sql` y apretá **Run**. Crea la tabla, los permisos y el espacio privado para los archivos.
+2. En **Storage** fijate que aparezca el bucket `documentos` como privado. No lo hagas público.
+
+### Uso
+
+1. **Administración › Documentos › Nuevo documento**.
+2. Elegí la sección, para quién es (todos los clientes o uno solo) y subí el archivo o pegá el enlace.
+3. **Quién lo ve dentro de la empresa** limita el documento a ciertas áreas. Sin áreas lo ve todo el equipo y el titular ve todo siempre. Los contratos con el equipo arrancan reservados a Dirección.
+4. Para actualizar un modelo editalo, subí el archivo nuevo y cambiá la versión. El cliente ve la fecha de actualización y el archivo anterior se borra.
+5. **Visible en el portal** apagado lo saca de la vista del cliente sin borrarlo.
+
+Cada descarga de un cliente queda en **Registro de accesos**. Formatos admitidos Word, PDF, Excel, PowerPoint, ODT y RTF, hasta 25 MB. Los archivos se bajan con enlaces que vencen en un minuto.
+
+| Archivo | Para qué |
+|---|---|
+| `supabase/migraciones/0005_documentos.sql` | Tabla, permisos, bucket privado y registro de descargas |
+| `components/portal/Documentos.tsx` | Vista del cliente con las tres secciones |
+| `components/portal/admin/Documentos.tsx` | Carga, reemplazo y visibilidad desde Administración |
+| `components/portal/descargas.ts` | Secciones, formatos y descargas |
