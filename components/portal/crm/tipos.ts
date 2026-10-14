@@ -28,6 +28,7 @@ export interface ClienteResumen extends ClienteCrm {
   pendiente: number;
   proximo_vencimiento: string | null;
   cuotas_vencidas: number;
+  cuotas_pactadas: number;
 }
 
 export interface Pago {

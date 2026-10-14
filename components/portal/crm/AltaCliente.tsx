@@ -15,7 +15,7 @@ function sumarMeses(iso: string, n: number): string {
   return base.toISOString().slice(0, 10);
 }
 
-export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre: string }> = ({ orgId, esAdmin, orgNombre }) => {
+export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre: string; cobranza: boolean }> = ({ orgId, esAdmin, orgNombre, cobranza }) => {
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [f, setF] = useState({
     nombre: '', dni: '', email: '', telefono: '', servicio: '', monto_total: '', modalidad: 'Cuotas' as 'Cuotas' | 'PIF',
@@ -76,7 +76,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
       return setError(e1?.message ?? 'No se pudo crear.');
     }
     const filas = [
-      ...(pagado > 0 ? [{ cliente_id: data.id, organizacion_id: orgId, monto: pagado, estado: 'pagado', fecha_pago: hoyISO(), nota: 'Pago inicial' }] : []),
+      ...(pagado > 0 ? [{ cliente_id: data.id, organizacion_id: orgId, monto: pagado, estado: 'pagado', fecha_pago: hoyISO(), nota: cobranza ? 'Pago inicial' : 'Anticipo' }] : []),
       ...plan.map((p) => ({ cliente_id: data.id, organizacion_id: orgId, monto: p.monto, vencimiento: p.vencimiento, estado: 'pendiente' })),
     ];
     if (filas.length) {
@@ -168,7 +168,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
               <option value="PIF">PIF (pago total)</option>
             </select>
           </Campo>
-          <Campo etiqueta="Ya pagó">
+          <Campo etiqueta={cobranza ? 'Ya pagó' : 'Anticipo'}>
             <input type="number" step="0.01" min="0" className={claseInput} value={f.pagado} onChange={(e) => set('pagado', e.target.value)} />
           </Campo>
           {f.modalidad === 'Cuotas' && (

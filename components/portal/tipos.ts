@@ -8,6 +8,8 @@ export interface Organizacion {
   activa: boolean;
   notas: string | null;
   creado_en: string;
+  prefijo_crm?: string | null;
+  seguimiento_cobranza?: boolean;
 }
 
 export interface Perfil {
@@ -35,6 +37,17 @@ export interface EntradaRegistro {
   accion: string;
   detalle: Record<string, unknown>;
   creado_en: string;
+}
+
+export interface Agenda {
+  id: string;
+  organizacion_id: string | null;
+  titulo: string;
+  descripcion: string | null;
+  duracion_min: number | null;
+  url: string;
+  orden: number;
+  activa: boolean;
 }
 
 export const ROTULO_ROL: Record<Rol, string> = {

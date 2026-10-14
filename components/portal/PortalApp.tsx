@@ -8,6 +8,7 @@ import { LayoutAcceso } from './LayoutAcceso';
 import { Ingresar } from './Ingresar';
 import { DefinirClave } from './DefinirClave';
 import { Inicio } from './Inicio';
+import { Agenda } from './Agenda';
 import { VistaPreviaContexto, leerVistaPrevia } from './vistaPrevia';
 import type { Organizacion, Perfil } from './tipos';
 
@@ -93,6 +94,8 @@ export const PortalApp: React.FC = () => {
           <Suspense fallback={<Cargando />}>
             <CrmApp perfil={perfilVista} organizacion={orgVista} ruta={ruta} />
           </Suspense>
+        ) : ruta === '/portal/agenda' ? (
+          <Agenda perfil={perfilVista} organizacion={orgVista} />
         ) : (
           <Inicio estado={{ ...estado, perfil: perfilVista, organizacion: orgVista }} />
         )}
@@ -107,6 +110,8 @@ export const PortalApp: React.FC = () => {
       </Suspense>
     );
   }
+
+  if (ruta === '/portal/agenda') return <Agenda perfil={perfil} organizacion={estado.organizacion} />;
 
   if (ruta.startsWith('/portal/admin')) {
     if (perfil.rol !== 'admin') return <Inicio estado={estado} />;

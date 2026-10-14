@@ -2,12 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
-import { Aviso, Campo, Etiqueta, claseInput } from '../ui';
+import { Aviso, Campo, Etiqueta, Interruptor, claseInput } from '../ui';
 import { iniciarVistaPrevia } from '../vistaPrevia';
 import { PAISES, type Organizacion } from '../tipos';
 
-type Borrador = Pick<Organizacion, 'nombre' | 'razon_social' | 'pais' | 'activa' | 'notas'> & { id?: string };
-const VACIO: Borrador = { nombre: '', razon_social: '', pais: 'AR', activa: true, notas: '' };
+type Borrador = Pick<Organizacion, 'nombre' | 'razon_social' | 'pais' | 'activa' | 'notas'> & { id?: string; prefijo_crm?: string | null; seguimiento_cobranza?: boolean };
+const VACIO: Borrador = { nombre: '', razon_social: '', pais: 'AR', activa: true, notas: '', prefijo_crm: '', seguimiento_cobranza: false };
 
 export const Clientes: React.FC = () => {
   const [lista, setLista] = useState<Organizacion[]>([]);
@@ -46,6 +46,8 @@ export const Clientes: React.FC = () => {
       pais: borrador.pais,
       activa: borrador.activa,
       notas: borrador.notas?.trim() || null,
+      prefijo_crm: borrador.prefijo_crm?.trim().toUpperCase() || null,
+      seguimiento_cobranza: Boolean(borrador.seguimiento_cobranza),
     };
     const { error: err } = borrador.id
       ? await supabase.from('organizaciones').update(datos).eq('id', borrador.id)
@@ -78,6 +80,15 @@ export const Clientes: React.FC = () => {
               ))}
             </select>
           </Campo>
+          <Campo etiqueta="Prefijo de códigos del CRM" ayuda="Por ejemplo TB para TB-001, TB-002.">
+            <input className={`${claseInput} uppercase`} maxLength={6} value={borrador.prefijo_crm ?? ''} onChange={(e) => setBorrador({ ...borrador, prefijo_crm: e.target.value })} />
+          </Campo>
+          <Interruptor
+            activo={Boolean(borrador.seguimiento_cobranza)}
+            alCambiar={(v) => setBorrador({ ...borrador, seguimiento_cobranza: v })}
+            etiqueta="Seguimiento de cobranza en el portal"
+            ayuda="Apagado, el CRM solo guarda el plan pactado para el contrato. Encendido, el equipo marca las cuotas pagadas y ve las vencidas."
+          />
           <Campo etiqueta="Notas internas" ayuda="Solo las ven los admin de FIRMA.">
             <textarea rows={3} className={`${claseInput} h-auto py-2`} value={borrador.notas ?? ''} onChange={(e) => setBorrador({ ...borrador, notas: e.target.value })} />
           </Campo>
@@ -107,6 +118,7 @@ export const Clientes: React.FC = () => {
               <th>Cliente</th>
               <th>País</th>
               <th>Usuarios</th>
+              <th>Cobranza</th>
               <th>Estado</th>
               <th />
             </tr>
@@ -114,7 +126,7 @@ export const Clientes: React.FC = () => {
           <tbody>
             {lista.length === 0 && (
               <tr>
-                <td colSpan={5} className="p-6 text-piedra">
+                <td colSpan={6} className="p-6 text-piedra">
                   Todavía no cargaste clientes.
                 </td>
               </tr>
@@ -127,6 +139,7 @@ export const Clientes: React.FC = () => {
                 </td>
                 <td>{PAISES[o.pais] ?? o.pais}</td>
                 <td>{conteo[o.id] ?? 0}</td>
+                <td>{o.seguimiento_cobranza ? <Etiqueta tono="bosque">Con seguimiento</Etiqueta> : <Etiqueta>Solo plan</Etiqueta>}</td>
                 <td>{o.activa ? <Etiqueta tono="bosque">Activo</Etiqueta> : <Etiqueta tono="alerta">Inactivo</Etiqueta>}</td>
                 <td className="text-right whitespace-nowrap">
                   <button type="button" className="underline underline-offset-4 hover:text-bosque mr-4" onClick={() => iniciarVistaPrevia({ orgId: o.id, orgNombre: o.nombre, rol: 'titular', areas: [] })}>

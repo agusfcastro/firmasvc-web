@@ -26,7 +26,7 @@ function valorLegible(v: unknown): string {
   return String(v).length > 60 ? String(v).slice(0, 57) + '…' : String(v);
 }
 
-export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boolean; orgNombre: string }> = ({ id, esAdmin, puedeGestionar, orgNombre }) => {
+export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boolean; orgNombre: string; cobranza: boolean }> = ({ id, esAdmin, puedeGestionar, orgNombre, cobranza }) => {
   const [cliente, setCliente] = useState<ClienteCrm | null>(null);
   const [borrador, setBorrador] = useState<ClienteCrm | null>(null);
   const [pagos, setPagos] = useState<Pago[]>([]);
@@ -238,6 +238,84 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
     </div>
   );
 
+  // Sin seguimiento de cobranza: el plan es una condición contractual (anticipo y cuotas pactadas).
+  const anticipos = pagos.filter((p) => p.estado === 'pagado');
+  const cuotasPactadas = pagos.filter((p) => p.estado === 'pendiente');
+  const tablaPlan = (
+    <div className="overflow-x-auto">
+      <table className="tabla tabla-media min-w-[720px]">
+        <thead>
+          <tr>
+            <th>Concepto</th>
+            <th>Fecha</th>
+            <th className="num">Monto</th>
+            <th>Nota</th>
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {[...anticipos, ...cuotasPactadas].map((p) => {
+            const esAnticipo = p.estado === 'pagado';
+            const n = cuotasPactadas.indexOf(p) + 1;
+            const campoFecha = esAnticipo ? 'fecha_pago' : 'vencimiento';
+            const valorFecha = (esAnticipo ? p.fecha_pago : p.vencimiento) ?? '';
+            return (
+              <tr key={p.id}>
+                <td>
+                  <span className="font-heading font-bold text-[15px]">{esAnticipo ? 'Anticipo' : `Cuota ${n}`}</span>
+                  {esAnticipo && <span className="block text-xs text-piedra">Abonado al contratar</span>}
+                </td>
+                <td className="!py-2.5">
+                  <input
+                    type="date"
+                    aria-label="Fecha"
+                    className={`${claseInput} h-10 w-[170px]`}
+                    defaultValue={valorFecha}
+                    onBlur={(e) => e.target.value !== valorFecha && actualizarPago(p, { [campoFecha]: e.target.value || null } as Partial<Pago>)}
+                  />
+                </td>
+                <td className="num !py-2.5">
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    aria-label="Monto"
+                    className={`${claseInput} h-10 w-32 text-right`}
+                    defaultValue={p.monto}
+                    onBlur={(e) => Number(e.target.value) > 0 && Number(e.target.value) !== p.monto && actualizarPago(p, { monto: Number(e.target.value) })}
+                  />
+                </td>
+                <td className="!py-2.5">
+                  <input
+                    aria-label="Nota"
+                    className={`${claseInput} h-10 min-w-[200px]`}
+                    defaultValue={p.nota ?? ''}
+                    placeholder="Agregar nota"
+                    onBlur={(e) => e.target.value !== (p.nota ?? '') && actualizarPago(p, { nota: e.target.value.trim() || null })}
+                  />
+                </td>
+                <td className="!py-2.5 text-right">
+                  {puedeGestionar && (
+                    <button type="button" aria-label="Eliminar" className="px-3 h-10 text-[#8a2b20] hover:bg-[#f6e7e4] disabled:opacity-40" onClick={() => borrarPago(p)}>
+                      <Trash2 size={15} />
+                    </button>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+          {pagos.length === 0 && (
+            <tr>
+              <td colSpan={5} className="text-piedra py-8">
+                Sin plan cargado.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+
   const enlaceOscuro = (url: string | null, texto: string) =>
     url ? (
       <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 font-medium underline underline-offset-4 hover:no-underline">
@@ -276,17 +354,18 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
 
         {/* Plan de pagos */}
         <section>
-          <TituloSeccion eyebrow="Cobranza" titulo="Plan de pagos" />
+          <TituloSeccion eyebrow={cobranza ? 'Cobranza' : 'Condiciones contractuales'} titulo={cobranza ? 'Plan de pagos' : 'Plan de pagos pactado'} />
+          {!cobranza && <p className="text-sm text-piedra -mt-3 mb-6 max-w-[64ch]">Estas condiciones se usan para el contrato. El seguimiento de los cobros lo lleva la empresa en su propio sistema.</p>}
           <Cifras
             items={[
               { titulo: 'Acordado', valor: <Monto n={cliente.monto_total} moneda={moneda} /> },
-              { titulo: 'Cobrado', valor: <Monto n={cobrado} moneda={moneda} /> },
-              { titulo: 'Pendiente', valor: <Monto n={pendiente} moneda={moneda} /> },
+              { titulo: cobranza ? 'Cobrado' : 'Anticipo', valor: <Monto n={cobrado} moneda={moneda} /> },
+              { titulo: cobranza ? 'Pendiente' : 'Saldo en cuotas', valor: <Monto n={pendiente} moneda={moneda} />, nota: cobranza ? undefined : `${cuotasPactadas.length} ${cuotasPactadas.length === 1 ? 'cuota' : 'cuotas'}` },
               { titulo: 'Diferencia', valor: diferencia === 0 ? 'Cierra' : <Monto n={Math.abs(diferencia)} moneda={moneda} />, alerta: diferencia !== 0, nota: diferencia === 0 ? undefined : diferencia > 0 ? 'Falta asignar en cuotas' : 'Las cuotas superan el total' },
             ]}
           />
           <fieldset disabled={soloLectura} className="mt-8 min-w-0">
-            {tablaPagos}
+            {cobranza ? tablaPagos : tablaPlan}
             {nueva ? (
               <form onSubmit={agregarPago} className="mt-6 grid gap-4 tab:grid-cols-[160px_180px_1fr_auto_auto] items-end bg-marfil-oscuro p-5">
                 <Campo etiqueta={`Monto (${moneda})`}>

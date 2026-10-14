@@ -36,6 +36,7 @@ export const Marco: React.FC<{ perfil?: Perfil | null; children: React.ReactNode
     ? [
         { a: '/portal', titulo: 'Inicio', activo: ruta === '/portal' },
         { a: '/portal/crm', titulo: 'CRM legal', activo: ruta.startsWith('/portal/crm') },
+        { a: '/portal/agenda', titulo: 'Agenda', activo: ruta === '/portal/agenda' },
         ...(perfil.rol === 'admin' ? [{ a: '/portal/admin', titulo: 'Administración', activo: ruta.startsWith('/portal/admin') }] : []),
       ]
     : [];
@@ -214,6 +215,28 @@ export function Pestanas<T extends string>({ items, activa, alCambiar }: { items
     </div>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/* Interruptor                                                          */
+/* ------------------------------------------------------------------ */
+export const Interruptor: React.FC<{ activo: boolean; alCambiar?: (v: boolean) => void; etiqueta: string; ayuda?: string; deshabilitado?: boolean }> = ({ activo, alCambiar, etiqueta, ayuda, deshabilitado }) => (
+  <label className={`inline-flex items-start gap-3 ${deshabilitado ? 'opacity-60' : 'cursor-pointer'}`}>
+    <button
+      type="button"
+      role="switch"
+      aria-checked={activo}
+      disabled={deshabilitado}
+      onClick={() => alCambiar?.(!activo)}
+      className={`relative shrink-0 w-11 h-6 mt-0.5 border transition-colors duration-150 ${activo ? 'bg-bosque border-bosque' : 'bg-white border-[rgba(27,31,27,0.35)]'}`}
+    >
+      <span className={`absolute top-[3px] w-4 h-4 transition-all duration-150 ${activo ? 'left-[23px] bg-marfil' : 'left-[3px] bg-tinta'}`} />
+    </button>
+    <span className="flex flex-col">
+      <span className="text-sm font-medium">{etiqueta}</span>
+      {ayuda && <span className="text-xs text-piedra mt-0.5 max-w-[42ch]">{ayuda}</span>}
+    </span>
+  </label>
+);
 
 /* ------------------------------------------------------------------ */
 /* Formularios                                                         */

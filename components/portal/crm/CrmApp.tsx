@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabase';
-import { Encabezado, Marco } from '../ui';
+import { Encabezado, Interruptor, Marco } from '../ui';
 import type { Organizacion, Perfil } from '../tipos';
 import { Listado } from './Listado';
 import { Ficha } from './Ficha';
@@ -47,8 +47,35 @@ export const CrmApp: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
     }
   }, [esAdmin, orgId]);
 
+  // La configuración de la empresa (por ejemplo si se sigue la cobranza) se lee siempre de la base.
+  const [orgDatos, setOrgDatos] = useState<Organizacion | null>(null);
+  useEffect(() => {
+    if (!supabase || !orgId) return;
+    supabase
+      .from('organizaciones')
+      .select('*')
+      .eq('id', orgId)
+      .maybeSingle()
+      .then(({ data }) => setOrgDatos((data as Organizacion) ?? null));
+  }, [orgId]);
+
+  async function alternarCobranza(valor: boolean) {
+    if (!supabase || !orgId) return;
+    const { error } = await supabase.from('organizaciones').update({ seguimiento_cobranza: valor }).eq('id', orgId);
+    if (!error) setOrgDatos((o) => (o ? { ...o, seguimiento_cobranza: valor } : o));
+  }
+
   const sub = ruta.replace(/^\/portal\/crm\/?/, '');
-  const orgActual = esAdmin ? orgs.find((o) => o.id === orgId) ?? null : organizacion;
+  const orgActual = orgDatos ?? (esAdmin ? orgs.find((o) => o.id === orgId) ?? null : organizacion);
+  const cobranza = Boolean(orgDatos?.seguimiento_cobranza);
+  const interruptor = esAdmin ? (
+    <Interruptor
+      activo={cobranza}
+      alCambiar={alternarCobranza}
+      etiqueta="Seguimiento de cobranza"
+      ayuda={cobranza ? 'Se marcan las cuotas pagadas y hay alertas de vencidas.' : 'Solo se registra el plan pactado para el contrato.'}
+    />
+  ) : null;
   const puedeGestionar = esAdmin || perfil.rol === 'titular';
 
   const selector =
@@ -74,11 +101,11 @@ export const CrmApp: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
       {!orgId ? (
         <Encabezado eyebrow="CRM legal" titulo="Sin clientes todavía" bajada="Cuando des de alta una empresa en Administración, su CRM aparece acá." />
       ) : sub === 'nuevo' ? (
-        <AltaCliente orgId={orgId} esAdmin={esAdmin} orgNombre={orgActual?.nombre ?? ''} />
+        <AltaCliente orgId={orgId} esAdmin={esAdmin} orgNombre={orgActual?.nombre ?? ''} cobranza={cobranza} />
       ) : sub ? (
-        <Ficha id={sub} esAdmin={esAdmin} puedeGestionar={puedeGestionar} orgNombre={orgActual?.nombre ?? ''} />
+        <Ficha id={sub} esAdmin={esAdmin} puedeGestionar={puedeGestionar} orgNombre={orgActual?.nombre ?? ''} cobranza={cobranza} />
       ) : (
-        <Listado orgId={orgId} orgNombre={orgActual?.nombre ?? ''} selector={selector} />
+        <Listado orgId={orgId} orgNombre={orgActual?.nombre ?? ''} selector={selector} cobranza={cobranza} interruptor={interruptor} />
       )}
     </Marco>
   );

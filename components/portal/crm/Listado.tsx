@@ -29,6 +29,7 @@ function csv(filas: ClienteResumen[]): string {
     ['Cobrado', (c) => c.cobrado],
     ['Pendiente', (c) => c.pendiente],
     ['Próximo vencimiento', (c) => c.proximo_vencimiento],
+    ['Cuotas pactadas', (c) => c.cuotas_pactadas],
     ['Cuotas vencidas', (c) => c.cuotas_vencidas],
     ['Estado firma', (c) => c.estado_firma],
     ['Responsable', (c) => c.responsable],
@@ -42,7 +43,7 @@ function csv(filas: ClienteResumen[]): string {
   return [cols.map((c) => c[0]).join(';'), ...filas.map((f) => cols.map(([, g]) => esc(g(f))).join(';'))].join('\n');
 }
 
-export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: React.ReactNode }> = ({ orgId, orgNombre, selector }) => {
+export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: React.ReactNode; cobranza: boolean; interruptor?: React.ReactNode }> = ({ orgId, orgNombre, selector, cobranza, interruptor }) => {
   const [filas, setFilas] = useState<ClienteResumen[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +51,7 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
   const [busqueda, setBusqueda] = useState('');
   const soloLectura = Boolean(useVistaPrevia());
 
+  const cobranzaRef = cobranza;
   useEffect(() => {
     if (!supabase) return;
     setCargando(true);
@@ -60,10 +62,10 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
       .order('codigo', { ascending: false })
       .then(({ data, error: e }) => {
         if (e) setError(e.message);
-        setFilas(((data as ClienteResumen[]) ?? []).map((f) => ({ ...f, cobrado: Number(f.cobrado), pendiente: Number(f.pendiente), monto_total: f.monto_total === null ? null : Number(f.monto_total) })));
+        setFilas(((data as ClienteResumen[]) ?? []).map((f) => ({ ...f, cobrado: Number(f.cobrado), pendiente: Number(f.pendiente), cuotas_vencidas: cobranzaRef ? Number(f.cuotas_vencidas) : 0, cuotas_pactadas: Number(f.cuotas_pactadas ?? 0), monto_total: f.monto_total === null ? null : Number(f.monto_total) })));
         setCargando(false);
       });
-  }, [orgId]);
+  }, [orgId, cobranzaRef]);
 
   const activos = filas.filter((f) => f.estado_firma !== 'Baja');
   const conVencidas = activos.filter((f) => f.cuotas_vencidas > 0);
@@ -108,7 +110,7 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
             Clientes de <span className="text-bosque">{orgNombre}</span>
           </>
         }
-        bajada="Contratos, firmas y plan de pagos de cada cliente, con el respaldo legal de FIRMA."
+        bajada={cobranza ? 'Contratos, firmas y cobranza de cada cliente, con el respaldo legal de FIRMA.' : 'Contratos, firmas y condiciones de pago pactadas de cada cliente, con el respaldo legal de FIRMA.'}
         acciones={
           <>
             {selector}
@@ -124,15 +126,24 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
       <div className="wrap py-10 desk:py-14 flex flex-col gap-10">
         {error && <Aviso tipo="error">{error}</Aviso>}
 
+        {interruptor && <div className="flex justify-end -mt-2">{interruptor}</div>}
+
         <Cifras
           cargando={cargando}
-          items={[
+          items={cobranza ? [
             { titulo: 'Contratos firmados', valor: resumen.firmados },
             { titulo: 'Firmas pendientes', valor: resumen.pendientes },
             { titulo: 'Monto acordado', valor: <Monto n={resumen.acordado} /> },
             { titulo: 'Cobrado', valor: <Monto n={resumen.cobrado} />, nota: `${pct}% del acordado` },
             { titulo: 'Por cobrar', valor: <Monto n={resumen.porCobrar} /> },
             { titulo: 'Con cuotas vencidas', valor: conVencidas.length, alerta: conVencidas.length > 0 },
+          ] : [
+            { titulo: 'Contratos firmados', valor: resumen.firmados },
+            { titulo: 'Firmas pendientes', valor: resumen.pendientes },
+            { titulo: 'Monto acordado', valor: <Monto n={resumen.acordado} /> },
+            { titulo: 'Anticipos', valor: <Monto n={resumen.cobrado} />, nota: `${pct}% del acordado` },
+            { titulo: 'Financiado en cuotas', valor: <Monto n={resumen.porCobrar} /> },
+            { titulo: 'Planes a revisar', valor: filas.filter((f) => f.revisar_pagos).length, alerta: filas.some((f) => f.revisar_pagos) },
           ]}
         />
 
@@ -147,7 +158,7 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
             </Button>
           </div>
 
-          <Pestanas items={FILTROS.map((f) => ({ ...f, cuenta: cargando ? undefined : cuenta(f.clave) }))} activa={filtro} alCambiar={setFiltro} />
+          <Pestanas items={FILTROS.filter((f) => cobranza || f.clave !== 'vencidas').map((f) => ({ ...f, cuenta: cargando ? undefined : cuenta(f.clave) }))} activa={filtro} alCambiar={setFiltro} />
 
           <div className="overflow-x-auto">
             <table className="tabla min-w-[900px]">
@@ -156,8 +167,8 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
                   <th>Cliente</th>
                   <th>Servicio</th>
                   <th className="num">Acordado</th>
-                  <th>Cobrado</th>
-                  <th>Próxima cuota</th>
+                  <th>{cobranza ? 'Cobrado' : 'Plan pactado'}</th>
+                  <th>{cobranza ? 'Próxima cuota' : 'Primera cuota'}</th>
                   <th>Firma</th>
                   <th>Responsable</th>
                 </tr>
@@ -197,13 +208,24 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
                       </td>
                       <td className="num">{dinero(f.monto_total, f.moneda)}</td>
                       <td className="min-w-[150px]">
-                        <div className="tabular-nums whitespace-nowrap">{dinero(f.cobrado, f.moneda)}</div>
-                        <div className="mt-2 h-1 bg-marfil-oscuro" aria-hidden="true">
-                          <div className="h-1 bg-bosque" style={{ width: `${avance}%` }} />
-                        </div>
+                        {cobranza ? (
+                          <>
+                            <div className="tabular-nums whitespace-nowrap">{dinero(f.cobrado, f.moneda)}</div>
+                            <div className="mt-2 h-1 bg-marfil-oscuro" aria-hidden="true">
+                              <div className="h-1 bg-bosque" style={{ width: `${avance}%` }} />
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="tabular-nums whitespace-nowrap">{f.cobrado > 0 ? `Anticipo ${dinero(f.cobrado, f.moneda)}` : 'Sin anticipo'}</div>
+                            <div className="text-xs text-piedra mt-0.5">{f.cuotas_pactadas === 0 ? 'Sin cuotas' : f.cuotas_pactadas === 1 ? '1 cuota' : `${f.cuotas_pactadas} cuotas`}</div>
+                          </>
+                        )}
                       </td>
                       <td className="whitespace-nowrap">
-                        {f.pendiente > 0 ? (
+                        {!cobranza ? (
+                          <span>{f.pendiente > 0 ? fecha(f.proximo_vencimiento) : '·'}</span>
+                        ) : f.pendiente > 0 ? (
                           <>
                             <div className={vencida ? 'text-[#8a2b20] font-medium' : ''}>{fecha(f.proximo_vencimiento)}</div>
                             {vencida && <div className="text-xs text-[#8a2b20] mt-0.5">{f.cuotas_vencidas === 1 ? '1 cuota vencida' : `${f.cuotas_vencidas} cuotas vencidas`}</div>}

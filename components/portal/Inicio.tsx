@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, BookOpen, ClipboardList, FileText, GraduationCap, Kanban, ShieldCheck, Users, Wallet } from 'lucide-react';
+import { ArrowRight, BookOpen, CalendarDays, ClipboardList, FileText, GraduationCap, Kanban, ShieldCheck, Users, Wallet } from 'lucide-react';
 import { Encabezado, Enlace, Marco } from './ui';
 import type { EstadoSesion } from './useSesion';
 import { ROTULO_ROL } from './tipos';
@@ -16,6 +16,7 @@ interface Modulo {
 
 const MODULOS: Modulo[] = [
   { titulo: 'CRM legal', texto: 'Clientes, contratos, firmas y plan de pagos, al día y con historial.', icono: Kanban, ruta: '/portal/crm' },
+  { titulo: 'Agenda', texto: 'Reservá una reunión con FIRMA en el horario que te quede mejor.', icono: CalendarDays, ruta: '/portal/agenda' },
   { titulo: 'Administración', texto: 'Empresas, usuarios, roles y registro de accesos.', icono: ShieldCheck, ruta: '/portal/admin', soloAdmin: true },
   { titulo: 'Protocolos', texto: 'Los protocolos de trabajo de cada área de tu equipo.', icono: BookOpen, ruta: '/protocolo-llamadas', externo: true },
   { titulo: 'Documentos', texto: 'Contratos y documentación que preparamos para tu empresa.', icono: FileText },
