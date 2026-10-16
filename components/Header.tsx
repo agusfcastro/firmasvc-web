@@ -2,6 +2,7 @@ import React from 'react';
 import { Logo } from './Logo';
 import { Button } from './Button';
 import { openCalendly } from '../lib/calendly';
+import { PromoBanner } from './PromoBanner';
 
 const navLinks = [
   { name: 'Nosotros', href: '#about' },
@@ -19,6 +20,7 @@ export const Header: React.FC = () => {
       className="sticky top-0 z-50 bg-marfil"
       style={{ borderBottom: '1px solid rgba(27,31,27,0.12)' }}
     >
+      <PromoBanner />
       <div className="wrap flex items-center justify-between gap-4 h-28">
         <a href="#top" className="flex items-center min-w-0">
           <Logo className="h-[72px] max-w-[62vw]" />
