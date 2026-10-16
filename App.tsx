@@ -10,6 +10,7 @@ import { Contact } from './components/Contact';
 import { Footer } from './components/Footer';
 import { WhatsAppButton } from './components/WhatsAppButton';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
+import { TermsOfService } from './components/TermsOfService';
 import { RUTAS_MOTOR } from './components/protocolos/rutas';
 
 // El protocolo de llamadas se carga aparte para no sumar peso a la home.
@@ -27,6 +28,9 @@ function App() {
   const path = window.location.pathname.replace(/\/$/, '');
   if (path === '/privacidad' || path === '/privacy') {
     return <PrivacyPolicy />;
+  }
+  if (path === '/terminos' || path === '/terms') {
+    return <TermsOfService />;
   }
   if (path === '/portal' || path.startsWith('/portal/')) {
     return (

@@ -54,9 +54,14 @@ export const Footer: React.FC = () => {
           style={{ borderTop: '1px solid rgba(245,243,236,0.14)' }}
         >
           <span>© {new Date().getFullYear()} Firma. Todos los derechos reservados.</span>
-          <a href="/privacidad" className={linkClass}>
-            Política de Privacidad
-          </a>
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            <a href="/terminos" className={linkClass}>
+              Términos y Condiciones
+            </a>
+            <a href="/privacidad" className={linkClass}>
+              Política de Privacidad
+            </a>
+          </div>
         </div>
       </div>
     </footer>
