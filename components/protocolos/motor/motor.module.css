@@ -1,0 +1,588 @@
+/* Piezas nuevas del motor de protocolos.
+   Usa las variables --c-* que define la raíz del protocolo de llamadas (.raiz),
+   así que hereda la marca, el tema y la impresión sin repetir nada. */
+
+/* Separación entre bloques consecutivos de una sección */
+
+.bloque + .bloque {
+  margin-top: 16px;
+}
+
+.bloque[data-bloque='subtitulo'] + .bloque {
+  margin-top: 0;
+}
+
+/* Tablas de columnas variables */
+
+.tablaN > [role='row'] {
+  grid-template-columns: var(--cols, 1fr 1fr 1fr);
+}
+
+.celdaFuerte {
+  font-weight: 600;
+}
+
+/* Indicadores */
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.kpi {
+  border: 1px solid var(--c-line);
+  background: var(--c-surface);
+  border-radius: var(--radio);
+  padding: 18px 18px 16px;
+  display: grid;
+  gap: 9px;
+  align-content: start;
+}
+
+.kpiNombre {
+  font-family: var(--sop-font-display, inherit);
+  font-weight: var(--peso-display-sm);
+  font-size: 17px;
+  line-height: 1.3;
+}
+
+.kpiFormula {
+  font-size: 13.5px;
+  line-height: 1.5;
+  background: var(--c-surface-2);
+  padding: 8px 10px;
+  border-left: 3px solid var(--c-accent);
+}
+
+.kpiLectura {
+  font-size: 14.5px;
+  color: var(--c-ink-2);
+}
+
+.kpiDatos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.kpiDato {
+  font-size: 12px;
+  line-height: 1.4;
+  border: 1px solid var(--c-line-2);
+  padding: 3px 8px;
+  color: var(--c-muted);
+}
+
+.kpiDato strong {
+  color: var(--c-ink);
+  font-weight: 600;
+}
+
+/* Herramientas interactivas */
+
+.herramienta {
+  border: 1px solid var(--c-line-2);
+  background: var(--c-surface);
+  border-radius: var(--radio);
+  padding: 22px;
+  display: grid;
+  gap: 18px;
+}
+
+.herramienta + .herramienta {
+  margin-top: 16px;
+}
+
+.herramientaCabecera {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.herramientaTitulo {
+  font-family: var(--sop-font-display, inherit);
+  font-weight: var(--peso-display-sm);
+  font-size: 19px;
+  line-height: 1.3;
+}
+
+.herramientaIntro {
+  color: var(--c-ink-2);
+  font-size: 15px;
+  max-width: 72ch;
+}
+
+.herramientaNota {
+  font-size: 13px;
+  color: var(--c-muted);
+  max-width: 76ch;
+}
+
+.preguntas {
+  display: grid;
+  gap: 0;
+}
+
+.pregunta {
+  display: grid;
+  gap: 8px;
+  padding: 14px 0;
+  border-top: 1px solid var(--c-line);
+}
+
+.pregunta:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.preguntaTexto {
+  font-weight: 600;
+  font-size: 15.5px;
+}
+
+.preguntaAyuda {
+  font-size: 13.5px;
+  color: var(--c-muted);
+}
+
+.resultado {
+  border: 1px solid var(--c-line-2);
+  border-left-width: 6px;
+  padding: 16px 18px;
+  display: grid;
+  gap: 8px;
+  background: var(--c-surface-2);
+}
+
+.resultado[data-nivel='rojo'] {
+  background: var(--c-no-soft);
+  border-color: var(--c-no);
+}
+
+.resultado[data-nivel='ambar'] {
+  background: var(--c-warn-soft);
+  border-color: var(--c-warn);
+}
+
+.resultado[data-nivel='verde'] {
+  background: var(--c-si-soft);
+  border-color: var(--c-si);
+}
+
+.resultadoTitulo {
+  font-weight: 700;
+  font-size: 16.5px;
+  line-height: 1.35;
+}
+
+.resultadoPasos {
+  list-style: decimal;
+  padding-left: 20px !important;
+  display: grid;
+  gap: 5px;
+  font-size: 15px;
+}
+
+.resultadoTexto {
+  font-size: 15px;
+}
+
+/* Calculadora */
+
+.entradas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px 16px;
+}
+
+.entrada {
+  display: grid;
+  gap: 5px;
+  align-content: start;
+}
+
+.entradaRotulo {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.entradaAyuda {
+  font-size: 12.5px;
+  color: var(--c-muted);
+  line-height: 1.4;
+}
+
+.entradaCaja {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--c-line-2);
+  background: var(--c-bg);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+}
+
+.entradaCaja:focus-within {
+  outline: 2px solid var(--c-focus);
+  outline-offset: 1px;
+}
+
+.entradaCaja input,
+.entradaCaja select {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  padding: 9px 10px;
+  font: inherit;
+  font-size: 15px;
+  color: inherit;
+  outline: none;
+}
+
+.entradaUnidad {
+  padding: 9px 10px;
+  font-size: 13px;
+  color: var(--c-muted);
+  background: var(--c-surface-2);
+  border-left: 1px solid var(--c-line);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+}
+
+.salidas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.salida {
+  border: 1px solid var(--c-line);
+  background: var(--c-bg);
+  padding: 12px 14px;
+  display: grid;
+  gap: 4px;
+  align-content: start;
+}
+
+.salida[data-destacada='true'] {
+  border-color: var(--c-accent);
+  background: var(--c-accent-soft);
+}
+
+.salidaRotulo {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--c-muted);
+  line-height: 1.35;
+}
+
+.salidaValor {
+  font-family: var(--sop-font-display, inherit);
+  font-weight: var(--peso-display-sm);
+  font-size: 24px;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+.salidaAyuda {
+  font-size: 12.5px;
+  color: var(--c-ink-2);
+}
+
+.salidaMeta {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.salidaMeta[data-ok='true'] {
+  color: var(--c-si);
+}
+
+.salidaMeta[data-ok='false'] {
+  color: var(--c-no);
+}
+
+/* Barra de rango, por ejemplo la zona de posible acuerdo */
+
+.barra {
+  display: grid;
+  gap: 10px;
+}
+
+.barraPista {
+  position: relative;
+  height: 16px;
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-line-2);
+  margin: 10px 0 4px;
+}
+
+.barraZona {
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  background: var(--c-si-soft);
+  border: 1px solid var(--c-si);
+}
+
+.barraMarca {
+  position: absolute;
+  top: -9px;
+  width: 22px;
+  height: 22px;
+  margin-left: -11px;
+  border-radius: 50%;
+  background: var(--c-ink);
+  color: var(--c-bg);
+  font-size: 11.5px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.barraLeyenda {
+  display: grid;
+  gap: 4px;
+  font-size: 13.5px;
+  color: var(--c-ink-2);
+}
+
+.barraLeyenda li {
+  list-style: none;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.barraLeyendaNumero {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--c-ink);
+  color: var(--c-bg);
+  font-size: 10.5px;
+  font-weight: 700;
+  flex: none;
+}
+
+.barraLeyendaZona {
+  display: inline-block;
+  width: 18px;
+  height: 10px;
+  background: var(--c-si-soft);
+  border: 1px solid var(--c-si);
+  flex: none;
+}
+
+/* Rúbrica */
+
+.rubrica {
+  border: 1px solid var(--c-line);
+  display: grid;
+}
+
+.rubricaFila {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) repeat(4, minmax(0, 1fr));
+  border-top: 1px solid var(--c-line);
+}
+
+.rubricaFila:first-child {
+  border-top: 0;
+}
+
+.rubricaCabecera > span {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--c-muted);
+  background: var(--c-surface-2);
+  padding: 9px 12px;
+}
+
+.rubricaCriterio {
+  padding: 12px;
+  display: grid;
+  gap: 2px;
+  align-content: start;
+}
+
+.rubricaNombre {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.rubricaPeso {
+  font-size: 12px;
+  color: var(--c-muted);
+}
+
+.rubricaOpcion {
+  position: relative;
+  padding: 10px 12px;
+  border-left: 1px solid var(--c-line);
+  font-size: 13px;
+  line-height: 1.45;
+  cursor: pointer;
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  color: var(--c-ink-2);
+}
+
+.rubricaOpcion input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.rubricaOpcion:focus-within {
+  outline: 2px solid var(--c-focus);
+  outline-offset: -2px;
+}
+
+.rubricaOpcion[data-activo='true'] {
+  background: var(--c-accent-soft);
+  box-shadow: inset 0 0 0 2px var(--c-accent);
+  color: var(--c-ink);
+}
+
+.rubricaPuntaje {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--c-ink);
+}
+
+/* Plazos */
+
+.plazos {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+  gap: 14px 16px;
+}
+
+/* Etapas con responsable y plazo */
+
+.etapaCuando {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Índice de protocolos */
+
+.catalogo {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.catalogoItem {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  border: 1px solid var(--c-line);
+  background: var(--c-surface);
+  padding: 20px;
+  text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.catalogoItem:hover {
+  border-color: var(--c-accent);
+  background: var(--c-accent-soft);
+}
+
+.catalogoKicker {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--c-muted);
+}
+
+.catalogoTitulo {
+  font-family: var(--sop-font-display, inherit);
+  font-weight: var(--peso-display-sm);
+  font-size: 20px;
+  line-height: 1.25;
+}
+
+.catalogoTexto {
+  font-size: 14.5px;
+  color: var(--c-ink-2);
+}
+
+.catalogoCapas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+@media screen and (max-width: 900px) {
+  .entradas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media screen and (max-width: 760px) {
+  .tablaN > [role='row'] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .kpis,
+  .catalogo,
+  .plazos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .herramienta {
+    padding: 16px;
+  }
+
+  .rubricaFila {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rubricaCabecera {
+    display: none !important;
+  }
+
+  .rubricaCriterio {
+    grid-column: 1 / -1;
+    background: var(--c-surface-2);
+  }
+
+  .rubricaOpcion {
+    border-left: 0;
+    border-top: 1px solid var(--c-line);
+  }
+
+  .rubricaOpcion:nth-child(odd) {
+    border-left: 1px solid var(--c-line);
+  }
+}
+
+@media screen and (max-width: 560px) {
+  .entradas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media print {
+  .herramienta,
+  .kpi,
+  .resultado {
+    break-inside: avoid;
+  }
+}

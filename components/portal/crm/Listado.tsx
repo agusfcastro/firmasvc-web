@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ChevronLeft, ChevronRight, Download, Plus, Search } from 'lucide-react';
+import { AlertTriangle, ChevronLeft, ChevronRight, Download, Plus, Search, ShieldAlert } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
@@ -63,6 +63,24 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
     }
   });
   const soloLectura = Boolean(useVistaPrevia());
+
+  // Casos de conflicto en curso, para el acceso del encabezado. Sin la migración 0007 no se muestra el número.
+  const [casosAbiertos, setCasosAbiertos] = useState<number | null>(null);
+  useEffect(() => {
+    if (!supabase) return;
+    let vigente = true;
+    supabase
+      .from('crm_casos')
+      .select('id', { count: 'exact', head: true })
+      .eq('organizacion_id', orgId)
+      .neq('etapa', 'cerrado')
+      .then(({ count, error: e }) => {
+        if (vigente) setCasosAbiertos(e ? null : (count ?? 0));
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [orgId]);
 
   const cobranzaRef = cobranza;
   useEffect(() => {
@@ -146,6 +164,15 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
         acciones={
           <>
             {selector}
+            <Button variant="ghost" size="lg" onClick={() => navegar('/portal/crm/casos')} className="self-end">
+              <ShieldAlert size={18} /> Casos de conflicto
+              {casosAbiertos ? (
+                <span className="inline-flex items-center justify-center min-w-6 h-6 px-1.5 bg-[#8a2b20] text-marfil text-xs font-medium tabular-nums">
+                  {casosAbiertos}
+                  <span className="sr-only">{casosAbiertos === 1 ? ' caso abierto' : ' casos abiertos'}</span>
+                </span>
+              ) : null}
+            </Button>
             {!soloLectura && (
               <Button size="lg" onClick={() => navegar('/portal/crm/nuevo')} className="self-end">
                 <Plus size={18} /> Nuevo cliente

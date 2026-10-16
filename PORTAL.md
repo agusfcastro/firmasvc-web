@@ -163,3 +163,79 @@ Al dar de alta un cliente en el CRM se genera su contrato en ZapSign con el mode
 | `api/zapsign/webhook.ts` | Recibe el aviso de firma y pasa el cliente a Firmado |
 | `api/admin/zapsign.ts` | Conecta y desconecta cada empresa y lista sus modelos |
 | `components/portal/admin/ZapSign.tsx` | Pestaña de Administración con conexión, modelos, servicios y variables |
+
+## Casos de conflicto
+
+Registro de reclamos y pedidos de reembolso de cada cliente final, en `firmasvc.com/portal/crm/casos`. Con esos casos el CRM calcula los indicadores del tablero del protocolo de conflictos (`/protocolo-conflictos`).
+
+### Puesta en marcha
+
+1. En Supabase corré `supabase/migraciones/0007_crm_casos.sql` en **SQL Editor**. Crea la tabla `crm_casos` con sus reglas, su historial y sus permisos. Se puede correr más de una vez.
+2. No hacen falta variables nuevas.
+
+### Uso
+
+1. En el listado del CRM, **Casos de conflicto** abre el tablero del mes y el registro. El número rojo del botón son los casos en curso.
+2. **Nuevo caso** abre el formulario. En la ficha de cada cliente, **Abrir un caso** lo abre con ese cliente elegido, y debajo del plan de pagos se listan sus casos.
+3. Cada caso lleva apertura, causa, canal, monto reclamado, etapa, semáforo de la compuerta legal, derivación a legales y contracargo. Para cerrarlo se pasa a la etapa Cerrado con la decisión, la fecha de cierre y el monto concedido.
+4. **Período** elige el mes, entre el actual y los once anteriores. La tabla muestra los casos que estuvieron abiertos en algún momento de ese mes.
+
+### Indicadores
+
+| Indicador | Cálculo |
+|---|---|
+| Abiertos hoy | Casos en curso, sin importar el mes elegido |
+| Reclamos cada 100 ventas | Casos abiertos en el mes sobre clientes dados de alta en el mes en el CRM, por cien |
+| Resueltos antes de legales | Cerrados en el mes sin derivación sobre cerrados en el mes |
+| Tiempo medio de resolución | Días entre apertura y cierre de los cerrados en el mes |
+| Costo de concesiones | Monto concedido en los cerrados en el mes sobre el monto total de las altas del mes. Con más de una moneda se calcula por moneda, sin convertir |
+| Contracargos | Casos abiertos en el mes con contracargo y porcentaje ganado sobre los recibidos |
+| Causas raíz | Casos abiertos en el mes por causa, de mayor a menor |
+
+### Reglas
+
+1. La empresa ve, carga y edita sus casos. Borran solo el titular y FIRMA. Nadie ve casos de otra empresa.
+2. La organización del caso es siempre la del cliente y los montos van en la moneda del cliente.
+3. Un caso cerrado tiene decisión y fecha de cierre, que no puede ser anterior a la apertura. Uno abierto no lleva fecha de cierre. El resultado del contracargo solo se carga si hubo contracargo.
+4. Un caso en legales o en difusión pública queda marcado como derivado a legales.
+5. Cada alta, cambio o baja de un caso queda en el historial de la ficha del cliente.
+
+| Archivo | Para qué |
+|---|---|
+| `supabase/migraciones/0007_crm_casos.sql` | Tabla de casos, reglas de coherencia, historial y permisos |
+| `components/portal/crm/Casos.tsx` | Tablero, registro y formulario, más la sección de casos de la ficha |
+| `components/portal/crm/casos.ts` | Tipos, rótulos y cálculo de los indicadores |
+
+## Protocolos
+
+Plantillas de trabajo para los clientes, públicas y sin indexar, con índice en `firmasvc.com/protocolos`. Cada protocolo tiene ficha configurable, herramientas interactivas, tarjeta de bolsillo e impresión, y combina tres capas, la legal, la de gestión y la de medición.
+
+| Ruta | Protocolo |
+|---|---|
+| `/protocolo-llamadas` | Comunicación legal en llamadas de venta (componente propio) |
+| `/protocolo-conflictos` | Conflictos y pedidos de reembolso |
+| `/protocolo-onboarding` | Onboarding de clientes |
+| `/protocolo-cobranza` | Cobranza y contracargos |
+| `/protocolo-reclutamiento` | Reclutamiento y selección |
+| `/protocolo-equipo` | Gestión del equipo |
+| `/protocolo-marketing` | Marketing y publicidad |
+| `/protocolo-datos` | Datos personales |
+
+### Puesta en marcha
+
+1. En Supabase corré `supabase/migraciones/0008_protocolos.sql` en **SQL Editor**. Suma los siete protocolos nuevos a Documentos, sección Otros documentos. Se puede correr más de una vez.
+2. No hacen falta variables nuevas.
+
+### Cómo está armado
+
+1. `components/protocolos/motor` es el motor común. Recibe la definición de un protocolo y arma la página con índice, ficha, bloques de contenido, herramientas (semáforo, calculadora, rúbrica, evaluación por señales, plazos y listas de control), impresión y tarjeta de bolsillo. Usa los estilos del protocolo de llamadas.
+2. Cada protocolo vive en su carpeta con `ficha.ts` (datos del negocio, valores y avisos), `contenido.ts` (secciones y bloques) e `index.ts` (definición).
+3. Para sumar uno nuevo se crea la carpeta, se agrega su ruta en `components/protocolos/rutas.ts` y su carga en `components/protocolos/PaginaProtocolo.tsx`.
+4. Regla de estilo de los textos, sin dos puntos ni rayas, y registro en lugar de grabación.
+
+| Archivo | Para qué |
+|---|---|
+| `components/protocolos/rutas.ts` | Catálogo y rutas que resuelve el motor |
+| `components/protocolos/PaginaProtocolo.tsx` | Página contenedora e índice de protocolos |
+| `components/protocolos/motor/*` | Tipos, ficha, renderizador, herramientas y estilos del motor |
+| `supabase/migraciones/0008_protocolos.sql` | Alta de los protocolos en Documentos |

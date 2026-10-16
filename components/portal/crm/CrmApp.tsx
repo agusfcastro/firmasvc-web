@@ -5,11 +5,13 @@ import type { Organizacion, Perfil } from '../tipos';
 import { Listado } from './Listado';
 import { Ficha } from './Ficha';
 import { AltaCliente } from './AltaCliente';
+import { Casos } from './Casos';
 
 /**
  * CRM legal de cada cliente de FIRMA.
  *   /portal/crm                lista (el admin elige la organización)
  *   /portal/crm/nuevo          alta
+ *   /portal/crm/casos          casos de conflicto e indicadores del protocolo
  *   /portal/crm/<id>           ficha del cliente final
  */
 export const CrmApp: React.FC<{ perfil: Perfil; organizacion: Organizacion | null; ruta: string }> = ({ perfil, organizacion, ruta }) => {
@@ -103,6 +105,8 @@ export const CrmApp: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
         <Encabezado eyebrow="CRM legal" titulo="Sin clientes todavía" bajada="Cuando des de alta una empresa en Administración, su CRM aparece acá." />
       ) : sub === 'nuevo' ? (
         <AltaCliente orgId={orgId} esAdmin={esAdmin} orgNombre={orgActual?.nombre ?? ''} cobranza={cobranza} zapsign={zapsign} />
+      ) : sub === 'casos' ? (
+        <Casos orgId={orgId} orgNombre={orgActual?.nombre ?? ''} puedeGestionar={puedeGestionar} selector={selector} cambiarOrg={esAdmin ? setOrgId : undefined} />
       ) : sub ? (
         <Ficha id={sub} esAdmin={esAdmin} puedeGestionar={puedeGestionar} orgNombre={orgActual?.nombre ?? ''} cobranza={cobranza} zapsign={zapsign} />
       ) : (

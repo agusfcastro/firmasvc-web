@@ -10,11 +10,15 @@ import { Contact } from './components/Contact';
 import { Footer } from './components/Footer';
 import { WhatsAppButton } from './components/WhatsAppButton';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
+import { RUTAS_MOTOR } from './components/protocolos/rutas';
 
 // El protocolo de llamadas se carga aparte para no sumar peso a la home.
 const ProtocoloLlamadas = lazy(() =>
   import('./components/ProtocoloLlamadas').then((m) => ({ default: m.ProtocoloLlamadas })),
 );
+
+// El resto de los protocolos y su índice comparten un motor que también se carga aparte.
+const PaginaProtocolo = lazy(() => import('./components/protocolos/PaginaProtocolo'));
 
 // Portal de clientes, también aparte. Supabase solo se descarga al entrar al portal.
 const PortalApp = lazy(() => import('./components/portal/PortalApp'));
@@ -35,6 +39,13 @@ function App() {
     return (
       <Suspense fallback={<div className="min-h-screen bg-marfil" />}>
         <ProtocoloLlamadas />
+      </Suspense>
+    );
+  }
+  if (RUTAS_MOTOR.includes(path)) {
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-marfil" />}>
+        <PaginaProtocolo ruta={path} />
       </Suspense>
     );
   }

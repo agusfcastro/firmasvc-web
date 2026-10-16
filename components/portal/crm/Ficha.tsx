@@ -6,6 +6,8 @@ import { Aviso, Campo, Cifras, Encabezado, Enlace, Etiqueta, Monto, TituloSeccio
 import { useVistaPrevia } from '../vistaPrevia';
 import { BotonCopiar, MENSAJE_CONTRATO, generarContrato } from './firma';
 import { TONO_FIRMA, dinero, fecha, hoyISO, type CambioHistorial, type ClienteCrm, type ContratoReservado, type EstadoFirma, type Pago, type Servicio } from './tipos';
+import { CAMPOS_CASO, VALORES_CASO } from './casos';
+import { CasosCliente } from './Casos';
 
 const ROTULOS: Record<string, string> = {
   nombre: 'Nombre', dni: 'DNI', email: 'Mail', telefono: 'Teléfono', servicio: 'Servicio', monto_total: 'Monto total',
@@ -13,6 +15,7 @@ const ROTULOS: Record<string, string> = {
   responsable: 'Responsable', notas: 'Notas', revisar_pagos: 'Revisar pagos', monto: 'Monto', vencimiento: 'Vencimiento', estado: 'Estado',
   fecha_pago: 'Fecha de pago', nota: 'Nota', link_contrato_cliente: 'Contrato del cliente', link_documento: 'Documento generado',
   firma_url: 'Link de firma', contrato_estado: 'Contrato', contrato_error: 'Error del contrato',
+  ...CAMPOS_CASO,
 };
 const OCULTOS = new Set(['id', 'organizacion_id', 'cliente_id', 'creado_por', 'codigo', 'plan_pagos_original', 'zapsign_doc', 'contrato_generado_en']);
 
@@ -22,10 +25,23 @@ function aLocal(iso: string | null): string {
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 }
 
-function valorLegible(v: unknown): string {
+function valorLegible(v: unknown, campo?: string): string {
   if (v === null || v === undefined || v === '') return 'vacío';
   if (typeof v === 'boolean') return v ? 'sí' : 'no';
+  const rotulo = campo ? VALORES_CASO[campo]?.[String(v)] : undefined;
+  if (rotulo) return rotulo;
   return String(v).length > 60 ? String(v).slice(0, 57) + '…' : String(v);
+}
+
+function tituloCambio(h: CambioHistorial): string {
+  if (h.tabla === 'crm_casos') {
+    if (h.operacion === 'insert') return 'Caso registrado';
+    if (h.operacion === 'delete') return 'Caso eliminado';
+    return h.cambios.etapa?.despues === 'cerrado' ? 'Caso cerrado' : 'Caso modificado';
+  }
+  if (h.operacion === 'insert') return h.tabla === 'crm_pagos' ? 'Cuota agregada' : h.tabla === 'crm_contratos' ? 'Contrato cargado' : 'Alta del cliente';
+  if (h.operacion === 'delete') return 'Cuota eliminada';
+  return h.tabla === 'crm_pagos' ? 'Cuota modificada' : 'Ficha modificada';
 }
 
 export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boolean; orgNombre: string; cobranza: boolean; zapsign?: boolean }> = ({ id, esAdmin, puedeGestionar, orgNombre, cobranza, zapsign = false }) => {
@@ -41,6 +57,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
   const [noExiste, setNoExiste] = useState(false);
   const [generando, setGenerando] = useState(false);
   const soloLectura = Boolean(useVistaPrevia());
+  const [casosAbiertos, setCasosAbiertos] = useState(0);
 
   async function cargar() {
     if (!supabase) return;
@@ -354,7 +371,12 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
         }
         titulo={cliente.nombre}
         bajada={[cliente.servicio && `Programa ${cliente.servicio}`, cliente.email, cliente.responsable && `Responsable ${cliente.responsable}`].filter(Boolean).join(' · ')}
-        acciones={<Etiqueta tono={TONO_FIRMA[cliente.estado_firma]}>{`Firma ${cliente.estado_firma.toLowerCase()}`}</Etiqueta>}
+        acciones={
+          <>
+            {casosAbiertos > 0 && <Etiqueta tono="alerta">{casosAbiertos === 1 ? 'Caso abierto' : `${casosAbiertos} casos abiertos`}</Etiqueta>}
+            <Etiqueta tono={TONO_FIRMA[cliente.estado_firma]}>{`Firma ${cliente.estado_firma.toLowerCase()}`}</Etiqueta>
+          </>
+        }
       />
 
       <div className="wrap py-10 desk:py-14 flex flex-col gap-14">
@@ -404,6 +426,8 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
             )}
           </fieldset>
         </section>
+
+        <CasosCliente clienteId={id} moneda={moneda} soloLectura={soloLectura} alContar={setCasosAbiertos} />
 
         <div className="grid gap-12 desk:grid-cols-[7fr_5fr] desk:gap-14 items-start">
           {/* Datos */}
@@ -581,9 +605,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                   {historial.map((h) => (
                     <li key={h.id} className="py-3.5 text-sm" style={{ borderTop: '1px solid rgba(27,31,27,0.12)' }}>
                       <div className="flex justify-between gap-3">
-                        <span className="font-medium">
-                          {h.operacion === 'insert' ? (h.tabla === 'crm_pagos' ? 'Cuota agregada' : h.tabla === 'crm_contratos' ? 'Contrato cargado' : 'Alta del cliente') : h.operacion === 'delete' ? 'Cuota eliminada' : h.tabla === 'crm_pagos' ? 'Cuota modificada' : 'Ficha modificada'}
-                        </span>
+                        <span className="font-medium">{tituloCambio(h)}</span>
                         <span className="text-piedra text-xs whitespace-nowrap">{new Date(h.creado_en).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}</span>
                       </div>
                       {h.operacion === 'update' &&
@@ -591,7 +613,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                           .filter(([k]) => !OCULTOS.has(k))
                           .map(([k, v]) => (
                             <span key={k} className="block text-xs text-piedra mt-1">
-                              {ROTULOS[k] ?? k}: {valorLegible(v.antes)} → {valorLegible(v.despues)}
+                              {ROTULOS[k] ?? k} · {valorLegible(v.antes, k)} → {valorLegible(v.despues, k)}
                             </span>
                           ))}
                     </li>
