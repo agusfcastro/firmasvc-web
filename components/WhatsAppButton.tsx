@@ -1,4 +1,5 @@
 import React from 'react';
+import { trackPixel } from '../lib/metaPixel';
 
 export const WhatsAppButton: React.FC = () => {
   const phoneNumber = "5491124617035";
@@ -10,6 +11,7 @@ export const WhatsAppButton: React.FC = () => {
       href={whatsappUrl}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={() => trackPixel('Contact')}
       className="fixed bottom-6 right-6 z-40 bg-tinta hover:bg-bosque text-marfil w-14 h-14 transition-colors duration-150 flex items-center justify-center group"
       aria-label="Contactar por WhatsApp"
     >
