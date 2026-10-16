@@ -10,6 +10,7 @@ import { DefinirClave } from './DefinirClave';
 import { Inicio } from './Inicio';
 import { Agenda } from './Agenda';
 import { Documentos } from './Documentos';
+import { Pagos } from './Pagos';
 import { VistaPreviaContexto, leerVistaPrevia } from './vistaPrevia';
 import type { Organizacion, Perfil } from './tipos';
 
@@ -22,6 +23,7 @@ const PanelAdmin = lazy(() => import('./admin/PanelAdmin').then((m) => ({ defaul
  *   /portal/clave      definir o cambiar contraseña (desde el enlace del mail)
  *   /portal            inicio según rol
  *   /portal/documentos contratos de servicio, con el equipo y otros (más /equipo y /otros)
+ *   /portal/pagos      abonos mensuales con tarjeta (solo titular y admin)
  *   /portal/admin/...  panel de administración (solo admin)
  */
 export const PortalApp: React.FC = () => {
@@ -101,6 +103,8 @@ export const PortalApp: React.FC = () => {
           <Documentos perfil={perfilVista} organizacion={orgVista} ruta={ruta} />
         ) : ruta === '/portal/agenda' ? (
           <Agenda perfil={perfilVista} organizacion={orgVista} />
+        ) : ruta === '/portal/pagos' && perfilVista.rol === 'titular' ? (
+          <Pagos perfil={perfilVista} organizacion={orgVista} />
         ) : (
           <Inicio estado={{ ...estado, perfil: perfilVista, organizacion: orgVista }} />
         )}
@@ -121,6 +125,12 @@ export const PortalApp: React.FC = () => {
   }
 
   if (ruta === '/portal/agenda') return <Agenda perfil={perfil} organizacion={estado.organizacion} />;
+
+  // Pagos solo para titulares y FIRMA. Un miembro del equipo vuelve al inicio.
+  if (ruta === '/portal/pagos') {
+    if (perfil.rol === 'miembro') return <Inicio estado={estado} />;
+    return <Pagos perfil={perfil} organizacion={estado.organizacion} />;
+  }
 
   if (ruta.startsWith('/portal/admin')) {
     if (perfil.rol !== 'admin') return <Inicio estado={estado} />;

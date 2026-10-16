@@ -21,7 +21,7 @@ const MODULOS: Modulo[] = [
   { titulo: 'Administración', texto: 'Empresas, usuarios, roles y registro de accesos.', icono: ShieldCheck, ruta: '/portal/admin', soloAdmin: true },
   { titulo: 'Protocolos', texto: 'Los protocolos de trabajo de cada área de tu equipo.', icono: BookOpen, ruta: '/protocolo-llamadas', externo: true },
   { titulo: 'Estado de asuntos', texto: 'Seguimiento de cada trámite en curso.', icono: ClipboardList },
-  { titulo: 'Abonos y pagos', texto: 'Tu plan con FIRMA, vencimientos y facturación.', icono: Wallet, soloTitular: true },
+  { titulo: 'Abonos y pagos', texto: 'Tu abono mensual con FIRMA, el próximo cobro y el historial de pagos.', icono: Wallet, ruta: '/portal/pagos', soloTitular: true },
   { titulo: 'Formación', texto: 'Videos por área para capacitar a tu equipo.', icono: GraduationCap },
   { titulo: 'Mi equipo', texto: 'Personas de tu empresa con acceso al portal.', icono: Users, soloTitular: true },
 ];

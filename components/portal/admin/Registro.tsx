@@ -13,7 +13,23 @@ const ACCIONES: Record<string, string> = {
   descarga_documento: 'Descargó un documento',
   zapsign_conectado: 'ZapSign conectado',
   zapsign_desconectado: 'ZapSign desconectado',
+  abono_alta: 'Abono creado',
+  abono_aceptado: 'Débito mensual aceptado',
+  abono_activado: 'Abono activo',
+  abono_pago_aprobado: 'Pago de abono aprobado',
+  abono_pago_rechazado: 'Pago de abono rechazado',
+  abono_pago_reintegrado: 'Pago de abono reintegrado',
+  abono_con_error: 'Abono con problema de cobro',
+  abono_pausado: 'Abono en pausa',
+  abono_baja: 'Abono dado de baja',
+  abono_cancelado: 'Abono finalizado en dLocal Go',
+  abono_tarjeta: 'Cambio de medio de pago pedido',
+  abono_error: 'Error con dLocal Go en un abono',
+  abono_duplicado: 'Suscripción de más dada de baja, revisar cobros',
 };
+
+/** Lo que llega de dLocal Go no tiene usuario. Se muestra quién informó. */
+const PROCESADORES: Record<string, string> = { dlocalgo: 'dLocal Go' };
 
 export const Registro: React.FC = () => {
   const [filas, setFilas] = useState<EntradaRegistro[]>([]);
@@ -60,7 +76,12 @@ export const Registro: React.FC = () => {
                   )}
                 </td>
                 <td>{(f.usuario_id && mails[f.usuario_id]) || '·'}</td>
-                <td>{(f.actor_id && mails[f.actor_id]) || '·'}</td>
+                <td>
+                  {(f.actor_id && mails[f.actor_id]) ||
+                    (!f.actor_id && f.accion.startsWith('abono_') && typeof f.detalle?.procesador === 'string' && f.accion !== 'abono_alta'
+                      ? PROCESADORES[f.detalle.procesador] ?? '·'
+                      : '·')}
+                </td>
               </tr>
             ))}
           </tbody>

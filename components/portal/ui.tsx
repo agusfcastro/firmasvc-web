@@ -38,6 +38,8 @@ export const Marco: React.FC<{ perfil?: Perfil | null; children: React.ReactNode
         { a: '/portal/crm', titulo: 'CRM legal', activo: ruta.startsWith('/portal/crm') },
         { a: '/portal/documentos', titulo: 'Documentos', activo: ruta.startsWith('/portal/documentos') },
         { a: '/portal/agenda', titulo: 'Agenda', activo: ruta === '/portal/agenda' },
+        // Pagos solo para titulares y FIRMA. Los miembros del equipo no ven nada de pagos.
+        ...(perfil.rol === 'admin' || perfil.rol === 'titular' ? [{ a: '/portal/pagos', titulo: 'Pagos', activo: ruta === '/portal/pagos' }] : []),
         ...(perfil.rol === 'admin' ? [{ a: '/portal/admin', titulo: 'Administración', activo: ruta.startsWith('/portal/admin') }] : []),
       ]
     : [];

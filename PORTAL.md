@@ -23,7 +23,7 @@ En **Authentication › Sign In / Providers**
 En **Authentication › URL Configuration**
 
 1. Site URL `https://firmasvc.com`
-2. Redirect URLs agregá `https://firmasvc.com/portal/clave` y `http://localhost:3000/portal/clave`
+2. Redirect URLs agregá `https://www.firmasvc.com/portal/clave`, `https://firmasvc.com/portal/clave` y `http://localhost:3000/portal/clave`
 
 ## 4. Mails en español
 
@@ -72,7 +72,7 @@ En **Project Settings › API** de Supabase copiá la URL, la clave `anon` y la 
 | `VITE_SUPABASE_ANON_KEY` | clave anon |
 | `SUPABASE_URL` | URL del proyecto |
 | `SUPABASE_SERVICE_ROLE_KEY` | clave service_role |
-| `PORTAL_URL` | `https://firmasvc.com` |
+| `PORTAL_URL` | `https://www.firmasvc.com`, con www |
 
 **La clave service_role da control total sobre la base. Nunca la pongas con prefijo VITE_, ni en el código, ni en un chat.**
 
@@ -239,3 +239,105 @@ Plantillas de trabajo para los clientes, públicas y sin indexar, con índice en
 | `components/protocolos/PaginaProtocolo.tsx` | Página contenedora e índice de protocolos |
 | `components/protocolos/motor/*` | Tipos, ficha, renderizador, herramientas y estilos del motor |
 | `supabase/migraciones/0008_protocolos.sql` | Alta de los protocolos en Documentos |
+
+## Pagos con tarjeta
+
+Abonos mensuales de cada empresa cliente, cobrados con dLocal Go desde el portal. Cada abono tiene su propio plan de suscripción en dLocal Go, que el portal crea solo la primera vez que el titular lo activa. El cliente paga siempre en la moneda de su país y, si el abono es en dólares, dLocal Go lo convierte al momento de cada pago. La tarjeta se carga siempre en la página segura de dLocal Go y el portal nunca recibe ni guarda sus datos.
+
+### Cómo funciona
+
+1. En **Administración › Abonos** armás el abono como borrador con empresa, concepto, monto, moneda, país del pagador y mail del pagador. En pesos solo se le cobra a un pagador de Argentina. Mientras está por activar lo podés editar o borrar.
+2. El titular lo ve en **Pagos** con sus condiciones, es decir concepto, monto, periodicidad, medio de pago, moneda en la que paga y cómo darse de baja. Para seguir tiene que tildar la autorización del débito mensual. La aceptación queda guardada con fecha, hora y usuario, y también en **Registro de accesos**.
+3. La primera vez el portal crea el plan del abono en dLocal Go, mensual y con el país, la moneda y el monto del abono, y lleva al titular al enlace de suscripción del plan con su mail precargado. Al volver, el portal consulta a dLocal Go, avisa que el pago se está confirmando y la página se actualiza sola.
+4. Cuando cambia un pago, dLocal Go avisa al portal. El aviso no se toma como verdad, solo dispara una consulta a la API de dLocal Go, que es la única fuente del estado, el próximo cobro y el historial. El botón **Actualizar estado** hace la misma consulta a mano, en Pagos y en Administración.
+5. El titular se da de baja desde **Pagos** cuando quiera, con confirmación. El portal da de baja la suscripción y desactiva el plan, así no hay más cobros. La baja es inmediata.
+6. dLocal Go no permite cambiar la tarjeta de una suscripción. Con **Cambiar medio de pago**, y después de una confirmación, el portal da de baja la suscripción vigente y lleva al titular a suscribirse de nuevo con el medio nuevo. Lo ya pagado se respeta, porque el plan le da esos días sin cobro a la suscripción nueva y el primer débito nuevo cae cuando vence lo pagado. Hasta que se vuelve a suscribir no hay débitos.
+7. Un abono activo no cambia de monto. Para cambiarlo se da de baja y se arma otro.
+
+Los miembros del equipo del cliente no ven nada de pagos. Nadie escribe a mano el estado, el plan, la suscripción, la aceptación ni los pagos, tampoco el admin. Eso lo hacen solo las funciones del servidor.
+
+### Puesta en marcha
+
+Hacé todo primero en el sandbox de dLocal Go. Recién cuando la prueba completa sale bien, pasá a producción.
+
+**1. Base de datos**
+
+En Supabase abrí **SQL Editor › New query**, pegá todo `supabase/migraciones/0009_abonos.sql` y apretá **Run**. Crea las tablas `abonos` y `abono_pagos` con sus reglas y permisos. Se puede correr más de una vez.
+
+**2. Credenciales de dLocal Go**
+
+1. Entrá al panel de prueba de dLocal Go, `dashboard-sbx.dlocalgo.com`, con la cuenta de FIRMA.
+2. En la sección de integración o API del panel copiá la **API key** y la **secret key**. Son `DLOCALGO_API_KEY` y `DLOCALGO_SECRET_KEY`.
+3. Para cobrar de verdad, después de la prueba, sacá las dos claves del panel productivo de dLocal Go y cambiá `DLOCALGO_ENTORNO` a `produccion`.
+
+No hace falta configurar avisos ni webhooks en el panel de dLocal Go. Cada plan lleva su propia dirección de aviso, `https://www.firmasvc.com/api/pagos/dlocalgo` con el id del abono y una clave, y el portal la arma sola al crear el plan.
+
+**3. Variables en Vercel**
+
+En **Settings › Environment Variables** cargá estas variables para Production y Preview. En Preview conviene dejar siempre el sandbox.
+
+| Variable | Valor |
+|---|---|
+| `DLOCALGO_API_KEY` | API key de dLocal Go |
+| `DLOCALGO_SECRET_KEY` | Secret key de dLocal Go |
+| `DLOCALGO_ENTORNO` | `sandbox` para probar y `produccion` para cobrar. Si falta, es sandbox, así nadie cobra de verdad por error |
+| `DLOCALGO_CLAVE_AVISOS` | Opcional. Una clave larga al azar para los avisos. Si falta se usa la clave service role |
+| `PORTAL_URL` | `https://www.firmasvc.com` |
+
+`PORTAL_URL` tiene que ser `https://www.firmasvc.com`, con www, porque el dominio sin www redirige y un aviso redirigido se pierde. Con ese valor las invitaciones al portal también salen con www, así que en Supabase, en **Authentication › URL Configuration**, sumá `https://www.firmasvc.com/portal/clave` a Redirect URLs. `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` siguen como estaban.
+
+**Estas claves mueven plata. Nunca con prefijo VITE_, ni en el código, ni en un chat.** Después de cargarlas hacé un redeploy.
+
+Si falta la API key o la secret key, la API responde un error claro y en el portal el pago figura como no disponible. Los borradores se pueden armar igual. En **Administración › Abonos** se ve si dLocal Go está disponible y si está en sandbox o en producción.
+
+Cada plan guarda su dirección de aviso con la clave y la dirección del momento en que se creó. Si después cambiás `DLOCALGO_CLAVE_AVISOS`, la clave service role o `PORTAL_URL`, los avisos de los planes ya creados dejan de validar. El estado se sigue actualizando al volver de dLocal Go y con Actualizar estado, pero conviene definir las tres antes del primer abono y no tocarlas.
+
+**4. Prueba completa en el sandbox**
+
+1. Armá un abono de ARS 100 para una empresa de prueba de Argentina y otro de USD 1 con país Uruguay.
+2. Entrá con un usuario titular de esa empresa, aceptá el débito y suscribite a cada uno con las tarjetas de prueba que indica dLocal Go para el sandbox.
+3. Revisá que pasen a Activo, que el pago aparezca en el historial con el monto pagado en la moneda del país y que los movimientos estén en **Registro de accesos**.
+4. Probá Actualizar estado, Cambiar medio de pago y la baja. En el cambio de medio de pago revisá que dLocal Go no cobre de nuevo hasta que vence lo pagado.
+5. Con esa prueba confirmá lo que el código marca como «verificar en sandbox». Son los nombres de los estados de suscripciones y cobros, la frecuencia mensual del plan, la forma de las listas y de los errores, qué moneda usa cada monto de un cobro y que los días sin cobro del plan corran el primer débito.
+6. Recién después cargá las credenciales productivas y `DLOCALGO_ENTORNO` en `produccion`. Los abonos de prueba dalos de baja antes, porque sus planes no existen en producción.
+
+**5. Clientes del exterior**
+
+dLocal Go cobra en los países habilitados en la cuenta. Por defecto son Argentina, Bolivia, Brasil, Chile, Colombia, Costa Rica, Ecuador, Guatemala, Indonesia, Malasia, México, Paraguay, Perú y Uruguay, que son los que ofrece el portal. Antes de ofrecerlo a clientes de España o de Estados Unidos, confirmá con el soporte de dLocal Go si pueden pagar con tarjetas de esos países y en qué condiciones.
+
+### Estados
+
+| Estado | Qué significa |
+|---|---|
+| Por activar | Borrador de FIRMA que el titular todavía no aceptó |
+| Confirmando pago | El titular aceptó y fue a dLocal Go, falta la confirmación |
+| Falta el medio de pago | El titular dio de baja la suscripción para cambiar el medio de pago y todavía no se volvió a suscribir. No hay débitos |
+| Activo | Débito mensual vigente |
+| Problema de cobro | El último cobro fue rechazado. Con la suscripción vigente el titular puede cambiar el medio de pago, y si quedó sin efecto puede volver a suscribirse |
+| De baja | Sin más débitos |
+
+### Reglas
+
+1. Cada abono tiene su propio plan en dLocal Go y su propia dirección de aviso, con una clave HMAC SHA256 del id del abono que se compara en tiempo constante. Un aviso con la clave equivocada se rechaza sin tocar nada.
+2. Ningún aviso se toma al pie de la letra. dLocal Go no firma sus avisos, así que el aviso solo dispara una consulta a su API.
+3. Repetir un aviso o una consulta no duplica pagos ni movimientos. Un pago aprobado no vuelve atrás, solo puede pasar a reintegrado.
+4. Antes de dar un enlace de suscripción se revisa que el plan no tenga una suscripción vigente. Si igual aparecen dos, queda la más nueva, la otra se da de baja y queda en el registro para revisar y reintegrar el cobro de más.
+5. Un abono dado de baja no se reactiva. Si en dLocal Go aparece una suscripción vigente de un abono dado de baja, se da de baja.
+6. Si desactivás un plan desde el panel de dLocal Go, el abono pasa a De baja. Igual conviene hacer las bajas desde el portal.
+7. Las claves nunca llegan al navegador ni quedan en el registro.
+
+### Facturación e impuestos
+
+Este módulo cobra pero no emite facturas. La facturación electrónica de cada cobro, los impuestos, las retenciones y el encuadre de los cobros al exterior se definen con el contador antes de activar el primer abono.
+
+| Archivo | Para qué |
+|---|---|
+| `supabase/migraciones/0009_abonos.sql` | Tablas de abonos y pagos con país, plan y suscripción de dLocal Go, reglas, registro del alta y permisos |
+| `api/pagos/activar.ts` | Constancia de aceptación, plan del abono en dLocal Go y enlace de suscripción. También informa si dLocal Go está listo y en qué entorno |
+| `api/pagos/gestionar.ts` | Actualizar estado, baja y cambio de medio de pago |
+| `api/pagos/dlocalgo.ts` | Avisos de dLocal Go con clave por abono, que disparan la actualización del estado |
+| `components/portal/Pagos.tsx` | Sección Pagos del titular |
+| `components/portal/admin/Abonos.tsx` | Pestaña Abonos de Administración |
+| `components/portal/pagos.ts` | Tipos, rótulos, países, formatos y llamadas a la API |
+
+Las tres funciones de `api/pagos` comparten un bloque común idéntico, con el cliente de dLocal Go y la sincronización, porque cada función de Vercel es autocontenida. Si se cambia en una, se cambia igual en las tres.

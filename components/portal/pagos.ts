@@ -1,0 +1,184 @@
+import { supabase } from './supabase';
+
+/**
+ * Abonos mensuales con tarjeta, cobrados con dLocal Go. Tipos, rótulos,
+ * formatos y llamadas a /api/pagos. La tarjeta se carga siempre en la
+ * página segura de dLocal Go, este portal nunca la ve.
+ */
+
+export type EstadoAbono = 'borrador' | 'pendiente' | 'activo' | 'pausado' | 'cancelado' | 'con_error';
+export type EstadoPagoAbono = 'aprobado' | 'rechazado' | 'reintegrado' | 'pendiente';
+export type MonedaAbono = 'ARS' | 'USD';
+
+export interface Abono {
+  id: string;
+  organizacion_id: string;
+  concepto: string;
+  monto: number | string;
+  moneda: MonedaAbono;
+  pais: string;
+  estado: EstadoAbono;
+  email_pagador: string;
+  plan_id: string | null;
+  plan_token: string | null;
+  suscripcion_id: string | null;
+  proximo_cobro: string | null;
+  aceptado_en: string | null;
+  aceptado_por: string | null;
+  cancelado_en: string | null;
+  creado_en: string;
+  actualizado_en: string;
+}
+
+export interface PagoAbono {
+  id: string;
+  abono_id: string;
+  organizacion_id: string;
+  cobro_id: string;
+  monto_pagado: number | string | null;
+  monto_recibido: number | string | null;
+  moneda: string;
+  moneda_cobro: string | null;
+  estado: EstadoPagoAbono;
+  fecha: string;
+  detalle: { suscripcion_id?: string | null; moneda_saldo?: string | null; estado_dlocal?: string | null; [k: string]: unknown } | null;
+}
+
+export interface Disponibilidad {
+  dlocalgo: boolean;
+  entorno: 'sandbox' | 'produccion';
+}
+
+type Tono = 'bosque' | 'piedra' | 'alerta' | 'tinta';
+
+export const PROCESADOR = 'dLocal Go';
+
+/** Países que dLocal Go habilita por defecto y la moneda en la que paga cada uno. */
+export const PAISES_DLOCALGO: Record<string, { nombre: string; moneda: string }> = {
+  AR: { nombre: 'Argentina', moneda: 'pesos argentinos' },
+  BO: { nombre: 'Bolivia', moneda: 'bolivianos' },
+  BR: { nombre: 'Brasil', moneda: 'reales' },
+  CL: { nombre: 'Chile', moneda: 'pesos chilenos' },
+  CO: { nombre: 'Colombia', moneda: 'pesos colombianos' },
+  CR: { nombre: 'Costa Rica', moneda: 'colones' },
+  EC: { nombre: 'Ecuador', moneda: 'dólares' },
+  GT: { nombre: 'Guatemala', moneda: 'quetzales' },
+  ID: { nombre: 'Indonesia', moneda: 'rupias' },
+  MX: { nombre: 'México', moneda: 'pesos mexicanos' },
+  MY: { nombre: 'Malasia', moneda: 'ringgits' },
+  PE: { nombre: 'Perú', moneda: 'soles' },
+  PY: { nombre: 'Paraguay', moneda: 'guaraníes' },
+  UY: { nombre: 'Uruguay', moneda: 'pesos uruguayos' },
+};
+
+export const nombrePais = (codigo: string): string => PAISES_DLOCALGO[codigo]?.nombre ?? codigo;
+
+/** En qué moneda paga el titular y si dLocal Go convierte el monto del abono al cobrar. */
+export function monedaDePago(a: Pick<Abono, 'moneda' | 'pais'>): { moneda: string; convierte: boolean } {
+  const moneda = PAISES_DLOCALGO[a.pais]?.moneda ?? 'la moneda de tu país';
+  return { moneda, convierte: a.moneda === 'USD' && a.pais !== 'EC' };
+}
+
+export const ESTADO_ABONO: Record<EstadoAbono, { titulo: string; tono: Tono }> = {
+  borrador: { titulo: 'Por activar', tono: 'piedra' },
+  pendiente: { titulo: 'Confirmando pago', tono: 'piedra' },
+  activo: { titulo: 'Activo', tono: 'bosque' },
+  pausado: { titulo: 'En pausa', tono: 'tinta' },
+  cancelado: { titulo: 'De baja', tono: 'piedra' },
+  con_error: { titulo: 'Problema de cobro', tono: 'alerta' },
+};
+
+export const ESTADO_PAGO: Record<EstadoPagoAbono, { titulo: string; tono: Tono }> = {
+  aprobado: { titulo: 'Aprobado', tono: 'bosque' },
+  rechazado: { titulo: 'Rechazado', tono: 'alerta' },
+  reintegrado: { titulo: 'Reintegrado', tono: 'tinta' },
+  pendiente: { titulo: 'En proceso', tono: 'piedra' },
+};
+
+const ZONA = 'America/Argentina/Buenos_Aires';
+
+export function montoTexto(n: number | string, moneda: string): string {
+  const v = Number(n);
+  const decimales = Math.round(v * 100) % 100 !== 0;
+  return `${moneda} ${v.toLocaleString('es-AR', { minimumFractionDigits: decimales ? 2 : 0, maximumFractionDigits: 2 })}`;
+}
+
+/** Monto del cobro. Lo que pagó el cliente, en la moneda de su país, o sin monto informado (por ejemplo un rechazo) el del abono. */
+export function montoPagado(p: PagoAbono, abono?: Pick<Abono, 'monto' | 'moneda'>): string {
+  if (p.monto_pagado !== null && p.monto_pagado !== '' && Number(p.monto_pagado) > 0) return montoTexto(p.monto_pagado, p.moneda_cobro || p.moneda);
+  return abono ? montoTexto(abono.monto, abono.moneda) : '·';
+}
+
+/** 15 de octubre de 2026 */
+export function fechaLarga(iso: string | null): string {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: ZONA });
+}
+
+/** 15/10/2026 */
+export function fechaCorta(iso: string | null): string {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: ZONA });
+}
+
+/** 14.30 h, sin dos puntos, como el resto de los textos de FIRMA. */
+export function hora(iso: string | null): string {
+  if (!iso) return '';
+  const partes = new Intl.DateTimeFormat('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: ZONA }).formatToParts(new Date(iso));
+  const h = partes.find((p) => p.type === 'hour')?.value ?? '00';
+  const m = partes.find((p) => p.type === 'minute')?.value ?? '00';
+  return `${h}.${m} h`;
+}
+
+/** Suscripción vigente en dLocal Go, con o sin problemas de cobro. */
+export const vigente = (a: Abono): boolean => (a.estado === 'activo' || a.estado === 'pausado' || a.estado === 'con_error') && Boolean(a.suscripcion_id);
+
+/** Se puede ir a suscribirse. Con un problema de cobro, solo si ya no hay suscripción vigente. */
+export const activable = (a: Abono): boolean => a.estado === 'borrador' || a.estado === 'pendiente' || (a.estado === 'con_error' && !a.suscripcion_id);
+
+/** Pendiente después de dar de baja la suscripción para cambiar el medio de pago. */
+export const cambiandoMedio = (a: Abono, pagos: PagoAbono[]): boolean => a.estado === 'pendiente' && pagos.some((p) => p.abono_id === a.id && p.estado === 'aprobado');
+
+async function token(): Promise<string | null> {
+  if (!supabase) return null;
+  const { data } = await supabase.auth.getSession();
+  return data.session?.access_token ?? null;
+}
+
+/** POST a /api/pagos/activar o /api/pagos/gestionar con la sesión actual. Ante un error, datos trae el cuerpo de la respuesta. */
+export async function llamarPagos<T>(ruta: 'activar' | 'gestionar', cuerpo: Record<string, unknown>): Promise<{ ok: boolean; datos?: T & { actualizar?: boolean }; error?: string }> {
+  const t = await token();
+  if (!t) return { ok: false, error: 'Tu sesión venció. Volvé a ingresar.' };
+  try {
+    const r = await fetch(`/api/pagos/${ruta}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${t}` },
+      body: JSON.stringify(cuerpo),
+    });
+    const j = (await r.json().catch(() => ({}))) as T & { error?: string; actualizar?: boolean };
+    if (!r.ok) return { ok: false, datos: j, error: j.error || `Error ${r.status}` };
+    return { ok: true, datos: j };
+  } catch {
+    return { ok: false, error: 'No hay conexión con el servidor.' };
+  }
+}
+
+/** Trae de dLocal Go el estado, el próximo cobro y los cobros del abono. */
+export function sincronizarAbono(abonoId: string) {
+  return llamarPagos<{ estado?: EstadoAbono; nuevos?: number; cambio?: boolean }>('gestionar', { abono_id: abonoId, accion: 'sincronizar' });
+}
+
+/** dLocal Go listo para cobrar. null si no se pudo consultar (por ejemplo en desarrollo local). */
+export async function consultarDisponibilidad(): Promise<Disponibilidad | null> {
+  const t = await token();
+  if (!t) return null;
+  try {
+    const r = await fetch('/api/pagos/activar', { headers: { authorization: `Bearer ${t}` } });
+    if (!r.ok) return null;
+    const j = (await r.json().catch(() => null)) as Partial<Disponibilidad> | null;
+    if (!j || typeof j.dlocalgo !== 'boolean') return null;
+    return { dlocalgo: j.dlocalgo, entorno: j.entorno === 'produccion' ? 'produccion' : 'sandbox' };
+  } catch {
+    return null;
+  }
+}
