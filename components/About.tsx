@@ -2,27 +2,26 @@ import React, { useRef, useState } from 'react';
 import { Volume2 } from 'lucide-react';
 import { Reveal } from './Reveal';
 
-const VIDEO_ID = 'qGvMQqbjQJs';
+const VIDEO_ID = '1236858475';
 
-// autoplay=1 + mute=1 es la única combinación que respetan los navegadores.
-// enablejsapi=1 nos permite dispararle unMute() vía postMessage cuando el usuario
-// hace click, sin reiniciar el video.
-const EMBED_URL = `https://www.youtube.com/embed/${VIDEO_ID}?autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1&enablejsapi=1`;
+// autoplay=1 + muted=1 es la única combinación que respetan los navegadores.
+// Vimeo acepta comandos vía postMessage, así que al click le pedimos que quite
+// el mute y suba el volumen sin reiniciar el video.
+// title/byline/portrait=0 ocultan la info de Vimeo y dnt=1 evita cookies de seguimiento.
+const EMBED_URL = `https://player.vimeo.com/video/${VIDEO_ID}?autoplay=1&muted=1&playsinline=1&title=0&byline=0&portrait=0&dnt=1`;
 
 export const About: React.FC = () => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [muted, setMuted] = useState(true);
 
   const handleUnmute = () => {
-    iframeRef.current?.contentWindow?.postMessage(
-      '{"event":"command","func":"unMute","args":""}',
-      '*',
-    );
-    // Doble-tap: algunos navegadores requieren playVideo tras un gesto para asegurar sonido
-    iframeRef.current?.contentWindow?.postMessage(
-      '{"event":"command","func":"playVideo","args":""}',
-      '*',
-    );
+    const player = iframeRef.current?.contentWindow;
+    const send = (method: string, value?: unknown) =>
+      player?.postMessage(JSON.stringify(value === undefined ? { method } : { method, value }), 'https://player.vimeo.com');
+    send('setMuted', false);
+    send('setVolume', 1);
+    // Algunos navegadores requieren play tras un gesto para asegurar sonido
+    send('play');
     setMuted(false);
   };
 
@@ -36,7 +35,7 @@ export const About: React.FC = () => {
               src={EMBED_URL}
               title="Conocé a Agustín, fundador de firma"
               loading="lazy"
-              allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+              allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
               allowFullScreen
               className="absolute inset-0 w-full h-full"
             />
