@@ -22,3 +22,6 @@ alter table public.abonos add constraint abonos_ars_argentina check (moneda <> '
 -- Desde la web se escribe también la periodicidad, solo mientras el abono es borrador.
 grant insert (organizacion_id, concepto, monto, moneda, pais, periodo_meses, email_pagador) on public.abonos to authenticated;
 grant update (organizacion_id, concepto, monto, moneda, pais, periodo_meses, email_pagador) on public.abonos to authenticated;
+
+-- La API de Supabase guarda la estructura de las tablas en caché. Así toma la columna nueva al instante.
+notify pgrst, 'reload schema';
