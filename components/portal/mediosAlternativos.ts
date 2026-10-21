@@ -27,45 +27,39 @@ export interface MedioAlternativo {
 export const MEDIOS_ALTERNATIVOS: MedioAlternativo[] = [
   {
     id: 'transferencia-ars',
-    titulo: 'Transferencia bancaria',
+    titulo: 'Transferencia en pesos',
     moneda: 'Pesos argentinos',
     datos: [
-      { etiqueta: 'Alias', valor: '', copiable: true },
-      { etiqueta: 'CBU / CVU', valor: '', copiable: true },
-      { etiqueta: 'Titular', valor: '' },
-      { etiqueta: 'CUIT', valor: '', copiable: true },
-      { etiqueta: 'Banco', valor: '' },
+      { etiqueta: 'Alias', valor: 'castro.legales', copiable: true },
+      { etiqueta: 'Alias alternativo', valor: 'legales.arq', copiable: true },
+      { etiqueta: 'Titular', valor: 'Federico Agustín Castro' },
     ],
+    aviso: 'Si tu abono está en dólares, se convierte al dólar digital, punta vendedora, que publica dolarhoy.com el día del pago.',
   },
   {
-    id: 'usdt-trc20',
-    titulo: 'USDT en red TRON',
+    id: 'transferencia-usd',
+    titulo: 'Transferencia en dólares',
+    moneda: 'Dólares estadounidenses',
+    datos: [
+      { etiqueta: 'Número de cuenta', valor: '212334825493', copiable: true },
+      { etiqueta: 'Routing number (ABA)', valor: '101019644', copiable: true },
+      { etiqueta: 'Titular', valor: 'Federico Agustin Castro', copiable: true },
+      { etiqueta: 'Banco', valor: 'Lead Bank' },
+      { etiqueta: 'Tipo de cuenta', valor: 'Checking' },
+      { etiqueta: 'Dirección del titular', valor: 'Juan B Azopardo 1854, Castelar, Buenos Aires B1712, Argentina', copiable: true },
+    ],
+    aviso: 'Cuenta en Estados Unidos. Transferí por ACH desde una cuenta en dólares.',
+  },
+  {
+    id: 'usdt-erc20',
+    titulo: 'USDT en red Ethereum',
     moneda: 'USDT',
     datos: [
-      { etiqueta: 'Dirección', valor: '', copiable: true },
-      { etiqueta: 'Red', valor: 'TRON (TRC20)' },
+      { etiqueta: 'Billetera ARQ', valor: '0x109bdfb8369fa96b8c8e2da2f0f650655ad1c29b', copiable: true },
+      { etiqueta: 'Billetera Binance', valor: '0xda62e4f266f5c7464d46353e96f8d411fc3a216a', copiable: true },
+      { etiqueta: 'Red', valor: 'Ethereum (ERC20)' },
     ],
-    aviso: 'Enviá solo USDT por la red TRON (TRC20). Si usás otra red o moneda, los fondos se pierden.',
-  },
-  {
-    id: 'usdt-bep20',
-    titulo: 'USDT en red BNB Smart Chain',
-    moneda: 'USDT',
-    datos: [
-      { etiqueta: 'Dirección', valor: '', copiable: true },
-      { etiqueta: 'Red', valor: 'BNB Smart Chain (BEP20)' },
-    ],
-    aviso: 'Enviá solo USDT por la red BNB Smart Chain (BEP20). Si usás otra red o moneda, los fondos se pierden.',
-  },
-  {
-    id: 'binance-pay',
-    titulo: 'Binance Pay',
-    moneda: 'USDT u otra cripto de Binance',
-    datos: [
-      { etiqueta: 'Pay ID', valor: '', copiable: true },
-      { etiqueta: 'Usuario', valor: '' },
-    ],
-    aviso: 'Sin comisión entre cuentas de Binance.',
+    aviso: 'Enviá solo USDT por la red Ethereum (ERC20), a cualquiera de las dos billeteras. Si usás otra red o moneda, los fondos se pierden.',
   },
 ];
 

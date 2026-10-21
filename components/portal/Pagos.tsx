@@ -384,7 +384,7 @@ const FilaDato: React.FC<{ dato: DatoPago }> = ({ dato }) => (
   <div className="flex flex-col gap-1">
     <dt className="text-[11px] font-medium uppercase tracking-[0.16em] text-piedra">{dato.etiqueta}</dt>
     <dd className="flex items-center justify-between gap-3">
-      <span className="text-[15px] leading-[1.45] break-all select-all">{dato.valor}</span>
+      <span className="text-[15px] leading-[1.45] [overflow-wrap:anywhere] select-all">{dato.valor}</span>
       {dato.copiable && <Copiar texto={dato.valor} etiqueta={dato.etiqueta} />}
     </dd>
   </div>
