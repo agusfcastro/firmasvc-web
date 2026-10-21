@@ -202,11 +202,9 @@ const PantallaFinal: React.FC<{ datos: Datos; rechazo: boolean }> = ({ datos, re
   const tarjeta = 'w-full bg-white border border-[rgba(27,31,27,0.12)] shadow-[0_1px_3px_rgba(27,31,27,0.06)]';
 
   return (
-    <section className="bg-marfil-oscuro min-h-[calc(100vh-170px)]">
+    <section className="bg-marfil min-h-[calc(100vh-170px)]">
       <div className="wrap max-w-[760px] mx-auto py-14 desk:py-20 flex flex-col items-center gap-8 text-center">
-        <span className={`inline-flex items-center justify-center w-20 h-20 ${rechazo ? 'bg-[#E9E6DD] text-piedra' : 'bg-[#E4E9E3] text-bosque'}`}>
-          <Icono size={44} strokeWidth={1.8} aria-hidden="true" />
-        </span>
+        <Icono size={64} strokeWidth={1.6} aria-hidden="true" className={rechazo ? 'text-piedra' : 'text-bosque'} />
         <div className="flex flex-col gap-4">
           <h1 className="h2">{rechazo ? 'Rechazaste el documento' : '¡Firma completada!'}</h1>
           <p className="text-[17px] leading-[1.6] text-piedra max-w-[56ch]">
