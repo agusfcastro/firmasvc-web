@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 
 /**
- * Abonos mensuales con tarjeta, cobrados con dLocal Go. Tipos, rótulos,
+ * Abonos con tarjeta, mensuales o trimestrales, cobrados con dLocal Go. Tipos, rótulos,
  * formatos y llamadas a /api/pagos. La tarjeta se carga siempre en la
  * página segura de dLocal Go, este portal nunca la ve.
  */
@@ -16,7 +16,10 @@ export interface Abono {
   concepto: string;
   monto: number | string;
   moneda: MonedaAbono;
-  pais: string;
+  /** País del plan en dLocal Go. Vacío en dólares: el checkout se lo pregunta al cliente. */
+  pais: string | null;
+  /** Cada cuántos meses se cobra: 1 o 3. */
+  periodo_meses: number;
   estado: EstadoAbono;
   email_pagador: string;
   plan_id: string | null;
@@ -52,6 +55,19 @@ export interface Disponibilidad {
 type Tono = 'bosque' | 'piedra' | 'alerta' | 'tinta';
 
 export const PROCESADOR = 'dLocal Go';
+
+export type PeriodoAbono = 1 | 3;
+
+/** "por mes" o "cada 3 meses", para acompañar un monto. */
+export const periodoTexto = (meses: number): string => (meses === 3 ? 'cada 3 meses' : 'por mes');
+
+/** Los planes de /planes, para armar el abono después de la reunión. */
+export const PLANES_ABONO: { id: string; titulo: string; concepto: string; monto: number; moneda: MonedaAbono; periodo: PeriodoAbono }[] = [
+  { id: 'gold', titulo: 'Gold, USD 150 por mes', concepto: 'Plan Gold de FIRMA', monto: 150, moneda: 'USD', periodo: 1 },
+  { id: 'black', titulo: 'Black, USD 300 por mes', concepto: 'Plan Black de FIRMA', monto: 300, moneda: 'USD', periodo: 1 },
+  { id: 'eminent', titulo: 'Eminent, USD 1.000 por mes', concepto: 'Plan Eminent de FIRMA', monto: 1000, moneda: 'USD', periodo: 1 },
+  { id: 'eminent-trimestral', titulo: 'Eminent trimestral, USD 1.500 cada 3 meses', concepto: 'Plan Eminent de FIRMA, trimestral', monto: 1500, moneda: 'USD', periodo: 3 },
+];
 
 /** Países que dLocal Go habilita por defecto y la moneda en la que paga cada uno. */
 export const PAISES_DLOCALGO: Record<string, { nombre: string; moneda: string }> = {

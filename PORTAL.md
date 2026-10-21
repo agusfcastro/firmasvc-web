@@ -25,37 +25,72 @@ En **Authentication › URL Configuration**
 1. Site URL `https://firmasvc.com`
 2. Redirect URLs agregá `https://www.firmasvc.com/portal/clave`, `https://firmasvc.com/portal/clave` y `http://localhost:3000/portal/clave`
 
-## 4. Mails en español
+## 4. Mails con la marca de FIRMA
 
-El servidor de mails que trae Supabase manda muy pocos por hora y suele caer en spam. Antes de invitar clientes configurá uno propio en **Authentication › Emails › SMTP Settings**. Lo más simple es Resend (resend.com, plan gratis) con el dominio firmasvc.com verificado, o el SMTP de Google Workspace si usás Gmail con tu dominio.
+Los mails del portal y de la firma electrónica salen por Resend con una sola plantilla, la de `api/_lib/mail.ts`. Lleva el logo, los colores de la marca, el botón en verde bosque y el pie con tu firma. El logo se carga desde `https://www.firmasvc.com/mail/firma-lockup.png`.
 
-Remitente sugerido `FIRMA <portal@firmasvc.com>`.
+**Qué sale por dónde**
 
-En **Authentication › Emails › Templates** reemplazá estas dos plantillas.
+| Mail | Sale por | Plantilla |
+|---|---|---|
+| Invitación al portal | Resend, desde `api/admin/usuarios.ts` | La de FIRMA, automática |
+| Reenviar acceso, desde Usuarios | Resend, desde `api/admin/usuarios.ts` | La de FIRMA, automática |
+| Firma electrónica: invitación, código, recordatorio, firmado y anulado | Resend, desde `api/firma` | La de FIRMA, automática |
+| «Olvidé mi contraseña», desde la pantalla de ingreso | El servidor de mails de Supabase | La que pegues en Supabase, abajo |
 
-**Invite user**
+**1. Resend**
 
-Asunto `Tu acceso al portal de clientes de FIRMA`
+1. En resend.com verificá el dominio `firmasvc.com` y creá una API key con permiso de envío.
+2. En Vercel cargá `RESEND_API_KEY`. Opcionales: `PORTAL_MAIL_DIRECCION` (remitente de las invitaciones, por defecto `portal@firmasvc.com`) y `FIRMA_MAIL_DIRECCION` (remitente de la firma electrónica, por defecto `firmas@firmasvc.com`).
+
+Sin `RESEND_API_KEY`, las invitaciones vuelven a salir por el servidor de Supabase, sin la marca. Si Resend rechaza un mail, la cuenta se crea igual y el panel muestra el enlace para mandarlo por WhatsApp.
+
+**2. Supabase, para «Olvidé mi contraseña»**
+
+El servidor de mails que trae Supabase manda muy pocos por hora y suele caer en spam. En **Authentication › Emails › SMTP Settings** cargá el de Resend:
+
+| Campo | Valor |
+|---|---|
+| Host | `smtp.resend.com` |
+| Port | `465` |
+| Username | `resend` |
+| Password | la API key de Resend |
+| Sender email | `portal@firmasvc.com` |
+| Sender name | `FIRMA` |
+
+Después, en **Authentication › Emails › Templates › Reset password**, poné el asunto `Definí tu contraseña del portal de FIRMA` y pegá este HTML:
 
 ```html
-<p>Hola {{ .Data.nombre }}.</p>
-<p>Te dimos acceso al portal de clientes de FIRMA. Desde ahí vas a encontrar los documentos, protocolos y materiales de formación de tu empresa.</p>
-<p><a href="{{ .ConfirmationURL }}">Definir mi contraseña</a></p>
-<p>El enlace vence en 24 horas y se usa una sola vez. Si no esperabas este mail, ignoralo.</p>
-<p>FIRMA · Castro &amp; Partners</p>
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600&family=Bitter:wght@700;900&display=swap" rel="stylesheet">
+<title>Definí tu contraseña</title></head>
+<body style="margin:0;padding:0;background:#F5F3EC">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent">Enlace para definir tu contraseña.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F5F3EC"><tr><td align="center" style="padding:36px 16px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:580px">
+<tr><td style="padding:0 4px 24px">
+<img src="https://www.firmasvc.com/mail/firma-lockup.png" width="200" height="45" alt="firma · Castro &amp; Partners Legal Consulting" style="display:block;border:0;width:200px;height:auto;font-family:'Bitter', Georgia, 'Times New Roman', serif;font-size:24px;font-weight:900;color:#1B1F1B">
+</td></tr>
+<tr><td style="background:#FFFFFF;border:1px solid #DEDBD0;border-top:3px solid #173A2F;padding:36px 32px">
+<p style="margin:0 0 14px;font-family:'Archivo', Arial, Helvetica, sans-serif;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:#6B6553">Portal de clientes</p>
+<h1 style="margin:0 0 22px;font-family:'Bitter', Georgia, 'Times New Roman', serif;font-size:26px;font-weight:900;line-height:1.2;letter-spacing:-.01em;color:#1B1F1B">Definí tu contraseña</h1>
+<p style="margin:0 0 16px;font-family:'Archivo', Arial, Helvetica, sans-serif;font-size:15px;line-height:1.65;color:#1B1F1B">Hola.</p><p style="margin:0 0 16px;font-family:'Archivo', Arial, Helvetica, sans-serif;font-size:15px;line-height:1.65;color:#1B1F1B">Recibimos un pedido para definir la contraseña de tu cuenta en el portal de clientes de FIRMA.</p><table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0 12px"><tr><td style="background:#173A2F">
+<a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:15px 28px;font-family:'Archivo', Arial, Helvetica, sans-serif;font-size:15px;font-weight:600;color:#F5F3EC;text-decoration:none">Definir mi contraseña &rarr;</a>
+</td></tr></table>
+<p style="margin:0 0 8px;font-family:'Archivo', Arial, Helvetica, sans-serif;font-size:12px;line-height:1.5;color:#6B6553">Si el botón no funciona, copiá este enlace en el navegador:<br><a href="{{ .ConfirmationURL }}" style="color:#173A2F;word-break:break-all">{{ .ConfirmationURL }}</a></p><p style="margin:24px 0 0;padding-top:18px;border-top:1px solid #DEDBD0;font-family:'Archivo', Arial, Helvetica, sans-serif;font-size:12px;line-height:1.55;color:#6B6553">Si no lo pediste vos, ignorá este mail. Tu contraseña actual sigue igual.</p>
+</td></tr>
+<tr><td style="background:#2B2B2B;padding:22px 32px">
+<p style="margin:0 0 4px;font-family:'Archivo', Arial, Helvetica, sans-serif;font-size:13px;font-weight:600;color:#F5F3EC">Agustín Castro · Abogado (UBA)</p>
+<p style="margin:0;font-family:'Archivo', Arial, Helvetica, sans-serif;font-size:12px;line-height:1.6;color:#A9A79E">FIRMA · Castro &amp; Partners Legal Consulting · <a href="https://www.firmasvc.com" style="color:#A9A79E;text-decoration:underline">firmasvc.com</a><br>Información confidencial, alcanzada por el secreto profesional.</p>
+</td></tr>
+</table>
+</td></tr></table>
+</body></html>
 ```
 
-**Reset password**
-
-Asunto `Definí tu contraseña del portal FIRMA`
-
-```html
-<p>Hola.</p>
-<p>Recibimos un pedido para definir la contraseña de tu cuenta en el portal de clientes de FIRMA.</p>
-<p><a href="{{ .ConfirmationURL }}">Definir contraseña</a></p>
-<p>Si no lo pediste vos, ignorá este mail. Tu contraseña actual sigue igual.</p>
-<p>FIRMA · Castro &amp; Partners</p>
-```
+La plantilla **Invite user** de Supabase solo se usa si falta `RESEND_API_KEY`.
 
 ## 5. Crear tu usuario admin
 
@@ -307,7 +342,7 @@ Abonos mensuales de cada empresa cliente, cobrados con dLocal Go desde el portal
 
 ### Cómo funciona
 
-1. En **Administración › Abonos** armás el abono como borrador con empresa, concepto, monto, moneda y mail del pagador. El país del plan no se pregunta ni se muestra: en pesos es Argentina y en dólares es el país de la empresa (o Argentina, si dLocal Go no cobra en ese país). Mientras está por activar lo podés editar o borrar.
+1. En **Administración › Abonos** armás el abono como borrador con empresa, concepto, monto, moneda, periodicidad y mail del pagador. Con **Plan** se completan solos los de `/planes`: Gold, Black, Eminent y Eminent trimestral. La periodicidad es mensual o cada 3 meses, con un solo débito por adelantado. El país no se pregunta ni se muestra: en pesos el plan es de Argentina y en dólares va sin país, así el checkout de dLocal Go se lo pregunta al cliente. Mientras está por activar lo podés editar o borrar.
 2. El titular lo ve en **Pagos** con sus condiciones, es decir concepto, monto, periodicidad, medio de pago, moneda en la que paga y cómo darse de baja. Para seguir tiene que tildar la autorización del débito mensual. La aceptación queda guardada con fecha, hora y usuario, y también en **Registro de accesos**.
 3. La primera vez el portal crea el plan del abono en dLocal Go, mensual y con el país, la moneda y el monto del abono, y lleva al titular al enlace de suscripción del plan con su mail precargado. Al volver, el portal consulta a dLocal Go, avisa que el pago se está confirmando y la página se actualiza sola.
 4. Cuando cambia un pago, dLocal Go avisa al portal. El aviso no se toma como verdad, solo dispara una consulta a la API de dLocal Go, que es la única fuente del estado, el próximo cobro y el historial. El botón **Actualizar estado** hace la misma consulta a mano, en Pagos y en Administración.
@@ -323,7 +358,7 @@ Hacé todo primero en el sandbox de dLocal Go. Recién cuando la prueba completa
 
 **1. Base de datos**
 
-En Supabase abrí **SQL Editor › New query**, pegá todo `supabase/migraciones/0009_abonos.sql` y apretá **Run**. Crea las tablas `abonos` y `abono_pagos` con sus reglas y permisos. Se puede correr más de una vez.
+En Supabase abrí **SQL Editor › New query**, pegá todo `supabase/migraciones/0009_abonos.sql` y apretá **Run**. Crea las tablas `abonos` y `abono_pagos` con sus reglas y permisos. Después hacé lo mismo con `supabase/migraciones/0016_abonos_periodo.sql`, que suma los abonos trimestrales y los planes en dólares sin país. Las dos se pueden correr más de una vez.
 
 **2. Credenciales de dLocal Go**
 
@@ -355,11 +390,11 @@ Cada plan guarda su dirección de aviso con la clave y la dirección del momento
 
 **4. Prueba completa en el sandbox**
 
-1. Armá un abono de ARS 100 para una empresa de prueba de Argentina y otro de USD 1 para una empresa de prueba de Uruguay.
+1. Armá un abono de ARS 100 para una empresa de prueba de Argentina, otro de USD 1 mensual y otro de USD 1 cada 3 meses.
 2. Entrá con un usuario titular de esa empresa, aceptá el débito y suscribite a cada uno con las tarjetas de prueba que indica dLocal Go para el sandbox.
 3. Revisá que pasen a Activo, que el pago aparezca en el historial con el monto pagado en la moneda del país y que los movimientos estén en **Registro de accesos**.
 4. Probá Actualizar estado, Cambiar medio de pago y la baja. En el cambio de medio de pago revisá que dLocal Go no cobre de nuevo hasta que vence lo pagado.
-5. Con esa prueba confirmá lo que el código marca como «verificar en sandbox». Son los nombres de los estados de suscripciones y cobros, la frecuencia mensual del plan, la forma de las listas y de los errores, qué moneda usa cada monto de un cobro y que los días sin cobro del plan corran el primer débito.
+5. Con esa prueba confirmá lo que el código marca como «verificar en sandbox». Son los nombres de los estados de suscripciones y cobros, la frecuencia del plan (mensual, y `MONTHLY` con `frequency_value` 3 para el trimestral), que en dólares sin país el checkout le pida el país al cliente, la forma de las listas y de los errores, qué moneda usa cada monto de un cobro y que los días sin cobro del plan corran el primer débito.
 6. Recién después cargá las credenciales productivas y `DLOCALGO_ENTORNO` en `produccion`. Los abonos de prueba dalos de baja antes, porque sus planes no existen en producción.
 
 **5. Clientes del exterior**

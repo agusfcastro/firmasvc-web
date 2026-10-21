@@ -19,6 +19,7 @@
  */
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { enviarMail, mailDisponible, plantillaMail } from '../_lib/mail.js';
 import { PDFDocument } from 'pdf-lib';
 import { OPCIONALES, valoresDelContrato, type ClienteContrato, type PagoContrato } from '../_lib/variables.js';
 import { completarWord, wordAPdf } from '../_lib/word.js';
@@ -226,61 +227,6 @@ async function nombreEmisor(sb: SupabaseClient, sobre: Sobre): Promise<string> {
   return (data?.nombre as string | undefined) || 'FIRMA';
 }
 
-function mailDisponible(): boolean {
-  return Boolean(process.env.RESEND_API_KEY);
-}
-
-function plantillaMail(o: { titulo: string; parrafos: string[]; boton?: { texto: string; url: string }; pie?: string }): string {
-  const parrafos = o.parrafos.map((p) => `<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#1B1F1B">${p}</p>`).join('');
-  const boton = o.boton
-    ? `<p style="margin:28px 0"><a href="${escapar(o.boton.url)}" style="display:inline-block;background:#173A2F;color:#F5F3EC;text-decoration:none;font-weight:600;padding:14px 26px;font-size:15px">${escapar(o.boton.texto)}</a></p>`
-    : '';
-  const pie = o.pie ? `<p style="margin:24px 0 0;font-size:12px;line-height:1.5;color:#6B6553">${o.pie}</p>` : '';
-  return `<!doctype html><html><body style="margin:0;background:#F5F3EC;font-family:Arial,Helvetica,sans-serif">
-<div style="max-width:560px;margin:0 auto;padding:32px 24px">
-<p style="margin:0 0 24px;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#6B6553">FIRMA · Firma electrónica</p>
-<h1 style="margin:0 0 20px;font-family:Georgia,serif;font-size:24px;line-height:1.25;color:#1B1F1B">${escapar(o.titulo)}</h1>
-${parrafos}${boton}${pie}
-<p style="margin:32px 0 0;padding-top:16px;border-top:1px solid #d9d6cc;font-size:12px;color:#6B6553">FIRMA · Castro &amp; Partners · firmasvc.com</p>
-</div></body></html>`;
-}
-
-/** Manda un mail con Resend. Devuelve null si salió o el motivo si no. */
-async function enviarMail(o: {
-  nombreRemitente: string;
-  para: string[];
-  asunto: string;
-  html: string;
-  responderA?: string | null;
-  adjuntos?: { filename: string; content: string }[];
-}): Promise<string | null> {
-  const clave = process.env.RESEND_API_KEY;
-  if (!clave) return 'Falta configurar RESEND_API_KEY.';
-  const direccion = process.env.FIRMA_MAIL_DIRECCION || 'firmas@firmasvc.com';
-  const nombre = o.nombreRemitente.replace(/[<>"\r\n]/g, '').slice(0, 80) || 'FIRMA';
-  try {
-    const r = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { authorization: `Bearer ${clave}`, 'content-type': 'application/json' },
-      body: JSON.stringify({
-        from: `${nombre} <${direccion}>`,
-        to: o.para,
-        subject: o.asunto.replace(/[\r\n]/g, ' ').slice(0, 200),
-        html: o.html,
-        ...(o.responderA ? { reply_to: o.responderA } : {}),
-        ...(o.adjuntos?.length ? { attachments: o.adjuntos } : {}),
-      }),
-    });
-    if (!r.ok) {
-      const cuerpo = await r.text().catch(() => '');
-      return `Resend respondió ${r.status}. ${cuerpo.slice(0, 200)}`;
-    }
-    return null;
-  } catch (e) {
-    return `No hubo conexión con Resend. ${(e as Error).message}`;
-  }
-}
-
 async function mailDelCreador(sb: SupabaseClient, sobre: Sobre): Promise<string | null> {
   if (!sobre.creado_por) return null;
   const { data } = await sb.from('perfiles').select('email').eq('id', sobre.creado_por).maybeSingle();
@@ -309,6 +255,7 @@ async function notificarFirmante(
     para: [f.email],
     asunto: `${recordatorio ? 'Recordatorio. ' : ''}Firmá ${sobre.titulo}`,
     html: plantillaMail({
+      seccion: 'Firma electrónica',
       titulo: recordatorio ? 'Tenés un documento pendiente de firma' : 'Tenés un documento para firmar',
       parrafos,
       boton: { texto: 'Revisar y firmar', url: enlaceFirmante(f) },
@@ -818,6 +765,7 @@ export async function POST(request: Request): Promise<Response> {
           para: [f.email],
           asunto: `Se anuló ${s.titulo}`,
           html: plantillaMail({
+            seccion: 'Firma electrónica',
             titulo: 'El envío a firma se anuló',
             parrafos: [`Hola ${escapar(f.nombre)}.`, `${escapar(emisor)} anuló <strong>${escapar(s.titulo)}</strong>. Ya no hace falta que lo firmes y el enlace que recibiste dejó de funcionar.`],
           }),

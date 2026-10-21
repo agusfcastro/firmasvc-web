@@ -18,6 +18,7 @@ import {
   llamarPagos,
   montoPagado,
   montoTexto,
+  periodoTexto,
   sincronizarAbono,
   type Abono,
   type Disponibilidad,
@@ -107,6 +108,8 @@ const TarjetaAbono: React.FC<{
   const [error, setError] = useState<string | null>(null);
   const [nota, setNota] = useState<string | null>(null);
   const monto = montoTexto(abono.monto, abono.moneda);
+  const trimestral = abono.periodo_meses === 3;
+  const debito = trimestral ? 'Débito trimestral' : 'Débito mensual';
   const puedePagar = activable(abono);
   const cambio = cambiandoMedio(abono, pagos);
   const estado = cambio ? { titulo: 'Falta el medio de pago', tono: 'alerta' as const } : ESTADO_ABONO[abono.estado];
@@ -238,7 +241,9 @@ const TarjetaAbono: React.FC<{
             onChange={(e) => setAcepto(e.target.checked)}
           />
           <span>
-            Autorizo a FIRMA a debitar <strong className="font-semibold">{monto} por mes</strong>
+            Autorizo a FIRMA a debitar <strong className="font-semibold">
+              {monto} {periodoTexto(abono.periodo_meses)}
+            </strong>
             {abono.moneda === 'USD' ? ', convertidos a tu moneda local al momento de cada pago,' : ''} de la tarjeta que cargue en dLocal Go, en concepto de {abono.concepto}, hasta que dé
             de baja el abono desde este portal.
           </span>
@@ -263,7 +268,7 @@ const TarjetaAbono: React.FC<{
   } else if (abono.estado === 'cancelado') {
     panel = (
       <>
-        <p className="eyebrow text-[11px] text-calido">Débito mensual</p>
+        <p className="eyebrow text-[11px] text-calido">{debito}</p>
         <p className="h3 font-heading">Abono de baja</p>
         <p className="text-[15px] leading-[1.55] text-calido">
           {abono.cancelado_en ? `Se dio de baja el ${fechaLarga(abono.cancelado_en)}. ` : ''}No se hacen más débitos.
@@ -287,7 +292,7 @@ const TarjetaAbono: React.FC<{
             : 'El próximo cobro se informa apenas lo confirme dLocal Go.';
     panel = (
       <>
-        <p className="eyebrow text-[11px] text-calido">Débito mensual</p>
+        <p className="eyebrow text-[11px] text-calido">{debito}</p>
         <p className="h3 font-heading">{titulo}</p>
         <p className="text-[15px] leading-[1.55] text-calido">{texto}</p>
         {botonMedio}
@@ -308,10 +313,10 @@ const TarjetaAbono: React.FC<{
           <h2 className="h3">{abono.concepto}</h2>
         </div>
         <dl className="grid gap-x-10 gap-y-5 tab:grid-cols-2">
-          <Dato titulo="Monto mensual">
+          <Dato titulo={trimestral ? 'Monto trimestral' : 'Monto mensual'}>
             <span className="font-heading font-black text-[22px] text-bosque tabular-nums">{monto}</span>
           </Dato>
-          <Dato titulo="Periodicidad">Mensual, un débito por mes</Dato>
+          <Dato titulo="Periodicidad">{trimestral ? 'Un débito cada 3 meses, por adelantado' : 'Mensual, un débito por mes'}</Dato>
           <Dato titulo="Medio de pago">Tarjeta, a través de {PROCESADOR}</Dato>
           <Dato titulo={puedePagar ? 'Primer débito' : 'Próximo cobro'}>
             {puedePagar
@@ -513,7 +518,7 @@ export const Pagos: React.FC<{ perfil: Perfil; organizacion: Organizacion | null
         bajada={
           esAdmin
             ? 'Así ve cada titular sus abonos. Las altas y las bajas se gestionan desde Administración.'
-            : 'Débito mensual con tarjeta a través de dLocal Go. Pagás en la moneda de tu país y FIRMA nunca ve los datos de tu tarjeta.'
+            : 'Débito automático con tarjeta a través de dLocal Go. Pagás en tu moneda local y FIRMA nunca ve los datos de tu tarjeta.'
         }
         acciones={
           esAdmin ? (
@@ -526,7 +531,7 @@ export const Pagos: React.FC<{ perfil: Perfil; organizacion: Organizacion | null
 
       <div className="wrap py-10 desk:py-14 flex flex-col gap-8">
         {vuelta.volver && vuelta.error && <Aviso tipo="error">dLocal Go no pudo completar el pago. Podés intentarlo de nuevo con la misma tarjeta u otra.</Aviso>}
-        {vuelta.volver && !vuelta.error && confirmado && <Aviso tipo="ok">Listo. El débito mensual quedó activo.</Aviso>}
+        {vuelta.volver && !vuelta.error && confirmado && <Aviso tipo="ok">Listo. El débito automático quedó activo.</Aviso>}
         {vuelta.volver && !vuelta.error && !confirmado && (abonos === null || (esperando && intentos < MAX_INTENTOS)) && (
           <Aviso tipo="ok">Estamos confirmando tu pago con dLocal Go. Puede tardar unos minutos y esta página se actualiza sola.</Aviso>
         )}
@@ -544,7 +549,7 @@ export const Pagos: React.FC<{ perfil: Perfil; organizacion: Organizacion | null
             <p className="text-[15px] leading-[1.6] text-piedra">
               {esAdmin
                 ? 'Armalos desde Administración, en la pestaña Abonos. El titular los ve acá para aceptarlos y activarlos.'
-                : 'Cuando FIRMA prepare tu abono mensual, lo vas a ver acá con sus condiciones para aceptarlo y activarlo.'}
+                : 'Cuando FIRMA prepare tu abono, lo vas a ver acá con sus condiciones para aceptarlo y activarlo.'}
             </p>
             <Enlace a={esAdmin ? '/portal/admin/abonos' : '/portal/agenda'} className="self-start text-sm font-medium text-bosque underline underline-offset-4">
               {esAdmin ? 'Armar un abono' : 'Agendar una reunión'}

@@ -36,6 +36,18 @@ function cargarCalendly(): Promise<void> {
  * Si el script no carga (bloqueador, red), abre Calendly en otra pestaña.
  */
 export function openCalendly() {
+  abrir();
+}
+
+/**
+ * Abre Calendly desde /planes. El plan va como UTM, así figura en el detalle
+ * de la reserva y en los reportes de Calendly.
+ */
+export function agendarPlan(plan: string) {
+  abrir({ utmSource: 'planes', utmCampaign: `plan-${plan}` });
+}
+
+function abrir(utm?: Record<string, string>) {
   cargarCalendly()
     .then(() =>
       window.Calendly?.initPopupWidget({
@@ -47,7 +59,12 @@ export function openCalendly() {
           primaryColor: '173A2F',
           textColor: '1B1F1B',
         },
+        ...(utm ? { utm } : {}),
       }),
     )
-    .catch(() => window.open(CALENDLY_URL, '_blank', 'noopener'));
+    .catch(() => {
+      const url = new URL(CALENDLY_URL);
+      if (utm) Object.entries(utm).forEach(([k, v]) => url.searchParams.set(k.replace(/^utm(.)/, (_, c: string) => `utm_${c.toLowerCase()}`), v));
+      window.open(url.toString(), '_blank', 'noopener');
+    });
 }

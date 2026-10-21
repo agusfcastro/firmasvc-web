@@ -5,6 +5,8 @@
  *
  * POST /api/admin/usuarios  { accion, ... }
  *   invitar     { email, nombre, rol, organizacion_id, areas, sin_mail? }
+ *               Con RESEND_API_KEY el mail sale por Resend con la plantilla de FIRMA.
+ *               Sin ella, por el servidor de mails de Supabase.
  *               Si el mail no sale (o sin_mail), devuelve { enlace } para mandarlo a mano.
  *   actualizar  { usuario_id, nombre?, rol?, organizacion_id?, areas? }
  *   activar     { usuario_id }
@@ -13,6 +15,7 @@
  *   enlace_acceso { usuario_id }   devuelve { enlace } sin mandar mail
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { enviarMail, mailDisponible, plantillaMail } from '../_lib/mail.js';
 
 // miembro es el rol anterior a csm: se acepta en cuentas viejas pero ya no se asigna.
 type Rol = 'admin' | 'titular' | 'csm' | 'closer' | 'setter' | 'miembro';
@@ -42,6 +45,46 @@ function clienteServicio(): SupabaseClient | null {
 function urlDelPortal(request: Request): string {
   const base = process.env.PORTAL_URL || new URL(request.url).origin;
   return `${base.replace(/\/$/, '')}/portal/clave`;
+}
+
+function escapar(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+const REMITENTE_PORTAL = () => process.env.PORTAL_MAIL_DIRECCION || 'portal@firmasvc.com';
+
+/** Mail de acceso al portal por Resend. Devuelve null si salió o el motivo si no. */
+async function mailDeAcceso(o: { email: string; nombre: string | null; empresa: string | null; enlace: string; tipo: 'invite' | 'recovery' }): Promise<string | null> {
+  const hola = o.nombre ? `Hola ${escapar(o.nombre.split(' ')[0])}.` : 'Hola.';
+  const invitacion = o.tipo === 'invite';
+  const parrafos = invitacion
+    ? [
+        hola,
+        `Te dimos acceso al portal de clientes de FIRMA${o.empresa ? ` para <strong>${escapar(o.empresa)}</strong>` : ''}. Ahí están los contratos, las firmas, los protocolos y la formación de tu equipo, con la última revisión de FIRMA.`,
+        'Para entrar, definí tu contraseña. Se guarda cifrada y nadie en FIRMA puede verla.',
+      ]
+    : [hola, 'Te mandamos un enlace para definir la contraseña de tu cuenta en el portal de clientes de FIRMA.'];
+  return enviarMail({
+    nombreRemitente: 'FIRMA',
+    direccion: REMITENTE_PORTAL(),
+    para: [o.email],
+    asunto: invitacion ? 'Tu acceso al portal de clientes de FIRMA' : 'Definí tu contraseña del portal de FIRMA',
+    html: plantillaMail({
+      seccion: 'Portal de clientes',
+      titulo: invitacion ? 'Tu acceso al portal de FIRMA' : 'Definí tu contraseña',
+      anticipo: invitacion ? 'Definí tu contraseña para entrar al portal de clientes.' : 'Enlace para definir tu contraseña.',
+      parrafos,
+      boton: { texto: 'Definir mi contraseña', url: o.enlace },
+      pie: 'El enlace es personal, vence en 24 horas y se usa una sola vez. Si no esperabas este mail, ignoralo.',
+    }),
+    responderA: 'agustin@firmasvc.com',
+  });
+}
+
+async function nombreEmpresa(sb: SupabaseClient, organizacionId: string | null | undefined): Promise<string | null> {
+  if (!organizacionId) return null;
+  const { data } = await sb.from('organizaciones').select('nombre').eq('id', organizacionId).maybeSingle();
+  return (data?.nombre as string | undefined) ?? null;
 }
 
 function areasValidas(valor: unknown): string[] | null {
@@ -98,8 +141,17 @@ export async function POST(request: Request): Promise<Response> {
     let invitado: { user: { id: string } } | null = null;
     let enlace: string | null = null;
     let motivo: string | null = null;
+    // Enlace que sale por Resend una vez creado el perfil.
+    let porResend: string | null = null;
 
-    if (!cuerpo.sin_mail) {
+    if (!cuerpo.sin_mail && mailDisponible()) {
+      // Con Resend: se crea la cuenta con su enlace y el mail sale con la plantilla de FIRMA.
+      const r = await sb.auth.admin.generateLink({ type: 'invite', email, options: opciones });
+      if (ya(r.error?.message)) return error('Ese mail ya tiene una cuenta. Buscalo en la lista y copiale el enlace de acceso.', 409);
+      if (r.error || !r.data?.user || !r.data.properties?.action_link) return error(`No se pudo crear la cuenta. ${r.error?.message ?? ''}`.trim(), 502);
+      invitado = { user: r.data.user };
+      porResend = r.data.properties.action_link;
+    } else if (!cuerpo.sin_mail) {
       const r = await sb.auth.admin.inviteUserByEmail(email, opciones);
       if (ya(r.error?.message)) return error('Ese mail ya tiene una cuenta. Buscalo en la lista y copiale el enlace de acceso.', 409);
       if (r.data?.user) invitado = { user: r.data.user };
@@ -127,6 +179,11 @@ export async function POST(request: Request): Promise<Response> {
     if (errPerfil) {
       await sb.auth.admin.deleteUser(invitado.user.id);
       return error(`No se pudo crear el perfil. ${errPerfil.message}`, 500);
+    }
+    if (porResend) {
+      motivo = await mailDeAcceso({ email, nombre, empresa: rol === 'admin' ? null : await nombreEmpresa(sb, organizacion_id), enlace: porResend, tipo: 'invite' });
+      // Si Resend no lo mandó, el panel muestra el enlace para mandarlo a mano.
+      if (motivo) enlace = porResend;
     }
     await registrar(sb, actor, invitado.user.id, 'invitacion', { email, rol, organizacion_id, areas, por_mail: !enlace });
     return json({ ok: true, usuario_id: invitado.user.id, enlace, motivo });
@@ -173,8 +230,24 @@ export async function POST(request: Request): Promise<Response> {
 
   if (accion === 'enviar_acceso') {
     if (!perfil.activo) return error('La cuenta está desactivada. Activala primero.');
-    const { error: errMail } = await sb.auth.resetPasswordForEmail(perfil.email, { redirectTo: urlDelPortal(request) });
-    if (errMail) return error(`No se pudo enviar el mail. ${errMail.message}`, 502);
+    if (mailDisponible()) {
+      // Quien nunca aceptó la invitación recibe otra; quien ya tiene cuenta, un enlace para definir contraseña.
+      const { data: cuenta } = await sb.auth.admin.getUserById(usuario_id);
+      const tipo = cuenta?.user?.email_confirmed_at ? 'recovery' : 'invite';
+      const { data: link, error: errLink } = await sb.auth.admin.generateLink({ type: tipo, email: perfil.email, options: { redirectTo: urlDelPortal(request) } });
+      if (errLink || !link?.properties?.action_link) return error(`No se pudo generar el enlace. ${errLink?.message ?? ''}`.trim(), 502);
+      const fallo = await mailDeAcceso({
+        email: perfil.email,
+        nombre: perfil.nombre ?? null,
+        empresa: await nombreEmpresa(sb, perfil.organizacion_id),
+        enlace: link.properties.action_link,
+        tipo,
+      });
+      if (fallo) return error(`No se pudo enviar el mail. ${fallo}`, 502);
+    } else {
+      const { error: errMail } = await sb.auth.resetPasswordForEmail(perfil.email, { redirectTo: urlDelPortal(request) });
+      if (errMail) return error(`No se pudo enviar el mail. ${errMail.message}`, 502);
+    }
     await registrar(sb, actor, usuario_id, 'envio_acceso');
     return json({ ok: true });
   }

@@ -39,7 +39,10 @@ interface Abono {
   concepto: string;
   monto: number | string;
   moneda: 'ARS' | 'USD';
-  pais: string;
+  /** Vacío en dólares: el checkout de dLocal Go le pregunta el país al cliente. */
+  pais: string | null;
+  /** Cada cuántos meses se cobra: 1 o 3. */
+  periodo_meses?: number | null;
   estado: string;
   email_pagador: string;
   plan_id: string | null;
@@ -333,14 +336,15 @@ async function registrar(sb: SupabaseClient, accion: string, abono: Abono, extra
  * Días que quedan del período ya pagado. Cuando el titular se vuelve a
  * suscribir, por ejemplo para cambiar el medio de pago, el plan los da sin
  * cobro, así el primer débito nuevo cae cuando vence lo pagado y nadie paga
- * dos veces el mismo mes. Verificar en sandbox que free_trial_days corra el
+ * dos veces el mismo período. Verificar en sandbox que free_trial_days corra el
  * primer cobro de las suscripciones nuevas.
  */
 async function diasYaPagados(sb: SupabaseClient, abono: Abono): Promise<number> {
   const resto = (abono.proximo_cobro ? Date.parse(abono.proximo_cobro) : NaN) - Date.now();
   if (!(resto > 0)) return 0;
   const { data: ultimo } = await sb.from('abono_pagos').select('estado').eq('abono_id', abono.id).order('fecha', { ascending: false }).limit(1).maybeSingle();
-  return ultimo?.estado === 'aprobado' ? Math.min(31, Math.ceil(resto / DIA_MS)) : 0;
+  const tope = 31 * (abono.periodo_meses === 3 ? 3 : 1);
+  return ultimo?.estado === 'aprobado' ? Math.min(tope, Math.ceil(resto / DIA_MS)) : 0;
 }
 
 /** Deja los días sin cobro del plan en el valor pedido. Verificar en sandbox que el PATCH del plan los acepte. */

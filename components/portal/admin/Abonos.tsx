@@ -8,6 +8,7 @@ import {
   ESTADO_ABONO,
   ESTADO_PAGO,
   PAISES_DLOCALGO,
+  PLANES_ABONO,
   PROCESADOR,
   consultarDisponibilidad,
   fechaCorta,
@@ -16,11 +17,13 @@ import {
   llamarPagos,
   montoPagado,
   montoTexto,
+  periodoTexto,
   sincronizarAbono,
   type Abono,
   type Disponibilidad,
   type MonedaAbono,
   type PagoAbono,
+  type PeriodoAbono,
 } from '../abonos';
 
 /**
@@ -37,6 +40,7 @@ interface Borrador {
   concepto: string;
   monto: string;
   moneda: MonedaAbono;
+  periodo: PeriodoAbono;
   email_pagador: string;
 }
 
@@ -115,6 +119,7 @@ const Detalle: React.FC<{
       <div className="flex flex-col gap-6 min-w-0">
         <dl className="grid gap-x-8 gap-y-4 tab:grid-cols-2 text-sm">
           <Dato titulo="Procesador">{PROCESADOR}</Dato>
+          <Dato titulo="Periodicidad">{abono.periodo_meses === 3 ? 'Cada 3 meses, por adelantado' : 'Mensual'}</Dato>
           <Dato titulo="Mail del pagador">{abono.email_pagador}</Dato>
           <Dato titulo="Aceptación del débito">
             {abono.aceptado_en
@@ -232,7 +237,7 @@ export const Abonos: React.FC = () => {
 
   const empresa = (id: string) => orgs.find((o) => o.id === id)?.nombre ?? 'Empresa';
   const titularDe = (orgId: string) => perfiles.find((p) => p.organizacion_id === orgId && p.rol === 'titular' && p.activo)?.email ?? '';
-  /** País del plan en dLocal Go: el de la empresa si dLocal Go lo habilita, si no Argentina. No se muestra ni se pregunta. */
+  /** País de la empresa si dLocal Go lo habilita, si no Argentina. Solo define la moneda que se propone. */
   const paisDe = (orgId: string) => {
     const p = orgs.find((o) => o.id === orgId)?.pais ?? '';
     return PAISES_DLOCALGO[p] ? p : 'AR';
@@ -263,13 +268,13 @@ export const Abonos: React.FC = () => {
     const orgId = orgs.find((o) => o.activa)?.id ?? orgs[0]?.id ?? '';
     setOk(null);
     setError(null);
-    setBorrador({ organizacion_id: orgId, concepto: '', monto: '', moneda: paisDe(orgId) === 'AR' ? 'ARS' : 'USD', email_pagador: titularDe(orgId) });
+    setBorrador({ organizacion_id: orgId, concepto: '', monto: '', moneda: paisDe(orgId) === 'AR' ? 'ARS' : 'USD', periodo: 1, email_pagador: titularDe(orgId) });
   }
 
   function editar(a: Abono) {
     setOk(null);
     setError(null);
-    setBorrador({ id: a.id, organizacion_id: a.organizacion_id, concepto: a.concepto, monto: String(Number(a.monto)), moneda: a.moneda, email_pagador: a.email_pagador });
+    setBorrador({ id: a.id, organizacion_id: a.organizacion_id, concepto: a.concepto, monto: String(Number(a.monto)), moneda: a.moneda, periodo: a.periodo_meses === 3 ? 3 : 1, email_pagador: a.email_pagador });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -285,6 +290,14 @@ export const Abonos: React.FC = () => {
   }
 
   const cambiarMoneda = (moneda: MonedaAbono) => borrador && setBorrador({ ...borrador, moneda });
+  /** Plan de /planes que coincide con el borrador, o vacío si es un abono a medida. */
+  const planElegido = (b: Borrador) =>
+    PLANES_ABONO.find((p) => p.concepto === b.concepto && Number(b.monto) === p.monto && p.moneda === b.moneda && p.periodo === b.periodo)?.id ?? '';
+  function elegirPlan(id: string) {
+    if (!borrador) return;
+    const p = PLANES_ABONO.find((x) => x.id === id);
+    if (p) setBorrador({ ...borrador, concepto: p.concepto, monto: String(p.monto), moneda: p.moneda, periodo: p.periodo });
+  }
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
@@ -298,9 +311,17 @@ export const Abonos: React.FC = () => {
     if (!EMAIL.test(email)) return setError('El mail del pagador no tiene un formato válido.');
     setGuardando(true);
     setError(null);
-    // dLocal Go pide un país por plan. En pesos es Argentina; en dólares, el de la empresa.
-    const pais = borrador.moneda === 'ARS' ? 'AR' : paisDe(borrador.organizacion_id);
-    const datos = { organizacion_id: borrador.organizacion_id, concepto, monto: Math.round(monto * 100) / 100, moneda: borrador.moneda, pais, email_pagador: email };
+    // En pesos el plan es de Argentina. En dólares va sin país y el checkout de dLocal Go se lo pregunta al cliente.
+    const pais = borrador.moneda === 'ARS' ? 'AR' : null;
+    const datos = {
+      organizacion_id: borrador.organizacion_id,
+      concepto,
+      monto: Math.round(monto * 100) / 100,
+      moneda: borrador.moneda,
+      pais,
+      periodo_meses: borrador.periodo,
+      email_pagador: email,
+    };
     const { error: err } = borrador.id ? await supabase.from('abonos').update(datos).eq('id', borrador.id) : await supabase.from('abonos').insert(datos);
     setGuardando(false);
     if (err) return setError(errorAmable(err.message));
@@ -311,7 +332,9 @@ export const Abonos: React.FC = () => {
 
   const lista = abonos ?? [];
   const vivos = lista.filter((a) => a.estado === 'activo' || a.estado === 'con_error' || a.estado === 'pausado');
-  const porMes = (moneda: MonedaAbono) => vivos.filter((a) => a.moneda === moneda && a.estado !== 'pausado').reduce((s, a) => s + Number(a.monto), 0);
+  // Los trimestrales cuentan un tercio por mes.
+  const porMes = (moneda: MonedaAbono) =>
+    vivos.filter((a) => a.moneda === moneda && a.estado !== 'pausado').reduce((s, a) => s + Number(a.monto) / (a.periodo_meses === 3 ? 3 : 1), 0);
   const conProblemas = lista.filter((a) => a.estado === 'con_error').length;
   const ultimoPago = (id: string) => pagos.find((p) => p.abono_id === id) ?? null;
   const entorno = disp?.entorno === 'produccion' ? 'producción' : 'sandbox';
@@ -362,11 +385,21 @@ export const Abonos: React.FC = () => {
               ))}
             </select>
           </Campo>
+          <Campo etiqueta="Plan" ayuda="Completa concepto, monto, moneda y periodicidad con los de /planes. Después los podés ajustar.">
+            <select className={claseInput} value={planElegido(borrador)} onChange={(e) => elegirPlan(e.target.value)}>
+              <option value="">A medida</option>
+              {PLANES_ABONO.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.titulo}
+                </option>
+              ))}
+            </select>
+          </Campo>
           <Campo etiqueta="Concepto" ayuda="Lo ve el cliente en el portal y en la página de pago. Por ejemplo, Abono mensual de asesoría legal.">
             <input required maxLength={120} className={claseInput} value={borrador.concepto} onChange={(e) => setBorrador({ ...borrador, concepto: e.target.value })} />
           </Campo>
-          <div className="grid gap-5 tab:grid-cols-2">
-            <Campo etiqueta="Monto mensual" ayuda={SIN_MONTO}>
+          <div className="grid gap-5 tab:grid-cols-3">
+            <Campo etiqueta={borrador.periodo === 3 ? 'Monto cada 3 meses' : 'Monto mensual'} ayuda={SIN_MONTO}>
               <input
                 required
                 type="number"
@@ -382,6 +415,12 @@ export const Abonos: React.FC = () => {
               <select className={claseInput} value={borrador.moneda} onChange={(e) => cambiarMoneda(e.target.value as MonedaAbono)}>
                 <option value="ARS">ARS, pesos argentinos</option>
                 <option value="USD">USD, dólares</option>
+              </select>
+            </Campo>
+            <Campo etiqueta="Periodicidad" ayuda="Cada 3 meses es un solo débito por el trimestre, por adelantado.">
+              <select className={claseInput} value={borrador.periodo} onChange={(e) => setBorrador({ ...borrador, periodo: Number(e.target.value) === 3 ? 3 : 1 })}>
+                <option value={1}>Mensual</option>
+                <option value={3}>Cada 3 meses</option>
               </select>
             </Campo>
           </div>
@@ -443,6 +482,7 @@ export const Abonos: React.FC = () => {
                     </td>
                     <td className="num">
                       {montoTexto(a.monto, a.moneda)}
+                      <div className="text-xs text-piedra mt-1">{periodoTexto(a.periodo_meses)}</div>
                     </td>
                     <td>
                       <Etiqueta tono={estado.tono}>{estado.titulo}</Etiqueta>

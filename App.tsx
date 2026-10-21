@@ -20,6 +20,9 @@ const ProtocoloLlamadas = lazy(() =>
 // El resto de los protocolos y su índice comparten un motor que también se carga aparte.
 const PaginaProtocolo = lazy(() => import('./components/protocolos/PaginaProtocolo'));
 
+// Planes de abono, privados. Se comparten solo en llamadas de venta.
+const Planes = lazy(() => import('./components/Planes'));
+
 // Portal de clientes, también aparte. Supabase solo se descarga al entrar al portal.
 const PortalApp = lazy(() => import('./components/portal/PortalApp'));
 
@@ -60,6 +63,13 @@ function App() {
     return (
       <Suspense fallback={<div className="min-h-screen bg-marfil" />}>
         <ProtocoloLlamadas />
+      </Suspense>
+    );
+  }
+  if (path === '/planes') {
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-marfil" />}>
+        <Planes />
       </Suspense>
     );
   }

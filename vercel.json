@@ -16,6 +16,15 @@
       ]
     },
     {
+      "source": "/planes(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow, noarchive"
+        }
+      ]
+    },
+    {
       "source": "/firmar/(.*)",
       "headers": [
         {

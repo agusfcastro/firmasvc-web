@@ -1,5 +1,5 @@
 /**
- * Activa el abono mensual de una empresa con dLocal Go (Vercel Function).
+ * Activa el abono de una empresa con dLocal Go, mensual o trimestral (Vercel Function).
  * Corre en el servidor con la clave service role y las claves de dLocal Go,
  * que nunca llegan al navegador ni quedan en el registro.
  * La tarjeta se carga siempre en la página segura de dLocal Go.
@@ -9,7 +9,7 @@
  *   entorno, sandbox o produccion. Requiere sesión. Nunca devuelve claves.
  *
  * POST /api/pagos/activar  { abono_id, acepto: true, monto? }
- *   Deja constancia de la aceptación del débito mensual, crea el plan del
+ *   Deja constancia de la aceptación del débito, crea el plan del
  *   abono en dLocal Go si todavía no existe y responde { url } con el enlace
  *   de suscripción del plan con el mail del pagador.
  *   Lo pide el titular de la empresa del abono o FIRMA. monto, si viene, es
@@ -40,7 +40,10 @@ interface Abono {
   concepto: string;
   monto: number | string;
   moneda: 'ARS' | 'USD';
-  pais: string;
+  /** Vacío en dólares: el checkout de dLocal Go le pregunta el país al cliente. */
+  pais: string | null;
+  /** Cada cuántos meses se cobra: 1 o 3. */
+  periodo_meses?: number | null;
   estado: string;
   email_pagador: string;
   plan_id: string | null;
@@ -334,14 +337,15 @@ async function registrar(sb: SupabaseClient, accion: string, abono: Abono, extra
  * Días que quedan del período ya pagado. Cuando el titular se vuelve a
  * suscribir, por ejemplo para cambiar el medio de pago, el plan los da sin
  * cobro, así el primer débito nuevo cae cuando vence lo pagado y nadie paga
- * dos veces el mismo mes. Verificar en sandbox que free_trial_days corra el
+ * dos veces el mismo período. Verificar en sandbox que free_trial_days corra el
  * primer cobro de las suscripciones nuevas.
  */
 async function diasYaPagados(sb: SupabaseClient, abono: Abono): Promise<number> {
   const resto = (abono.proximo_cobro ? Date.parse(abono.proximo_cobro) : NaN) - Date.now();
   if (!(resto > 0)) return 0;
   const { data: ultimo } = await sb.from('abono_pagos').select('estado').eq('abono_id', abono.id).order('fecha', { ascending: false }).limit(1).maybeSingle();
-  return ultimo?.estado === 'aprobado' ? Math.min(31, Math.ceil(resto / DIA_MS)) : 0;
+  const tope = 31 * (abono.periodo_meses === 3 ? 3 : 1);
+  return ultimo?.estado === 'aprobado' ? Math.min(tope, Math.ceil(resto / DIA_MS)) : 0;
 }
 
 /** Deja los días sin cobro del plan en el valor pedido. Verificar en sandbox que el PATCH del plan los acepte. */
@@ -522,8 +526,10 @@ async function sincronizar(sb: SupabaseClient, abono: Abono): Promise<Sincroniza
 /* ------------------------------------------------------------------ */
 
 /**
- * Crea el plan del abono en dLocal Go, mensual, con el país, la moneda y el
- * monto del abono, el aviso propio y las vueltas al portal. Se guarda solo si
+ * Crea el plan del abono en dLocal Go, mensual o cada 3 meses, con la moneda
+ * y el monto del abono, el aviso propio y las vueltas al portal. En pesos el
+ * plan es de Argentina. En dólares va sin país y el checkout se lo pregunta al
+ * cliente, como indica la documentación de dLocal Go. Se guarda solo si
  * las condiciones siguen iguales y nadie creó otro plan en el medio. Si no,
  * este plan se desactiva.
  */
@@ -532,12 +538,12 @@ async function crearPlan(sb: SupabaseClient, abono: Abono, empresa: string, base
   const r = await dlocal<Plan>('POST', '/v1/subscription/plan', {
     name: `FIRMA · ${empresa} · ${abono.concepto}`.slice(0, 150),
     description: abono.concepto,
-    country: abono.pais,
+    ...(abono.pais ? { country: abono.pais } : {}),
     currency: abono.moneda,
     amount: Number(abono.monto),
-    // Mensual. Verificar en sandbox que frequency_type sea MONTHLY con frequency_value 1.
+    // Mensual o trimestral. Verificar en sandbox que MONTHLY con frequency_value 3 cobre cada 3 meses.
     frequency_type: 'MONTHLY',
-    frequency_value: 1,
+    frequency_value: abono.periodo_meses === 3 ? 3 : 1,
     notification_url: urlAviso(base, abono.id),
     success_url: `${volver}&volver=dlocalgo`,
     error_url: `${volver}&volver=dlocalgo&error=1`,
@@ -552,7 +558,7 @@ async function crearPlan(sb: SupabaseClient, abono: Abono, empresa: string, base
     return falloDlocal({ status: r.status, error: detalle }, 'crear el plan del abono');
   }
 
-  const { data: guardado, error: errGuardar } = await sb
+  const condiciones = sb
     .from('abonos')
     .update({ plan_id: id, plan_token: token, estado: 'pendiente' })
     .eq('id', abono.id)
@@ -560,8 +566,8 @@ async function crearPlan(sb: SupabaseClient, abono: Abono, empresa: string, base
     .eq('estado', abono.estado)
     .eq('monto', Number(abono.monto))
     .eq('moneda', abono.moneda)
-    .eq('pais', abono.pais)
-    .select('id');
+    .eq('periodo_meses', abono.periodo_meses === 3 ? 3 : 1);
+  const { data: guardado, error: errGuardar } = await (abono.pais ? condiciones.eq('pais', abono.pais) : condiciones.is('pais', null)).select('id');
   if (errGuardar || !guardado?.length) {
     await dlocal('PATCH', `${rutaPlan(id)}/deactivate`);
     if (errGuardar) return error('No se pudo guardar el plan. Probá de nuevo.', 500);
@@ -599,7 +605,7 @@ export async function POST(request: Request): Promise<Response> {
   }
   const abonoId = String(cuerpo?.abono_id || '');
   if (!UUID.test(abonoId)) return error('Falta el abono.');
-  if (cuerpo.acepto !== true) return error('Para continuar tenés que aceptar el débito mensual.');
+  if (cuerpo.acepto !== true) return error('Para continuar tenés que aceptar el débito.');
 
   // 2. El abono tiene que ser de su empresa y estar sin activar.
   const { data: abono } = await sb.from('abonos').select('*').eq('id', abonoId).maybeSingle<Abono>();
@@ -638,7 +644,7 @@ export async function POST(request: Request): Promise<Response> {
   const aceptadoEn = new Date().toISOString();
   const { error: errAceptar } = await sb.from('abonos').update({ aceptado_en: aceptadoEn, aceptado_por: quien.id }).eq('id', abono.id);
   if (errAceptar) return error('No se pudo registrar la aceptación. Probá de nuevo.', 500);
-  await registrar(sb, 'abono_aceptado', actual, { aceptado_en: aceptadoEn, aceptado_por: quien.id, periodicidad: 'mensual' }, quien.id);
+  await registrar(sb, 'abono_aceptado', actual, { aceptado_en: aceptadoEn, aceptado_por: quien.id, periodicidad: actual.periodo_meses === 3 ? 'trimestral' : 'mensual' }, quien.id);
 
   // 6. Plan del abono y enlace de suscripción con el mail del pagador.
   const base = baseDe(request);
