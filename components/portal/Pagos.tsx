@@ -8,10 +8,13 @@ import type { Organizacion, Perfil } from './tipos';
 import {
   ESTADO_ABONO,
   ESTADO_PAGO,
+  MEDIO_MANUAL,
   PROCESADOR,
+  abonoManual,
   activable,
   cambiandoMedio,
   consultarDisponibilidad,
+  esPagoManual,
   fechaCorta,
   fechaLarga,
   hora,
@@ -84,6 +87,7 @@ const Historial: React.FC<{ abono: Abono; pagos: PagoAbono[] }> = ({ abono, pago
                 <td className="num whitespace-nowrap">{montoPagado(p, abono)}</td>
                 <td>
                   <Etiqueta tono={ESTADO_PAGO[p.estado].tono}>{ESTADO_PAGO[p.estado].titulo}</Etiqueta>
+                  {esPagoManual(p) && <span className="block mt-1 text-[12px] text-piedra">{MEDIO_MANUAL[String(p.detalle?.medio)] ?? 'Pago manual'}</span>}
                 </td>
               </tr>
             ))}
@@ -109,10 +113,15 @@ const TarjetaAbono: React.FC<{
   const [nota, setNota] = useState<string | null>(null);
   const monto = montoTexto(abono.monto, abono.moneda);
   const trimestral = abono.periodo_meses === 3;
+  const manual = abonoManual(abono);
   const debito = trimestral ? 'Débito trimestral' : 'Débito mensual';
   const puedePagar = activable(abono);
   const cambio = cambiandoMedio(abono, pagos);
-  const estado = cambio ? { titulo: 'Falta el medio de pago', tono: 'alerta' as const } : ESTADO_ABONO[abono.estado];
+  const estado = cambio
+    ? { titulo: 'Falta el medio de pago', tono: 'alerta' as const }
+    : manual && !futuro(abono.proximo_cobro)
+      ? { titulo: 'Pago vencido', tono: 'alerta' as const }
+      : ESTADO_ABONO[abono.estado];
 
   async function irA(ruta: 'activar' | 'gestionar', cuerpo: Record<string, unknown>, que: 'pagar' | 'tarjeta') {
     setOcupado(que);
@@ -280,6 +289,20 @@ const TarjetaAbono: React.FC<{
         )}
       </>
     );
+  } else if (manual) {
+    const alDia = futuro(abono.proximo_cobro);
+    panel = (
+      <>
+        <p className="eyebrow text-[11px] text-calido">Pago por transferencia o cripto</p>
+        <p className="h3 font-heading">{alDia ? 'Abono al día' : 'Pago vencido'}</p>
+        <p className="text-[15px] leading-[1.55] text-calido">
+          {alDia
+            ? `Está pago hasta el ${fechaLarga(abono.proximo_cobro)}. FIRMA registra cada pago que recibe.`
+            : `El período venció${abono.proximo_cobro ? ` el ${fechaLarga(abono.proximo_cobro)}` : ''}. Podés pagar con los medios de más abajo y mandarnos el comprobante.`}
+        </p>
+        {botonBaja}
+      </>
+    );
   } else {
     const titulo = abono.estado === 'pausado' ? 'Débito en pausa' : abono.estado === 'con_error' ? 'No pudimos cobrar' : 'Débito activo';
     const texto =
@@ -317,8 +340,8 @@ const TarjetaAbono: React.FC<{
             <span className="font-heading font-black text-[22px] text-bosque tabular-nums">{monto}</span>
           </Dato>
           <Dato titulo="Periodicidad">{trimestral ? 'Un débito cada 3 meses, por adelantado' : 'Mensual, un débito por mes'}</Dato>
-          <Dato titulo="Medio de pago">Tarjeta, a través de {PROCESADOR}</Dato>
-          <Dato titulo={puedePagar ? 'Primer débito' : 'Próximo cobro'}>
+          <Dato titulo="Medio de pago">{manual ? 'Transferencia o cripto, registrado por FIRMA' : `Tarjeta, a través de ${PROCESADOR}`}</Dato>
+          <Dato titulo={puedePagar ? 'Primer débito' : manual ? 'Pago hasta' : 'Próximo cobro'}>
             {puedePagar
               ? cambio && futuro(abono.proximo_cobro)
                 ? fechaLarga(abono.proximo_cobro)
@@ -328,7 +351,9 @@ const TarjetaAbono: React.FC<{
                 : 'Sin cobros programados'}
           </Dato>
           <Dato titulo="Cómo darte de baja" ancho>
-            Cuando quieras, desde esta página con Dar de baja. dLocal Go deja de debitar desde ese momento.
+            {manual
+              ? 'Cuando quieras, desde esta página con Dar de baja.'
+              : 'Cuando quieras, desde esta página con Dar de baja. dLocal Go deja de debitar desde ese momento.'}
           </Dato>
         </dl>
         {abono.aceptado_en && (

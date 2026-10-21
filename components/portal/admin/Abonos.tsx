@@ -7,10 +7,12 @@ import type { Organizacion } from '../tipos';
 import {
   ESTADO_ABONO,
   ESTADO_PAGO,
+  MEDIO_MANUAL,
   PAISES_DLOCALGO,
   PLANES_ABONO,
   PROCESADOR,
   consultarDisponibilidad,
+  esPagoManual,
   fechaCorta,
   fechaLarga,
   hora,
@@ -72,6 +74,12 @@ const Dato: React.FC<{ titulo: string; children: React.ReactNode; mono?: boolean
   </div>
 );
 
+/** Hoy en Buenos Aires, como AAAA-MM-DD, para el campo de fecha. */
+const hoy = (): string => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date());
+
+/** Medio que se propone según la moneda del pago. */
+const medioPorMoneda = (moneda: string): string => (moneda === 'ARS' ? 'transferencia_ars' : 'transferencia_usd');
+
 const Detalle: React.FC<{
   abono: Abono;
   pagos: PagoAbono[];
@@ -81,7 +89,8 @@ const Detalle: React.FC<{
   alError: (mensaje: string) => void;
 }> = ({ abono, pagos, mails, alEditar, alCambiar, alError }) => {
   const [confirmandoBaja, setConfirmandoBaja] = useState(false);
-  const [ocupado, setOcupado] = useState<'' | 'estado' | 'baja' | 'borrar'>('');
+  const [ocupado, setOcupado] = useState<string>('');
+  const [manual, setManual] = useState<{ fecha: string; monto: string; moneda: MonedaAbono; medio: string; nota: string } | null>(null);
   const editable = abono.estado === 'borrador';
   const gestionable = abono.estado !== 'borrador' && abono.estado !== 'cancelado';
 
@@ -94,6 +103,30 @@ const Detalle: React.FC<{
     const estado = r.datos?.estado && ESTADO_ABONO[r.datos.estado] ? ESTADO_ABONO[r.datos.estado].titulo : null;
     const partes = [estado ? `Ahora figura como ${estado}` : '', nuevos ? `${nuevos} ${nuevos === 1 ? 'cobro nuevo' : 'cobros nuevos'}` : ''].filter(Boolean);
     alCambiar(`Estado actualizado con dLocal Go.${partes.length ? ` ${partes.join(', con ')}.` : ''}`);
+  }
+
+  function abrirManual() {
+    setManual({ fecha: hoy(), monto: String(Number(abono.monto)), moneda: abono.moneda, medio: medioPorMoneda(abono.moneda), nota: '' });
+  }
+
+  async function registrarPago(e: React.FormEvent) {
+    e.preventDefault();
+    if (!manual) return;
+    setOcupado('manual');
+    const r = await llamarPagos('gestionar', { abono_id: abono.id, accion: 'pago_manual', ...manual, monto: Number(manual.monto.replace(',', '.')) });
+    setOcupado('');
+    if (!r.ok) return alError(r.error ?? 'No se pudo registrar el pago.');
+    setManual(null);
+    alCambiar(abono.plan_id ? 'Pago registrado en el historial.' : 'Pago registrado. El abono quedó al día.');
+  }
+
+  async function borrarPago(p: PagoAbono) {
+    if (!window.confirm(`¿Borrar el pago manual del ${fechaCorta(p.fecha)} por ${montoPagado(p, abono)}?`)) return;
+    setOcupado(`borrar-${p.id}`);
+    const r = await llamarPagos('gestionar', { abono_id: abono.id, accion: 'borrar_pago_manual', pago_id: p.id });
+    setOcupado('');
+    if (!r.ok) return alError(r.error ?? 'No se pudo borrar el pago.');
+    alCambiar('Pago manual borrado.');
   }
 
   async function darDeBaja() {
@@ -149,6 +182,7 @@ const Detalle: React.FC<{
                     <th className="num">Recibido</th>
                     <th>Estado</th>
                     <th>Cobro</th>
+                    <th />
                   </tr>
                 </thead>
                 <tbody>
@@ -162,7 +196,21 @@ const Detalle: React.FC<{
                       <td>
                         <Etiqueta tono={ESTADO_PAGO[p.estado].tono}>{ESTADO_PAGO[p.estado].titulo}</Etiqueta>
                       </td>
-                      <td className="text-xs font-mono text-piedra">{p.cobro_id}</td>
+                      {esPagoManual(p) ? (
+                        <td className="text-xs text-piedra">
+                          {MEDIO_MANUAL[String(p.detalle?.medio)] ?? 'Pago manual'}
+                          {p.detalle?.nota ? <span className="block mt-0.5 italic">{String(p.detalle.nota)}</span> : null}
+                        </td>
+                      ) : (
+                        <td className="text-xs font-mono text-piedra">{p.cobro_id}</td>
+                      )}
+                      <td className="text-right">
+                        {esPagoManual(p) && (
+                          <button type="button" className="text-xs underline underline-offset-4 text-piedra hover:text-tinta disabled:opacity-50" onClick={() => borrarPago(p)} disabled={ocupado !== ''}>
+                            {ocupado === `borrar-${p.id}` ? 'Borrando…' : 'Borrar'}
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -175,7 +223,10 @@ const Detalle: React.FC<{
       <div className="flex flex-col gap-5">
         {editable && (
           <>
-            <p className="text-sm text-piedra">Por activar. El titular lo ve en Pagos con sus condiciones y lo activa al aceptar el débito. Hasta entonces lo podés editar.</p>
+            <p className="text-sm text-piedra">
+              Por activar. El titular lo ve en Pagos con sus condiciones y lo activa al aceptar el débito. Hasta entonces lo podés editar. Si paga por transferencia o cripto,
+              registrá el pago acá abajo y el abono queda al día sin débito.
+            </p>
             <div className="flex flex-wrap gap-3">
               <Button type="button" size="sm" onClick={alEditar}>
                 Editar
@@ -193,6 +244,61 @@ const Detalle: React.FC<{
               {ocupado === 'estado' ? 'Actualizando…' : 'Actualizar estado'}
             </Button>
             <p className="text-xs text-piedra">Trae de dLocal Go el estado, el próximo cobro y los cobros.</p>
+          </div>
+        )}
+        {abono.estado !== 'cancelado' && (
+          <div className="flex flex-col gap-3 pt-2" style={{ borderTop: '1px solid rgba(27,31,27,0.12)' }}>
+            {manual ? (
+              <form onSubmit={registrarPago} className="flex flex-col gap-4">
+                <p className="text-sm font-medium">Registrar pago manual</p>
+                <div className="grid gap-3 grid-cols-2">
+                  <Campo etiqueta="Fecha">
+                    <input required type="date" max={hoy()} className={claseInput} value={manual.fecha} onChange={(e) => setManual({ ...manual, fecha: e.target.value })} />
+                  </Campo>
+                  <Campo etiqueta="Moneda">
+                    <select className={claseInput} value={manual.moneda} onChange={(e) => setManual({ ...manual, moneda: e.target.value as MonedaAbono, medio: medioPorMoneda(e.target.value) })}>
+                      <option value="ARS">ARS</option>
+                      <option value="USD">USD</option>
+                    </select>
+                  </Campo>
+                </div>
+                <Campo etiqueta="Monto recibido">
+                  <input required type="number" inputMode="decimal" step="0.01" min="0.01" className={claseInput} value={manual.monto} onChange={(e) => setManual({ ...manual, monto: e.target.value })} />
+                </Campo>
+                <Campo etiqueta="Medio">
+                  <select className={claseInput} value={manual.medio} onChange={(e) => setManual({ ...manual, medio: e.target.value })}>
+                    {Object.entries(MEDIO_MANUAL).map(([k, v]) => (
+                      <option key={k} value={k}>
+                        {v}
+                      </option>
+                    ))}
+                  </select>
+                </Campo>
+                <Campo etiqueta="Nota" ayuda="Opcional. Por ejemplo, el número de operación. La ve el cliente en su historial.">
+                  <input maxLength={300} className={claseInput} value={manual.nota} onChange={(e) => setManual({ ...manual, nota: e.target.value })} />
+                </Campo>
+                <p className="text-xs text-piedra">
+                  {abono.plan_id
+                    ? 'Queda aprobado en el historial. El débito de dLocal Go sigue como está.'
+                    : `Queda aprobado en el historial y el abono pasa a estar al día por ${abono.periodo_meses === 3 ? 'tres meses' : 'un mes'} más.`}
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <Button type="submit" size="sm" disabled={ocupado !== ''}>
+                    {ocupado === 'manual' ? 'Registrando…' : 'Registrar pago'}
+                  </Button>
+                  <Button type="button" size="sm" variant="ghost" onClick={() => setManual(null)} disabled={ocupado !== ''}>
+                    Cancelar
+                  </Button>
+                </div>
+              </form>
+            ) : (
+              <>
+                <Button type="button" size="sm" variant="ghost" onClick={abrirManual} disabled={ocupado !== ''} className="self-start">
+                  Registrar pago manual
+                </Button>
+                <p className="text-xs text-piedra">Para transferencias y cripto. El pago queda aprobado en el historial del cliente.</p>
+              </>
+            )}
           </div>
         )}
         {gestionable && <p className="text-sm text-piedra">{SIN_MONTO}</p>}

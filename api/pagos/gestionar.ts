@@ -15,8 +15,16 @@
  *                sin cobro a la suscripción nueva.
  *   Un abono activo no cambia de monto. Para cambiarlo se da de baja y se
  *   arma otro.
+ *
+ * Pagos manuales, solo FIRMA. Transferencias y cripto que FIRMA concilia a mano.
+ *   pago_manual        { monto, moneda, medio, fecha, nota? } Lo deja aprobado
+ *                      en el historial. Si el abono no tiene plan en dLocal Go,
+ *                      lo deja activo y al día: el próximo vencimiento sale de
+ *                      sumar un período por cada pago manual.
+ *   borrar_pago_manual { pago_id } Borra un pago manual cargado por error y
+ *                      recalcula el vencimiento. Los cobros de dLocal Go no se borran.
  */
-import { createHmac } from 'node:crypto';
+import { createHmac, randomUUID } from 'node:crypto';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 /* ================================================================== */
@@ -529,6 +537,90 @@ async function accionSincronizar(sb: SupabaseClient, abono: Abono): Promise<Resp
   return json({ ok: true, estado: r.abono.estado, proximo_cobro: r.abono.proximo_cobro, nuevos: r.nuevos, cambio: r.abono.estado !== abono.estado });
 }
 
+/* ------------------------------------------------------------------ */
+/* Pagos manuales                                                       */
+/* ------------------------------------------------------------------ */
+const MEDIOS_MANUALES = ['transferencia_ars', 'transferencia_usd', 'usdt', 'otro'] as const;
+const FECHA = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Suma meses sin pasarse de mes: 31 de enero más un mes es 28 o 29 de febrero. */
+function sumarMeses(iso: string, meses: number): string {
+  const d = new Date(iso);
+  const dia = d.getUTCDate();
+  d.setUTCDate(1);
+  d.setUTCMonth(d.getUTCMonth() + meses);
+  const ultimo = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+  d.setUTCDate(Math.min(dia, ultimo));
+  return d.toISOString();
+}
+
+/**
+ * Abono sin plan en dLocal Go: el estado y el vencimiento salen de los pagos
+ * manuales. Cada pago cubre un período desde su fecha o desde el vencimiento
+ * anterior, el que sea más tarde. Sin pagos vuelve a borrador.
+ */
+async function recalcularManual(sb: SupabaseClient, abono: Abono): Promise<void> {
+  if (abono.plan_id || abono.estado === 'cancelado') return;
+  const { data } = await sb.from('abono_pagos').select('fecha, detalle').eq('abono_id', abono.id).eq('estado', 'aprobado').order('fecha', { ascending: true });
+  const manuales = (data ?? []).filter((p) => (p.detalle as Record<string, unknown> | null)?.procesador === 'manual');
+  const periodo = abono.periodo_meses === 3 ? 3 : 1;
+  let vence: string | null = null;
+  for (const p of manuales) {
+    const desde: string = vence && Date.parse(vence) > Date.parse(p.fecha as string) ? vence : (p.fecha as string);
+    vence = sumarMeses(desde, periodo);
+  }
+  const cambios = vence ? { estado: 'activo', proximo_cobro: vence } : { estado: 'borrador', proximo_cobro: null };
+  const { error: e } = await sb.from('abonos').update(cambios).eq('id', abono.id).is('plan_id', null).neq('estado', 'cancelado');
+  if (e) throw new Error(e.message);
+  if (cambios.estado !== abono.estado) await registrar(sb, cambios.estado === 'activo' ? 'abono_activado' : 'abono_sin_pagos', abono, { estado_anterior: abono.estado, manual: true });
+}
+
+async function pagoManual(sb: SupabaseClient, abono: Abono, cuerpo: Record<string, unknown>, actor: string): Promise<Response> {
+  if (abono.estado === 'cancelado') return error('El abono está dado de baja.', 409);
+  const monto = Math.round(Number(cuerpo.monto) * 100) / 100;
+  const moneda = String(cuerpo.moneda || '');
+  const medio = String(cuerpo.medio || '');
+  const fecha = String(cuerpo.fecha || '');
+  const nota = String(cuerpo.nota ?? '').trim().slice(0, 300);
+  if (!Number.isFinite(monto) || monto <= 0 || monto > 1e9) return error('El monto tiene que ser mayor a cero.');
+  if (moneda !== 'ARS' && moneda !== 'USD') return error('La moneda tiene que ser ARS o USD.');
+  if (!(MEDIOS_MANUALES as readonly string[]).includes(medio)) return error('Elegí el medio de pago.');
+  // Mediodía de Buenos Aires, así la fecha no cambia de día al mostrarla.
+  const iso = FECHA.test(fecha) ? new Date(`${fecha}T12:00:00-03:00`).toISOString() : '';
+  if (!iso || Number.isNaN(Date.parse(iso))) return error('La fecha no es válida.');
+  if (Date.parse(iso) > Date.now() + 86_400_000) return error('La fecha no puede ser futura.');
+
+  const fila: FilaPago = {
+    abono_id: abono.id,
+    organizacion_id: abono.organizacion_id,
+    cobro_id: `manual-${randomUUID()}`,
+    monto_pagado: monto,
+    monto_recibido: monto,
+    moneda: abono.moneda,
+    moneda_cobro: moneda,
+    estado: 'aprobado',
+    fecha: iso,
+    detalle: { procesador: 'manual', medio, nota: nota || null, registrado_por: actor },
+  };
+  const { error: e } = await sb.from('abono_pagos').insert(fila);
+  if (e) return error('No se pudo registrar el pago.', 500);
+  await registrar(sb, 'abono_pago_manual', abono, { cobro: fila.cobro_id, fecha_pago: iso, monto_pagado: monto, moneda_cobro: moneda, medio }, actor);
+  await recalcularManual(sb, abono);
+  return json({ ok: true });
+}
+
+async function borrarPagoManual(sb: SupabaseClient, abono: Abono, pagoId: string, actor: string): Promise<Response> {
+  if (!UUID.test(pagoId)) return error('Falta el pago.');
+  const { data: pago } = await sb.from('abono_pagos').select('*').eq('id', pagoId).eq('abono_id', abono.id).maybeSingle();
+  if (!pago) return error('No existe ese pago.', 404);
+  if ((pago.detalle as Record<string, unknown> | null)?.procesador !== 'manual') return error('Solo se pueden borrar los pagos cargados a mano.', 409);
+  const { error: e } = await sb.from('abono_pagos').delete().eq('id', pagoId);
+  if (e) return error('No se pudo borrar el pago.', 500);
+  await registrar(sb, 'abono_pago_manual_borrado', abono, { cobro: pago.cobro_id, fecha_pago: pago.fecha, monto_pagado: pago.monto_pagado, moneda_cobro: pago.moneda_cobro }, actor);
+  await recalcularManual(sb, abono);
+  return json({ ok: true });
+}
+
 async function baja(sb: SupabaseClient, abono: Abono, actor: string): Promise<Response> {
   if (abono.estado === 'cancelado') return json({ ok: true, sin_cambios: true, estado: 'cancelado' });
   if (abono.estado === 'borrador') return error('El abono todavía no está activo. FIRMA puede borrarlo desde Administración.', 409);
@@ -617,7 +709,9 @@ export async function POST(request: Request): Promise<Response> {
   const abonoId = String(cuerpo?.abono_id || '');
   const accion = String(cuerpo?.accion || '');
   if (!UUID.test(abonoId)) return error('Falta el abono.');
-  if (!['sincronizar', 'baja', 'tarjeta'].includes(accion)) return error('Acción desconocida.');
+  if (!['sincronizar', 'baja', 'tarjeta', 'pago_manual', 'borrar_pago_manual'].includes(accion)) return error('Acción desconocida.');
+  const manual = accion === 'pago_manual' || accion === 'borrar_pago_manual';
+  if (manual && !esAdmin) return error('Solo FIRMA registra pagos manuales.', 403);
 
   const { data: abono } = await sb.from('abonos').select('*').eq('id', abonoId).maybeSingle<Abono>();
   if (!abono) return error('No existe ese abono.', 404);
@@ -625,6 +719,16 @@ export async function POST(request: Request): Promise<Response> {
     if (quien.organizacion_id !== abono.organizacion_id) return error('No tenés acceso a este abono.', 403);
     const { data: org } = await sb.from('organizaciones').select('activa').eq('id', abono.organizacion_id).maybeSingle();
     if (!org?.activa) return error('La empresa no está activa.', 403);
+  }
+
+  // Los pagos manuales no pasan por dLocal Go.
+  if (manual) {
+    try {
+      if (accion === 'pago_manual') return await pagoManual(sb, abono, cuerpo, quien.id);
+      return await borrarPagoManual(sb, abono, String(cuerpo.pago_id || ''), quien.id);
+    } catch {
+      return error('No se pudo completar el registro. Probá de nuevo en unos minutos.', 500);
+    }
   }
 
   const faltan = faltantes();

@@ -143,6 +143,20 @@ export function hora(iso: string | null): string {
 export const vigente = (a: Abono): boolean => (a.estado === 'activo' || a.estado === 'pausado' || a.estado === 'con_error') && Boolean(a.suscripcion_id);
 
 /** Se puede ir a suscribirse. Con un problema de cobro, solo si ya no hay suscripción vigente. */
+/** Medios de los pagos que FIRMA registra a mano. */
+export const MEDIO_MANUAL: Record<string, string> = {
+  transferencia_ars: 'Transferencia en pesos',
+  transferencia_usd: 'Transferencia en dólares',
+  usdt: 'USDT',
+  otro: 'Otro medio',
+};
+
+/** Pago cargado a mano por FIRMA, no por dLocal Go. */
+export const esPagoManual = (p: PagoAbono): boolean => p.detalle?.procesador === 'manual';
+
+/** Abono sin débito con tarjeta: activo por los pagos que registra FIRMA. */
+export const abonoManual = (a: Abono): boolean => !a.plan_id && a.estado === 'activo';
+
 export const activable = (a: Abono): boolean => a.estado === 'borrador' || a.estado === 'pendiente' || (a.estado === 'con_error' && !a.suscripcion_id);
 
 /** Pendiente después de dar de baja la suscripción para cambiar el medio de pago. */
