@@ -170,6 +170,61 @@ Al dar de alta un cliente en el CRM se generaba su contrato en ZapSign con el mo
 | `api/admin/zapsign.ts` | Conecta y desconecta cada empresa y lista sus modelos |
 | `components/portal/admin/ZapSign.tsx` | Pestaña de Administración con conexión, modelos, servicios y variables |
 
+## Firma electrónica propia
+
+Sistema de firma propio, sin ZapSign ni otro proveedor. Desde `firmasvc.com/portal/firmas` se sube un PDF, se cargan los firmantes y cada uno firma desde el mail. Al final todos reciben el PDF firmado, con una constancia de firma al final y el código de verificación en el pie de cada hoja.
+
+Lo usan FIRMA, los titulares y los CSM. El titular ve todos los envíos de su empresa. El CSM, los que mandó él. Closer y setter no ven la sección.
+
+### Cómo funciona
+
+1. Quien envía sube el PDF, le pone título, plazo (3 a 90 días) y firmantes. Puede elegir que firmen en orden. FIRMA puede mandar a nombre propio o de un cliente.
+2. El servidor valida el PDF, calcula su SHA-256 y lo guarda en el bucket privado `firmas`. A partir de ahí no se toca.
+3. Cada firmante recibe un mail con su enlace personal (`/firmar/...`). El enlace es un sello HMAC y no se guarda en la base. Todo pasa en la web, como en ZapSign: el documento se ve hoja por hoja dentro de la página (pdf.js), sin abrirlo en el visor del navegador ni descargarlo, y se firma desde una barra fija abajo. Solo cuando firmaron todos aparece el botón para guardar una copia del PDF firmado.
+4. Para firmar pide un código de 6 números que le llega al mail. Vence en 10 minutos, admite 5 intentos y como mucho 8 envíos. Validado, tiene media hora para firmar.
+5. Firma dibujando o escribiendo su nombre, completa su documento si se lo piden y acepta el texto de consentimiento. Se guardan la imagen y su hash, la IP, el dispositivo y la hora.
+6. Cuando firman todos, el servidor arma el PDF final: el original intacto, el pie con el código en cada hoja y la constancia con los datos del envío, cada firmante con su firma y el registro completo de eventos. Calcula su SHA-256 y lo manda adjunto a todos.
+7. Cualquiera verifica un documento en `firmasvc.com/verificar`, subiendo el PDF (el hash se calcula en el navegador) o con el código.
+
+Si alguien rechaza, el envío se cierra y avisa a quien lo mandó. Quien envía puede anular, reenviar el mail, copiar los enlaces para mandarlos por WhatsApp y descargar el original o el firmado.
+
+### Registro de eventos
+
+Cada paso queda en `firma_eventos`: creación, mails, aperturas, códigos pedidos, validados y fallidos, firmas, rechazos, anulaciones, descargas y el armado del PDF. Cada evento guarda el hash del anterior del mismo envío y la base no deja editarlos ni borrarlos. La ficha del envío y la página de verificación recalculan la cadena y avisan si no cierra.
+
+### Puesta en marcha
+
+1. En Supabase corré `supabase/migraciones/0010_firma_electronica.sql` en **SQL Editor**. Crea las tablas, el registro encadenado y el bucket privado `firmas`.
+2. En Resend verificá el dominio `firmasvc.com` (si ya lo usás para los mails del portal, está hecho) y creá una API key con permiso de envío.
+3. En Vercel sumá estas variables y volvé a desplegar.
+
+| Variable | Valor |
+|---|---|
+| `RESEND_API_KEY` | La API key de Resend. Sin ella el envío se crea igual, pero nadie puede pedir el código para firmar |
+| `FIRMA_MAIL_DIRECCION` | Opcional. Remitente de los mails, por defecto `firmas@firmasvc.com` |
+| `FIRMA_CLAVE_FIRMAS` | Opcional pero recomendada. Una clave larga al azar para los enlaces y los códigos (`openssl rand -hex 32`). Si falta se deriva de la service role. Cambiarla invalida los enlaces que estén en curso |
+| `CRON_SECRET` | Una clave larga al azar. Vercel la manda sola a la tarea diaria |
+
+4. La tarea diaria ya está en `vercel.json` (todos los días a las 10, hora de Buenos Aires). Vence los envíos con el plazo cumplido, manda un recordatorio a quien no firmó cada tres días y reintenta los PDF firmados que no se pudieron armar.
+
+### Reglas
+
+- Solo PDF, hasta 15 MB, sin contraseña. Hasta 20 firmantes por envío, cada uno con su propio mail.
+- El PDF original no cambia nunca. El final se arma sobre una copia y antes se comprueba el hash del original y de cada firma.
+- Un envío firmado por todos no vence aunque el armado del PDF falle. FIRMA lo reintenta desde la ficha o lo hace la tarea diaria.
+- Los códigos se guardan solo como hash y nunca llegan al navegador. Tampoco la versión del enlace.
+- Recordatorios a mano, como mucho uno cada media hora por firmante.
+- Hoy la firma va en la constancia del final, no en una posición dentro del documento.
+
+| Archivo | Para qué |
+|---|---|
+| `supabase/migraciones/0010_firma_electronica.sql` | Envíos, firmantes, registro encadenado, permisos y bucket |
+| `api/firma/sobres.ts` | Crear, enlaces, recordar, anular y descargar, con la sesión del portal |
+| `api/firma/firmar.ts` | Lado del firmante, armado del PDF, verificación pública y tarea diaria |
+| `components/portal/firmas/` | Sección Firma electrónica del portal |
+| `components/firma/FirmarApp.tsx` | Página pública para firmar |
+| `components/firma/Verificar.tsx` | Página pública de verificación |
+
 ## Casos de conflicto
 
 Registro de reclamos y pedidos de reembolso de cada cliente final, en `firmasvc.com/portal/crm/casos`. Con esos casos el CRM calcula los indicadores del tablero del protocolo de conflictos (`/protocolo-conflictos`).

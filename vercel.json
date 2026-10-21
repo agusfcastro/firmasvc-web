@@ -16,6 +16,32 @@
       ]
     },
     {
+      "source": "/firmar/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        }
+      ]
+    },
+    {
+      "source": "/verificar(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
       "source": "/portal(.*)",
       "headers": [
         {
@@ -81,6 +107,15 @@
   "functions": {
     "api/crm/borrador.ts": {
       "maxDuration": 300
+    },
+    "api/firma/firmar.ts": {
+      "maxDuration": 60
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/firma/firmar",
+      "schedule": "0 13 * * *"
+    }
+  ]
 }

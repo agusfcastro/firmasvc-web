@@ -15,6 +15,7 @@ import { VistaPreviaContexto, leerVistaPrevia } from './vistaPrevia';
 import { permisosDe, type Organizacion, type Perfil } from './tipos';
 
 const CrmApp = lazy(() => import('./crm/CrmApp'));
+const Firmas = lazy(() => import('./firmas/Firmas'));
 const PanelAdmin = lazy(() => import('./admin/PanelAdmin').then((m) => ({ default: m.PanelAdmin })));
 
 /**
@@ -23,6 +24,7 @@ const PanelAdmin = lazy(() => import('./admin/PanelAdmin').then((m) => ({ defaul
  *   /portal/clave      definir o cambiar contraseña (desde el enlace del mail)
  *   /portal            inicio según rol
  *   /portal/documentos contratos de servicio, con el equipo y otros (más /equipo y /otros)
+ *   /portal/firmas     firma electrónica propia (más /nuevo y /<id>)
  *   /portal/pagos      abonos mensuales con tarjeta (solo titular y admin)
  *   /portal/admin/...  panel de administración (solo admin)
  */
@@ -94,11 +96,16 @@ export const PortalApp: React.FC = () => {
     const permisosVista = permisosDe(vista.rol);
     const enCrm = (ruta === '/portal/crm' || ruta.startsWith('/portal/crm/')) && permisosVista.crm;
     const enDocumentos = ruta === '/portal/documentos' || ruta.startsWith('/portal/documentos/');
+    const enFirmas = (ruta === '/portal/firmas' || ruta.startsWith('/portal/firmas/')) && permisosVista.documentosLegales;
     return (
       <VistaPreviaContexto.Provider value={vista}>
         {enCrm ? (
           <Suspense fallback={<Cargando />}>
             <CrmApp perfil={perfilVista} organizacion={orgVista} ruta={ruta} />
+          </Suspense>
+        ) : enFirmas ? (
+          <Suspense fallback={<Cargando />}>
+            <Firmas perfil={perfilVista} organizacion={orgVista} ruta={ruta} />
           </Suspense>
         ) : enDocumentos ? (
           <Documentos perfil={perfilVista} organizacion={orgVista} ruta={ruta} />
@@ -125,6 +132,14 @@ export const PortalApp: React.FC = () => {
 
   if (ruta === '/portal/documentos' || ruta.startsWith('/portal/documentos/')) {
     return <Documentos perfil={perfil} organizacion={estado.organizacion} ruta={ruta} />;
+  }
+
+  if ((ruta === '/portal/firmas' || ruta.startsWith('/portal/firmas/')) && permisos.documentosLegales) {
+    return (
+      <Suspense fallback={<Cargando />}>
+        <Firmas perfil={perfil} organizacion={estado.organizacion} ruta={ruta} />
+      </Suspense>
+    );
   }
 
   if (ruta === '/portal/agenda' && permisos.agenda) return <Agenda perfil={perfil} organizacion={estado.organizacion} />;

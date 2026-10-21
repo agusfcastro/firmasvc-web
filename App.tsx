@@ -24,6 +24,10 @@ const PaginaProtocolo = lazy(() => import('./components/protocolos/PaginaProtoco
 // Portal de clientes, también aparte. Supabase solo se descarga al entrar al portal.
 const PortalApp = lazy(() => import('./components/portal/PortalApp'));
 
+// Firma electrónica pública: quien firma y quien verifica no necesitan cuenta.
+const FirmarApp = lazy(() => import('./components/firma/FirmarApp'));
+const Verificar = lazy(() => import('./components/firma/Verificar'));
+
 function App() {
   const path = window.location.pathname.replace(/\/$/, '');
   if (path === '/privacidad' || path === '/privacy') {
@@ -36,6 +40,20 @@ function App() {
     return (
       <Suspense fallback={<div className="min-h-screen bg-marfil" />}>
         <PortalApp />
+      </Suspense>
+    );
+  }
+  if (path.startsWith('/firmar/')) {
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-marfil" />}>
+        <FirmarApp token={decodeURIComponent(path.slice('/firmar/'.length))} />
+      </Suspense>
+    );
+  }
+  if (path === '/verificar' || path.startsWith('/verificar/')) {
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-marfil" />}>
+        <Verificar codigoInicial={path.slice('/verificar/'.length)} />
       </Suspense>
     );
   }
