@@ -54,6 +54,7 @@ interface Sobre {
   final_ruta: string | null;
   final_sha256: string | null;
   error_sellado: string | null;
+  crm_cliente_id: string | null;
 }
 
 interface Firmante {
@@ -453,6 +454,7 @@ const ROTULO_EVENTO: Record<string, string> = {
   sellado_fallido: 'Falló el armado del PDF firmado',
   documento_sellado: 'PDF firmado generado',
   sobre_completado: 'Envío completado',
+  crm_no_actualizado: 'No se pudo marcar el cliente como firmado en el CRM',
 };
 
 interface Evento {
@@ -701,6 +703,16 @@ async function sellar(sb: SupabaseClient, sobreId: string): Promise<string | nul
     .maybeSingle();
   if (!cerrado) return null;
   await evento(sb, sobre.id, null, null, 'sobre_completado', null, { final_sha256: hash });
+
+  // Si vino del CRM, el cliente pasa solo a Firmado y queda el enlace al envío.
+  if (sobre.crm_cliente_id) {
+    const { error: errCrm } = await sb
+      .from('crm_clientes')
+      .update({ estado_firma: 'Firmado', link_contrato_servicio: `${basePortal()}/portal/firmas/${sobre.id}` })
+      .eq('id', sobre.crm_cliente_id)
+      .neq('estado_firma', 'Baja');
+    if (errCrm) await evento(sb, sobre.id, null, null, 'crm_no_actualizado', null, { motivo: errCrm.message.slice(0, 200) });
+  }
 
   // Copia para todos los firmantes y para quien lo mandó.
   const emisor = await nombreEmisor(sb, sobre);

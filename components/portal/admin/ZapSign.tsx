@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '../../Button';
+import { VARIABLES } from '../../../api/_lib/variables';
 import { supabase } from '../supabase';
 import { Aviso, Campo, Etiqueta, Interruptor, TituloSeccion, claseInput } from '../ui';
 import { BotonCopiar } from '../crm/firma';
@@ -25,29 +26,6 @@ interface Estado {
   webhook: boolean;
 }
 
-/** Misma lista que arma api/crm/contrato.ts. */
-const VARIABLES: [string, string][] = [
-  ['NOMBRE', 'Nombre completo del cliente'],
-  ['DNI', 'DNI o documento'],
-  ['EMAIL', 'Mail'],
-  ['TELEFONO', 'Teléfono'],
-  ['DOMICILIO', 'Domicilio del cliente'],
-  ['CODIGO', 'Código del CRM, por ejemplo AT-001'],
-  ['SERVICIO', 'Nombre del servicio contratado'],
-  ['EMPRESA', 'Razón social de la empresa, o su nombre'],
-  ['RESPONSABLE', 'CSM o AM a cargo'],
-  ['MONEDA', 'Moneda, por ejemplo USD'],
-  ['MONTO_TOTAL', 'Monto total en números, por ejemplo 3.000'],
-  ['MONTO_TOTAL_LETRAS', 'Monto total en letras, por ejemplo TRES MIL'],
-  ['ANTICIPO', 'Anticipo en números'],
-  ['ANTICIPO_LETRAS', 'Anticipo en letras'],
-  ['SALDO', 'Suma de las cuotas en números'],
-  ['SALDO_LETRAS', 'Suma de las cuotas en letras'],
-  ['CANTIDAD_CUOTAS', 'Cantidad de cuotas, por ejemplo 3 (TRES)'],
-  ['DETALLE_CUOTAS', 'Cada cuota con su monto y su vencimiento'],
-  ['FECHA_ONBOARDING', 'Fecha del onboarding, por ejemplo 20 de octubre de 2026'],
-  ['FECHA', 'Fecha en que se genera el contrato'],
-];
 
 async function llamar<T>(cuerpo: Record<string, unknown>): Promise<{ ok: boolean; datos?: T; error?: string }> {
   if (!supabase) return { ok: false, error: 'Portal sin configurar.' };

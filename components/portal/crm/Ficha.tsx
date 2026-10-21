@@ -8,7 +8,7 @@ import { BotonCopiar, MENSAJE_CONTRATO, generarContrato } from './firma';
 import { TONO_FIRMA, dinero, fecha, hoyISO, type CambioHistorial, type ClienteCrm, type ContratoReservado, type EstadoFirma, type Pago, type Servicio } from './tipos';
 import { CAMPOS_CASO, VALORES_CASO } from './reglasCasos';
 import { CasosCliente } from './Casos';
-import { BorradorContrato } from './borrador';
+import { ContratoFirma } from './contratoFirma';
 
 const ROTULOS: Record<string, string> = {
   nombre: 'Nombre', dni: 'DNI', email: 'Mail', telefono: 'Teléfono', domicilio: 'Domicilio', servicio: 'Servicio', monto_total: 'Monto total',
@@ -545,14 +545,22 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                 </span>
                 <div>
                   <h3 className="font-heading font-bold text-[20px] leading-tight">Contratos y firma</h3>
-                  <p className="text-xs text-calido">Lo gestiona FIRMA</p>
+                  <p className="text-xs text-calido">Con el modelo del servicio y firma electrónica</p>
                 </div>
               </div>
               <div>
                 {etiquetaOscura('Estado de la firma')}
                 <span className="font-heading font-black text-[28px] leading-none">{cliente.estado_firma}</span>
               </div>
-              {cliente.estado_firma !== 'Baja' && <BorradorContrato clienteId={id} soloLectura={soloLectura} recienCreado={new URLSearchParams(window.location.search).has('armando')} etiqueta={etiquetaOscura} />}
+              {cliente.estado_firma !== 'Baja' && (
+                <ContratoFirma
+                  clienteId={id}
+                  soloLectura={soloLectura}
+                  recienCreado={new URLSearchParams(window.location.search).has('armando')}
+                  etiqueta={etiquetaOscura}
+                  alCambiar={() => void cargar()}
+                />
+              )}
               {(zapsign || cliente.firma_url || cliente.contrato_estado) && (
                 <div>
                   {etiquetaOscura('Link de firma')}
@@ -599,7 +607,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
               <div>
                 {etiquetaOscura('Contrato de servicio')}
                 {enlaceOscuro(cliente.link_contrato_servicio, 'Ver contrato de servicio')}
-                <p className="text-xs text-calido mt-1.5">Para revisar los datos cargados. No se firma desde acá.</p>
+                <p className="text-xs text-calido mt-1.5">Se completa solo cuando firman todos.</p>
               </div>
               {puedeGestionar && contrato && (
                 <>

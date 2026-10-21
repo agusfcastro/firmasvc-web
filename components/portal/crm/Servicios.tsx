@@ -1,28 +1,33 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Plus, Upload } from 'lucide-react';
+import { ArrowLeft, Plus } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { Aviso, Campo, Encabezado, Enlace, Etiqueta, claseInput } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
+import { BotonCopiar } from './firma';
+import { VARIABLES } from '../../../api/_lib/variables';
 import { dinero, type Servicio } from './tipos';
 
 /**
  * Servicios que vende cada empresa. Los carga el titular (o FIRMA) y el
  * ticket es opcional, porque no todos tienen precio fijo y a veces hay
  * descuentos: en cada venta el monto se puede cambiar.
- * El modelo de contrato de cada servicio lo sube FIRMA. Con él se arman los
- * borradores que caen en Drive.
+ * El contrato modelo de cada servicio se elige entre los Word de la
+ * biblioteca (Documentos › Contratos de servicio). Sus variables {{...}} se
+ * completan con la ficha de cada venta y el contrato sale a firmar desde ahí.
  *   /portal/crm/servicios
  */
 
-const BUCKET_MODELOS = 'modelos';
-const MIME_DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-
 interface Fila extends Servicio {
-  modelo_ruta?: string | null;
-  modelo_nombre?: string | null;
-  modelo_pif_ruta?: string | null;
-  modelo_pif_nombre?: string | null;
+  documento_id?: string | null;
+  documento_pif_id?: string | null;
+}
+
+interface Modelo {
+  id: string;
+  titulo: string;
+  archivo_nombre: string | null;
+  organizacion_id: string | null;
 }
 
 interface Borrador {
@@ -31,12 +36,11 @@ interface Borrador {
   nombre: string;
   precio: string;
   activo: boolean;
-  modelo?: File | null;
-  modeloPif?: File | null;
-  quitarPif?: boolean;
+  documento_id: string;
+  documento_pif_id: string;
 }
 
-const VACIO: Borrador = { clave: '', nombre: '', precio: '', activo: true };
+const VACIO: Borrador = { clave: '', nombre: '', precio: '', activo: true, documento_id: '', documento_pif_id: '' };
 
 /** Código corto a partir del nombre: "Mentoría 3 meses" pasa a MENTORIA-3-MESES. */
 function codigoDe(nombre: string): string {
@@ -56,27 +60,44 @@ export const Servicios: React.FC<{ orgId: string; orgNombre: string; esAdmin: bo
   const [ok, setOk] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   const soloLectura = Boolean(useVistaPrevia()) || !puedeGestionar;
+  const [modelos, setModelos] = useState<Modelo[]>([]);
+  const [firmante, setFirmante] = useState({ nombre: '', email: '' });
+  const [guardandoFirmante, setGuardandoFirmante] = useState(false);
 
   async function cargar() {
     if (!supabase) return;
-    const { data, error: e } = await supabase.from('crm_servicios').select('*').eq('organizacion_id', orgId).order('activo', { ascending: false }).order('nombre');
+    const [{ data, error: e }, { data: docs }, { data: org }] = await Promise.all([
+      supabase.from('crm_servicios').select('*').eq('organizacion_id', orgId).order('activo', { ascending: false }).order('nombre'),
+      supabase.from('documentos').select('id, titulo, archivo_nombre, organizacion_id').eq('seccion', 'servicio').eq('activo', true).not('archivo_ruta', 'is', null).order('orden').order('titulo'),
+      supabase.from('organizaciones').select('firmante_nombre, firmante_email').eq('id', orgId).maybeSingle(),
+    ]);
     if (e) setError(e.message);
     setLista((data as Fila[]) ?? []);
+    // Solo Word, y de la biblioteca común o de esta empresa.
+    setModelos(((docs ?? []) as Modelo[]).filter((d) => /\.docx$/i.test(d.archivo_nombre ?? '') && (!d.organizacion_id || d.organizacion_id === orgId)));
+    setFirmante({ nombre: (org?.firmante_nombre as string | null) ?? '', email: (org?.firmante_email as string | null) ?? '' });
   }
+
+  async function guardarFirmante(e: React.FormEvent) {
+    e.preventDefault();
+    if (!supabase) return;
+    const email = firmante.email.trim();
+    if ((firmante.nombre.trim() === '') !== (email === '')) return setError('Completá el nombre y el mail de quien firma, o dejá los dos vacíos para que firme el titular.');
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setError('El mail de quien firma no es válido.');
+    setGuardandoFirmante(true);
+    setError(null);
+    setOk(null);
+    const { error: err } = await supabase.rpc('organizacion_firmante', { p_org: orgId, p_nombre: firmante.nombre, p_email: email });
+    setGuardandoFirmante(false);
+    if (err) return setError(err.message);
+    setOk('Listo. Esa persona firma los contratos por la empresa.');
+  }
+
+  const nombreModelo = (id: string | null | undefined) => modelos.find((m) => m.id === id)?.titulo ?? null;
 
   useEffect(() => {
     void cargar();
   }, [orgId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  async function subirModelo(archivo: File, sufijo: string): Promise<string> {
-    if (!supabase) throw new Error('Portal sin configurar.');
-    if (archivo.type !== MIME_DOCX && !archivo.name.toLowerCase().endsWith('.docx')) throw new Error('El modelo tiene que ser un Word (.docx).');
-    // La ruta empieza con la empresa: el servidor solo usa modelos de la misma empresa del cliente.
-    const ruta = `${orgId}/${crypto.randomUUID()}-${sufijo}.docx`;
-    const { error: e } = await supabase.storage.from(BUCKET_MODELOS).upload(ruta, archivo, { contentType: MIME_DOCX, upsert: false });
-    if (e) throw new Error(`No se pudo subir el modelo. ${e.message}`);
-    return ruta;
-  }
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
@@ -91,28 +112,13 @@ export const Servicios: React.FC<{ orgId: string; orgNombre: string; esAdmin: bo
     setGuardando(true);
     setError(null);
     setOk(null);
-    const original = lista.find((s) => s.id === borrador.id);
-    const datos: Record<string, unknown> = { nombre, precio, activo: borrador.activo };
-    const viejos: string[] = [];
-    try {
-      if (esAdmin && borrador.modelo) {
-        datos.modelo_ruta = await subirModelo(borrador.modelo, 'modelo');
-        datos.modelo_nombre = borrador.modelo.name;
-        if (original?.modelo_ruta) viejos.push(original.modelo_ruta);
-      }
-      if (esAdmin && borrador.modeloPif) {
-        datos.modelo_pif_ruta = await subirModelo(borrador.modeloPif, 'pif');
-        datos.modelo_pif_nombre = borrador.modeloPif.name;
-        if (original?.modelo_pif_ruta) viejos.push(original.modelo_pif_ruta);
-      } else if (esAdmin && borrador.quitarPif && original?.modelo_pif_ruta) {
-        datos.modelo_pif_ruta = null;
-        datos.modelo_pif_nombre = null;
-        viejos.push(original.modelo_pif_ruta);
-      }
-    } catch (err) {
-      setGuardando(false);
-      return setError(err instanceof Error ? err.message : 'No se pudo subir el modelo.');
-    }
+    const datos: Record<string, unknown> = {
+      nombre,
+      precio,
+      activo: borrador.activo,
+      documento_id: borrador.documento_id || null,
+      documento_pif_id: borrador.documento_pif_id || null,
+    };
 
     // El código no se cambia después del alta, porque las ventas ya cargadas lo usan.
     const { error: err } = borrador.id
@@ -120,29 +126,21 @@ export const Servicios: React.FC<{ orgId: string; orgNombre: string; esAdmin: bo
       : await supabase.from('crm_servicios').insert({ ...datos, organizacion_id: orgId, clave });
     setGuardando(false);
     if (err) return setError(/duplicate|unique/i.test(err.message) ? `Ya hay un servicio con el código ${clave}.` : err.message);
-    if (viejos.length) await supabase.storage.from(BUCKET_MODELOS).remove(viejos);
     setOk(borrador.id ? 'Servicio actualizado.' : 'Servicio agregado. Ya aparece al cargar una venta.');
     setBorrador(null);
     void cargar();
   }
 
-  const archivo = (etiqueta: string, actual: string | null | undefined, elegido: File | null | undefined, alElegir: (f: File) => void) => (
-    <label className="flex flex-wrap items-center gap-3 cursor-pointer">
-      <input
-        type="file"
-        accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        className="sr-only peer"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          e.target.value = '';
-          if (f) alElegir(f);
-        }}
-      />
-      <span className="inline-flex items-center gap-2 h-10 px-4 border border-tinta text-sm font-medium transition-colors duration-150 hover:bg-tinta hover:text-marfil peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-bosque">
-        <Upload size={15} aria-hidden="true" /> {etiqueta}
-      </span>
-      <span className="text-sm break-all">{elegido?.name ?? actual ?? 'Sin modelo'}</span>
-    </label>
+  const selectorModelo = (valor: string, alCambiar: (id: string) => void, vacio: string) => (
+    <select className={claseInput} value={valor} onChange={(e) => alCambiar(e.target.value)}>
+      <option value="">{vacio}</option>
+      {modelos.map((m) => (
+        <option key={m.id} value={m.id}>
+          {m.titulo}
+          {m.organizacion_id ? ' · exclusivo de la empresa' : ''}
+        </option>
+      ))}
+    </select>
   );
 
   return (
@@ -191,23 +189,17 @@ export const Servicios: React.FC<{ orgId: string; orgNombre: string; esAdmin: bo
             <Campo etiqueta="Ticket (USD, opcional)" ayuda="Precio de lista. Al cargar una venta aparece como monto sugerido y se puede cambiar.">
               <input type="number" step="0.01" min="0" className={claseInput} value={borrador.precio} onChange={(e) => setBorrador({ ...borrador, precio: e.target.value })} />
             </Campo>
-            {esAdmin && (
-              <fieldset className="space-y-4 pt-5" style={{ borderTop: '1px solid rgba(27,31,27,0.15)' }}>
-                <legend className="eyebrow text-piedra pb-2">Solo FIRMA · Modelo de contrato</legend>
-                <p className="text-xs text-piedra">Word con los datos a completar marcados, por ejemplo [NOMBRE Y APELLIDO]. Claude lo completa en cada venta y el borrador cae en Drive.</p>
-                {archivo(borrador.modelo || lista.find((s) => s.id === borrador.id)?.modelo_ruta ? 'Cambiar modelo' : 'Elegir modelo', lista.find((s) => s.id === borrador.id)?.modelo_nombre, borrador.modelo, (f) => setBorrador({ ...borrador, modelo: f }))}
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Modelo para pago total (opcional)</p>
-                  <p className="text-xs text-piedra">Solo si el contrato de pago total es distinto. Si no, Claude adapta el modelo general.</p>
-                  {archivo('Elegir modelo de pago total', borrador.quitarPif ? null : lista.find((s) => s.id === borrador.id)?.modelo_pif_nombre, borrador.modeloPif, (f) => setBorrador({ ...borrador, modeloPif: f, quitarPif: false }))}
-                  {!borrador.quitarPif && (borrador.modeloPif || lista.find((s) => s.id === borrador.id)?.modelo_pif_ruta) && (
-                    <button type="button" className="text-sm underline underline-offset-4 hover:text-bosque" onClick={() => setBorrador({ ...borrador, modeloPif: null, quitarPif: true })}>
-                      Quitar modelo de pago total
-                    </button>
-                  )}
-                </div>
-              </fieldset>
-            )}
+            <fieldset className="space-y-4 pt-5" style={{ borderTop: '1px solid rgba(27,31,27,0.15)' }}>
+              <legend className="eyebrow text-piedra pb-2">Contrato modelo</legend>
+              <p className="text-xs text-piedra">
+                Elegí un Word de la biblioteca de Documentos, sección Contratos de servicio. En cada venta sus variables, como {'{{NOMBRE}}'} o {'{{DETALLE_CUOTAS}}'}, se completan con la ficha.
+              </p>
+              <Campo etiqueta="Modelo">{selectorModelo(borrador.documento_id, (id) => setBorrador({ ...borrador, documento_id: id }), 'Sin modelo')}</Campo>
+              <Campo etiqueta="Modelo para pago total (opcional)" ayuda="Solo si el contrato de pago total es distinto. Si no, se usa el modelo general.">
+                {selectorModelo(borrador.documento_pif_id, (id) => setBorrador({ ...borrador, documento_pif_id: id }), 'El mismo modelo')}
+              </Campo>
+              {modelos.length === 0 && <Aviso>Todavía no hay contratos modelo en Word en la biblioteca. FIRMA los carga en Documentos.</Aviso>}
+            </fieldset>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={borrador.activo} onChange={(e) => setBorrador({ ...borrador, activo: e.target.checked })} />
               Activo. Si lo desactivás, deja de aparecer al cargar ventas nuevas.
@@ -249,14 +241,33 @@ export const Servicios: React.FC<{ orgId: string; orgNombre: string; esAdmin: bo
                     <div className="text-xs text-piedra">{s.clave}</div>
                   </td>
                   <td className="tabular-nums">{s.precio ? dinero(Number(s.precio)) : <span className="text-piedra">A definir en cada venta</span>}</td>
-                  <td>{s.modelo_ruta ? <Etiqueta tono="bosque">{s.modelo_pif_ruta ? 'Cuotas y pago total' : 'Cargado'}</Etiqueta> : <Etiqueta tono="alerta">Falta</Etiqueta>}</td>
+                  <td>
+                    {nombreModelo(s.documento_id) ? (
+                      <div className="flex flex-col gap-1">
+                        <span className="text-sm">{nombreModelo(s.documento_id)}</span>
+                        {nombreModelo(s.documento_pif_id) && <span className="text-xs text-piedra">Pago total: {nombreModelo(s.documento_pif_id)}</span>}
+                      </div>
+                    ) : (
+                      <Etiqueta tono="alerta">Falta</Etiqueta>
+                    )}
+                  </td>
                   <td>{s.activo !== false ? <Etiqueta tono="bosque">Activo</Etiqueta> : <Etiqueta>Inactivo</Etiqueta>}</td>
                   <td className="text-right">
                     {!soloLectura && (
                       <button
                         type="button"
                         className="underline underline-offset-4 hover:text-bosque"
-                        onClick={() => setBorrador({ id: s.id, clave: s.clave, nombre: s.nombre ?? '', precio: s.precio === null ? '' : String(s.precio), activo: s.activo !== false })}
+                        onClick={() =>
+                          setBorrador({
+                            id: s.id,
+                            clave: s.clave,
+                            nombre: s.nombre ?? '',
+                            precio: s.precio === null ? '' : String(s.precio),
+                            activo: s.activo !== false,
+                            documento_id: s.documento_id ?? '',
+                            documento_pif_id: s.documento_pif_id ?? '',
+                          })
+                        }
                       >
                         Editar
                       </button>
@@ -266,6 +277,47 @@ export const Servicios: React.FC<{ orgId: string; orgNombre: string; esAdmin: bo
               ))}
             </tbody>
           </table>
+        </div>
+
+        <div className="grid gap-8 desk:grid-cols-2 desk:items-start">
+          <form onSubmit={guardarFirmante} className="bg-marfil-oscuro p-6 desk:p-8 space-y-5">
+            <div className="space-y-2">
+              <h2 className="h3">Quién firma por la empresa</h2>
+              <p className="text-sm text-piedra">Firma cada contrato a la vez que el cliente, con su propio enlace. Si lo dejás vacío, firma el titular de la cuenta.</p>
+            </div>
+            <div className="grid gap-4 tab:grid-cols-2">
+              <Campo etiqueta="Nombre y apellido">
+                <input className={claseInput} disabled={soloLectura} value={firmante.nombre} maxLength={160} onChange={(e) => setFirmante({ ...firmante, nombre: e.target.value })} />
+              </Campo>
+              <Campo etiqueta="Mail">
+                <input type="email" className={claseInput} disabled={soloLectura} value={firmante.email} onChange={(e) => setFirmante({ ...firmante, email: e.target.value })} />
+              </Campo>
+            </div>
+            {!soloLectura && (
+              <Button type="submit" variant="ghost" disabled={guardandoFirmante}>
+                {guardandoFirmante ? 'Guardando…' : 'Guardar firmante'}
+              </Button>
+            )}
+          </form>
+
+          <details className="bg-white border border-[rgba(27,31,27,0.14)] p-6 desk:p-8 group">
+            <summary className="cursor-pointer list-none flex items-center justify-between gap-4">
+              <span className="h3">Variables de los modelos</span>
+              <span className="text-sm text-piedra group-open:hidden">Ver lista</span>
+            </summary>
+            <p className="text-sm text-piedra mt-4 mb-4">Escribilas en el Word tal cual, con llaves dobles. Se reemplazan con los datos de la ficha al generar el contrato.</p>
+            <ul className="flex flex-col">
+              {VARIABLES.map(([clave, texto]) => (
+                <li key={clave} className="flex items-center justify-between gap-4 py-2.5" style={{ borderTop: '1px solid rgba(27,31,27,0.08)' }}>
+                  <span className="flex flex-col min-w-0">
+                    <code className="text-sm font-medium">{`{{${clave}}}`}</code>
+                    <span className="text-xs text-piedra">{texto}</span>
+                  </span>
+                  <BotonCopiar texto={`{{${clave}}}`} descripcion={`Copiar {{${clave}}}`} />
+                </li>
+              ))}
+            </ul>
+          </details>
         </div>
       </div>
     </>

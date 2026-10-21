@@ -131,6 +131,7 @@ export const ROTULO_EVENTO: Record<string, string> = {
   sellado_fallido: 'Falló el armado del PDF firmado',
   documento_sellado: 'PDF firmado generado',
   sobre_completado: 'Completado',
+  crm_no_actualizado: 'No se pudo marcar el cliente como firmado en el CRM',
 };
 
 export function peso(bytes: number): string {

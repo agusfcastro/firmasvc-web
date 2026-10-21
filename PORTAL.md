@@ -428,37 +428,33 @@ Cada empresa carga lo que vende en **CRM legal › Servicios** (`/portal/crm/ser
 - **Ticket**, opcional. Si está, aparece como monto sugerido al cargar una venta y se puede cambiar por un descuento. Si no hay precio fijo, se deja vacío y el monto se carga en cada venta.
 - **Modelo de contrato**, solo FIRMA. Un Word con los datos a completar marcados, por ejemplo `[NOMBRE Y APELLIDO]`. Opcionalmente, uno distinto para pago total; si no está, Claude adapta el general.
 
-## Borradores de contrato con Claude
+## Contratos del CRM con firma electrónica
 
-Al cargar una venta en el CRM, el portal arma el contrato y lo deja en la carpeta de revisión de Drive de la empresa. No envía nada a firmar.
+El CRM y la firma electrónica funcionan como un solo circuito. Reemplaza a los borradores que armaba Claude en Drive.
 
-1. Toma el modelo del servicio.
-2. Claude lo completa con los datos del cliente, el plan de pagos y las **condiciones acordadas**, un campo de texto libre del alta donde el vendedor escribe descuentos, pagos especiales o lo que se haya pactado. Claude lo interpreta como lo haría un abogado, sin una lista fija de formatos.
-3. Lo que falta o es dudoso sale en rojo como `[COMPLETAR: …]` y el archivo lleva `[INCOMPLETO]` en el nombre. Nada se inventa.
-4. La ficha del cliente muestra el estado, el link al archivo de Drive y los avisos para la revisión: qué marcó, qué interpretó y qué redactó nuevo. **Volver a armar** reemplaza el mismo archivo en Drive (por ejemplo, después de corregir las condiciones).
+1. **Modelo por servicio.** FIRMA carga los contratos modelo en Word en **Documentos › Contratos de servicio**, comunes o exclusivos de una empresa. El titular elige cuál usa cada servicio en **CRM legal › Servicios**, y uno distinto para pago total si hace falta.
+2. **Variables.** El Word lleva variables entre llaves dobles, por ejemplo `{{NOMBRE}}`, `{{DOMICILIO}}` o `{{DETALLE_CUOTAS}}`. La lista completa está en **Servicios › Variables de los modelos**, con un botón para copiar cada una. Funcionan en el cuerpo, en tablas, encabezados y pies, aunque Word las parta en tramos.
+3. **Vista previa.** Al cargar la venta el portal completa el modelo con la ficha y el plan de pagos, lo pasa a PDF con Google Drive y lo muestra en la ficha. Si falta un dato obligatorio (por ejemplo el domicilio) avisa y no deja mandarlo hasta completarlo y generarlo de nuevo. Una variable que no existe queda tal cual y también se avisa.
+4. **Firma.** Con **Mandar a firmar**, el cliente y quien firma por la empresa reciben su enlace y firman a la vez. Quien firma por la empresa se define en **Servicios › Quién firma por la empresa**; si está vacío, firma el titular.
+5. **Seguimiento.** La ficha muestra en vivo quién abrió y quién firmó, con botones para copiar el enlace o reenviar el mail. El envío también aparece en **Firma electrónica**.
+6. **Cierre.** Cuando firman los dos, el cliente pasa solo a **Firmado**, el contrato de servicio queda enlazado al envío y el PDF firmado se descarga desde la ficha.
 
-Usa Claude Opus 5.5 con razonamiento y salida estructurada. Si Claude rechaza un pedido, el servidor reintenta solo con otro modelo (fallback automático de la API). Cada armado tarda uno o dos minutos.
+Lo puede usar cualquier rol con acceso al CRM. Mientras hay un envío en curso no se puede generar otro; si se anula, se rechaza o vence, se genera y se manda de nuevo.
 
 ### Puesta en marcha
 
-1. En Supabase corré, en orden, `0011_logos_clientes.sql`, `0012_roles_equipo.sql` y `0013_contratos_borrador.sql`.
-2. En Vercel cargá estas variables para Production y Preview y hacé un redeploy.
+1. En Supabase corré `0014_crm_domicilio.sql` y `0015_crm_firma_unida.sql`.
+2. En Vercel tienen que estar `GOOGLE_CREDS_JSON` y `GOOGLE_SUBJECT`, que ya se usaban para Drive. Drive se usa solo para pasar el Word a PDF: el documento temporal se borra al terminar.
+3. Cargá los modelos en Word con sus variables en Documentos y elegilos en cada servicio.
 
-| Variable | Valor |
-|---|---|
-| `ANTHROPIC_API_KEY` | Clave de la API de Anthropic (console.anthropic.com › API Keys) |
-| `GOOGLE_CREDS_JSON` | El contenido completo del `credenciales.json` de la cuenta de servicio `agente-contratos`, la misma que usaba el agente de GitHub |
-| `GOOGLE_SUBJECT` | `agustin@firmasvc.com`, el usuario en cuyo nombre la cuenta escribe en Drive. Requiere la delegación en todo el dominio que ya está configurada. Si las carpetas están en una unidad compartida, se puede omitir |
-
-3. Por empresa, en **Administración › Clientes › Editar**, pegá el link de su carpeta `Pendientes de revisión`. La cuenta de servicio tiene que tener acceso de Editor (o el usuario de `GOOGLE_SUBJECT`, si usás delegación).
-4. Por servicio, en **CRM legal › Servicios**, subí el modelo de contrato. Para Real+ y Testo Boost sirven los Word de `contratos-agent/plantillas/<cliente>/modelos/`.
-
-Con esto el agente de GitHub (`contratos-agent`) se puede apagar: deshabilitá el workflow en la pestaña Actions del repo.
+`ANTHROPIC_API_KEY` y la carpeta de revisión de Drive de cada empresa ya no se usan para los contratos. La tabla `crm_borradores` y el bucket `modelos` quedan en la base sin uso.
 
 | Archivo | Para qué |
 |---|---|
-| `supabase/migraciones/0012_roles_equipo.sql` | Roles CSM, Closer y Setter y sus permisos en CRM, casos, documentos y agenda |
-| `supabase/migraciones/0013_contratos_borrador.sql` | Modelos por servicio, carpeta de Drive, condiciones acordadas y estado de cada borrador |
-| `api/crm/borrador.ts` | Arma el borrador con Claude y lo sube a Drive |
-| `components/portal/crm/borrador.tsx` | Estado del borrador en la ficha y pedido al servidor |
-| `components/portal/crm/Servicios.tsx` | Servicios de cada empresa con ticket opcional y modelo de contrato |
+| `supabase/migraciones/0015_crm_firma_unida.sql` | Modelo por servicio desde la biblioteca, firmante de la empresa, vista previa y envío atado al cliente |
+| `api/_lib/variables.ts` | Lista de variables y cómo se calcula cada una. La usan el servidor, ZapSign y el portal |
+| `api/_lib/word.ts` | Completa las variables del Word y lo pasa a PDF con Drive |
+| `api/firma/sobres.ts` | Acciones `crm_vista`, `crm_pdf` y `crm_enviar` |
+| `api/firma/firmar.ts` | Al completarse la firma, pasa el cliente a Firmado |
+| `components/portal/crm/contratoFirma.tsx` | Contrato, vista previa, envío y seguimiento en la ficha |
+| `components/portal/crm/Servicios.tsx` | Modelo de cada servicio, quién firma por la empresa y lista de variables |

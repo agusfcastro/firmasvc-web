@@ -5,7 +5,7 @@ import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
 import { Aviso, Campo, Encabezado, Enlace, TituloSeccion, claseInput } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
-import { generarBorrador } from './borrador';
+import { generarContratoFirma } from './contratoFirma';
 import { dinero, hoyISO, type Servicio } from './tipos';
 
 const FECHA_VALIDA = /^\d{4}-\d{2}-\d{2}$/;
@@ -149,9 +149,9 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
       const { error: e2 } = await supabase.from('crm_pagos').insert(filas);
       planOk = !e2;
     }
-    // El borrador se arma con el plan completo y tarda uno o dos minutos, así que no se espera:
-    // la ficha muestra el estado y permite reintentar. El envío a firmar lo hace FIRMA a mano.
-    if (planOk) void generarBorrador(data.id);
+    // El contrato se arma con el plan completo y no se espera: la ficha muestra el estado,
+    // la vista previa y el botón para mandarlo a firmar.
+    if (planOk) void generarContratoFirma(data.id);
     setEtapa('');
     navegar(`/portal/crm/${data.id}${planOk ? '?armando=1' : ''}`);
   }
@@ -184,7 +184,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
           Nuevo <span className="text-bosque">cliente</span>
         </>
       }
-      bajada="Cargá los datos y el plan de pagos. Al crear el cliente se arma el borrador del contrato y queda en Drive para que FIRMA lo revise."
+      bajada="Cargá los datos y el plan de pagos. Al crear el cliente se arma el contrato con el modelo del servicio, listo para revisar y mandar a firmar."
     />
     <form onSubmit={guardar} className="wrap py-10 desk:py-14 flex flex-col gap-10 max-w-[860px] desk:ml-0">
       <TituloSeccion eyebrow="Paso 1" titulo="Datos del cliente" />

@@ -105,10 +105,10 @@
     }
   ],
   "functions": {
-    "api/crm/borrador.ts": {
-      "maxDuration": 300
-    },
     "api/firma/firmar.ts": {
+      "maxDuration": 60
+    },
+    "api/firma/sobres.ts": {
       "maxDuration": 60
     }
   },
