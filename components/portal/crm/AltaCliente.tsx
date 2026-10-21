@@ -5,7 +5,7 @@ import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
 import { Aviso, Campo, Encabezado, Enlace, TituloSeccion, claseInput } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
-import { generarContrato } from './firma';
+import { generarBorrador } from './borrador';
 import { dinero, hoyISO, type Servicio } from './tipos';
 
 const FECHA_VALIDA = /^\d{4}-\d{2}-\d{2}$/;
@@ -42,16 +42,16 @@ function repartir(saldo: number, cantidad: number, primera: string): Cuota[] {
   return Array.from({ length: cantidad }, (_, i) => ({ monto: aTexto(i === cantidad - 1 ? base + resto : base), vencimiento: sumarMeses(primera, i) }));
 }
 
-export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre: string; cobranza: boolean; zapsign?: boolean }> = ({ orgId, esAdmin, orgNombre, zapsign = false }) => {
+export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre: string; cobranza: boolean; zapsign?: boolean }> = ({ orgId, esAdmin, orgNombre }) => {
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [f, setF] = useState({
     nombre: '', dni: '', email: '', telefono: '', servicio: '', monto_total: '', modalidad: 'Cuotas' as 'Cuotas' | 'PIF',
-    fecha_onboarding: '', responsable: '', notas: '', anticipo: '', cantidad: '2', primera: hoyISO(),
+    fecha_onboarding: '', responsable: '', notas: '', condiciones: '', anticipo: '', cantidad: '2', primera: hoyISO(),
   });
   const [cuotas, setCuotas] = useState<Cuota[]>([]);
   const [manual, setManual] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [etapa, setEtapa] = useState<'' | 'guardando' | 'contrato'>('');
+  const [etapa, setEtapa] = useState<'' | 'guardando'>('');
   const soloLectura = Boolean(useVistaPrevia());
 
   useEffect(() => {
@@ -131,6 +131,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
         fecha_onboarding: f.fecha_onboarding ? new Date(f.fecha_onboarding).toISOString() : null,
         responsable: f.responsable.trim() || null,
         notas: f.notas.trim() || null,
+        condiciones: f.condiciones.trim() || null,
       })
       .select('id')
       .single();
@@ -147,13 +148,11 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
       const { error: e2 } = await supabase.from('crm_pagos').insert(filas);
       planOk = !e2;
     }
-    // El contrato se genera con el plan completo. Si algo falla, la ficha muestra el estado y permite reintentar.
-    if (zapsign && planOk) {
-      setEtapa('contrato');
-      await generarContrato(data.id);
-    }
+    // El borrador se arma con el plan completo y tarda uno o dos minutos, así que no se espera:
+    // la ficha muestra el estado y permite reintentar. El envío a firmar lo hace FIRMA a mano.
+    if (planOk) void generarBorrador(data.id);
     setEtapa('');
-    navegar(`/portal/crm/${data.id}`);
+    navegar(`/portal/crm/${data.id}${planOk ? '?armando=1' : ''}`);
   }
 
   const set = (k: keyof typeof f, v: string) => setF({ ...f, [k]: v });
@@ -184,20 +183,14 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
           Nuevo <span className="text-bosque">cliente</span>
         </>
       }
-      bajada={
-        zapsign
-          ? 'Cargá los datos y el plan de pagos. Al crear el cliente se genera el contrato en ZapSign con su link de firma.'
-          : 'Cargá los datos y el plan de pagos. FIRMA genera el contrato y actualiza el estado de la firma.'
-      }
+      bajada="Cargá los datos y el plan de pagos. Al crear el cliente se arma el borrador del contrato y queda en Drive para que FIRMA lo revise."
     />
     <form onSubmit={guardar} className="wrap py-10 desk:py-14 flex flex-col gap-10 max-w-[860px] desk:ml-0">
       <TituloSeccion eyebrow="Paso 1" titulo="Datos del cliente" />
       {error && <Aviso tipo="error">{error}</Aviso>}
       {!esAdmin && (
         <Aviso tipo="info">
-          {zapsign
-            ? 'El cliente queda con la firma pendiente. El contrato se genera solo y el estado pasa a Firmado cuando firma.'
-            : 'El cliente queda con la firma pendiente. FIRMA genera el contrato y actualiza el estado.'}
+          El cliente queda con la firma pendiente. El contrato se arma solo, FIRMA lo revisa, lo envía a firmar y actualiza el estado.
         </Aviso>
       )}
 
@@ -233,7 +226,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
             ))}
           </select>
         </Campo>
-        <Campo etiqueta="Monto total acordado (USD)">
+        <Campo etiqueta="Monto total acordado (USD)" ayuda="Arranca con el ticket del servicio, si tiene. Cambialo si hubo descuento.">
           <input required type="number" step="0.01" min="1" className={claseInput} value={f.monto_total} onChange={(e) => set('monto_total', e.target.value)} />
         </Campo>
         <Campo etiqueta="Onboarding">
@@ -357,13 +350,26 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
         <p className="text-xs text-piedra">Después podés ajustar montos y fechas de cada cuota desde la ficha.</p>
       </fieldset>
 
+      <Campo
+        etiqueta="Condiciones acordadas (opcional)"
+        ayuda="Escribilo como lo pactaste: descuentos, pagos especiales, bonificaciones o cualquier cosa que no entre en el plan. Claude lo interpreta al armar el contrato."
+      >
+        <textarea
+          rows={3}
+          className={`${claseInput} h-auto py-2`}
+          placeholder="Ej. 10% off por pago en 48 h, la segunda cuota la paga cuando cobre la comisión de octubre"
+          value={f.condiciones}
+          onChange={(e) => set('condiciones', e.target.value)}
+        />
+      </Campo>
+
       <Campo etiqueta="Notas">
         <textarea rows={3} className={`${claseInput} h-auto py-2`} value={f.notas} onChange={(e) => set('notas', e.target.value)} />
       </Campo>
 
       <div className="flex flex-col gap-3 items-start">
         <Button type="submit" size="lg" disabled={!valido || etapa !== ''} className="disabled:opacity-45 disabled:cursor-not-allowed">
-          {etapa === 'guardando' ? 'Guardando…' : etapa === 'contrato' ? 'Generando contrato…' : 'Crear cliente'}
+          {etapa === 'guardando' ? 'Guardando…' : 'Crear cliente'}
         </Button>
         {!valido && <p className="text-xs text-piedra">Se habilita cuando anticipo más cuotas suman exacto el monto acordado.</p>}
       </div>

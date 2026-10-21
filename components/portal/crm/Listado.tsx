@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ChevronLeft, ChevronRight, Download, Plus, Search, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, ChevronLeft, ChevronRight, Download, Layers, Plus, Search, ShieldAlert } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
@@ -47,7 +47,14 @@ function csv(filas: ClienteResumen[]): string {
   return [cols.map((c) => c[0]).join(';'), ...filas.map((f) => cols.map(([, g]) => esc(g(f))).join(';'))].join('\n');
 }
 
-export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: React.ReactNode; cobranza: boolean; interruptor?: React.ReactNode }> = ({ orgId, orgNombre, selector, cobranza, interruptor }) => {
+export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: React.ReactNode; cobranza: boolean; interruptor?: React.ReactNode; verCasos?: boolean }> = ({
+  orgId,
+  orgNombre,
+  selector,
+  cobranza,
+  interruptor,
+  verCasos = true,
+}) => {
   const [filas, setFilas] = useState<ClienteResumen[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -164,14 +171,19 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
         acciones={
           <>
             {selector}
-            <Button variant="ghost" size="lg" onClick={() => navegar('/portal/crm/casos')} className="self-end">
-              <ShieldAlert size={18} /> Casos de conflicto
-              {casosAbiertos ? (
-                <span className="inline-flex items-center justify-center min-w-6 h-6 px-1.5 bg-[#8a2b20] text-marfil text-xs font-medium tabular-nums">
-                  {casosAbiertos}
-                  <span className="sr-only">{casosAbiertos === 1 ? ' caso abierto' : ' casos abiertos'}</span>
-                </span>
-              ) : null}
+            {verCasos && (
+              <Button variant="ghost" size="lg" onClick={() => navegar('/portal/crm/casos')} className="self-end">
+                <ShieldAlert size={18} /> Casos de conflicto
+                {casosAbiertos ? (
+                  <span className="inline-flex items-center justify-center min-w-6 h-6 px-1.5 bg-[#8a2b20] text-marfil text-xs font-medium tabular-nums">
+                    {casosAbiertos}
+                    <span className="sr-only">{casosAbiertos === 1 ? ' caso abierto' : ' casos abiertos'}</span>
+                  </span>
+                ) : null}
+              </Button>
+            )}
+            <Button variant="ghost" size="lg" onClick={() => navegar('/portal/crm/servicios')} className="self-end">
+              <Layers size={18} /> Servicios
             </Button>
             {!soloLectura && (
               <Button size="lg" onClick={() => navegar('/portal/crm/nuevo')} className="self-end">

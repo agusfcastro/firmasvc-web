@@ -45,7 +45,7 @@ import {
   type Etapa,
   type ResultadoContracargo,
   type Semaforo,
-} from './casos';
+} from './reglasCasos';
 
 /**
  * Casos de conflicto del CRM. Registro de reclamos y pedidos de reembolso de

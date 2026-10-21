@@ -77,5 +77,10 @@
         }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "api/crm/borrador.ts": {
+      "maxDuration": 300
+    }
+  }
 }

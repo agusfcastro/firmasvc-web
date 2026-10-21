@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react';
 import { navegar } from './navegacion';
+import type { RolCliente } from './tipos';
 
 /**
  * Modo "Ver como". Un admin de FIRMA ve el portal con la perspectiva de un
@@ -9,7 +10,7 @@ import { navegar } from './navegacion';
 export interface VistaPrevia {
   orgId: string;
   orgNombre: string;
-  rol: 'titular' | 'miembro';
+  rol: RolCliente;
   areas: string[];
   nombre?: string;
 }

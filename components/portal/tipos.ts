@@ -1,4 +1,35 @@
-export type Rol = 'admin' | 'titular' | 'miembro';
+/** miembro es el rol anterior a csm. Se conserva para cuentas viejas y ya no se asigna. */
+export type Rol = 'admin' | 'titular' | 'csm' | 'closer' | 'setter' | 'miembro';
+export type RolCliente = Exclude<Rol, 'admin'>;
+
+/** Roles que se asignan hoy a la gente de un cliente, en el orden del panel. */
+export const ROLES_CLIENTE: RolCliente[] = ['titular', 'csm', 'closer', 'setter'];
+
+export interface Permisos {
+  crm: boolean;
+  casos: boolean;
+  /** Contratos y documentos legales. Sin esto, solo protocolos y formación. */
+  documentosLegales: boolean;
+  agenda: boolean;
+  /** Administración de la empresa: pagos, equipo y servicios */
+  gestion: boolean;
+}
+
+/** Lo que ve cada rol. La base de datos aplica las mismas reglas (migración 0012). */
+export function permisosDe(rol: Rol): Permisos {
+  switch (rol) {
+    case 'admin':
+    case 'titular':
+      return { crm: true, casos: true, documentosLegales: true, agenda: true, gestion: true };
+    case 'csm':
+    case 'miembro':
+      return { crm: true, casos: true, documentosLegales: true, agenda: true, gestion: false };
+    case 'closer':
+      return { crm: true, casos: false, documentosLegales: false, agenda: true, gestion: false };
+    case 'setter':
+      return { crm: false, casos: false, documentosLegales: false, agenda: false, gestion: false };
+  }
+}
 
 export interface Organizacion {
   id: string;
@@ -12,6 +43,8 @@ export interface Organizacion {
   seguimiento_cobranza?: boolean;
   zapsign_modelo?: string | null;
   zapsign_conectado?: boolean;
+  logo_url?: string | null;
+  drive_carpeta_revision?: string | null;
 }
 
 export interface Perfil {
@@ -66,6 +99,7 @@ export interface Documento {
   archivo_nombre: string | null;
   archivo_bytes: number | null;
   url: string | null;
+  es_protocolo?: boolean;
   orden: number;
   activo: boolean;
   creado_en: string;
@@ -74,8 +108,19 @@ export interface Documento {
 
 export const ROTULO_ROL: Record<Rol, string> = {
   admin: 'Admin FIRMA',
-  titular: 'Titular del cliente',
+  titular: 'Titular',
+  csm: 'CSM',
+  closer: 'Closer',
+  setter: 'Setter',
   miembro: 'Miembro del equipo',
+};
+
+export const AYUDA_ROL: Record<RolCliente, string> = {
+  titular: 'Todo lo de su empresa, incluidos el equipo, los pagos y los servicios.',
+  csm: 'Todo menos la administración de la empresa (equipo, pagos y servicios).',
+  closer: 'CRM y agenda, sin casos de conflicto. De documentos, solo protocolos y formación.',
+  setter: 'Solo protocolos y formación.',
+  miembro: 'Rol anterior, equivale a CSM.',
 };
 
 export const PAISES: Record<string, string> = {

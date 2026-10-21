@@ -4,7 +4,8 @@ import { Logo } from '../Logo';
 import { supabase } from './supabase';
 import { navegar } from './navegacion';
 import { salirVistaPrevia, useVistaPrevia } from './vistaPrevia';
-import { ROTULO_ROL, type Perfil } from './tipos';
+import { useLogoOrg } from './logos';
+import { ROTULO_ROL, permisosDe, type Perfil } from './tipos';
 
 import simboloClaro from '../../assets/brand/simbolo-claro.png';
 
@@ -29,17 +30,20 @@ export const Enlace: React.FC<React.AnchorHTMLAttributes<HTMLAnchorElement> & { 
 /* ------------------------------------------------------------------ */
 /* Marco general: header como la landing, pie carbón                   */
 /* ------------------------------------------------------------------ */
-export const Marco: React.FC<{ perfil?: Perfil | null; children: React.ReactNode; ancho?: 'angosto' | 'normal' }> = ({ perfil, children, ancho = 'normal' }) => {
+/** orgId fija de qué cliente es el logo del header. Sin él, el de la empresa del usuario (o la de la vista previa). */
+export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; children: React.ReactNode; ancho?: 'angosto' | 'normal' }> = ({ perfil, orgId, children, ancho = 'normal' }) => {
   const vista = useVistaPrevia();
+  const logoCliente = useLogoOrg(orgId ?? vista?.orgId ?? perfil?.organizacion_id);
   const ruta = window.location.pathname.replace(/\/$/, '');
-  const links = perfil
+  const permisos = perfil ? permisosDe(perfil.rol) : null;
+  const links = perfil && permisos
     ? [
         { a: '/portal', titulo: 'Inicio', activo: ruta === '/portal' },
-        { a: '/portal/crm', titulo: 'CRM legal', activo: ruta.startsWith('/portal/crm') },
-        { a: '/portal/documentos', titulo: 'Documentos', activo: ruta.startsWith('/portal/documentos') },
-        { a: '/portal/agenda', titulo: 'Agenda', activo: ruta === '/portal/agenda' },
-        // Pagos solo para titulares y FIRMA. Los miembros del equipo no ven nada de pagos.
-        ...(perfil.rol === 'admin' || perfil.rol === 'titular' ? [{ a: '/portal/pagos', titulo: 'Pagos', activo: ruta === '/portal/pagos' }] : []),
+        ...(permisos.crm ? [{ a: '/portal/crm', titulo: 'CRM legal', activo: ruta.startsWith('/portal/crm') }] : []),
+        { a: '/portal/documentos', titulo: permisos.documentosLegales ? 'Documentos' : 'Protocolos', activo: ruta.startsWith('/portal/documentos') },
+        ...(permisos.agenda ? [{ a: '/portal/agenda', titulo: 'Agenda', activo: ruta === '/portal/agenda' }] : []),
+        // Pagos solo para titulares y FIRMA. El resto del equipo no ve nada de pagos.
+        ...(permisos.gestion ? [{ a: '/portal/pagos', titulo: 'Pagos', activo: ruta === '/portal/pagos' }] : []),
         ...(perfil.rol === 'admin' ? [{ a: '/portal/admin', titulo: 'Administración', activo: ruta.startsWith('/portal/admin') }] : []),
       ]
     : [];
@@ -52,7 +56,7 @@ export const Marco: React.FC<{ perfil?: Perfil | null; children: React.ReactNode
             <Eye size={16} aria-hidden="true" />
             <span className="flex-1 min-w-[200px]">
               Viendo como <strong>{vista.nombre ?? ROTULO_ROL[vista.rol]}</strong>, {ROTULO_ROL[vista.rol].toLowerCase()} de {vista.orgNombre}
-              {vista.rol === 'miembro' && vista.areas.length > 0 ? ` (${vista.areas.join(', ')})` : ''}. Solo lectura.
+              {vista.rol !== 'titular' && vista.areas.length > 0 ? ` (${vista.areas.join(', ')})` : ''}. Solo lectura.
             </span>
             <button type="button" onClick={salirVistaPrevia} className="font-medium underline underline-offset-4 hover:no-underline">
               Salir de la vista
@@ -63,8 +67,14 @@ export const Marco: React.FC<{ perfil?: Perfil | null; children: React.ReactNode
 
       <header className="sticky top-0 z-40 bg-marfil" style={{ borderBottom: '1px solid rgba(27,31,27,0.12)' }}>
         <div className="wrap flex items-center gap-6 h-20 desk:h-24">
-          <Enlace a="/portal" className="flex items-center min-w-0 shrink-0" aria-label="Inicio del portal">
-            <Logo className="h-[48px] desk:h-[60px] max-w-[46vw]" />
+          <Enlace a="/portal" className="flex items-center gap-4 desk:gap-5 min-w-0 shrink-0" aria-label="Inicio del portal">
+            <Logo className={`h-[48px] desk:h-[60px] ${logoCliente ? 'max-w-[30vw]' : 'max-w-[46vw]'}`} />
+            {logoCliente && (
+              <>
+                <span aria-hidden="true" className="w-px h-9 desk:h-11 bg-[rgba(27,31,27,0.2)]" />
+                <img src={logoCliente} alt="" className="h-8 desk:h-11 w-auto max-w-[24vw] desk:max-w-[180px] object-contain" />
+              </>
+            )}
           </Enlace>
           <nav className="hidden tab:flex items-center gap-7 text-sm font-medium ml-4">
             {links.map((l) => (

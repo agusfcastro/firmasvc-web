@@ -2,10 +2,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { UserPlus } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
-import { llamarApiAdmin } from '../useSesion';
+import { llamarApiAdmin, type RespuestaAdmin } from '../useSesion';
+import { BotonCopiar } from '../crm/firma';
 import { Aviso, Campo, Etiqueta, claseInput } from '../ui';
 import { iniciarVistaPrevia } from '../vistaPrevia';
-import { ROTULO_ROL, fechaCorta, type Area, type Organizacion, type Perfil, type Rol } from '../tipos';
+import { AYUDA_ROL, ROLES_CLIENTE, ROTULO_ROL, fechaCorta, type Area, type Organizacion, type Perfil, type Rol, type RolCliente } from '../tipos';
 
 interface Borrador {
   usuario_id?: string;
@@ -14,9 +15,17 @@ interface Borrador {
   rol: Rol;
   organizacion_id: string;
   areas: string[];
+  /** Crea la cuenta sin mandar mail y devuelve el enlace para mandarlo a mano */
+  sin_mail?: boolean;
 }
 
-const VACIO: Borrador = { email: '', nombre: '', rol: 'miembro', organizacion_id: '', areas: [] };
+interface EnlaceAcceso {
+  email: string;
+  url: string;
+  nota: string;
+}
+
+const VACIO: Borrador = { email: '', nombre: '', rol: 'closer', organizacion_id: '', areas: [], sin_mail: false };
 
 export const Usuarios: React.FC<{ yo: Perfil }> = ({ yo }) => {
   const [usuarios, setUsuarios] = useState<Perfil[]>([]);
@@ -27,6 +36,7 @@ export const Usuarios: React.FC<{ yo: Perfil }> = ({ yo }) => {
   const [borrador, setBorrador] = useState<Borrador | null>(null);
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
+  const [enlace, setEnlace] = useState<EnlaceAcceso | null>(null);
 
   async function cargar() {
     if (!supabase) return;
@@ -54,14 +64,23 @@ export const Usuarios: React.FC<{ yo: Perfil }> = ({ yo }) => {
     return !q || u.email.toLowerCase().includes(q) || (u.nombre ?? '').toLowerCase().includes(q);
   });
 
-  async function accion(cuerpo: Record<string, unknown>, exito: string, clave: string) {
+  async function accion(cuerpo: Record<string, unknown>, exito: string, clave: string): Promise<RespuestaAdmin> {
     setOcupado(clave);
     setMensaje(null);
+    setEnlace(null);
     const r = await llamarApiAdmin(cuerpo);
     setOcupado(null);
     setMensaje(r.ok ? { tipo: 'ok', texto: exito } : { tipo: 'error', texto: r.error ?? 'Error' });
     if (r.ok) await cargar();
-    return r.ok;
+    return r;
+  }
+
+  async function copiarEnlace(u: Perfil) {
+    const r = await accion({ accion: 'enlace_acceso', usuario_id: u.id }, 'Enlace de acceso listo.', u.id);
+    if (r.ok && r.enlace) {
+      setMensaje(null);
+      setEnlace({ email: u.email, url: r.enlace, nota: 'Mandáselo por WhatsApp o por mail. Con ese enlace define su contraseña y entra al portal.' });
+    }
   }
 
   async function guardar(e: React.FormEvent) {
@@ -71,12 +90,23 @@ export const Usuarios: React.FC<{ yo: Perfil }> = ({ yo }) => {
       nombre: borrador.nombre,
       rol: borrador.rol,
       organizacion_id: borrador.rol === 'admin' ? null : borrador.organizacion_id || null,
-      areas: borrador.areas,
+      areas: borrador.rol === 'csm' || borrador.rol === 'miembro' ? borrador.areas : [],
     };
-    const ok = borrador.usuario_id
+    const r = borrador.usuario_id
       ? await accion({ accion: 'actualizar', usuario_id: borrador.usuario_id, ...base }, 'Cambios guardados.', 'form')
-      : await accion({ accion: 'invitar', email: borrador.email, ...base }, `Invitación enviada a ${borrador.email}. Le llega un mail para definir su contraseña.`, 'form');
-    if (ok) setBorrador(null);
+      : await accion({ accion: 'invitar', email: borrador.email, sin_mail: borrador.sin_mail, ...base }, `Invitación enviada a ${borrador.email}. Le llega un mail para definir su contraseña.`, 'form');
+    if (!r.ok) return;
+    if (r.enlace) {
+      setMensaje(null);
+      setEnlace({
+        email: borrador.email,
+        url: r.enlace,
+        nota: borrador.sin_mail
+          ? 'La cuenta está creada. Mandale este enlace por WhatsApp o por mail para que defina su contraseña.'
+          : 'La cuenta está creada, pero el mail de invitación no salió. Mandale este enlace por WhatsApp o por mail para que defina su contraseña.',
+      });
+    }
+    setBorrador(null);
   }
 
   function alternarArea(clave: string) {
@@ -88,6 +118,19 @@ export const Usuarios: React.FC<{ yo: Perfil }> = ({ yo }) => {
   return (
     <div className="space-y-6">
       {mensaje && <Aviso tipo={mensaje.tipo}>{mensaje.texto}</Aviso>}
+      {enlace && (
+        <div className="bg-bosque text-marfil p-5 desk:p-6 flex flex-col gap-3 max-w-[760px]">
+          <p className="font-medium">Enlace de acceso de {enlace.email}</p>
+          <p className="text-sm text-calido">{enlace.nota} Vence en 24 horas y se usa una sola vez.</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <code className="flex-1 min-w-0 truncate text-xs bg-[rgba(0,0,0,0.2)] px-3 py-2.5">{enlace.url}</code>
+            <BotonCopiar texto={enlace.url} etiqueta="Copiar enlace" descripcion="Copiar el enlace de acceso" variante="claro" />
+            <button type="button" className="text-sm underline underline-offset-4" onClick={() => setEnlace(null)}>
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
 
       {borrador ? (
         <form onSubmit={guardar} className="bg-marfil-oscuro p-6 desk:p-8 space-y-5 max-w-[680px]">
@@ -105,11 +148,16 @@ export const Usuarios: React.FC<{ yo: Perfil }> = ({ yo }) => {
               disabled={borrador.usuario_id === yo.id}
               onChange={(e) => setBorrador({ ...borrador, rol: e.target.value as Rol })}
             >
-              <option value="miembro">{ROTULO_ROL.miembro}</option>
-              <option value="titular">{ROTULO_ROL.titular}</option>
+              {ROLES_CLIENTE.map((r) => (
+                <option key={r} value={r}>
+                  {ROTULO_ROL[r]}
+                </option>
+              ))}
+              {borrador.rol === 'miembro' && <option value="miembro">{ROTULO_ROL.miembro}</option>}
               <option value="admin">{ROTULO_ROL.admin}</option>
             </select>
           </Campo>
+          {borrador.rol !== 'admin' && <p className="text-xs text-piedra -mt-3">{AYUDA_ROL[borrador.rol as RolCliente]}</p>}
           {borrador.rol !== 'admin' && (
             <Campo etiqueta="Cliente">
               <select required className={claseInput} value={borrador.organizacion_id} onChange={(e) => setBorrador({ ...borrador, organizacion_id: e.target.value })}>
@@ -125,10 +173,10 @@ export const Usuarios: React.FC<{ yo: Perfil }> = ({ yo }) => {
             </Campo>
           )}
           {borrador.rol === 'admin' && <Aviso tipo="info">Un admin FIRMA ve y edita la información de todos los clientes. Dalo solo a tu equipo interno.</Aviso>}
-          {borrador.rol !== 'admin' && (
+          {(borrador.rol === 'csm' || borrador.rol === 'miembro') && (
             <fieldset>
               <legend className="text-sm font-medium mb-2">Áreas</legend>
-              <p className="text-xs text-piedra mb-3">Definen qué protocolos y videos va a ver. El titular ve todas.</p>
+              <p className="text-xs text-piedra mb-3">Opcional. Si marcás alguna, solo ve los documentos de esas áreas. Sin marcar, ve todos. El titular siempre ve todo.</p>
               <div className="flex flex-wrap gap-2">
                 {areas.map((a) => {
                   const marcada = borrador.areas.includes(a.clave);
@@ -147,9 +195,17 @@ export const Usuarios: React.FC<{ yo: Perfil }> = ({ yo }) => {
               </div>
             </fieldset>
           )}
+          {!borrador.usuario_id && (
+            <label className="flex items-start gap-2 text-sm">
+              <input type="checkbox" className="mt-1" checked={Boolean(borrador.sin_mail)} onChange={(e) => setBorrador({ ...borrador, sin_mail: e.target.checked })} />
+              <span>
+                No mandar mail. Creo la cuenta y copio el enlace de acceso para mandarlo yo por WhatsApp.
+              </span>
+            </label>
+          )}
           <div className="flex gap-3">
             <Button type="submit" disabled={ocupado === 'form'}>
-              {ocupado === 'form' ? 'Un momento…' : borrador.usuario_id ? 'Guardar cambios' : 'Enviar invitación'}
+              {ocupado === 'form' ? 'Un momento…' : borrador.usuario_id ? 'Guardar cambios' : borrador.sin_mail ? 'Crear usuario' : 'Enviar invitación'}
             </Button>
             <Button type="button" variant="ghost" onClick={() => setBorrador(null)}>
               Cancelar
@@ -223,7 +279,7 @@ export const Usuarios: React.FC<{ yo: Perfil }> = ({ yo }) => {
                           iniciarVistaPrevia({
                             orgId: u.organizacion_id!,
                             orgNombre: nombreOrg[u.organizacion_id!] ?? 'Cliente',
-                            rol: u.rol as 'titular' | 'miembro',
+                            rol: u.rol as RolCliente,
                             areas: u.areas,
                             nombre: u.nombre ?? u.email,
                           })
@@ -240,6 +296,11 @@ export const Usuarios: React.FC<{ yo: Perfil }> = ({ yo }) => {
                         onClick={() => accion({ accion: 'enviar_acceso', usuario_id: u.id }, `Enlace de acceso enviado a ${u.email}.`, u.id)}
                       >
                         Reenviar acceso
+                      </button>
+                    )}
+                    {u.activo && (
+                      <button type="button" disabled={ocupado === u.id} className="underline underline-offset-4 hover:text-bosque" onClick={() => void copiarEnlace(u)}>
+                        Copiar enlace
                       </button>
                     )}
                     {u.id !== yo.id && (

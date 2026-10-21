@@ -17,6 +17,7 @@ export interface ClienteCrm {
   link_contrato_servicio: string | null;
   responsable: string | null;
   notas: string | null;
+  condiciones?: string | null;
   plan_pagos_original: string | null;
   revisar_pagos: boolean;
   firma_url: string | null;

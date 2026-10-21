@@ -80,7 +80,15 @@ export function useSesion(): EstadoSesion {
 }
 
 /** Llama a la API de administración con el token de la sesión actual. */
-export async function llamarApiAdmin(cuerpo: Record<string, unknown>): Promise<{ ok: boolean; error?: string }> {
+export interface RespuestaAdmin {
+  ok: boolean;
+  error?: string;
+  /** Enlace de acceso para mandar a mano cuando no sale el mail */
+  enlace?: string | null;
+  motivo?: string | null;
+}
+
+export async function llamarApiAdmin(cuerpo: Record<string, unknown>): Promise<RespuestaAdmin> {
   if (!supabase) return { ok: false, error: 'Portal sin configurar.' };
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
@@ -91,9 +99,9 @@ export async function llamarApiAdmin(cuerpo: Record<string, unknown>): Promise<{
       headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
       body: JSON.stringify(cuerpo),
     });
-    const j = (await r.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+    const j = (await r.json().catch(() => ({}))) as Omit<RespuestaAdmin, 'ok'>;
     if (!r.ok) return { ok: false, error: j.error || `Error ${r.status}` };
-    return { ok: true };
+    return { ok: true, enlace: j.enlace ?? null, motivo: j.motivo ?? null };
   } catch {
     return { ok: false, error: 'No hay conexión con el servidor.' };
   }

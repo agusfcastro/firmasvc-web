@@ -6,13 +6,14 @@ import { Aviso, Campo, Cifras, Encabezado, Enlace, Etiqueta, Monto, TituloSeccio
 import { useVistaPrevia } from '../vistaPrevia';
 import { BotonCopiar, MENSAJE_CONTRATO, generarContrato } from './firma';
 import { TONO_FIRMA, dinero, fecha, hoyISO, type CambioHistorial, type ClienteCrm, type ContratoReservado, type EstadoFirma, type Pago, type Servicio } from './tipos';
-import { CAMPOS_CASO, VALORES_CASO } from './casos';
+import { CAMPOS_CASO, VALORES_CASO } from './reglasCasos';
 import { CasosCliente } from './Casos';
+import { BorradorContrato } from './borrador';
 
 const ROTULOS: Record<string, string> = {
   nombre: 'Nombre', dni: 'DNI', email: 'Mail', telefono: 'Teléfono', servicio: 'Servicio', monto_total: 'Monto total',
   modalidad: 'Modalidad', fecha_onboarding: 'Onboarding', estado_firma: 'Estado de la firma', link_contrato_servicio: 'Contrato de servicio',
-  responsable: 'Responsable', notas: 'Notas', revisar_pagos: 'Revisar pagos', monto: 'Monto', vencimiento: 'Vencimiento', estado: 'Estado',
+  responsable: 'Responsable', notas: 'Notas', condiciones: 'Condiciones acordadas', revisar_pagos: 'Revisar pagos', monto: 'Monto', vencimiento: 'Vencimiento', estado: 'Estado',
   fecha_pago: 'Fecha de pago', nota: 'Nota', link_contrato_cliente: 'Contrato del cliente', link_documento: 'Documento generado',
   firma_url: 'Link de firma', contrato_estado: 'Contrato', contrato_error: 'Error del contrato',
   ...CAMPOS_CASO,
@@ -44,7 +45,15 @@ function tituloCambio(h: CambioHistorial): string {
   return h.tabla === 'crm_pagos' ? 'Cuota modificada' : 'Ficha modificada';
 }
 
-export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boolean; orgNombre: string; cobranza: boolean; zapsign?: boolean }> = ({ id, esAdmin, puedeGestionar, orgNombre, cobranza, zapsign = false }) => {
+export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boolean; verCasos?: boolean; orgNombre: string; cobranza: boolean; zapsign?: boolean }> = ({
+  id,
+  esAdmin,
+  puedeGestionar,
+  verCasos = true,
+  orgNombre,
+  cobranza,
+  zapsign = false,
+}) => {
   const [cliente, setCliente] = useState<ClienteCrm | null>(null);
   const [borrador, setBorrador] = useState<ClienteCrm | null>(null);
   const [pagos, setPagos] = useState<Pago[]>([]);
@@ -111,6 +120,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
       fecha_onboarding: borrador.fecha_onboarding || null,
       responsable: borrador.responsable?.trim() || null,
       notas: borrador.notas?.trim() || null,
+      condiciones: borrador.condiciones?.trim() || null,
     };
     if (esAdmin) {
       cambios.estado_firma = borrador.estado_firma;
@@ -427,7 +437,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
           </fieldset>
         </section>
 
-        <CasosCliente clienteId={id} moneda={moneda} soloLectura={soloLectura} alContar={setCasosAbiertos} />
+        {verCasos && <CasosCliente clienteId={id} moneda={moneda} soloLectura={soloLectura} alContar={setCasosAbiertos} />}
 
         <div className="grid gap-12 desk:grid-cols-[7fr_5fr] desk:gap-14 items-start">
           {/* Datos */}
@@ -477,6 +487,9 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
               </div>
               <Campo etiqueta="Notas" ayuda="Cualquier información que pueda ser relevante.">
                 <textarea rows={4} className={`${claseInput} h-auto py-3`} value={borrador.notas ?? ''} onChange={(e) => set('notas', e.target.value)} />
+              </Campo>
+              <Campo etiqueta="Condiciones acordadas" ayuda="Descuentos, pagos especiales o lo que se haya pactado fuera del plan. Se usa al armar el contrato. Si las cambiás, volvé a armarlo.">
+                <textarea rows={3} className={`${claseInput} h-auto py-3`} value={borrador.condiciones ?? ''} onChange={(e) => set('condiciones', e.target.value)} />
               </Campo>
 
               {esAdmin && (
@@ -535,6 +548,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                 {etiquetaOscura('Estado de la firma')}
                 <span className="font-heading font-black text-[28px] leading-none">{cliente.estado_firma}</span>
               </div>
+              {cliente.estado_firma !== 'Baja' && <BorradorContrato clienteId={id} soloLectura={soloLectura} recienCreado={new URLSearchParams(window.location.search).has('armando')} etiqueta={etiquetaOscura} />}
               {(zapsign || cliente.firma_url || cliente.contrato_estado) && (
                 <div>
                   {etiquetaOscura('Link de firma')}

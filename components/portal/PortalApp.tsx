@@ -12,7 +12,7 @@ import { Agenda } from './Agenda';
 import { Documentos } from './Documentos';
 import { Pagos } from './Pagos';
 import { VistaPreviaContexto, leerVistaPrevia } from './vistaPrevia';
-import type { Organizacion, Perfil } from './tipos';
+import { permisosDe, type Organizacion, type Perfil } from './tipos';
 
 const CrmApp = lazy(() => import('./crm/CrmApp'));
 const PanelAdmin = lazy(() => import('./admin/PanelAdmin').then((m) => ({ default: m.PanelAdmin })));
@@ -91,7 +91,8 @@ export const PortalApp: React.FC = () => {
   if (vista) {
     const perfilVista: Perfil = { ...perfil, rol: vista.rol, organizacion_id: vista.orgId, areas: vista.areas, nombre: vista.nombre ?? perfil.nombre };
     const orgVista = { id: vista.orgId, nombre: vista.orgNombre, activa: true } as Organizacion;
-    const enCrm = ruta === '/portal/crm' || ruta.startsWith('/portal/crm/');
+    const permisosVista = permisosDe(vista.rol);
+    const enCrm = (ruta === '/portal/crm' || ruta.startsWith('/portal/crm/')) && permisosVista.crm;
     const enDocumentos = ruta === '/portal/documentos' || ruta.startsWith('/portal/documentos/');
     return (
       <VistaPreviaContexto.Provider value={vista}>
@@ -101,9 +102,9 @@ export const PortalApp: React.FC = () => {
           </Suspense>
         ) : enDocumentos ? (
           <Documentos perfil={perfilVista} organizacion={orgVista} ruta={ruta} />
-        ) : ruta === '/portal/agenda' ? (
+        ) : ruta === '/portal/agenda' && permisosVista.agenda ? (
           <Agenda perfil={perfilVista} organizacion={orgVista} />
-        ) : ruta === '/portal/pagos' && perfilVista.rol === 'titular' ? (
+        ) : ruta === '/portal/pagos' && permisosVista.gestion ? (
           <Pagos perfil={perfilVista} organizacion={orgVista} />
         ) : (
           <Inicio estado={{ ...estado, perfil: perfilVista, organizacion: orgVista }} />
@@ -112,7 +113,9 @@ export const PortalApp: React.FC = () => {
     );
   }
 
-  if (ruta === '/portal/crm' || ruta.startsWith('/portal/crm/')) {
+  const permisos = permisosDe(perfil.rol);
+
+  if ((ruta === '/portal/crm' || ruta.startsWith('/portal/crm/')) && permisos.crm) {
     return (
       <Suspense fallback={<Cargando />}>
         <CrmApp perfil={perfil} organizacion={estado.organizacion} ruta={ruta} />
@@ -124,11 +127,11 @@ export const PortalApp: React.FC = () => {
     return <Documentos perfil={perfil} organizacion={estado.organizacion} ruta={ruta} />;
   }
 
-  if (ruta === '/portal/agenda') return <Agenda perfil={perfil} organizacion={estado.organizacion} />;
+  if (ruta === '/portal/agenda' && permisos.agenda) return <Agenda perfil={perfil} organizacion={estado.organizacion} />;
 
-  // Pagos solo para titulares y FIRMA. Un miembro del equipo vuelve al inicio.
+  // Pagos solo para titulares y FIRMA. El resto del equipo vuelve al inicio.
   if (ruta === '/portal/pagos') {
-    if (perfil.rol === 'miembro') return <Inicio estado={estado} />;
+    if (!permisos.gestion) return <Inicio estado={estado} />;
     return <Pagos perfil={perfil} organizacion={estado.organizacion} />;
   }
 

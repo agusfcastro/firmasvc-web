@@ -22,7 +22,7 @@ import {
   type Abono,
   type Disponibilidad,
   type PagoAbono,
-} from './pagos';
+} from './abonos';
 
 /**
  * Pagos del cliente en /portal/pagos. Solo titulares y FIRMA.

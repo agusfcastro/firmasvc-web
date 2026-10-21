@@ -4,10 +4,19 @@ import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { Aviso, Campo, Etiqueta, Interruptor, claseInput } from '../ui';
 import { iniciarVistaPrevia } from '../vistaPrevia';
-import { PAISES, type Organizacion } from '../tipos';
+import { PAISES, ROLES_CLIENTE, ROTULO_ROL, type Organizacion, type RolCliente } from '../tipos';
+import { TIPOS_LOGO, borrarArchivoLogo, fijarLogo, subirLogo } from '../logos';
 
-type Borrador = Pick<Organizacion, 'nombre' | 'razon_social' | 'pais' | 'activa' | 'notas'> & { id?: string; prefijo_crm?: string | null; seguimiento_cobranza?: boolean };
-const VACIO: Borrador = { nombre: '', razon_social: '', pais: 'AR', activa: true, notas: '', prefijo_crm: '', seguimiento_cobranza: false };
+type Borrador = Pick<Organizacion, 'nombre' | 'razon_social' | 'pais' | 'activa' | 'notas'> & {
+  id?: string;
+  prefijo_crm?: string | null;
+  seguimiento_cobranza?: boolean;
+  logo_url?: string | null;
+  drive_carpeta_revision?: string | null;
+  /** Logo elegido y todavía sin subir. null quita el actual. */
+  logoNuevo?: File | null;
+};
+const VACIO: Borrador = { nombre: '', razon_social: '', pais: 'AR', activa: true, notas: '', prefijo_crm: '', seguimiento_cobranza: false, logo_url: null };
 
 export const Clientes: React.FC = () => {
   const [lista, setLista] = useState<Organizacion[]>([]);
@@ -15,6 +24,15 @@ export const Clientes: React.FC = () => {
   const [borrador, setBorrador] = useState<Borrador | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const [previa, setPrevia] = useState<string | null>(null);
+
+  // Vista previa local del logo elegido antes de guardar.
+  useEffect(() => {
+    if (!borrador?.logoNuevo) return setPrevia(null);
+    const u = URL.createObjectURL(borrador.logoNuevo);
+    setPrevia(u);
+    return () => URL.revokeObjectURL(u);
+  }, [borrador?.logoNuevo]);
 
   async function cargar() {
     if (!supabase) return;
@@ -48,12 +66,39 @@ export const Clientes: React.FC = () => {
       notas: borrador.notas?.trim() || null,
       prefijo_crm: borrador.prefijo_crm?.trim().toUpperCase() || null,
       seguimiento_cobranza: Boolean(borrador.seguimiento_cobranza),
+      drive_carpeta_revision: borrador.drive_carpeta_revision?.trim() || null,
     };
-    const { error: err } = borrador.id
-      ? await supabase.from('organizaciones').update(datos).eq('id', borrador.id)
-      : await supabase.from('organizaciones').insert(datos);
+    const { data: fila, error: err } = borrador.id
+      ? await supabase.from('organizaciones').update(datos).eq('id', borrador.id).select('id').single()
+      : await supabase.from('organizaciones').insert(datos).select('id').single();
+    if (err || !fila) {
+      setGuardando(false);
+      return setError(err?.message ?? 'No se pudo guardar el cliente.');
+    }
+
+    // El logo se sube después, porque la ruta del archivo usa el id del cliente.
+    if (borrador.logoNuevo !== undefined) {
+      const anterior = borrador.logo_url ?? null;
+      let logo_url: string | null = null;
+      if (borrador.logoNuevo) {
+        const r = await subirLogo(fila.id, borrador.logoNuevo, anterior);
+        if (r.error) {
+          setGuardando(false);
+          void cargar();
+          return setError(`El cliente se guardó, pero no se pudo subir el logo. ${r.error}`);
+        }
+        logo_url = r.url ?? null;
+      } else {
+        await borrarArchivoLogo(anterior);
+      }
+      const { error: errLogo } = await supabase.from('organizaciones').update({ logo_url }).eq('id', fila.id);
+      if (errLogo) {
+        setGuardando(false);
+        return setError(errLogo.message);
+      }
+      fijarLogo(fila.id, logo_url);
+    }
     setGuardando(false);
-    if (err) return setError(err.message);
     setBorrador(null);
     void cargar();
   }
@@ -70,6 +115,33 @@ export const Clientes: React.FC = () => {
           </Campo>
           <Campo etiqueta="Razón social">
             <input className={claseInput} value={borrador.razon_social ?? ''} onChange={(e) => setBorrador({ ...borrador, razon_social: e.target.value })} />
+          </Campo>
+          <Campo etiqueta="Logo" ayuda="PNG, JPG, WEBP o SVG de hasta 2 MB, mejor con fondo transparente. Se ve en el portal de la empresa, en el CRM y en los casos.">
+            <div className="flex flex-wrap items-center gap-4">
+              {(previa || (borrador.logoNuevo === undefined && borrador.logo_url)) && (
+                <div className="h-16 px-4 flex items-center bg-white border border-[rgba(27,31,27,0.15)]">
+                  <img src={previa ?? borrador.logo_url ?? ''} alt={`Logo de ${borrador.nombre || 'el cliente'}`} className="max-h-11 max-w-[180px] object-contain" />
+                </div>
+              )}
+              <label className="inline-flex items-center h-10 px-4 border border-tinta text-sm font-medium cursor-pointer hover:bg-tinta hover:text-marfil transition-colors duration-150">
+                {previa || (borrador.logoNuevo === undefined && borrador.logo_url) ? 'Cambiar logo' : 'Elegir logo'}
+                <input
+                  type="file"
+                  accept={TIPOS_LOGO.join(',')}
+                  className="sr-only"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    e.target.value = '';
+                    if (f) setBorrador({ ...borrador, logoNuevo: f });
+                  }}
+                />
+              </label>
+              {(previa || (borrador.logoNuevo === undefined && borrador.logo_url)) && (
+                <button type="button" className="text-sm underline underline-offset-4 hover:text-bosque" onClick={() => setBorrador({ ...borrador, logoNuevo: borrador.logo_url ? null : undefined })}>
+                  Quitar logo
+                </button>
+              )}
+            </div>
           </Campo>
           <Campo etiqueta="País">
             <select className={claseInput} value={borrador.pais} onChange={(e) => setBorrador({ ...borrador, pais: e.target.value })}>
@@ -89,6 +161,17 @@ export const Clientes: React.FC = () => {
             etiqueta="Seguimiento de cobranza en el portal"
             ayuda="Apagado, el CRM solo guarda el plan pactado para el contrato. Encendido, el equipo marca las cuotas pagadas y ve las vencidas."
           />
+          <Campo
+            etiqueta="Carpeta de revisión en Drive"
+            ayuda="Link de la carpeta donde caen los borradores de contrato. Compartila como Editor con la cuenta de servicio, o que sea de una unidad compartida a la que tenga acceso."
+          >
+            <input
+              className={claseInput}
+              placeholder="https://drive.google.com/drive/folders/..."
+              value={borrador.drive_carpeta_revision ?? ''}
+              onChange={(e) => setBorrador({ ...borrador, drive_carpeta_revision: e.target.value })}
+            />
+          </Campo>
           <Campo etiqueta="Notas internas" ayuda="Solo las ven los admin de FIRMA.">
             <textarea rows={3} className={`${claseInput} h-auto py-2`} value={borrador.notas ?? ''} onChange={(e) => setBorrador({ ...borrador, notas: e.target.value })} />
           </Campo>
@@ -134,20 +217,34 @@ export const Clientes: React.FC = () => {
             {lista.map((o) => (
               <tr key={o.id}>
                 <td>
-                  <div className="font-heading font-bold text-[16px] leading-tight">{o.nombre}</div>
-                  {o.razon_social && <div className="text-xs text-piedra">{o.razon_social}</div>}
+                  <div className="flex items-center gap-3">
+                    <div className="w-14 h-10 shrink-0 flex items-center justify-center bg-white border border-[rgba(27,31,27,0.1)]">
+                      {o.logo_url ? <img src={o.logo_url} alt="" className="max-h-8 max-w-[48px] object-contain" /> : <span className="text-[10px] text-piedra">Sin logo</span>}
+                    </div>
+                    <div>
+                      <div className="font-heading font-bold text-[16px] leading-tight">{o.nombre}</div>
+                      {o.razon_social && <div className="text-xs text-piedra">{o.razon_social}</div>}
+                    </div>
+                  </div>
                 </td>
                 <td>{PAISES[o.pais] ?? o.pais}</td>
                 <td>{conteo[o.id] ?? 0}</td>
                 <td>{o.seguimiento_cobranza ? <Etiqueta tono="bosque">Con seguimiento</Etiqueta> : <Etiqueta>Solo plan</Etiqueta>}</td>
                 <td>{o.activa ? <Etiqueta tono="bosque">Activo</Etiqueta> : <Etiqueta tono="alerta">Inactivo</Etiqueta>}</td>
                 <td className="text-right whitespace-nowrap">
-                  <button type="button" className="underline underline-offset-4 hover:text-bosque mr-4" onClick={() => iniciarVistaPrevia({ orgId: o.id, orgNombre: o.nombre, rol: 'titular', areas: [] })}>
-                    Ver como titular
-                  </button>
-                  <button type="button" className="underline underline-offset-4 hover:text-bosque mr-4" onClick={() => iniciarVistaPrevia({ orgId: o.id, orgNombre: o.nombre, rol: 'miembro', areas: [] })}>
-                    Ver como miembro
-                  </button>
+                  <select
+                    aria-label={`Ver el portal de ${o.nombre} como`}
+                    className="h-9 px-2 mr-4 bg-white border border-[rgba(27,31,27,0.25)] text-sm"
+                    value=""
+                    onChange={(e) => e.target.value && iniciarVistaPrevia({ orgId: o.id, orgNombre: o.nombre, rol: e.target.value as RolCliente, areas: [] })}
+                  >
+                    <option value="">Ver como…</option>
+                    {ROLES_CLIENTE.map((r) => (
+                      <option key={r} value={r}>
+                        {ROTULO_ROL[r]}
+                      </option>
+                    ))}
+                  </select>
                   <button type="button" className="underline underline-offset-4 hover:text-bosque" onClick={() => setBorrador({ ...o })}>
                     Editar
                   </button>

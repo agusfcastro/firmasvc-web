@@ -2,7 +2,7 @@ import React from 'react';
 import { ArrowRight, BookOpen, CalendarDays, ClipboardList, FileText, GraduationCap, Kanban, ShieldCheck, Users, Wallet } from 'lucide-react';
 import { Encabezado, Enlace, Marco } from './ui';
 import type { EstadoSesion } from './useSesion';
-import { ROTULO_ROL } from './tipos';
+import { ROTULO_ROL, permisosDe, type Permisos } from './tipos';
 
 interface Modulo {
   titulo: string;
@@ -11,19 +11,20 @@ interface Modulo {
   ruta?: string;
   externo?: boolean;
   soloAdmin?: boolean;
-  soloTitular?: boolean;
+  /** Permiso que hace falta para verlo */
+  permiso?: keyof Permisos;
 }
 
 const MODULOS: Modulo[] = [
-  { titulo: 'CRM legal', texto: 'Clientes, contratos, firmas y plan de pagos, al día y con historial.', icono: Kanban, ruta: '/portal/crm' },
-  { titulo: 'Documentos', texto: 'Modelos de contrato, contratos con tu equipo y otros documentos de tu empresa.', icono: FileText, ruta: '/portal/documentos' },
-  { titulo: 'Agenda', texto: 'Reservá una reunión con FIRMA en el horario que te quede mejor.', icono: CalendarDays, ruta: '/portal/agenda' },
+  { titulo: 'CRM legal', texto: 'Clientes, contratos, firmas y plan de pagos, al día y con historial.', icono: Kanban, ruta: '/portal/crm', permiso: 'crm' },
+  { titulo: 'Documentos', texto: 'Modelos de contrato, contratos con tu equipo y otros documentos de tu empresa.', icono: FileText, ruta: '/portal/documentos', permiso: 'documentosLegales' },
+  { titulo: 'Agenda', texto: 'Reservá una reunión con FIRMA en el horario que te quede mejor.', icono: CalendarDays, ruta: '/portal/agenda', permiso: 'agenda' },
   { titulo: 'Administración', texto: 'Empresas, usuarios, roles y registro de accesos.', icono: ShieldCheck, ruta: '/portal/admin', soloAdmin: true },
   { titulo: 'Protocolos', texto: 'Los protocolos de trabajo de cada área de tu equipo.', icono: BookOpen, ruta: '/protocolo-llamadas', externo: true },
-  { titulo: 'Estado de asuntos', texto: 'Seguimiento de cada trámite en curso.', icono: ClipboardList },
-  { titulo: 'Abonos y pagos', texto: 'Tu abono mensual con FIRMA, el próximo cobro y el historial de pagos.', icono: Wallet, ruta: '/portal/pagos', soloTitular: true },
+  { titulo: 'Estado de asuntos', texto: 'Seguimiento de cada trámite en curso.', icono: ClipboardList, permiso: 'casos' },
+  { titulo: 'Abonos y pagos', texto: 'Tu abono mensual con FIRMA, el próximo cobro y el historial de pagos.', icono: Wallet, ruta: '/portal/pagos', permiso: 'gestion' },
   { titulo: 'Formación', texto: 'Videos por área para capacitar a tu equipo.', icono: GraduationCap },
-  { titulo: 'Mi equipo', texto: 'Personas de tu empresa con acceso al portal.', icono: Users, soloTitular: true },
+  { titulo: 'Mi equipo', texto: 'Personas de tu empresa con acceso al portal.', icono: Users, permiso: 'gestion' },
 ];
 
 function saludo(): string {
@@ -35,7 +36,13 @@ export const Inicio: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
   const { perfil, organizacion } = estado;
   if (!perfil) return null;
   const esAdmin = perfil.rol === 'admin';
-  const visibles = MODULOS.filter((m) => (m.soloAdmin ? esAdmin : m.soloTitular ? esAdmin || perfil.rol === 'titular' : true));
+  const permisos = permisosDe(perfil.rol);
+  const visibles = MODULOS.filter((m) => (m.soloAdmin ? esAdmin : m.permiso ? permisos[m.permiso] : true));
+  // Sin documentos legales, la biblioteca muestra solo protocolos: se entra por ahí.
+  if (!permisos.documentosLegales) {
+    const i = visibles.findIndex((m) => m.titulo === 'Protocolos');
+    if (i >= 0) visibles[i] = { ...visibles[i], texto: 'Los protocolos de trabajo y la formación de tu equipo.', ruta: '/portal/documentos', externo: false };
+  }
   const nombre = (perfil.nombre || '').split(' ')[0];
 
   return (

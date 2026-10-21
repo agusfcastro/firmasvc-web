@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { Documento, Perfil, SeccionDocumento } from './tipos';
+import { permisosDe, type Documento, type Perfil, type SeccionDocumento } from './tipos';
 
 /**
  * Documentos del portal. Secciones, formatos admitidos y descargas.
@@ -105,8 +105,9 @@ export function fechaLarga(iso: string): string {
 export function visibleEnPantalla(d: Documento, rol: Perfil['rol'], areas: string[], orgId: string | null): boolean {
   if (!d.activo) return false;
   if (d.organizacion_id !== null && d.organizacion_id !== orgId) return false;
+  if (!d.es_protocolo && !permisosDe(rol).documentosLegales) return false;
   const areasDoc = d.areas ?? [];
-  if (rol !== 'miembro' || areasDoc.length === 0) return true;
+  if (rol === 'admin' || rol === 'titular' || areasDoc.length === 0) return true;
   return areasDoc.some((a) => areas.includes(a));
 }
 

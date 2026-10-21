@@ -4,16 +4,19 @@
  * Solo responde a un admin FIRMA activo.
  *
  * POST /api/admin/usuarios  { accion, ... }
- *   invitar     { email, nombre, rol, organizacion_id, areas }
+ *   invitar     { email, nombre, rol, organizacion_id, areas, sin_mail? }
+ *               Si el mail no sale (o sin_mail), devuelve { enlace } para mandarlo a mano.
  *   actualizar  { usuario_id, nombre?, rol?, organizacion_id?, areas? }
  *   activar     { usuario_id }
  *   desactivar  { usuario_id }
  *   enviar_acceso { usuario_id }   reenvía el enlace para definir contraseña
+ *   enlace_acceso { usuario_id }   devuelve { enlace } sin mandar mail
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-type Rol = 'admin' | 'titular' | 'miembro';
-const ROLES: Rol[] = ['admin', 'titular', 'miembro'];
+// miembro es el rol anterior a csm: se acepta en cuentas viejas pero ya no se asigna.
+type Rol = 'admin' | 'titular' | 'csm' | 'closer' | 'setter' | 'miembro';
+const ROLES: Rol[] = ['admin', 'titular', 'csm', 'closer', 'setter'];
 const BLOQUEO = '876000h'; // unos 100 años, equivale a bloqueo indefinido
 
 const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -77,7 +80,7 @@ export async function POST(request: Request): Promise<Response> {
   if (accion === 'invitar') {
     const email = String(cuerpo.email || '').trim().toLowerCase();
     const nombre = String(cuerpo.nombre || '').trim().slice(0, 120);
-    const rol = String(cuerpo.rol || 'miembro') as Rol;
+    const rol = String(cuerpo.rol || 'csm') as Rol;
     const organizacion_id = cuerpo.organizacion_id ? String(cuerpo.organizacion_id) : null;
     const areas = areasValidas(cuerpo.areas) ?? [];
 
@@ -90,13 +93,25 @@ export async function POST(request: Request): Promise<Response> {
       if (!org) return error('El cliente elegido no existe.');
     }
 
-    const { data: invitado, error: errInv } = await sb.auth.admin.inviteUserByEmail(email, {
-      redirectTo: urlDelPortal(request),
-      data: { nombre },
-    });
-    if (errInv || !invitado?.user) {
-      const ya = /already|registered|exists/i.test(errInv?.message || '');
-      return error(ya ? 'Ese mail ya tiene una cuenta. Buscalo en la lista y reenviale el acceso.' : `No se pudo enviar la invitación. ${errInv?.message ?? ''}`.trim(), ya ? 409 : 502);
+    const opciones = { redirectTo: urlDelPortal(request), data: { nombre } };
+    const ya = (m?: string) => /already|registered|exists/i.test(m || '');
+    let invitado: { user: { id: string } } | null = null;
+    let enlace: string | null = null;
+    let motivo: string | null = null;
+
+    if (!cuerpo.sin_mail) {
+      const r = await sb.auth.admin.inviteUserByEmail(email, opciones);
+      if (ya(r.error?.message)) return error('Ese mail ya tiene una cuenta. Buscalo en la lista y copiale el enlace de acceso.', 409);
+      if (r.data?.user) invitado = { user: r.data.user };
+      else motivo = r.error?.message ?? 'sin detalle';
+    }
+    // Sin mail, o si el servidor de mails lo rechazó, se crea la cuenta igual y se devuelve el enlace.
+    if (!invitado) {
+      const r = await sb.auth.admin.generateLink({ type: 'invite', email, options: opciones });
+      if (ya(r.error?.message)) return error('Ese mail ya tiene una cuenta. Buscalo en la lista y copiale el enlace de acceso.', 409);
+      if (r.error || !r.data?.user || !r.data.properties?.action_link) return error(`No se pudo crear la cuenta. ${r.error?.message ?? motivo ?? ''}`.trim(), 502);
+      invitado = { user: r.data.user };
+      enlace = r.data.properties.action_link;
     }
 
     const { error: errPerfil } = await sb.from('perfiles').upsert({
@@ -113,8 +128,8 @@ export async function POST(request: Request): Promise<Response> {
       await sb.auth.admin.deleteUser(invitado.user.id);
       return error(`No se pudo crear el perfil. ${errPerfil.message}`, 500);
     }
-    await registrar(sb, actor, invitado.user.id, 'invitacion', { email, rol, organizacion_id, areas });
-    return json({ ok: true, usuario_id: invitado.user.id });
+    await registrar(sb, actor, invitado.user.id, 'invitacion', { email, rol, organizacion_id, areas, por_mail: !enlace });
+    return json({ ok: true, usuario_id: invitado.user.id, enlace, motivo });
   }
 
   // Las demás acciones operan sobre un usuario existente.
@@ -162,6 +177,17 @@ export async function POST(request: Request): Promise<Response> {
     if (errMail) return error(`No se pudo enviar el mail. ${errMail.message}`, 502);
     await registrar(sb, actor, usuario_id, 'envio_acceso');
     return json({ ok: true });
+  }
+
+  if (accion === 'enlace_acceso') {
+    if (!perfil.activo) return error('La cuenta está desactivada. Activala primero.');
+    // Quien nunca aceptó la invitación recibe otra; quien ya tiene cuenta, un enlace para definir contraseña.
+    const { data: cuenta } = await sb.auth.admin.getUserById(usuario_id);
+    const tipo = cuenta?.user?.email_confirmed_at ? 'recovery' : 'invite';
+    const { data: link, error: errLink } = await sb.auth.admin.generateLink({ type: tipo, email: perfil.email, options: { redirectTo: urlDelPortal(request) } });
+    if (errLink || !link?.properties?.action_link) return error(`No se pudo generar el enlace. ${errLink?.message ?? ''}`.trim(), 502);
+    await registrar(sb, actor, usuario_id, 'enlace_acceso');
+    return json({ ok: true, enlace: link.properties.action_link });
   }
 
   return error('Acción desconocida.');

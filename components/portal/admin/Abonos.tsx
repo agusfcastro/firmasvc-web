@@ -22,7 +22,7 @@ import {
   type Disponibilidad,
   type MonedaAbono,
   type PagoAbono,
-} from '../pagos';
+} from '../abonos';
 
 /**
  * Abonos mensuales con tarjeta, cobrados con dLocal Go. FIRMA arma cada

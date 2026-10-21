@@ -82,10 +82,10 @@ Después hacé un redeploy. Para probar en tu compu copiá `.env.example` como `
 
 Entrá a `firmasvc.com/portal`.
 
-1. **Clientes** para dar de alta cada empresa.
-2. **Usuarios › Invitar usuario** con mail, nombre, rol, cliente y áreas. A la persona le llega el mail y define su contraseña.
+1. **Clientes** para dar de alta cada empresa, con su logo.
+2. **Usuarios › Invitar usuario** con mail, nombre, rol, cliente y áreas. A la persona le llega el mail y define su contraseña. Si el mail no sale, la cuenta se crea igual y el panel muestra el enlace de acceso para copiarlo y mandarlo por WhatsApp. Si marcás **No mandar mail**, va directo al enlace.
 3. Para cortar el acceso de alguien usá **Desactivar**. Queda bloqueado de inmediato y su historial se conserva.
-4. Si alguien perdió el mail o la contraseña, **Reenviar acceso**.
+4. Si alguien perdió el mail o la contraseña, **Reenviar acceso** se lo manda por mail y **Copiar enlace** te lo da para mandarlo vos. Cada enlace vence en 24 horas y se usa una sola vez.
 5. **Registro de accesos** muestra quién ingresó y quién cambió permisos.
 
 ### Roles
@@ -93,8 +93,12 @@ Entrá a `firmasvc.com/portal`.
 | Rol | Qué ve |
 |---|---|
 | Admin FIRMA | Todo, de todos los clientes, y el panel de administración |
-| Titular del cliente | Todo lo de su empresa y la lista de su equipo |
-| Miembro del equipo | Lo de su empresa limitado a las áreas que le asignes |
+| Titular | Todo lo de su empresa, incluida la administración: equipo, pagos y servicios |
+| CSM | Todo menos la administración de la empresa. Si le marcás áreas, los documentos se limitan a esas |
+| Closer | CRM y agenda, sin casos de conflicto. De documentos, solo protocolos y formación |
+| Setter | Solo protocolos y formación |
+
+Las cuentas viejas con rol Miembro del equipo funcionan como CSM. Para que rijan estos roles corré `supabase/migraciones/0012_roles_equipo.sql` en **SQL Editor**. Un documento cuenta como protocolo o formación cuando tiene marcada esa casilla en **Administración › Documentos**; la migración la marca sola en los protocolos que ya estaban.
 
 Los permisos los aplica la base de datos. Aunque alguien manipule la página, un cliente no puede leer datos de otro.
 
@@ -136,7 +140,9 @@ Cada descarga de un cliente queda en **Registro de accesos**. Formatos admitidos
 
 ## CRM con contratos en ZapSign
 
-Al dar de alta un cliente en el CRM se genera su contrato en ZapSign con el modelo del servicio. El link de firma queda en la ficha y en el listado, con un botón para copiarlo. Cuando el cliente firma, ZapSign avisa y el estado pasa a Firmado.
+**En pausa.** El alta ya no genera el contrato en ZapSign: ahora arma un borrador en Drive (ver *Borradores de contrato con Claude*) y el envío a firmar se hace a mano. La generación en ZapSign sigue disponible desde la ficha para las empresas que lo tengan conectado.
+
+Al dar de alta un cliente en el CRM se generaba su contrato en ZapSign con el modelo del servicio. El link de firma queda en la ficha y en el listado, con un botón para copiarlo. Cuando el cliente firma, ZapSign avisa y el estado pasa a Firmado.
 
 ### Puesta en marcha
 
@@ -204,7 +210,7 @@ Registro de reclamos y pedidos de reembolso de cada cliente final, en `firmasvc.
 |---|---|
 | `supabase/migraciones/0007_crm_casos.sql` | Tabla de casos, reglas de coherencia, historial y permisos |
 | `components/portal/crm/Casos.tsx` | Tablero, registro y formulario, más la sección de casos de la ficha |
-| `components/portal/crm/casos.ts` | Tipos, rótulos y cálculo de los indicadores |
+| `components/portal/crm/reglasCasos.ts` | Tipos, rótulos y cálculo de los indicadores |
 
 ## Protocolos
 
@@ -338,6 +344,66 @@ Este módulo cobra pero no emite facturas. La facturación electrónica de cada 
 | `api/pagos/dlocalgo.ts` | Avisos de dLocal Go con clave por abono, que disparan la actualización del estado |
 | `components/portal/Pagos.tsx` | Sección Pagos del titular |
 | `components/portal/admin/Abonos.tsx` | Pestaña Abonos de Administración |
-| `components/portal/pagos.ts` | Tipos, rótulos, países, formatos y llamadas a la API |
+| `components/portal/abonos.ts` | Tipos, rótulos, países, formatos y llamadas a la API |
 
 Las tres funciones de `api/pagos` comparten un bloque común idéntico, con el cliente de dLocal Go y la sincronización, porque cada función de Vercel es autocontenida. Si se cambia en una, se cambia igual en las tres.
+
+## Logos de clientes
+
+Cada empresa puede tener su logo. Se ve en el header del portal al lado del de FIRMA para todo su equipo, y en el CRM y los casos de esa empresa. Cuando un admin elige una empresa en el CRM, ve el logo de esa empresa.
+
+### Puesta en marcha
+
+En Supabase abrí **SQL Editor › New query**, pegá todo `supabase/migraciones/0011_logos_clientes.sql` y apretá **Run**. Suma la columna `logo_url` a `organizaciones` y crea el bucket público `logos`, donde solo los admin de FIRMA pueden subir. Se puede correr más de una vez.
+
+### Uso
+
+En **Administración › Clientes › Editar** (o **Nuevo cliente**) tocá **Elegir logo**. PNG, JPG, WEBP o SVG de hasta 2 MB, mejor con fondo transparente. Se sube al guardar. **Quitar logo** lo borra.
+
+| Archivo | Para qué |
+|---|---|
+| `supabase/migraciones/0011_logos_clientes.sql` | Columna del logo, bucket y permisos |
+| `components/portal/logos.ts` | Subida, borrado y lectura del logo con caché |
+
+## Servicios
+
+Cada empresa carga lo que vende en **CRM legal › Servicios** (`/portal/crm/servicios`). Lo hace el titular, o vos desde la misma pantalla eligiendo la empresa en el CRM.
+
+- **Nombre** y **código**. El código no se cambia después del alta porque lo usan las ventas ya cargadas.
+- **Ticket**, opcional. Si está, aparece como monto sugerido al cargar una venta y se puede cambiar por un descuento. Si no hay precio fijo, se deja vacío y el monto se carga en cada venta.
+- **Modelo de contrato**, solo FIRMA. Un Word con los datos a completar marcados, por ejemplo `[NOMBRE Y APELLIDO]`. Opcionalmente, uno distinto para pago total; si no está, Claude adapta el general.
+
+## Borradores de contrato con Claude
+
+Al cargar una venta en el CRM, el portal arma el contrato y lo deja en la carpeta de revisión de Drive de la empresa. No envía nada a firmar.
+
+1. Toma el modelo del servicio.
+2. Claude lo completa con los datos del cliente, el plan de pagos y las **condiciones acordadas**, un campo de texto libre del alta donde el vendedor escribe descuentos, pagos especiales o lo que se haya pactado. Claude lo interpreta como lo haría un abogado, sin una lista fija de formatos.
+3. Lo que falta o es dudoso sale en rojo como `[COMPLETAR: …]` y el archivo lleva `[INCOMPLETO]` en el nombre. Nada se inventa.
+4. La ficha del cliente muestra el estado, el link al archivo de Drive y los avisos para la revisión: qué marcó, qué interpretó y qué redactó nuevo. **Volver a armar** reemplaza el mismo archivo en Drive (por ejemplo, después de corregir las condiciones).
+
+Usa Claude Opus 5.5 con razonamiento y salida estructurada. Si Claude rechaza un pedido, el servidor reintenta solo con otro modelo (fallback automático de la API). Cada armado tarda uno o dos minutos.
+
+### Puesta en marcha
+
+1. En Supabase corré, en orden, `0011_logos_clientes.sql`, `0012_roles_equipo.sql` y `0013_contratos_borrador.sql`.
+2. En Vercel cargá estas variables para Production y Preview y hacé un redeploy.
+
+| Variable | Valor |
+|---|---|
+| `ANTHROPIC_API_KEY` | Clave de la API de Anthropic (console.anthropic.com › API Keys) |
+| `GOOGLE_CREDS_JSON` | El contenido completo del `credenciales.json` de la cuenta de servicio `agente-contratos`, la misma que usaba el agente de GitHub |
+| `GOOGLE_SUBJECT` | `agustin@firmasvc.com`, el usuario en cuyo nombre la cuenta escribe en Drive. Requiere la delegación en todo el dominio que ya está configurada. Si las carpetas están en una unidad compartida, se puede omitir |
+
+3. Por empresa, en **Administración › Clientes › Editar**, pegá el link de su carpeta `Pendientes de revisión`. La cuenta de servicio tiene que tener acceso de Editor (o el usuario de `GOOGLE_SUBJECT`, si usás delegación).
+4. Por servicio, en **CRM legal › Servicios**, subí el modelo de contrato. Para Real+ y Testo Boost sirven los Word de `contratos-agent/plantillas/<cliente>/modelos/`.
+
+Con esto el agente de GitHub (`contratos-agent`) se puede apagar: deshabilitá el workflow en la pestaña Actions del repo.
+
+| Archivo | Para qué |
+|---|---|
+| `supabase/migraciones/0012_roles_equipo.sql` | Roles CSM, Closer y Setter y sus permisos en CRM, casos, documentos y agenda |
+| `supabase/migraciones/0013_contratos_borrador.sql` | Modelos por servicio, carpeta de Drive, condiciones acordadas y estado de cada borrador |
+| `api/crm/borrador.ts` | Arma el borrador con Claude y lo sube a Drive |
+| `components/portal/crm/borrador.tsx` | Estado del borrador en la ficha y pedido al servidor |
+| `components/portal/crm/Servicios.tsx` | Servicios de cada empresa con ticket opcional y modelo de contrato |

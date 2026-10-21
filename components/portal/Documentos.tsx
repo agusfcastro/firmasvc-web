@@ -62,8 +62,8 @@ export const Documentos: React.FC<{ perfil: Perfil; organizacion: Organizacion |
   const visibles = (docs ?? []).filter((d) => visibleEnPantalla(d, perfil.rol, perfil.areas ?? [], orgId));
   const lista = visibles.filter((d) => d.seccion === seccion.clave);
   const cuenta = (clave: string) => visibles.filter((d) => d.seccion === clave).length;
-  // Un miembro del equipo ve solo las secciones donde tiene documentos y nunca el aviso laboral, que es para el titular.
-  const esMiembro = perfil.rol === 'miembro';
+  // Quien no es titular ve solo las secciones donde tiene documentos y nunca el aviso laboral, que es para el titular.
+  const esMiembro = perfil.rol !== 'admin' && perfil.rol !== 'titular';
   const pestanas = esMiembro && docs ? SECCIONES.filter((s) => s.clave === seccion.clave || cuenta(s.clave) > 0) : SECCIONES;
   const mostrarAviso = !(esMiembro && seccion.clave === 'equipo');
 

@@ -21,6 +21,8 @@ interface Borrador {
   url: string;
   orden: number;
   activo: boolean;
+  /** Protocolos y formación: los ven también closers y setters */
+  es_protocolo: boolean;
 }
 
 /** Los contratos con el equipo arrancan reservados al titular y a Dirección. */
@@ -89,6 +91,7 @@ export const Documentos: React.FC = () => {
       url: '',
       orden: cuenta(seccion) + 1,
       activo: true,
+      es_protocolo: false,
     });
   }
 
@@ -105,6 +108,7 @@ export const Documentos: React.FC = () => {
       url: d.url ?? '',
       orden: d.orden,
       activo: d.activo,
+      es_protocolo: Boolean(d.es_protocolo),
     });
   }
 
@@ -179,6 +183,7 @@ export const Documentos: React.FC = () => {
       areas: borrador.areas,
       orden: Number(borrador.orden) || 0,
       activo: borrador.activo,
+      es_protocolo: borrador.es_protocolo,
       url: conArchivo ? null : url,
       archivo_ruta: conArchivo ? (rutaNueva ?? original?.archivo_ruta ?? null) : null,
       archivo_nombre: conArchivo ? (archivo?.name ?? original?.archivo_nombre ?? null) : null,
@@ -320,6 +325,11 @@ export const Documentos: React.FC = () => {
               )}
             </div>
           </div>
+
+          <label className="flex items-start gap-2 text-sm">
+            <input type="checkbox" className="mt-1" checked={borrador.es_protocolo} onChange={(e) => setBorrador({ ...borrador, es_protocolo: e.target.checked })} />
+            <span>Es un protocolo o material de formación. Lo ven también closers y setters, que no acceden a los documentos legales.</span>
+          </label>
 
           <div className="grid gap-5 tab:grid-cols-2">
             <Campo etiqueta="Versión" ayuda="Si la cambiás, o si reemplazás el archivo, se actualiza la fecha que ve el cliente.">
