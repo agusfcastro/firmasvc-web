@@ -1,13 +1,14 @@
 import React from 'react';
 import { Button } from './Button';
 import { Counter } from './Counter';
+import { VideoVSL } from './VideoVSL';
 import { openCalendly } from '../lib/calendly';
 
 import simboloClaro from '../assets/brand/simbolo-claro.png';
 
 export const Hero: React.FC = () => {
   return (
-    <section id="top" className="relative overflow-hidden text-center pt-20 pb-16">
+    <section id="top" className="relative overflow-hidden text-center pt-8 desk:pt-10 pb-16">
       {/* Rúbrica de marca como marca de agua, centrada detrás del titular */}
       <img
         src={simboloClaro}
@@ -18,11 +19,13 @@ export const Hero: React.FC = () => {
       />
 
       <div className="wrap relative flex flex-col items-center gap-8">
-        <h1 className="h1 mt-6">
+        <h1 className="h1">
           blindamos legalmente
           <br />
           <span className="text-bosque">tu negocio digital</span>
         </h1>
+
+        <VideoVSL />
 
         <div className="flex flex-wrap justify-center gap-3">
           <Button size="lg" onClick={openCalendly}>

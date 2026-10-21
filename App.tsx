@@ -1,7 +1,6 @@
 import React, { Suspense, lazy } from 'react';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
-import { About } from './components/About';
 import { Services } from './components/Services';
 import { Process } from './components/Process';
 import { Testimonials } from './components/Testimonials';
@@ -77,7 +76,6 @@ function App() {
       <Header />
       <main>
         <Hero />
-        <About />
         <Services />
         <Process />
         <Testimonials />

@@ -6,7 +6,7 @@ import { openCalendly } from '../lib/calendly';
 import { PromoBanner } from './PromoBanner';
 
 const navLinks = [
-  { name: 'Nosotros', href: '#about' },
+  { name: 'Nosotros', href: '#quien' },
   { name: 'Servicios', href: '#services' },
   { name: 'Recursos', href: 'https://www.youtube.com/@agusfcastro' },
   { name: 'Testimonios', href: '#testimonials' },
