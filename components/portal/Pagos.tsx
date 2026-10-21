@@ -16,7 +16,6 @@ import {
   fechaLarga,
   hora,
   llamarPagos,
-  monedaDePago,
   montoPagado,
   montoTexto,
   sincronizarAbono,
@@ -108,7 +107,6 @@ const TarjetaAbono: React.FC<{
   const [error, setError] = useState<string | null>(null);
   const [nota, setNota] = useState<string | null>(null);
   const monto = montoTexto(abono.monto, abono.moneda);
-  const pago = monedaDePago(abono);
   const puedePagar = activable(abono);
   const cambio = cambiandoMedio(abono, pagos);
   const estado = cambio ? { titulo: 'Falta el medio de pago', tono: 'alerta' as const } : ESTADO_ABONO[abono.estado];
@@ -241,7 +239,7 @@ const TarjetaAbono: React.FC<{
           />
           <span>
             Autorizo a FIRMA a debitar <strong className="font-semibold">{monto} por mes</strong>
-            {pago.convierte ? `, convertidos a ${pago.moneda} al momento de cada pago,` : ''} de la tarjeta que cargue en dLocal Go, en concepto de {abono.concepto}, hasta que dé
+            {abono.moneda === 'USD' ? ', convertidos a tu moneda local al momento de cada pago,' : ''} de la tarjeta que cargue en dLocal Go, en concepto de {abono.concepto}, hasta que dé
             de baja el abono desde este portal.
           </span>
         </label>
@@ -323,9 +321,6 @@ const TarjetaAbono: React.FC<{
               : abono.proximo_cobro
                 ? fechaLarga(abono.proximo_cobro)
                 : 'Sin cobros programados'}
-          </Dato>
-          <Dato titulo="Moneda de pago" ancho>
-            Pagás en {pago.moneda}.{pago.convierte ? ' Como el abono es en dólares, dLocal Go lo convierte al momento de cada pago.' : ''}
           </Dato>
           <Dato titulo="Cómo darte de baja" ancho>
             Cuando quieras, desde esta página con Dar de baja. dLocal Go deja de debitar desde ese momento.

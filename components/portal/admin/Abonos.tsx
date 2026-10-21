@@ -16,7 +16,6 @@ import {
   llamarPagos,
   montoPagado,
   montoTexto,
-  nombrePais,
   sincronizarAbono,
   type Abono,
   type Disponibilidad,
@@ -38,7 +37,6 @@ interface Borrador {
   concepto: string;
   monto: string;
   moneda: MonedaAbono;
-  pais: string;
   email_pagador: string;
 }
 
@@ -51,7 +49,6 @@ interface PerfilCorto {
 }
 
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-const PAISES = Object.keys(PAISES_DLOCALGO).sort((a, b) => nombrePais(a).localeCompare(nombrePais(b), 'es'));
 const SIN_MONTO = 'Un abono activo no cambia de monto. Para cambiarlo, dalo de baja y armá uno nuevo.';
 
 function errorAmable(mensaje: string): string {
@@ -118,7 +115,6 @@ const Detalle: React.FC<{
       <div className="flex flex-col gap-6 min-w-0">
         <dl className="grid gap-x-8 gap-y-4 tab:grid-cols-2 text-sm">
           <Dato titulo="Procesador">{PROCESADOR}</Dato>
-          <Dato titulo="País del pagador">{nombrePais(abono.pais)}</Dato>
           <Dato titulo="Mail del pagador">{abono.email_pagador}</Dato>
           <Dato titulo="Aceptación del débito">
             {abono.aceptado_en
@@ -236,7 +232,7 @@ export const Abonos: React.FC = () => {
 
   const empresa = (id: string) => orgs.find((o) => o.id === id)?.nombre ?? 'Empresa';
   const titularDe = (orgId: string) => perfiles.find((p) => p.organizacion_id === orgId && p.rol === 'titular' && p.activo)?.email ?? '';
-  /** País de la empresa si dLocal Go lo habilita. Si no, Argentina. */
+  /** País del plan en dLocal Go: el de la empresa si dLocal Go lo habilita, si no Argentina. No se muestra ni se pregunta. */
   const paisDe = (orgId: string) => {
     const p = orgs.find((o) => o.id === orgId)?.pais ?? '';
     return PAISES_DLOCALGO[p] ? p : 'AR';
@@ -265,36 +261,30 @@ export const Abonos: React.FC = () => {
 
   function nuevo() {
     const orgId = orgs.find((o) => o.activa)?.id ?? orgs[0]?.id ?? '';
-    const pais = paisDe(orgId);
     setOk(null);
     setError(null);
-    setBorrador({ organizacion_id: orgId, concepto: '', monto: '', moneda: pais === 'AR' ? 'ARS' : 'USD', pais, email_pagador: titularDe(orgId) });
+    setBorrador({ organizacion_id: orgId, concepto: '', monto: '', moneda: paisDe(orgId) === 'AR' ? 'ARS' : 'USD', email_pagador: titularDe(orgId) });
   }
 
   function editar(a: Abono) {
     setOk(null);
     setError(null);
-    setBorrador({ id: a.id, organizacion_id: a.organizacion_id, concepto: a.concepto, monto: String(Number(a.monto)), moneda: a.moneda, pais: a.pais, email_pagador: a.email_pagador });
+    setBorrador({ id: a.id, organizacion_id: a.organizacion_id, concepto: a.concepto, monto: String(Number(a.monto)), moneda: a.moneda, email_pagador: a.email_pagador });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function cambiarEmpresa(orgId: string) {
     if (!borrador) return;
-    // Mail y país se proponen con los de la empresa nueva si eran los de la anterior o estaban vacíos.
+    // El mail se propone con el de la empresa nueva si era el de la anterior o estaba vacío.
     const mailSugerido = !borrador.email_pagador || borrador.email_pagador === titularDe(borrador.organizacion_id);
-    const pais = borrador.pais === paisDe(borrador.organizacion_id) ? paisDe(orgId) : borrador.pais;
     setBorrador({
       ...borrador,
       organizacion_id: orgId,
       email_pagador: mailSugerido ? titularDe(orgId) : borrador.email_pagador,
-      pais,
-      moneda: pais !== 'AR' ? 'USD' : borrador.moneda,
     });
   }
 
-  // En pesos solo paga alguien de Argentina. Fuera de Argentina el abono va en dólares.
-  const cambiarPais = (pais: string) => borrador && setBorrador({ ...borrador, pais, moneda: pais !== 'AR' ? 'USD' : borrador.moneda });
-  const cambiarMoneda = (moneda: MonedaAbono) => borrador && setBorrador({ ...borrador, moneda, pais: moneda === 'ARS' ? 'AR' : borrador.pais });
+  const cambiarMoneda = (moneda: MonedaAbono) => borrador && setBorrador({ ...borrador, moneda });
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
@@ -305,12 +295,12 @@ export const Abonos: React.FC = () => {
     if (!borrador.organizacion_id) return setError('Elegí la empresa.');
     if (concepto.length < 3 || concepto.length > 120) return setError('El concepto tiene que tener entre 3 y 120 caracteres.');
     if (!Number.isFinite(monto) || monto <= 0) return setError('El monto tiene que ser mayor a cero.');
-    if (!PAISES_DLOCALGO[borrador.pais]) return setError('Elegí el país del pagador.');
-    if (borrador.moneda === 'ARS' && borrador.pais !== 'AR') return setError('En pesos solo se le puede cobrar a un pagador de Argentina.');
     if (!EMAIL.test(email)) return setError('El mail del pagador no tiene un formato válido.');
     setGuardando(true);
     setError(null);
-    const datos = { organizacion_id: borrador.organizacion_id, concepto, monto: Math.round(monto * 100) / 100, moneda: borrador.moneda, pais: borrador.pais, email_pagador: email };
+    // dLocal Go pide un país por plan. En pesos es Argentina; en dólares, el de la empresa.
+    const pais = borrador.moneda === 'ARS' ? 'AR' : paisDe(borrador.organizacion_id);
+    const datos = { organizacion_id: borrador.organizacion_id, concepto, monto: Math.round(monto * 100) / 100, moneda: borrador.moneda, pais, email_pagador: email };
     const { error: err } = borrador.id ? await supabase.from('abonos').update(datos).eq('id', borrador.id) : await supabase.from('abonos').insert(datos);
     setGuardando(false);
     if (err) return setError(errorAmable(err.message));
@@ -388,22 +378,13 @@ export const Abonos: React.FC = () => {
                 onChange={(e) => setBorrador({ ...borrador, monto: e.target.value })}
               />
             </Campo>
-            <Campo etiqueta="Moneda" ayuda="En pesos, solo para pagadores de Argentina.">
+            <Campo etiqueta="Moneda" ayuda="En dólares, dLocal Go le cobra al cliente en su moneda local al momento de cada pago.">
               <select className={claseInput} value={borrador.moneda} onChange={(e) => cambiarMoneda(e.target.value as MonedaAbono)}>
                 <option value="ARS">ARS, pesos argentinos</option>
                 <option value="USD">USD, dólares</option>
               </select>
             </Campo>
           </div>
-          <Campo etiqueta="País del pagador" ayuda="El cliente paga siempre en la moneda de su país. Si el abono es en dólares, dLocal Go lo convierte al momento de cada pago.">
-            <select className={claseInput} value={borrador.pais} onChange={(e) => cambiarPais(e.target.value)}>
-              {PAISES.map((p) => (
-                <option key={p} value={p}>
-                  {nombrePais(p)}, paga en {PAISES_DLOCALGO[p].moneda}
-                </option>
-              ))}
-            </select>
-          </Campo>
           <Campo etiqueta="Mail del pagador" ayuda="Va precargado en la página de pago de dLocal Go. Se propone el del titular.">
             <input required type="email" className={claseInput} value={borrador.email_pagador} onChange={(e) => setBorrador({ ...borrador, email_pagador: e.target.value })} />
           </Campo>
@@ -462,7 +443,6 @@ export const Abonos: React.FC = () => {
                     </td>
                     <td className="num">
                       {montoTexto(a.monto, a.moneda)}
-                      <div className="text-xs text-piedra mt-1">{nombrePais(a.pais)}</div>
                     </td>
                     <td>
                       <Etiqueta tono={estado.tono}>{estado.titulo}</Etiqueta>

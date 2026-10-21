@@ -71,13 +71,6 @@ export const PAISES_DLOCALGO: Record<string, { nombre: string; moneda: string }>
   UY: { nombre: 'Uruguay', moneda: 'pesos uruguayos' },
 };
 
-export const nombrePais = (codigo: string): string => PAISES_DLOCALGO[codigo]?.nombre ?? codigo;
-
-/** En qué moneda paga el titular y si dLocal Go convierte el monto del abono al cobrar. */
-export function monedaDePago(a: Pick<Abono, 'moneda' | 'pais'>): { moneda: string; convierte: boolean } {
-  const moneda = PAISES_DLOCALGO[a.pais]?.moneda ?? 'la moneda de tu país';
-  return { moneda, convierte: a.moneda === 'USD' && a.pais !== 'EC' };
-}
 
 export const ESTADO_ABONO: Record<EstadoAbono, { titulo: string; tono: Tono }> = {
   borrador: { titulo: 'Por activar', tono: 'piedra' },

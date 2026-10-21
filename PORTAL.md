@@ -307,7 +307,7 @@ Abonos mensuales de cada empresa cliente, cobrados con dLocal Go desde el portal
 
 ### Cómo funciona
 
-1. En **Administración › Abonos** armás el abono como borrador con empresa, concepto, monto, moneda, país del pagador y mail del pagador. En pesos solo se le cobra a un pagador de Argentina. Mientras está por activar lo podés editar o borrar.
+1. En **Administración › Abonos** armás el abono como borrador con empresa, concepto, monto, moneda y mail del pagador. El país del plan no se pregunta ni se muestra: en pesos es Argentina y en dólares es el país de la empresa (o Argentina, si dLocal Go no cobra en ese país). Mientras está por activar lo podés editar o borrar.
 2. El titular lo ve en **Pagos** con sus condiciones, es decir concepto, monto, periodicidad, medio de pago, moneda en la que paga y cómo darse de baja. Para seguir tiene que tildar la autorización del débito mensual. La aceptación queda guardada con fecha, hora y usuario, y también en **Registro de accesos**.
 3. La primera vez el portal crea el plan del abono en dLocal Go, mensual y con el país, la moneda y el monto del abono, y lleva al titular al enlace de suscripción del plan con su mail precargado. Al volver, el portal consulta a dLocal Go, avisa que el pago se está confirmando y la página se actualiza sola.
 4. Cuando cambia un pago, dLocal Go avisa al portal. El aviso no se toma como verdad, solo dispara una consulta a la API de dLocal Go, que es la única fuente del estado, el próximo cobro y el historial. El botón **Actualizar estado** hace la misma consulta a mano, en Pagos y en Administración.
@@ -355,7 +355,7 @@ Cada plan guarda su dirección de aviso con la clave y la dirección del momento
 
 **4. Prueba completa en el sandbox**
 
-1. Armá un abono de ARS 100 para una empresa de prueba de Argentina y otro de USD 1 con país Uruguay.
+1. Armá un abono de ARS 100 para una empresa de prueba de Argentina y otro de USD 1 para una empresa de prueba de Uruguay.
 2. Entrá con un usuario titular de esa empresa, aceptá el débito y suscribite a cada uno con las tarjetas de prueba que indica dLocal Go para el sandbox.
 3. Revisá que pasen a Activo, que el pago aparezca en el historial con el monto pagado en la moneda del país y que los movimientos estén en **Registro de accesos**.
 4. Probá Actualizar estado, Cambiar medio de pago y la baja. En el cambio de medio de pago revisá que dLocal Go no cobre de nuevo hasta que vence lo pagado.
