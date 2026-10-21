@@ -55,6 +55,9 @@ export const Footer: React.FC = () => {
         >
           <span>© {new Date().getFullYear()} Firma. Todos los derechos reservados.</span>
           <div className="flex flex-wrap gap-x-6 gap-y-2">
+            <a href="/portal" className={linkClass}>
+              Portal de clientes
+            </a>
             <a href="/terminos" className={linkClass}>
               Términos y Condiciones
             </a>

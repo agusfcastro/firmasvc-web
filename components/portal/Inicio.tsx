@@ -16,14 +16,14 @@ interface Modulo {
 }
 
 const MODULOS: Modulo[] = [
-  { titulo: 'CRM legal', texto: 'Clientes, contratos, firmas y plan de pagos, al día y con historial.', icono: Kanban, ruta: '/portal/crm', permiso: 'crm' },
-  { titulo: 'Documentos', texto: 'Modelos de contrato, contratos con tu equipo y otros documentos de tu empresa.', icono: FileText, ruta: '/portal/documentos', permiso: 'documentosLegales' },
-  { titulo: 'Firma electrónica', texto: 'Mandá un PDF a firmar y seguí cada firma, con constancia y verificación.', icono: PenLine, ruta: '/portal/firmas', permiso: 'documentosLegales' },
-  { titulo: 'Agenda', texto: 'Reservá una reunión con FIRMA en el horario que te quede mejor.', icono: CalendarDays, ruta: '/portal/agenda', permiso: 'agenda' },
-  { titulo: 'Administración', texto: 'Empresas, usuarios, roles y registro de accesos.', icono: ShieldCheck, ruta: '/portal/admin', soloAdmin: true },
-  { titulo: 'Protocolos', texto: 'Los protocolos de trabajo de cada área de tu equipo.', icono: BookOpen, ruta: '/protocolo-llamadas', externo: true },
+  { titulo: 'CRM legal', texto: 'Cada cliente con su contrato, el estado de la firma y el plan de cuotas pactado.', icono: Kanban, ruta: '/portal/crm', permiso: 'crm' },
+  { titulo: 'Documentos', texto: 'Modelos redactados para tu negocio, contratos con tu equipo y documentación de la empresa.', icono: FileText, ruta: '/portal/documentos', permiso: 'documentosLegales' },
+  { titulo: 'Firma electrónica', texto: 'Enviá un PDF a firmar, seguí quién firmó y recibí el documento sellado con su constancia.', icono: PenLine, ruta: '/portal/firmas', permiso: 'documentosLegales' },
+  { titulo: 'Agenda', texto: 'Reuniones de consulta y seguimiento con Agustín Castro, en el horario que elijas.', icono: CalendarDays, ruta: '/portal/agenda', permiso: 'agenda' },
+  { titulo: 'Administración', texto: 'Empresas, usuarios, permisos y registro de accesos.', icono: ShieldCheck, ruta: '/portal/admin', soloAdmin: true },
+  { titulo: 'Protocolos', texto: 'Cómo trabaja cada área de tu equipo, por escrito y con respaldo legal.', icono: BookOpen, ruta: '/protocolo-llamadas', externo: true },
   { titulo: 'Estado de asuntos', texto: 'Seguimiento de cada trámite en curso.', icono: ClipboardList, permiso: 'casos' },
-  { titulo: 'Abonos y pagos', texto: 'Tu abono mensual con FIRMA, el próximo cobro y el historial de pagos.', icono: Wallet, ruta: '/portal/pagos', permiso: 'gestion' },
+  { titulo: 'Abonos y pagos', texto: 'Condiciones de tu abono, próximo débito e historial de pagos.', icono: Wallet, ruta: '/portal/pagos', permiso: 'gestion' },
   { titulo: 'Formación', texto: 'Videos por área para capacitar a tu equipo.', icono: GraduationCap },
   { titulo: 'Mi equipo', texto: 'Personas de tu empresa con acceso al portal.', icono: Users, permiso: 'gestion' },
 ];
@@ -38,11 +38,12 @@ export const Inicio: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
   if (!perfil) return null;
   const esAdmin = perfil.rol === 'admin';
   const permisos = permisosDe(perfil.rol);
-  const visibles = MODULOS.filter((m) => (m.soloAdmin ? esAdmin : m.permiso ? permisos[m.permiso] : true));
+  // Lo que todavía no está listo solo lo ve FIRMA: al cliente, una tarjeta vacía le resta más de lo que anticipa.
+  const visibles = MODULOS.filter((m) => (m.soloAdmin ? esAdmin : m.permiso ? permisos[m.permiso] : true) && (m.ruta || esAdmin));
   // Sin documentos legales, la biblioteca muestra solo protocolos: se entra por ahí.
   if (!permisos.documentosLegales) {
     const i = visibles.findIndex((m) => m.titulo === 'Protocolos');
-    if (i >= 0) visibles[i] = { ...visibles[i], texto: 'Los protocolos de trabajo y la formación de tu equipo.', ruta: '/portal/documentos', externo: false };
+    if (i >= 0) visibles[i] = { ...visibles[i], texto: 'Los protocolos y la formación de tu equipo, área por área.', ruta: '/portal/documentos', externo: false };
   }
   const nombre = (perfil.nombre || '').split(' ')[0];
 
@@ -59,14 +60,18 @@ export const Inicio: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
             <span className="text-bosque">{nombre || 'bienvenido'}</span>
           </>
         }
-        bajada={esAdmin ? 'Desde acá gestionás los CRM y los accesos de todos tus clientes.' : 'Todo lo legal de tu empresa, ordenado y en un solo lugar.'}
+        bajada={
+          esAdmin
+            ? 'Cartera de clientes, accesos y documentación de todas las cuentas.'
+            : `Contratos, firmas y protocolos de ${organizacion?.nombre ?? 'tu empresa'}, con la última revisión de FIRMA.`
+        }
       />
 
       <section className="section bg-carbon text-marfil">
         <div className="wrap flex flex-col gap-10">
           <div className="flex flex-col gap-3">
-            <p className="eyebrow text-calido">Tu portal</p>
-            <h2 className="h2">Herramientas</h2>
+            <p className="eyebrow text-calido">{esAdmin ? 'FIRMA' : organizacion?.nombre ?? 'Tu cuenta'}</p>
+            <h2 className="h2">{esAdmin ? 'Gestión' : 'Tu expediente'}</h2>
           </div>
           <div className="grid grid-cols-1 tab:grid-cols-2 wide:grid-cols-3 gap-5">
             {visibles.map((m, i) => {
@@ -83,7 +88,7 @@ export const Inicio: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
                   <p className="relative text-[15px] leading-[1.6] text-calido">{m.texto}</p>
                   {m.ruta ? (
                     <span className="ir relative">
-                      Entrar <ArrowRight size={16} />
+                      Abrir <ArrowRight size={16} />
                     </span>
                   ) : (
                     <span className="ir relative eyebrow text-[11px] text-calido">Próximamente</span>

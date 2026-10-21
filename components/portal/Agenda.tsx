@@ -43,12 +43,12 @@ export const Agenda: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
             Agendá una <span className="text-bosque">reunión</span>
           </>
         }
-        bajada="Elegí el tipo de reunión y reservá el horario que te quede mejor. Te llega la invitación con el enlace de videollamada."
+        bajada="Elegí el tipo de reunión y el horario. La invitación llega a tu mail con el enlace de la videollamada."
       />
       <section className="section bg-carbon text-marfil">
         <div className="wrap flex flex-col gap-10">
           {error && <Aviso tipo="error">{error}</Aviso>}
-          {agendas && agendas.length === 0 && <p className="text-calido">Por ahora no hay agendas disponibles.</p>}
+          {agendas && agendas.length === 0 && <p className="text-calido">No hay horarios publicados en este momento. Escribinos a agustin@firmasvc.com y coordinamos.</p>}
           <div className="grid grid-cols-1 tab:grid-cols-2 wide:grid-cols-3 gap-5">
             {(agendas ?? []).map((a, i) => (
               <a key={a.id} href={a.url} target="_blank" rel="noopener noreferrer" onClick={(e) => abrirReserva(e, a.url)} className="card">

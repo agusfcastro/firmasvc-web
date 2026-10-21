@@ -59,13 +59,13 @@ export const DefinirClave: React.FC<{ estado: EstadoSesion }> = ({ estado }) => 
       <h1 className="h2 mb-3">
         Definí tu <span className="text-bosque">contraseña</span>
       </h1>
-      <p className="text-piedra mb-8">Cuenta {estado.sesion.user.email}. Solo vos la vas a conocer, nadie en FIRMA puede verla.</p>
+      <p className="text-piedra mb-8">Para {estado.sesion.user.email}. Se guarda cifrada: nadie en FIRMA puede verla.</p>
       <form onSubmit={guardar} className="space-y-5">
         {error && <Aviso tipo="error">{error}</Aviso>}
         <Campo etiqueta="Contraseña nueva" ayuda={`Mínimo ${MINIMO} caracteres, con letras y números.`}>
           <input type="password" required autoComplete="new-password" className={claseInput} value={clave} onChange={(e) => setClave(e.target.value)} />
         </Campo>
-        <Campo etiqueta="Repetila">
+        <Campo etiqueta="Confirmá la contraseña">
           <input type="password" required autoComplete="new-password" className={claseInput} value={repetir} onChange={(e) => setRepetir(e.target.value)} />
         </Campo>
         <Button type="submit" size="lg" fullWidth disabled={enviando}>

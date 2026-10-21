@@ -201,7 +201,7 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
       <footer className="bg-carbon text-calido">
         <div className="wrap py-8 flex flex-wrap items-center justify-between gap-4 text-sm">
           <Logo variant="oscuro" className="h-9" />
-          <span>Portal de clientes · La información de este portal es confidencial.</span>
+          <span>Portal de clientes · Información confidencial, alcanzada por el secreto profesional.</span>
           <a href="mailto:agustin@firmasvc.com" className="hover:text-marfil transition-colors duration-150">
             agustin@firmasvc.com
           </a>

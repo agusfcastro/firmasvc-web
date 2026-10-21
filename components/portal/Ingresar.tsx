@@ -41,19 +41,19 @@ export const Ingresar: React.FC = () => {
 
   return (
     <LayoutAcceso>
-      <p className="eyebrow text-piedra mb-4">{modo === 'ingreso' ? 'Bienvenido' : 'Acceso'}</p>
+      <p className="eyebrow text-piedra mb-4">{modo === 'ingreso' ? 'Acceso de clientes' : 'Recuperar acceso'}</p>
       <h1 className="h2 mb-3">
         {modo === 'ingreso' ? (
           <>
-            Ingresá a tu <span className="text-bosque">cuenta</span>
+            Ingresá al <span className="text-bosque">portal</span>
           </>
         ) : (
           <>
-            Recuperá tu <span className="text-bosque">acceso</span>
+            Definí una <span className="text-bosque">contraseña nueva</span>
           </>
         )}
       </h1>
-      <p className="text-piedra mb-10">{modo === 'ingreso' ? 'Usá el mail con el que te invitamos.' : 'Te enviamos un enlace para definir una contraseña nueva.'}</p>
+      <p className="text-piedra mb-10">{modo === 'ingreso' ? 'Con el mail que registramos al darte de alta.' : 'Te mandamos un enlace al mail con el que te dimos de alta.'}</p>
 
       <form onSubmit={modo === 'ingreso' ? ingresar : recuperar} className="space-y-5">
         {error && <Aviso tipo="error">{error}</Aviso>}
@@ -67,7 +67,7 @@ export const Ingresar: React.FC = () => {
           </Campo>
         )}
         <Button type="submit" size="lg" fullWidth disabled={enviando}>
-          {enviando ? 'Un momento…' : modo === 'ingreso' ? 'Ingresar' : 'Enviarme el enlace'}
+          {enviando ? (modo === 'ingreso' ? 'Verificando…' : 'Enviando…') : modo === 'ingreso' ? 'Ingresar' : 'Enviar enlace'}
         </Button>
       </form>
 
@@ -84,7 +84,7 @@ export const Ingresar: React.FC = () => {
       </button>
 
       <p className="mt-12 pt-6 text-xs text-piedra leading-relaxed" style={{ borderTop: '1px solid rgba(27,31,27,0.15)' }}>
-        El acceso es solo por invitación. Si sos parte del equipo de un cliente de FIRMA y todavía no tenés cuenta, pedíselo a la persona responsable de tu empresa.
+        El acceso es personal y por invitación. Si trabajás en una empresa cliente de FIRMA y todavía no tenés usuario, pedíselo al titular de la cuenta.
       </p>
     </LayoutAcceso>
   );

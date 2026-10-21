@@ -87,14 +87,14 @@ export const Documentos: React.FC<{ perfil: Perfil; organizacion: Organizacion |
             </>
           ) : (
             <>
-              Tus documentos, <span className="text-bosque">en orden</span>
+              Documentación de <span className="text-bosque">tu empresa</span>
             </>
           )
         }
         bajada={
           esAdmin
             ? 'Así ven tus clientes la biblioteca común. Los documentos exclusivos de cada empresa se ven con Ver como.'
-            : 'Modelos de contrato y documentación de tu empresa, siempre en su última versión.'
+            : 'Modelos redactados para tu negocio y documentación vigente. Cuando FIRMA actualiza un documento, acá ya está la versión nueva.'
         }
         acciones={
           esAdmin ? (
@@ -143,9 +143,9 @@ export const Documentos: React.FC<{ perfil: Perfil; organizacion: Organizacion |
             <p className="eyebrow text-calido">Cargando</p>
           ) : lista.length === 0 ? (
             <div className="flex flex-col gap-4 p-8 desk:p-10 max-w-[680px]" style={{ border: '1px solid rgba(245,243,236,0.12)' }}>
-              <p className="h3">{esAdmin ? 'Todavía no cargaste documentos acá' : 'Todavía no hay documentos en esta sección'}</p>
+              <p className="h3">{esAdmin ? 'Todavía no cargaste documentos acá' : 'Esta sección todavía no tiene documentos'}</p>
               <p className="text-[15px] leading-[1.6] text-calido">
-                {esAdmin ? 'Cargalos desde Administración, en la pestaña Documentos.' : 'Si necesitás un modelo para tu caso, contanos en una reunión y lo preparamos.'}
+                {esAdmin ? 'Cargalos desde Administración, en la pestaña Documentos.' : 'Si necesitás un modelo para un caso puntual, contanos en una reunión y lo redactamos.'}
               </p>
               <Enlace a={esAdmin ? '/portal/admin/documentos' : '/portal/agenda'} className={`${claseSecundaria} self-start`}>
                 {esAdmin ? 'Cargar documentos' : 'Agendar una reunión'}

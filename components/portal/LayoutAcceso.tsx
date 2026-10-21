@@ -21,13 +21,13 @@ export const LayoutAcceso: React.FC<{ children: React.ReactNode }> = ({ children
         <p className="eyebrow text-calido">Portal de clientes</p>
         <p
           className="font-heading font-black leading-[1.04] tracking-[-0.02em]"
-          style={{ fontSize: 'min(clamp(30px, 4.4vw, 52px), 10.6cqi)' }}
+          style={{ fontSize: 'min(clamp(30px, 4.4vw, 52px), 10.2cqi)' }}
         >
-          <span className="block whitespace-nowrap">tu estructura legal,</span>
-          <span className="block whitespace-nowrap text-calido">en un solo lugar</span>
+          <span className="block whitespace-nowrap">tu empresa,</span>
+          <span className="block whitespace-nowrap text-calido">legalmente en orden</span>
         </p>
         <p className="hidden desk:block text-calido text-[16px] leading-[1.6] max-w-[38ch]">
-          Contratos, firmas, pagos y protocolos de tu equipo, con el respaldo de FIRMA.
+          Contratos vigentes, firmas en curso y protocolos de tu equipo, revisados por FIRMA y siempre en su última versión.
         </p>
       </div>
       <p className="relative hidden desk:block text-xs text-calido">Acceso restringido · Agustín Castro, Abogado (UBA)</p>

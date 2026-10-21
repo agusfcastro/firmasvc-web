@@ -1,4 +1,5 @@
 import React from 'react';
+import { LockKeyhole } from 'lucide-react';
 import { Logo } from './Logo';
 import { Button } from './Button';
 import { openCalendly } from '../lib/calendly';
@@ -8,8 +9,12 @@ const navLinks = [
   { name: 'Nosotros', href: '#about' },
   { name: 'Servicios', href: '#services' },
   { name: 'Recursos', href: 'https://www.youtube.com/@agusfcastro' },
-  { name: 'Clientes', href: '#testimonials' },
+  { name: 'Testimonios', href: '#testimonials' },
 ];
+
+// Acceso de clientes: mismo alto que el botón de Agenda, con borde para no competir con él.
+const clasePortal =
+  'inline-flex items-center justify-center gap-2 h-10 border border-tinta text-sm font-medium whitespace-nowrap transition-colors duration-150 hover:bg-tinta hover:text-marfil';
 
 const getLinkAttributes = (href: string) =>
   href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {};
@@ -38,15 +43,25 @@ export const Header: React.FC = () => {
               {link.name}
             </a>
           ))}
+          <a href="/portal" className={`${clasePortal} px-[18px]`}>
+            <LockKeyhole size={14} aria-hidden="true" />
+            Portal de clientes
+          </a>
           <Button size="sm" onClick={openCalendly}>
             Agenda
           </Button>
         </nav>
 
-        {/* Mobile: solo el CTA, sin menú desplegable */}
-        <Button size="sm" className="desk:hidden px-4" onClick={openCalendly}>
-          Agenda
-        </Button>
+        {/* Mobile: portal y CTA, sin menú desplegable */}
+        <div className="desk:hidden flex items-center gap-2 shrink-0">
+          <a href="/portal" className={`${clasePortal} px-3`} aria-label="Portal de clientes">
+            <LockKeyhole size={14} aria-hidden="true" />
+            <span className="hidden tab:inline">Portal</span>
+          </a>
+          <Button size="sm" className="px-4" onClick={openCalendly}>
+            Agenda
+          </Button>
+        </div>
       </div>
     </header>
   );
