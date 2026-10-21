@@ -1,5 +1,5 @@
-import React from 'react';
-import { Eye, LogOut } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { ChevronDown, Eye, LogOut, Menu } from 'lucide-react';
 import { Logo } from '../Logo';
 import { supabase } from './supabase';
 import { navegar } from './navegacion';
@@ -26,6 +26,93 @@ export const Enlace: React.FC<React.AnchorHTMLAttributes<HTMLAnchorElement> & { 
     {children}
   </a>
 );
+
+/* ------------------------------------------------------------------ */
+/* Menú desplegable con las secciones del portal                       */
+/* ------------------------------------------------------------------ */
+interface Seccion {
+  a: string;
+  titulo: string;
+  activo: boolean;
+}
+
+async function salir() {
+  await supabase?.auth.signOut();
+  navegar('/portal/ingresar');
+}
+
+/** compacto: en el celular el botón es solo un ícono, para que entren los dos logos. */
+const MenuSecciones: React.FC<{ links: Seccion[]; perfil: Perfil; compacto?: boolean }> = ({ links, perfil, compacto = false }) => {
+  const [abierto, setAbierto] = useState(false);
+  const raiz = useRef<HTMLDivElement>(null);
+  const actual = links.find((l) => l.activo)?.titulo ?? 'Menú';
+
+  // Se cierra con Escape o tocando afuera.
+  useEffect(() => {
+    if (!abierto) return;
+    const fuera = (e: MouseEvent) => {
+      if (!raiz.current?.contains(e.target as Node)) setAbierto(false);
+    };
+    const tecla = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setAbierto(false);
+    };
+    document.addEventListener('mousedown', fuera);
+    document.addEventListener('keydown', tecla);
+    return () => {
+      document.removeEventListener('mousedown', fuera);
+      document.removeEventListener('keydown', tecla);
+    };
+  }, [abierto]);
+
+  return (
+    <div ref={raiz} className="relative">
+      <button
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={abierto}
+        onClick={() => setAbierto((v) => !v)}
+        aria-label={compacto ? `Menú. Estás en ${actual}` : undefined}
+        className={`inline-flex items-center justify-center gap-2 h-10 ${compacto ? 'w-10' : 'px-4'} border text-sm font-medium whitespace-nowrap transition-colors duration-150 ${abierto ? 'bg-tinta text-marfil border-tinta' : 'border-tinta hover:bg-tinta hover:text-marfil'}`}
+      >
+        {compacto ? (
+          <Menu size={18} aria-hidden="true" />
+        ) : (
+          <>
+            {actual}
+            <ChevronDown size={15} aria-hidden="true" className={`transition-transform duration-150 ${abierto ? 'rotate-180' : ''}`} />
+          </>
+        )}
+      </button>
+      {abierto && (
+        <div role="menu" className="absolute right-0 tab:left-0 tab:right-auto top-[calc(100%+8px)] z-50 min-w-[240px] bg-marfil border border-tinta shadow-[0_12px_32px_rgba(27,31,27,0.18)] py-2">
+          {links.map((l) => (
+            <Enlace
+              key={l.a}
+              a={l.a}
+              role="menuitem"
+              aria-current={l.activo ? 'page' : undefined}
+              onClick={() => setAbierto(false)}
+              className={`flex items-center justify-between gap-6 px-5 py-3 text-[15px] transition-colors duration-150 ${l.activo ? 'text-bosque font-medium' : 'hover:bg-marfil-oscuro'}`}
+            >
+              {l.titulo}
+              {l.activo && <span aria-hidden="true" className="w-1.5 h-1.5 bg-bosque" />}
+            </Enlace>
+          ))}
+          {/* En el celular el usuario y el botón de salir viven acá. */}
+          <div className="tab:hidden mt-2 pt-3 px-5 pb-2 flex flex-col gap-3" style={{ borderTop: '1px solid rgba(27,31,27,0.12)' }}>
+            <span className="flex flex-col leading-tight text-sm">
+              <span className="font-medium truncate">{perfil.nombre || perfil.email}</span>
+              <span className="text-[11px] uppercase tracking-[0.16em] text-piedra">{ROTULO_ROL[perfil.rol]}</span>
+            </span>
+            <button type="button" role="menuitem" onClick={salir} className="inline-flex items-center gap-2 text-sm font-medium hover:text-bosque">
+              <LogOut size={15} aria-hidden="true" /> Salir
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 /* ------------------------------------------------------------------ */
 /* Marco general: header como la landing, pie carbón                   */
@@ -67,40 +154,38 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
 
       <header className="sticky top-0 z-40 bg-marfil" style={{ borderBottom: '1px solid rgba(27,31,27,0.12)' }}>
         <div className="wrap flex items-center gap-6 h-20 desk:h-24">
-          <Enlace a="/portal" className="flex items-center gap-4 desk:gap-5 min-w-0 shrink-0" aria-label="Inicio del portal">
-            <Logo className={`h-[48px] desk:h-[60px] ${logoCliente ? 'max-w-[30vw]' : 'max-w-[46vw]'}`} />
+          <Enlace a="/portal" className="flex items-center gap-3 desk:gap-4 min-w-0" aria-label="Inicio del portal">
+            <Logo className={`h-[44px] desk:h-[60px] ${logoCliente ? 'max-w-[34vw] tab:max-w-[260px]' : 'max-w-[52vw]'}`} />
             {logoCliente && (
               <>
-                <span aria-hidden="true" className="w-px h-9 desk:h-11 bg-[rgba(27,31,27,0.2)]" />
-                <img src={logoCliente} alt="" className="h-8 desk:h-11 w-auto max-w-[24vw] desk:max-w-[180px] object-contain" />
+                {/* × y no una barra: el lockup de FIRMA ya usa una barra entre firma y Castro & Partners. */}
+                <span aria-hidden="true" className="font-heading font-light text-[22px] desk:text-[28px] leading-none text-piedra select-none">
+                  ×
+                </span>
+                <img src={logoCliente} alt="" className="h-8 desk:h-11 w-auto max-w-[26vw] tab:max-w-[180px] object-contain" />
               </>
             )}
           </Enlace>
-          <nav className="hidden tab:flex items-center gap-7 text-sm font-medium ml-4">
-            {links.map((l) => (
-              <Enlace
-                key={l.a}
-                a={l.a}
-                aria-current={l.activo ? 'page' : undefined}
-                className={`py-2 border-b-2 transition-colors duration-150 ${l.activo ? 'border-bosque text-bosque' : 'border-transparent hover:text-bosque'}`}
-              >
-                {l.titulo}
-              </Enlace>
-            ))}
-          </nav>
+          {perfil && links.length > 0 && (
+            <div className="hidden tab:block ml-2 desk:ml-4">
+              <MenuSecciones links={links} perfil={perfil} />
+            </div>
+          )}
           <div className="flex-1" />
+          {perfil && links.length > 0 && (
+            <div className="tab:hidden shrink-0">
+              <MenuSecciones links={links} perfil={perfil} compacto />
+            </div>
+          )}
           {perfil && (
-            <div className="flex items-center gap-5 text-sm">
+            <div className="hidden tab:flex items-center gap-5 text-sm">
               <span className="hidden desk:flex flex-col items-end leading-tight">
                 <span className="font-medium truncate max-w-[220px]">{perfil.nombre || perfil.email}</span>
                 <span className="text-[11px] uppercase tracking-[0.16em] text-piedra">{ROTULO_ROL[perfil.rol]}</span>
               </span>
               <button
                 type="button"
-                onClick={async () => {
-                  await supabase?.auth.signOut();
-                  navegar('/portal/ingresar');
-                }}
+                onClick={salir}
                 className="inline-flex items-center gap-2 h-10 px-4 border border-tinta font-medium transition-colors duration-150 hover:bg-tinta hover:text-marfil"
               >
                 <LogOut size={15} aria-hidden="true" /> Salir
@@ -108,15 +193,6 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
             </div>
           )}
         </div>
-        {links.length > 0 && (
-          <nav className="tab:hidden wrap flex gap-6 text-sm font-medium overflow-x-auto scrollbar-hide" style={{ borderTop: '1px solid rgba(27,31,27,0.08)' }}>
-            {links.map((l) => (
-              <Enlace key={l.a} a={l.a} className={`py-3 whitespace-nowrap border-b-2 ${l.activo ? 'border-bosque text-bosque' : 'border-transparent'}`}>
-                {l.titulo}
-              </Enlace>
-            ))}
-          </nav>
-        )}
       </header>
 
       <main className={`flex-1 ${ancho === 'angosto' ? 'wrap max-w-[520px] py-14' : ''}`}>{children}</main>
