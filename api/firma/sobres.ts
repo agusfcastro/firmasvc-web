@@ -20,8 +20,8 @@
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { PDFDocument } from 'pdf-lib';
-import { OPCIONALES, valoresDelContrato, type ClienteContrato, type PagoContrato } from '../_lib/variables';
-import { completarWord, wordAPdf } from '../_lib/word';
+import { OPCIONALES, valoresDelContrato, type ClienteContrato, type PagoContrato } from '../_lib/variables.js';
+import { completarWord, wordAPdf } from '../_lib/word.js';
 
 /* ==================================================================== */
 /* BLOQUE COMÚN. Es idéntico en api/firma/sobres.ts y api/firma/firmar.ts */

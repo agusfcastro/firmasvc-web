@@ -9,7 +9,7 @@
  *   contrato que ya tiene link de firma, solo FIRMA.
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { valoresDelContrato } from '../_lib/variables';
+import { valoresDelContrato } from '../_lib/variables.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
