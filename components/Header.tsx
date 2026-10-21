@@ -28,11 +28,11 @@ export const Header: React.FC = () => {
       <PromoBanner />
       <div className="wrap flex items-center justify-between gap-4 h-28">
         <a href="#top" className="flex items-center min-w-0">
-          <Logo className="h-[72px] max-w-[62vw]" />
+          <Logo className="h-[72px] max-w-[62vw] desk:h-[60px] desk:max-w-full min-[1200px]:h-[72px]" />
         </a>
 
         {/* Nav desktop (≥900px) */}
-        <nav className="hidden desk:flex items-center gap-7 text-sm font-medium">
+        <nav className="hidden desk:flex shrink-0 items-center gap-5 min-[1200px]:gap-7 text-sm font-medium">
           {navLinks.map((link) => (
             <a
               key={link.name}
@@ -45,7 +45,9 @@ export const Header: React.FC = () => {
           ))}
           <a href="/portal" className={`${clasePortal} px-[18px]`}>
             <LockKeyhole size={14} aria-hidden="true" />
-            Portal de clientes
+            {/* Entre 900 y 1200 px no entra el texto largo al lado del logo. */}
+            <span className="min-[1200px]:hidden">Portal</span>
+            <span className="hidden min-[1200px]:inline">Portal de clientes</span>
           </a>
           <Button size="sm" onClick={openCalendly}>
             Agenda
