@@ -126,6 +126,7 @@ interface Cliente {
   dni: string | null;
   email: string | null;
   telefono: string | null;
+  domicilio?: string | null;
   servicio: string | null;
   monto_total: number | string | null;
   moneda: string | null;
@@ -157,6 +158,7 @@ export function variablesDelContrato(c: Cliente, pagos: Pago[], empresa: string,
     DNI: c.dni || '',
     EMAIL: c.email || '',
     TELEFONO: c.telefono || '',
+    DOMICILIO: c.domicilio || '',
     CODIGO: c.codigo || '',
     SERVICIO: nombreServicio || c.servicio || '',
     EMPRESA: empresa,

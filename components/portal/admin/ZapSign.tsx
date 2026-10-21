@@ -31,6 +31,7 @@ const VARIABLES: [string, string][] = [
   ['DNI', 'DNI o documento'],
   ['EMAIL', 'Mail'],
   ['TELEFONO', 'Teléfono'],
+  ['DOMICILIO', 'Domicilio del cliente'],
   ['CODIGO', 'Código del CRM, por ejemplo AT-001'],
   ['SERVICIO', 'Nombre del servicio contratado'],
   ['EMPRESA', 'Razón social de la empresa, o su nombre'],

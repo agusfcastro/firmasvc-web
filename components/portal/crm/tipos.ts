@@ -8,6 +8,7 @@ export interface ClienteCrm {
   dni: string | null;
   email: string | null;
   telefono: string | null;
+  domicilio?: string | null;
   servicio: string | null;
   monto_total: number | null;
   moneda: string;

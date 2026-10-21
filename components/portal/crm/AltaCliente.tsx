@@ -45,7 +45,7 @@ function repartir(saldo: number, cantidad: number, primera: string): Cuota[] {
 export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre: string; cobranza: boolean; zapsign?: boolean }> = ({ orgId, esAdmin, orgNombre }) => {
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [f, setF] = useState({
-    nombre: '', dni: '', email: '', telefono: '', servicio: '', monto_total: '', modalidad: 'Cuotas' as 'Cuotas' | 'PIF',
+    nombre: '', dni: '', email: '', telefono: '', domicilio: '', servicio: '', monto_total: '', modalidad: 'Cuotas' as 'Cuotas' | 'PIF',
     fecha_onboarding: '', responsable: '', notas: '', condiciones: '', anticipo: '', cantidad: '2', primera: hoyISO(),
   });
   const [cuotas, setCuotas] = useState<Cuota[]>([]);
@@ -125,6 +125,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
         dni: f.dni.trim() || null,
         email: f.email.trim().toLowerCase() || null,
         telefono: f.telefono.trim() || null,
+        domicilio: f.domicilio.trim() || null,
         servicio: f.servicio || null,
         monto_total: total / 100,
         modalidad: f.modalidad,
@@ -207,6 +208,11 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
         <Campo etiqueta="Teléfono">
           <input className={claseInput} value={f.telefono} onChange={(e) => set('telefono', e.target.value)} />
         </Campo>
+        <div className="tab:col-span-2">
+          <Campo etiqueta="Domicilio" ayuda="Calle, número, localidad, provincia y país. Va en el contrato.">
+            <input className={claseInput} value={f.domicilio} maxLength={300} onChange={(e) => set('domicilio', e.target.value)} />
+          </Campo>
+        </div>
         <Campo etiqueta="Servicio">
           <select
             required

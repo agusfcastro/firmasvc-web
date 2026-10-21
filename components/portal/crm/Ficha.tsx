@@ -11,7 +11,7 @@ import { CasosCliente } from './Casos';
 import { BorradorContrato } from './borrador';
 
 const ROTULOS: Record<string, string> = {
-  nombre: 'Nombre', dni: 'DNI', email: 'Mail', telefono: 'Teléfono', servicio: 'Servicio', monto_total: 'Monto total',
+  nombre: 'Nombre', dni: 'DNI', email: 'Mail', telefono: 'Teléfono', domicilio: 'Domicilio', servicio: 'Servicio', monto_total: 'Monto total',
   modalidad: 'Modalidad', fecha_onboarding: 'Onboarding', estado_firma: 'Estado de la firma', link_contrato_servicio: 'Contrato de servicio',
   responsable: 'Responsable', notas: 'Notas', condiciones: 'Condiciones acordadas', revisar_pagos: 'Revisar pagos', monto: 'Monto', vencimiento: 'Vencimiento', estado: 'Estado',
   fecha_pago: 'Fecha de pago', nota: 'Nota', link_contrato_cliente: 'Contrato del cliente', link_documento: 'Documento generado',
@@ -114,6 +114,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
       dni: borrador.dni?.trim() || null,
       email: borrador.email?.trim().toLowerCase() || null,
       telefono: borrador.telefono?.trim() || null,
+      domicilio: borrador.domicilio?.trim() || null,
       servicio: borrador.servicio || null,
       monto_total: borrador.monto_total === null || (borrador.monto_total as unknown) === '' ? null : Number(borrador.monto_total),
       modalidad: borrador.modalidad,
@@ -456,6 +457,9 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                 </Campo>
                 <Campo etiqueta="Teléfono">
                   <input className={claseInput} value={borrador.telefono ?? ''} onChange={(e) => set('telefono', e.target.value)} />
+                </Campo>
+                <Campo etiqueta="Domicilio">
+                  <input className={claseInput} value={borrador.domicilio ?? ''} maxLength={300} onChange={(e) => set('domicilio', e.target.value)} />
                 </Campo>
                 <Campo etiqueta="Servicio">
                   <select className={claseInput} value={borrador.servicio ?? ''} onChange={(e) => set('servicio', e.target.value)}>

@@ -370,6 +370,7 @@ interface Cliente {
   dni: string | null;
   email: string | null;
   telefono: string | null;
+  domicilio?: string | null;
   servicio: string | null;
   monto_total: number | null;
   moneda: string;
@@ -455,7 +456,7 @@ export async function POST(request: Request): Promise<Response> {
     const venta = {
       hoy: fechaLocal(new Date()),
       empresa: { nombre: org.nombre, razon_social: org.razon_social, pais: org.pais },
-      cliente: { codigo: cliente.codigo, nombre: cliente.nombre, documento: cliente.dni, email: cliente.email, telefono: cliente.telefono },
+      cliente: { codigo: cliente.codigo, nombre: cliente.nombre, documento: cliente.dni, domicilio: cliente.domicilio ?? null, email: cliente.email, telefono: cliente.telefono },
       servicio: servicio ? { clave: servicio.clave, nombre: servicio.nombre, ticket_de_lista: servicio.precio } : cliente.servicio,
       monto_total_acordado: cliente.monto_total,
       moneda: cliente.moneda,
