@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ArrowUpRight, CreditCard, LockKeyhole, RefreshCw } from 'lucide-react';
+import { ArrowUpRight, Check, Copy, CreditCard, LockKeyhole, RefreshCw } from 'lucide-react';
 import { supabase } from './supabase';
-import { Aviso, Encabezado, Enlace, Etiqueta, Marco } from './ui';
+import { Aviso, Encabezado, Enlace, Etiqueta, Marco, TituloSeccion } from './ui';
+import { WHATSAPP_COMPROBANTES, mediosDisponibles, type DatoPago, type MedioAlternativo } from './mediosAlternativos';
 import { useVistaPrevia } from './vistaPrevia';
 import type { Organizacion, Perfil } from './tipos';
 import {
@@ -244,7 +245,11 @@ const TarjetaAbono: React.FC<{
             de baja el abono desde este portal.
           </span>
         </label>
-        {sinProcesador ? <p className="text-[13px] leading-[1.55] text-calido">El pago con tarjeta no está disponible por ahora. Escribinos y lo resolvemos.</p> : null}
+        {sinProcesador ? (
+          <p className="text-[13px] leading-[1.55] text-calido">
+            El pago con tarjeta no está disponible por ahora. {mediosDisponibles().length > 0 ? 'Podés pagar con los otros medios de más abajo.' : 'Escribinos y lo resolvemos.'}
+          </p>
+        ) : null}
         <button type="button" className={claseAccion} onClick={() => irA('activar', { abono_id: abono.id, acepto: true, monto: Number(abono.monto) }, 'pagar')} disabled={!acepto || Boolean(soloLectura) || sinProcesador || ocupado !== ''}>
           {ocupado === 'pagar' ? 'Abriendo la página de pago' : `Continuar a ${PROCESADOR}`}
           <ArrowUpRight size={16} aria-hidden="true" />
@@ -348,6 +353,90 @@ const TarjetaAbono: React.FC<{
         {soloLectura && <p className="mt-auto pt-2 text-[12px] leading-[1.5] text-calido">{soloLectura}</p>}
       </aside>
     </article>
+  );
+};
+
+const Copiar: React.FC<{ texto: string; etiqueta: string }> = ({ texto, etiqueta }) => {
+  const [hecho, setHecho] = useState(false);
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(texto);
+      setHecho(true);
+      window.setTimeout(() => setHecho(false), 1800);
+    } catch {
+      // Sin permiso de portapapeles el dato igual se puede seleccionar a mano.
+    }
+  }
+  return (
+    <button
+      type="button"
+      onClick={copiar}
+      aria-label={hecho ? `${etiqueta} copiado` : `Copiar ${etiqueta}`}
+      className="shrink-0 inline-flex items-center gap-1.5 h-8 px-2.5 text-[13px] font-medium text-bosque border border-[rgba(23,58,47,0.3)] transition-colors duration-150 hover:bg-[#E4E9E3]"
+    >
+      {hecho ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
+      {hecho ? 'Copiado' : 'Copiar'}
+    </button>
+  );
+};
+
+const FilaDato: React.FC<{ dato: DatoPago }> = ({ dato }) => (
+  <div className="flex flex-col gap-1">
+    <dt className="text-[11px] font-medium uppercase tracking-[0.16em] text-piedra">{dato.etiqueta}</dt>
+    <dd className="flex items-center justify-between gap-3">
+      <span className="text-[15px] leading-[1.45] break-all select-all">{dato.valor}</span>
+      {dato.copiable && <Copiar texto={dato.valor} etiqueta={dato.etiqueta} />}
+    </dd>
+  </div>
+);
+
+const TarjetaMedio: React.FC<{ medio: MedioAlternativo }> = ({ medio }) => (
+  <article className="bg-white border border-[rgba(27,31,27,0.15)] p-6 flex flex-col gap-5 min-w-0" aria-label={medio.titulo}>
+    <div className="flex flex-col gap-1.5">
+      <p className="eyebrow text-[11px] text-piedra">{medio.moneda}</p>
+      <h3 className="font-heading font-bold text-[19px] leading-[1.25]">{medio.titulo}</h3>
+    </div>
+    <dl className="flex flex-col gap-4">
+      {medio.datos.map((d) => (
+        <FilaDato key={d.etiqueta} dato={d} />
+      ))}
+    </dl>
+    {medio.aviso && <p className="mt-auto border-l-[3px] border-calido pl-3 text-[13px] leading-[1.5] text-piedra">{medio.aviso}</p>}
+  </article>
+);
+
+/** Transferencia y cripto. El pago no se registra solo: el cliente manda el comprobante. */
+const OtrosMedios: React.FC<{ empresa?: string }> = ({ empresa }) => {
+  const medios = mediosDisponibles();
+  if (medios.length === 0) return null;
+  const mensaje = `Hola, les envío el comprobante de pago${empresa ? ` de ${empresa}` : ''}.`;
+  return (
+    <section className="flex flex-col pt-4" aria-labelledby="otros-medios">
+      <TituloSeccion
+        eyebrow="Otros medios de pago"
+        titulo={<span id="otros-medios">Transferencia y cripto</span>}
+        acciones={
+          <a
+            href={`https://wa.me/${WHATSAPP_COMPROBANTES}?text=${encodeURIComponent(mensaje)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 h-12 px-5 bg-bosque text-marfil text-sm font-medium transition-colors duration-150 hover:bg-bosque-dark"
+          >
+            Enviar comprobante
+            <ArrowUpRight size={16} aria-hidden="true" />
+          </a>
+        }
+      />
+      <p className="text-[15px] leading-[1.6] text-piedra max-w-[680px] mb-6">
+        Si preferís no pagar con tarjeta, podés transferir o enviar cripto. Mandanos el comprobante por WhatsApp y lo acreditamos a mano. Estos pagos no
+        activan el débito automático.
+      </p>
+      <div className="grid gap-4 tab:grid-cols-2 desk:grid-cols-3">
+        {medios.map((m) => (
+          <TarjetaMedio key={m.id} medio={m} />
+        ))}
+      </div>
+    </section>
   );
 };
 
@@ -479,6 +568,8 @@ export const Pagos: React.FC<{ perfil: Perfil; organizacion: Organizacion | null
             />
           ))
         )}
+
+        <OtrosMedios empresa={esAdmin ? undefined : organizacion?.nombre} />
       </div>
     </Marco>
   );

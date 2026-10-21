@@ -1,7 +1,7 @@
 import React from 'react';
 import { Reveal } from './Reveal';
 
-import retrato from '../assets/brand/retrato.png';
+import retrato from '../assets/brand/retrato.jpg';
 
 const links = [
   { name: '@agustin.legales', href: 'https://instagram.com/agustin.legales' },
@@ -30,6 +30,10 @@ export const Letter: React.FC = () => {
               <img
                 src={retrato}
                 alt="Agustín Castro"
+                width={900}
+                height={793}
+                loading="lazy"
+                decoding="async"
                 className="w-full h-full object-cover object-top block"
                 style={{ filter: 'grayscale(1) contrast(1.05)' }}
               />
