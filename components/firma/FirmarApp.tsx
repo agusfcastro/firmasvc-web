@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowDown, Check, Eraser, PenLine, Type, X } from 'lucide-react';
+import { ArrowDown, Check, Eraser, FileText, PenLine, ShieldCheck, ShieldX, Type, X } from 'lucide-react';
 import { Button } from '../Button';
 import { Aviso, Campo, Etiqueta, claseInput } from '../portal/ui';
 import { ESTADO_FIRMANTE, MarcoPublico, fechaHora, llamarFirma, usePaginaPrivada } from './comun';
@@ -193,6 +193,68 @@ function nombreComoImagen(nombre: string): string | null {
 }
 
 /* ------------------------------------------------------------------ */
+/* Pantalla final, después de firmar o rechazar                        */
+/* ------------------------------------------------------------------ */
+const PantallaFinal: React.FC<{ datos: Datos; rechazo: boolean }> = ({ datos, rechazo }) => {
+  const { sobre, firmante } = datos;
+  const completo = sobre.estado === 'completado';
+  const Icono = rechazo ? ShieldX : ShieldCheck;
+  const tarjeta = 'w-full bg-white border border-[rgba(27,31,27,0.12)] shadow-[0_1px_3px_rgba(27,31,27,0.06)]';
+
+  return (
+    <section className="bg-marfil-oscuro min-h-[calc(100vh-170px)]">
+      <div className="wrap max-w-[760px] mx-auto py-14 desk:py-20 flex flex-col items-center gap-8 text-center">
+        <span className={`inline-flex items-center justify-center w-20 h-20 ${rechazo ? 'bg-[#E9E6DD] text-piedra' : 'bg-[#E4E9E3] text-bosque'}`}>
+          <Icono size={44} strokeWidth={1.8} aria-hidden="true" />
+        </span>
+        <div className="flex flex-col gap-4">
+          <h1 className="h2">{rechazo ? 'Rechazaste el documento' : '¡Firma completada!'}</h1>
+          <p className="text-[17px] leading-[1.6] text-piedra max-w-[56ch]">
+            {rechazo
+              ? `Le avisamos a ${sobre.emisor} y el envío quedó cerrado. No hace falta que hagas nada más.`
+              : completo
+                ? `Firmaron todos. Te enviamos una copia del documento firmado a tu correo ${firmante.email}.`
+                : `Te vamos a enviar una copia del documento firmado a tu correo ${firmante.email} cuando firmen todos.`}
+          </p>
+          {!rechazo && firmante.firmado_en && <p className="text-sm text-piedra">Firmaste el {fechaHora(firmante.firmado_en).replace(/\.$/, '')}.</p>}
+        </div>
+
+        {!rechazo && (
+          <div className={`${tarjeta} p-5 tab:p-6 flex flex-col tab:flex-row tab:items-center gap-4 text-left`}>
+            <ShieldCheck size={22} aria-hidden="true" className="text-bosque shrink-0 hidden tab:block" />
+            <div className="flex-1 flex flex-col gap-1">
+              <p className="font-semibold">Verificá el documento</p>
+              <p className="text-[15px] text-piedra">Cualquiera puede comprobar que es auténtico con el código {sobre.codigo}.</p>
+            </div>
+            <a href={`/verificar/${sobre.codigo}`} className="inline-flex items-center justify-center h-12 px-6 bg-bosque text-marfil text-[15px] font-medium whitespace-nowrap hover:bg-bosque-dark">
+              Verificar documento
+            </a>
+          </div>
+        )}
+
+        <div className={`${tarjeta} px-5 py-4 tab:px-6 flex items-center gap-3 text-left`}>
+          <FileText size={20} aria-hidden="true" className="text-piedra shrink-0" />
+          <span className="flex-1 min-w-0 flex flex-col">
+            <span className="truncate">{sobre.nombre_archivo}</span>
+            {!completo && !rechazo && <span className="text-xs text-piedra">Disponible cuando firmen todos</span>}
+          </span>
+          {completo && datos.pdf ? (
+            <a
+              href={`${datos.pdf}&download=${encodeURIComponent(sobre.nombre_archivo)}`}
+              aria-label={`Descargar ${sobre.nombre_archivo}`}
+              title="Descargar el documento firmado"
+              className="inline-flex items-center justify-center w-10 h-10 text-bosque hover:bg-marfil-oscuro shrink-0"
+            >
+              <ArrowDown size={20} aria-hidden="true" />
+            </a>
+          ) : null}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+/* ------------------------------------------------------------------ */
 /* Página                                                              */
 /* ------------------------------------------------------------------ */
 export const FirmarApp: React.FC<{ token: string }> = ({ token }) => {
@@ -320,12 +382,22 @@ export const FirmarApp: React.FC<{ token: string }> = ({ token }) => {
 
   const { sobre, firmante } = datos;
   const puedeFirmar = !datos.bloqueo && !listo;
-  const yaFirmo = listo === 'firmado' || (firmante.estado === 'firmado' && !listo);
+  const yaFirmo = listo === 'firmado' || firmante.estado === 'firmado';
+  const yaRechazo = listo === 'rechazado' || firmante.estado === 'rechazado';
 
   function abrir(rechazo: boolean) {
     setRechazando(rechazo);
     setError(null);
     setPanel(true);
+  }
+
+  // Quien ya respondió ve siempre esta pantalla, también si vuelve a entrar al enlace.
+  if (yaFirmo || yaRechazo) {
+    return (
+      <MarcoPublico>
+        <PantallaFinal datos={datos} rechazo={!yaFirmo} />
+      </MarcoPublico>
+    );
   }
 
   return (
@@ -342,35 +414,9 @@ export const FirmarApp: React.FC<{ token: string }> = ({ token }) => {
       </section>
 
       <div className={`wrap max-w-[900px] mx-auto py-6 desk:py-10 flex flex-col gap-6`}>
-        {yaFirmo ? (
-          <div className="bg-[#E4E9E3] p-6 flex flex-wrap items-center gap-4">
-            <span className="inline-flex items-center justify-center w-11 h-11 bg-bosque text-marfil shrink-0">
-              <Check size={22} aria-hidden="true" />
-            </span>
-            <div className="flex-1 min-w-[220px] flex flex-col gap-1">
-              <p className="font-semibold">Listo, firmaste{firmante.firmado_en ? ` el ${fechaHora(firmante.firmado_en)}` : ''}</p>
-              <p className="text-[15px] leading-[1.55]">
-                {sobre.estado === 'completado'
-                  ? 'Firmaron todos. Abajo ves el documento firmado, con la constancia al final, y también te llegó por mail.'
-                  : 'Cuando firmen todos te mandamos por mail el documento firmado, con la constancia al final.'}
-              </p>
-            </div>
-            {sobre.estado === 'completado' && datos.pdf && (
-              <a
-                href={`${datos.pdf}&download=${encodeURIComponent(sobre.nombre_archivo)}`}
-                className="inline-flex items-center gap-2 h-11 px-5 bg-bosque text-marfil text-sm font-medium hover:bg-bosque-dark"
-              >
-                <ArrowDown size={16} aria-hidden="true" /> Guardar una copia
-              </a>
-            )}
-          </div>
-        ) : listo === 'rechazado' ? (
-          <Aviso>Rechazaste el documento. Le avisamos a {sobre.emisor} y el envío quedó cerrado.</Aviso>
-        ) : datos.bloqueo ? (
-          <Aviso>{datos.bloqueo}</Aviso>
-        ) : null}
+        {datos.bloqueo && <Aviso>{datos.bloqueo}</Aviso>}
 
-        {datos.pdf ? <Visor url={datos.pdf} titulo={sobre.titulo} /> : !yaFirmo && <div className="bg-marfil-oscuro p-8 text-sm text-piedra">El documento ya no está disponible desde este enlace.</div>}
+        {datos.pdf ? <Visor url={datos.pdf} titulo={sobre.titulo} /> : <div className="bg-marfil-oscuro p-8 text-sm text-piedra">El documento ya no está disponible desde este enlace.</div>}
 
         <div className="flex flex-col gap-5">
           {datos.otros.length > 0 && (
