@@ -15,7 +15,7 @@
  *   enlace_acceso { usuario_id }   devuelve { enlace } sin mandar mail
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { mailDeAcceso, mailDisponible } from '../_lib/mail.js';
+import { enlaceDeAcceso, mailDeAcceso, mailDisponible } from '../_lib/mail.js';
 
 // miembro es el rol anterior a csm: se acepta en cuentas viejas pero ya no se asigna.
 type Rol = 'admin' | 'titular' | 'csm' | 'closer' | 'setter' | 'miembro';
@@ -114,9 +114,9 @@ export async function POST(request: Request): Promise<Response> {
       // Con Resend: se crea la cuenta con su enlace y el mail sale con la plantilla de FIRMA.
       const r = await sb.auth.admin.generateLink({ type: 'invite', email, options: opciones });
       if (ya(r.error?.message)) return error('Ese mail ya tiene una cuenta. Buscalo en la lista y copiale el enlace de acceso.', 409);
-      if (r.error || !r.data?.user || !r.data.properties?.action_link) return error(`No se pudo crear la cuenta. ${r.error?.message ?? ''}`.trim(), 502);
+      if (r.error || !r.data?.user || !r.data.properties?.hashed_token) return error(`No se pudo crear la cuenta. ${r.error?.message ?? ''}`.trim(), 502);
       invitado = { user: r.data.user };
-      porResend = r.data.properties.action_link;
+      porResend = enlaceDeAcceso(urlDelPortal(request), r.data.properties.hashed_token, 'invite');
     } else if (!cuerpo.sin_mail) {
       const r = await sb.auth.admin.inviteUserByEmail(email, opciones);
       if (ya(r.error?.message)) return error('Ese mail ya tiene una cuenta. Buscalo en la lista y copiale el enlace de acceso.', 409);
@@ -127,9 +127,9 @@ export async function POST(request: Request): Promise<Response> {
     if (!invitado) {
       const r = await sb.auth.admin.generateLink({ type: 'invite', email, options: opciones });
       if (ya(r.error?.message)) return error('Ese mail ya tiene una cuenta. Buscalo en la lista y copiale el enlace de acceso.', 409);
-      if (r.error || !r.data?.user || !r.data.properties?.action_link) return error(`No se pudo crear la cuenta. ${r.error?.message ?? motivo ?? ''}`.trim(), 502);
+      if (r.error || !r.data?.user || !r.data.properties?.hashed_token) return error(`No se pudo crear la cuenta. ${r.error?.message ?? motivo ?? ''}`.trim(), 502);
       invitado = { user: r.data.user };
-      enlace = r.data.properties.action_link;
+      enlace = enlaceDeAcceso(urlDelPortal(request), r.data.properties.hashed_token, 'invite');
     }
 
     const { error: errPerfil } = await sb.from('perfiles').upsert({
@@ -201,12 +201,12 @@ export async function POST(request: Request): Promise<Response> {
       const { data: cuenta } = await sb.auth.admin.getUserById(usuario_id);
       const tipo = cuenta?.user?.email_confirmed_at ? 'recovery' : 'invite';
       const { data: link, error: errLink } = await sb.auth.admin.generateLink({ type: tipo, email: perfil.email, options: { redirectTo: urlDelPortal(request) } });
-      if (errLink || !link?.properties?.action_link) return error(`No se pudo generar el enlace. ${errLink?.message ?? ''}`.trim(), 502);
+      if (errLink || !link?.properties?.hashed_token) return error(`No se pudo generar el enlace. ${errLink?.message ?? ''}`.trim(), 502);
       const fallo = await mailDeAcceso({
         email: perfil.email,
         nombre: perfil.nombre ?? null,
         empresa: await nombreEmpresa(sb, perfil.organizacion_id),
-        enlace: link.properties.action_link,
+        enlace: enlaceDeAcceso(urlDelPortal(request), link.properties.hashed_token, tipo),
         tipo,
       });
       if (fallo) return error(`No se pudo enviar el mail. ${fallo}`, 502);
@@ -224,9 +224,9 @@ export async function POST(request: Request): Promise<Response> {
     const { data: cuenta } = await sb.auth.admin.getUserById(usuario_id);
     const tipo = cuenta?.user?.email_confirmed_at ? 'recovery' : 'invite';
     const { data: link, error: errLink } = await sb.auth.admin.generateLink({ type: tipo, email: perfil.email, options: { redirectTo: urlDelPortal(request) } });
-    if (errLink || !link?.properties?.action_link) return error(`No se pudo generar el enlace. ${errLink?.message ?? ''}`.trim(), 502);
+    if (errLink || !link?.properties?.hashed_token) return error(`No se pudo generar el enlace. ${errLink?.message ?? ''}`.trim(), 502);
     await registrar(sb, actor, usuario_id, 'enlace_acceso');
-    return json({ ok: true, enlace: link.properties.action_link });
+    return json({ ok: true, enlace: enlaceDeAcceso(urlDelPortal(request), link.properties.hashed_token, tipo) });
   }
 
   return error('Acción desconocida.');

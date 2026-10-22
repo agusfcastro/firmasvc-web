@@ -10,7 +10,7 @@
  *   Sin RESEND_API_KEY lo manda el servidor de mails de Supabase.
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { mailDeAcceso, mailDisponible } from '../_lib/mail.js';
+import { enlaceDeAcceso, mailDeAcceso, mailDisponible } from '../_lib/mail.js';
 
 const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAXIMO_POR_HORA = 3;
@@ -70,14 +70,14 @@ export async function POST(request: Request): Promise<Response> {
   const { data: cuenta } = await sb.auth.admin.getUserById(perfil.id);
   const tipo = cuenta?.user?.email_confirmed_at ? 'recovery' : 'invite';
   const { data: link } = await sb.auth.admin.generateLink({ type: tipo, email, options: { redirectTo } });
-  if (!link?.properties?.action_link) return listo;
+  if (!link?.properties?.hashed_token) return listo;
 
   let empresa: string | null = null;
   if (perfil.organizacion_id) {
     const { data: org } = await sb.from('organizaciones').select('nombre').eq('id', perfil.organizacion_id).maybeSingle();
     empresa = (org?.nombre as string | undefined) ?? null;
   }
-  await mailDeAcceso({ email, nombre: (perfil.nombre as string | null) ?? null, empresa, enlace: link.properties.action_link, tipo });
+  await mailDeAcceso({ email, nombre: (perfil.nombre as string | null) ?? null, empresa, enlace: enlaceDeAcceso(redirectTo, link.properties.hashed_token, tipo), tipo });
   return listo;
 }
 

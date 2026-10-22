@@ -126,6 +126,16 @@ export async function enviarMail(o: {
 /* ------------------------------------------------------------------ */
 /* Acceso al portal                                                     */
 /* ------------------------------------------------------------------ */
+/**
+ * Enlace de acceso que pasa por firmasvc.com/portal/clave en lugar del de
+ * Supabase. La página valida el token con verifyOtp recién cuando la persona
+ * la abre, así un filtro de correo que revisa el enlace no lo gasta.
+ * paginaClave es la dirección completa de /portal/clave.
+ */
+export function enlaceDeAcceso(paginaClave: string, hashedToken: string, tipo: 'invite' | 'recovery'): string {
+  return `${paginaClave}?token_hash=${encodeURIComponent(hashedToken)}&type=${tipo}`;
+}
+
 const REMITENTE_PORTAL = () => process.env.PORTAL_MAIL_DIRECCION || 'portal@firmasvc.com';
 
 /** Mail de acceso al portal por Resend. Devuelve null si salió o el motivo si no. */

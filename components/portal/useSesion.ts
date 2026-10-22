@@ -14,9 +14,18 @@ export interface EstadoSesion {
   recargar: () => Promise<void>;
 }
 
+/** Enlace propio de firmasvc.com: /portal/clave?token_hash=…&type=invite|recovery */
+function tokenDeEnlace(): { token_hash: string; type: 'invite' | 'recovery' } | null {
+  const q = new URLSearchParams(window.location.search);
+  const token = q.get('token_hash');
+  const tipo = q.get('type');
+  return token && (tipo === 'invite' || tipo === 'recovery') ? { token_hash: token, type: tipo } : null;
+}
+
 function hashDeEnlace(): boolean {
+  // Los enlaces viejos de Supabase vuelven con la sesión en el fragmento de la dirección.
   const h = window.location.hash;
-  return /type=(invite|recovery|signup|magiclink)/.test(h);
+  return /type=(invite|recovery|signup|magiclink)/.test(h) || tokenDeEnlace() !== null;
 }
 
 export function useSesion(): EstadoSesion {
@@ -48,7 +57,18 @@ export function useSesion(): EstadoSesion {
       return;
     }
     let vivo = true;
-    supabase.auth.getSession().then(async ({ data }) => {
+    const sb = supabase;
+    // El token se valida recién acá, cuando la persona abre la página. Después se saca de la dirección.
+    const enlace = tokenDeEnlace();
+    const validar = enlace
+      ? sb.auth.verifyOtp(enlace).then(() => {
+          const url = new URL(window.location.href);
+          url.searchParams.delete('token_hash');
+          url.searchParams.delete('type');
+          window.history.replaceState({}, '', url);
+        })
+      : Promise.resolve();
+    void validar.then(() => sb.auth.getSession()).then(async ({ data }) => {
       if (!vivo) return;
       setSesion(data.session);
       await cargarPerfil(data.session);
