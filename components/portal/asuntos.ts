@@ -11,6 +11,8 @@ export type TipoAsunto = 'contrato' | 'conflicto' | 'marca' | 'societario' | 'co
 export interface Asunto {
   id: string;
   organizacion_id: string;
+  /** A-<prefijo de la empresa>-<número>, por ejemplo A-TB-001. Lo asigna la base al crear el asunto. */
+  codigo: string | null;
   titulo: string;
   tipo: TipoAsunto;
   estado: EstadoAsunto;

@@ -65,6 +65,9 @@ function escapar(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+/** El código del asunto al comienzo del asunto del mail, así se ordena y se busca en la casilla. */
+const prefijoCodigo = (codigo: string | null | undefined): string => (codigo ? `[${codigo}] ` : '');
+
 /** Texto de varias líneas, escapado y con sus saltos. */
 const conSaltos = (s: string): string => escapar(s).replace(/\n/g, '<br>');
 
@@ -103,7 +106,7 @@ async function avisoNovedad(sb: SupabaseClient, quien: Quien, id: string, base: 
   if (nov.interna || nov.tipo !== 'nota') return error('Las notas internas y las anotaciones automáticas no se avisan.', 409);
   if (Date.now() - Date.parse(nov.creado_en) > 3_600_000) return error('Esa novedad es vieja para avisar.', 409);
 
-  const { data: asunto } = await sb.from('asuntos').select('id, titulo, estado, proximo_paso, organizacion_id').eq('id', nov.asunto_id).maybeSingle();
+  const { data: asunto } = await sb.from('asuntos').select('id, codigo, titulo, estado, proximo_paso, organizacion_id').eq('id', nov.asunto_id).maybeSingle();
   if (!asunto) return error('No existe ese asunto.', 404);
   const { data: org } = await sb.from('organizaciones').select('nombre').eq('id', asunto.organizacion_id).maybeSingle();
   const empresa = (org?.nombre as string | undefined) ?? 'La empresa';
@@ -130,7 +133,7 @@ async function avisoNovedad(sb: SupabaseClient, quien: Quien, id: string, base: 
         if (asunto.proximo_paso) parrafos.push(`Próximo paso: ${escapar(asunto.proximo_paso)}`);
       }
       return {
-        asunto: deFirma ? `Novedad en ${asunto.titulo}` : `${empresa} escribió en ${asunto.titulo}`,
+        asunto: `${prefijoCodigo(asunto.codigo)}${deFirma ? `Novedad en ${asunto.titulo}` : `${empresa} escribió en ${asunto.titulo}`}`,
         html: plantillaMail({
           seccion: 'Estado de asuntos',
           titulo: deFirma ? 'Hay una novedad en tu asunto' : 'Te escribieron en un asunto',
@@ -159,7 +162,7 @@ async function otraParte(sb: SupabaseClient, quien: Quien, organizacionId: strin
 }
 
 async function datosAsunto(sb: SupabaseClient, asuntoId: string) {
-  const { data: asunto } = await sb.from('asuntos').select('id, titulo, organizacion_id').eq('id', asuntoId).maybeSingle();
+  const { data: asunto } = await sb.from('asuntos').select('id, codigo, titulo, organizacion_id').eq('id', asuntoId).maybeSingle();
   if (!asunto) return null;
   const { data: org } = await sb.from('organizaciones').select('nombre').eq('id', asunto.organizacion_id).maybeSingle();
   return { ...asunto, empresa: (org?.nombre as string | undefined) ?? 'La empresa' };
@@ -189,7 +192,7 @@ async function avisoMensaje(sb: SupabaseClient, quien: Quien, id: string, base: 
   const avisados = await avisarA(
     await otraParte(sb, quien, asunto.organizacion_id),
     (d) => ({
-      asunto: deFirma ? `FIRMA te escribió sobre ${asunto.titulo}` : `${asunto.empresa} te escribió sobre ${asunto.titulo}`,
+      asunto: `${prefijoCodigo(asunto.codigo)}${deFirma ? `FIRMA te escribió sobre ${asunto.titulo}` : `${asunto.empresa} te escribió sobre ${asunto.titulo}`}`,
       html: plantillaMail({
         seccion: 'Estado de asuntos',
         titulo: 'Tenés mensajes nuevos',
@@ -221,7 +224,7 @@ async function avisoArchivo(sb: SupabaseClient, quien: Quien, id: string, base: 
   const avisados = await avisarA(
     await otraParte(sb, quien, asunto.organizacion_id),
     (d) => ({
-      asunto: `Nuevo documento en ${asunto.titulo}`,
+      asunto: `${prefijoCodigo(asunto.codigo)}Nuevo documento en ${asunto.titulo}`,
       html: plantillaMail({
         seccion: 'Estado de asuntos',
         titulo: 'Se subió un documento',

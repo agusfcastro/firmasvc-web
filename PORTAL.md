@@ -446,6 +446,7 @@ Cada trámite que FIRMA lleva para una empresa cliente, en `/portal/asuntos`: un
 
 - **Quién lo ve:** FIRMA, el titular y el CSM de la empresa. Closers y setters no.
 - **FIRMA** crea el asunto con **Nuevo asunto** y edita sus datos.
+- **Código.** Cada asunto recibe uno al crearse, como el de los clientes del CRM con `A-` adelante: `A-<prefijo de la empresa>-<número>`, por ejemplo `A-TB-001`. El número es correlativo por empresa y no cambia. Se busca por código en la lista y va al comienzo del asunto de cada mail.
 
 Cada asunto tiene tres pestañas:
 
@@ -453,7 +454,7 @@ Cada asunto tiene tres pestañas:
 - **Bitácora.** Las notas de FIRMA, cada una interna (solo FIRMA) o visible para el cliente, con aviso por mail opcional. Los cambios de estado y los documentos subidos se anotan solos. El cliente ve las entradas visibles y escribe por el chat.
 - **Documentos.** FIRMA y el cliente suben PDF, Word, Excel, imágenes o TXT de hasta 20 MB al bucket privado `asuntos`. Se descargan con enlaces que vencen en un minuto. Cada subida le avisa por mail a la otra parte. Borra solo FIRMA.
 
-Para activarlo, corré en Supabase › SQL Editor `supabase/migraciones/0017_asuntos.sql` y después `supabase/migraciones/0018_asuntos_chat_archivos.sql`.
+Para activarlo, corré en Supabase › SQL Editor, en orden, `0017_asuntos.sql`, `0018_asuntos_chat_archivos.sql` y `0019_asuntos_codigo.sql`.
 
 ## Avisos por mail
 
@@ -472,6 +473,7 @@ Cada aviso sale una sola vez y a cada persona por separado. Los documentos de la
 |---|---|
 | `supabase/migraciones/0017_asuntos.sql` | Tablas de asuntos y novedades, reglas y permisos |
 | `supabase/migraciones/0018_asuntos_chat_archivos.sql` | Bitácora con notas internas, chat en vivo y documentos del asunto |
+| `supabase/migraciones/0019_asuntos_codigo.sql` | Código A-<prefijo>-<número> de cada asunto |
 | `components/portal/EstadoAsuntos.tsx` | Lista y detalle de asuntos |
 | `components/portal/asuntos.ts` | Tipos, rótulos y el pedido de avisos |
 | `api/portal/avisos.ts` | Avisos por mail de novedades y documentos |

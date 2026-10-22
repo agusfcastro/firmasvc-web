@@ -65,6 +65,7 @@ const Lista: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
   const [asuntos, setAsuntos] = useState<Asunto[] | null>(null);
   const [orgs, setOrgs] = useState<{ id: string; nombre: string }[]>([]);
   const [filtro, setFiltro] = useState('');
+  const [busqueda, setBusqueda] = useState('');
   const [borrador, setBorrador] = useState<Borrador | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -91,7 +92,10 @@ const Lista: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
   }, [cargar, esFirma]);
 
   const empresa = (orgId: string) => orgs.find((o) => o.id === orgId)?.nombre ?? '';
-  const visibles = (asuntos ?? []).filter((a) => !filtro || a.organizacion_id === filtro);
+  const texto = busqueda.trim().toLowerCase();
+  const visibles = (asuntos ?? []).filter(
+    (a) => (!filtro || a.organizacion_id === filtro) && (!texto || a.titulo.toLowerCase().includes(texto) || (a.codigo ?? '').toLowerCase().includes(texto)),
+  );
   const abiertos = visibles.filter((a) => a.estado !== 'finalizado');
   const cerrados = visibles.filter((a) => a.estado === 'finalizado');
 
@@ -238,23 +242,30 @@ const Lista: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
           </form>
         )}
 
-        {esFirma && orgs.length > 1 && (
-          <div className="max-w-[320px]">
-            <Campo etiqueta="Empresa">
-              <select className={claseInput} value={filtro} onChange={(e) => setFiltro(e.target.value)}>
-                <option value="">Todas</option>
-                {orgs.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.nombre}
-                  </option>
-                ))}
-              </select>
+        {(asuntos?.length ?? 0) > 0 && (
+          <div className="grid gap-4 tab:grid-cols-2 max-w-[680px]">
+            <Campo etiqueta="Buscar">
+              <input className={claseInput} placeholder="Código o título, por ejemplo A-TB-001" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
             </Campo>
+            {esFirma && orgs.length > 1 && (
+              <Campo etiqueta="Empresa">
+                <select className={claseInput} value={filtro} onChange={(e) => setFiltro(e.target.value)}>
+                  <option value="">Todas</option>
+                  {orgs.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.nombre}
+                    </option>
+                  ))}
+                </select>
+              </Campo>
+            )}
           </div>
         )}
 
         {asuntos === null ? (
           <p className="eyebrow text-piedra">Cargando</p>
+        ) : visibles.length === 0 && asuntos.length > 0 ? (
+          <p className="text-sm text-piedra">No hay asuntos que coincidan con la búsqueda.</p>
         ) : visibles.length === 0 ? (
           <div className="flex flex-col gap-4 p-8 desk:p-10 max-w-[680px] bg-marfil-oscuro">
             <p className="h3">{esFirma ? 'Todavía no hay asuntos' : 'Todavía no tenés asuntos abiertos'}</p>
@@ -294,6 +305,7 @@ const ListaGrupo: React.FC<{ titulo?: string; asuntos: Asunto[]; esFirma: boolea
             <Enlace a={`/portal/asuntos/${a.id}`} className="group flex flex-col tab:flex-row tab:items-center gap-4 bg-white border border-[rgba(27,31,27,0.15)] p-5 desk:p-6 transition-colors duration-150 hover:border-bosque">
               <div className="flex flex-col gap-2 min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-3">
+                  {a.codigo && <span className="font-mono text-[12px] font-medium text-bosque bg-[#E4E9E3] px-2 py-0.5">{a.codigo}</span>}
                   <span className="eyebrow text-[11px] text-piedra">
                     {TIPO_ASUNTO[a.tipo]}
                     {empresa ? ` · ${empresa(a.organizacion_id)}` : ''}
@@ -487,6 +499,7 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
         bajada={
           <span className="inline-flex flex-wrap items-center gap-3">
             <Etiqueta tono={ESTADO_ASUNTO[asunto.estado].tono}>{rotuloEstado(asunto.estado, esFirma)}</Etiqueta>
+            {asunto.codigo && <span className="font-mono text-[13px] font-medium text-bosque bg-[#E4E9E3] px-2 py-0.5">{asunto.codigo}</span>}
             <span className="text-[15px]">{TIPO_ASUNTO[asunto.tipo]}</span>
           </span>
         }
