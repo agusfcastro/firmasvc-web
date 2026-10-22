@@ -8,6 +8,12 @@
  *   Responde { dlocalgo, entorno } con dLocal Go listo para cobrar o no y el
  *   entorno, sandbox o produccion. Requiere sesión. Nunca devuelve claves.
  *
+ * GET  /api/pagos/activar?diagnostico=1   (solo FIRMA)
+ *   Prueba la conexión con dLocal Go paso por paso: leer planes, crear un
+ *   plan mínimo, uno de USD 1 y uno con la forma de los del portal. Cada
+ *   plan de prueba se desactiva enseguida. Responde el resultado de cada paso
+ *   con lo que contestó dLocal Go, sin claves, y lo deja en el registro.
+ *
  * POST /api/pagos/activar  { abono_id, acepto: true, monto? }
  *   Deja constancia de la aceptación del débito, crea el plan del
  *   abono en dLocal Go si todavía no existe y responde { url } con el enlace
@@ -598,11 +604,105 @@ async function crearPlan(sb: SupabaseClient, abono: Abono, empresa: string, base
 /* ------------------------------------------------------------------ */
 /* Rutas                                                                */
 /* ------------------------------------------------------------------ */
+/* ------------------------------------------------------------------ */
+/* Diagnóstico de la conexión con dLocal Go                             */
+/* ------------------------------------------------------------------ */
+interface PasoDiagnostico {
+  paso: string;
+  ok: boolean;
+  status: number;
+  respuesta: string;
+}
+
+/** Un pedido a dLocal Go que devuelve el estado y el comienzo de la respuesta, sin claves. */
+async function probar(metodo: 'GET' | 'POST' | 'PATCH', ruta: string, cuerpo?: unknown): Promise<{ status: number; texto: string; json: unknown }> {
+  try {
+    const r = await fetch(`${baseApi()}${ruta}`, {
+      method: metodo,
+      headers: {
+        authorization: `Bearer ${process.env.DLOCALGO_API_KEY}:${process.env.DLOCALGO_SECRET_KEY}`,
+        'content-type': 'application/json',
+      },
+      body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo),
+      signal: AbortSignal.timeout(15000),
+    });
+    const texto = await r.text().catch(() => '');
+    let j: unknown = null;
+    try {
+      j = JSON.parse(texto);
+    } catch {
+      /* respuesta que no es JSON */
+    }
+    return { status: r.status, texto: sinClaves(texto).replace(/\s+/g, ' ').slice(0, 300), json: j };
+  } catch (e) {
+    return { status: 0, texto: `Sin conexión con dLocal Go. ${(e as Error).message}`.slice(0, 300), json: null };
+  }
+}
+
+async function diagnostico(sb: SupabaseClient, actor: string, base: string): Promise<Response> {
+  const faltan = faltantes();
+  if (faltan.length) return json({ entorno: entorno(), api: baseApi(), pasos: [{ paso: 'Variables en Vercel', ok: false, status: 0, respuesta: `Faltan ${faltan.join(', ')}.` }] });
+  const pasos: PasoDiagnostico[] = [];
+  const anotar = (paso: string, r: { status: number; texto: string }) => {
+    const ok = r.status >= 200 && r.status < 300;
+    pasos.push({ paso, ok, status: r.status, respuesta: r.texto || (ok ? 'Sin cuerpo.' : 'dLocal Go no explicó el error.') });
+    return ok;
+  };
+  const desactivar = async (r: { json: unknown }) => {
+    const id = idDe(r.json as { id?: number | string | null } | null);
+    if (id) await probar('PATCH', `${rutaPlan(id)}/deactivate`);
+  };
+
+  // 1. Las claves y el entorno coinciden: leer planes no crea nada.
+  const lista = await probar('GET', '/v1/subscription/plan/all');
+  const conectado = anotar('1. Leer planes (claves y entorno)', lista);
+
+  // 2. Plan mínimo, solo con lo obligatorio y un país.
+  const minimo = await probar('POST', '/v1/subscription/plan', { name: 'FIRMA prueba de conexion', description: 'Prueba', country: 'AR', currency: 'USD', amount: 10, frequency_type: 'MONTHLY' });
+  anotar('2. Crear un plan mínimo (USD 10, Argentina)', minimo);
+  await desactivar(minimo);
+
+  // 3. Lo mismo con USD 1, por si el sandbox tiene un monto mínimo.
+  const chico = await probar('POST', '/v1/subscription/plan', { name: 'FIRMA prueba de monto', description: 'Prueba', country: 'AR', currency: 'USD', amount: 1, frequency_type: 'MONTHLY' });
+  anotar('3. Crear un plan de USD 1', chico);
+  await desactivar(chico);
+
+  // 4. La forma de los planes del portal: nombre con «·», sin país, con frecuencia y direcciones de vuelta.
+  const prueba = '00000000-0000-0000-0000-000000000000';
+  const volver = `${base}/portal/pagos?abono=${prueba}`;
+  const portal = await probar('POST', '/v1/subscription/plan', {
+    name: 'FIRMA · Prueba · Plan del portal',
+    description: 'Plan del portal',
+    currency: 'USD',
+    amount: 10,
+    frequency_type: 'MONTHLY',
+    frequency_value: 1,
+    notification_url: urlAviso(base, prueba),
+    success_url: `${volver}&volver=dlocalgo`,
+    error_url: `${volver}&volver=dlocalgo&error=1`,
+    back_url: `${volver}&cancelado=1`,
+  });
+  anotar('4. Crear un plan como los del portal (sin país)', portal);
+  await desactivar(portal);
+
+  await sb.from('registro_accesos').insert({
+    usuario_id: null,
+    actor_id: actor,
+    accion: 'dlocal_diagnostico',
+    detalle: { entorno: entorno(), conectado, pasos: pasos.map((p) => ({ paso: p.paso, status: p.status, respuesta: p.respuesta.slice(0, 200) })) },
+  });
+  return json({ entorno: entorno(), api: baseApi(), pasos });
+}
+
 export async function GET(request: Request): Promise<Response> {
   const sb = clienteServicio();
   if (!sb) return error('El servidor no tiene configuradas las variables de Supabase.', 500);
   const quien = await quienLlama(sb, request);
   if (quien instanceof Response) return quien;
+  if (new URL(request.url).searchParams.get('diagnostico') === '1') {
+    if (quien.rol !== 'admin') return error('Solo FIRMA puede probar la conexión.', 403);
+    return diagnostico(sb, quien.id, baseDe(request));
+  }
   return json({ dlocalgo: faltantes().length === 0, entorno: entorno() });
 }
 

@@ -12,6 +12,7 @@ import {
   PLANES_ABONO,
   PROCESADOR,
   consultarDisponibilidad,
+  diagnosticarDlocal,
   esPagoManual,
   fechaCorta,
   fechaLarga,
@@ -22,6 +23,7 @@ import {
   periodoTexto,
   sincronizarAbono,
   type Abono,
+  type Diagnostico,
   type Disponibilidad,
   type MonedaAbono,
   type PagoAbono,
@@ -335,6 +337,8 @@ export const Abonos: React.FC = () => {
   const [abonos, setAbonos] = useState<Abono[] | null>(null);
   const [pagos, setPagos] = useState<PagoAbono[]>([]);
   const [disp, setDisp] = useState<Disponibilidad | null>(null);
+  const [diagnostico, setDiagnostico] = useState<Diagnostico | null>(null);
+  const [probando, setProbando] = useState(false);
   const [borrador, setBorrador] = useState<Borrador | null>(null);
   const [abierto, setAbierto] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -445,6 +449,15 @@ export const Abonos: React.FC = () => {
   const ultimoPago = (id: string) => pagos.find((p) => p.abono_id === id) ?? null;
   const entorno = disp?.entorno === 'produccion' ? 'producción' : 'sandbox';
 
+  async function probarConexion() {
+    setProbando(true);
+    setDiagnostico(null);
+    const r = await diagnosticarDlocal();
+    setProbando(false);
+    if (!r.ok || !r.datos) return setError(r.error ?? 'No se pudo probar la conexión.');
+    setDiagnostico(r.datos);
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-6">
@@ -454,6 +467,9 @@ export const Abonos: React.FC = () => {
             <Etiqueta tono={disp === null ? 'piedra' : disp.dlocalgo ? 'bosque' : 'alerta'}>
               {PROCESADOR} · {disp === null ? 'sin verificar' : disp.dlocalgo ? `disponible · ${entorno}` : 'no disponible'}
             </Etiqueta>
+            <button type="button" onClick={probarConexion} disabled={probando} className="text-xs underline underline-offset-4 text-piedra hover:text-tinta disabled:opacity-50">
+              {probando ? 'Probando…' : 'Probar conexión con dLocal Go'}
+            </button>
           </div>
         </div>
         {!borrador && (
@@ -474,6 +490,30 @@ export const Abonos: React.FC = () => {
           dLocal Go está en modo de prueba (sandbox) y los pagos no son reales. Para cobrar de verdad cargá en Vercel las credenciales productivas y DLOCALGO_ENTORNO con el valor
           produccion.
         </Aviso>
+      )}
+      {diagnostico && (
+        <div className="bg-white border border-[rgba(27,31,27,0.15)] p-5 flex flex-col gap-3 text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="font-medium">
+              Prueba de conexión · {diagnostico.entorno === 'produccion' ? 'producción' : 'sandbox'} · <span className="font-mono text-xs text-piedra">{diagnostico.api}</span>
+            </p>
+            <button type="button" className="text-xs underline underline-offset-4 text-piedra" onClick={() => setDiagnostico(null)}>
+              Cerrar
+            </button>
+          </div>
+          <ol className="flex flex-col gap-2">
+            {diagnostico.pasos.map((p) => (
+              <li key={p.paso} className="flex flex-col gap-1">
+                <span className="flex flex-wrap items-center gap-2">
+                  <Etiqueta tono={p.ok ? 'bosque' : 'alerta'}>{p.ok ? 'Bien' : `Falló · ${p.status || 'sin respuesta'}`}</Etiqueta>
+                  {p.paso}
+                </span>
+                {!p.ok && <span className="font-mono text-xs text-piedra break-all">{p.respuesta}</span>}
+              </li>
+            ))}
+          </ol>
+          <p className="text-xs text-piedra">Los planes de prueba se desactivan solos. El resultado queda en el registro de accesos.</p>
+        </div>
       )}
       {error && <Aviso tipo="error">{error}</Aviso>}
       {ok && <Aviso tipo="ok">{ok}</Aviso>}

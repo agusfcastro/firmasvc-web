@@ -192,6 +192,26 @@ export function sincronizarAbono(abonoId: string) {
 }
 
 /** dLocal Go listo para cobrar. null si no se pudo consultar (por ejemplo en desarrollo local). */
+export interface Diagnostico {
+  entorno: string;
+  api: string;
+  pasos: { paso: string; ok: boolean; status: number; respuesta: string }[];
+}
+
+/** Prueba la conexión con dLocal Go paso por paso. Solo FIRMA. */
+export async function diagnosticarDlocal(): Promise<{ ok: boolean; datos?: Diagnostico; error?: string }> {
+  const t = await token();
+  if (!t) return { ok: false, error: 'Tu sesión venció. Volvé a ingresar.' };
+  try {
+    const r = await fetch('/api/pagos/activar?diagnostico=1', { headers: { authorization: `Bearer ${t}` } });
+    const j = (await r.json().catch(() => ({}))) as Diagnostico & { error?: string };
+    if (!r.ok) return { ok: false, error: j.error || `Error ${r.status}` };
+    return { ok: true, datos: j };
+  } catch {
+    return { ok: false, error: 'No hay conexión con el servidor.' };
+  }
+}
+
 export async function consultarDisponibilidad(): Promise<Disponibilidad | null> {
   const t = await token();
   if (!t) return null;
