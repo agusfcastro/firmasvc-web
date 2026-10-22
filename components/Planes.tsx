@@ -10,7 +10,7 @@ import { agendarPlan } from '../lib/calendly';
  * FIRMA arma el abono, que el cliente paga desde el portal con dLocal Go.
  */
 
-type Plan = {
+export type Plan = {
   id: 'gold' | 'black' | 'eminent';
   nombre: string;
   precio: string;
@@ -29,7 +29,7 @@ const BASE = [
   'SOPs de reembolsos, reclamos y equipo',
 ];
 
-const PLANES: Plan[] = [
+export const PLANES: Plan[] = [
   {
     id: 'gold',
     nombre: 'Gold',
@@ -104,7 +104,11 @@ const Celda: React.FC<{ v: Valor }> = ({ v }) => {
   return <span className="text-sm">{v}</span>;
 };
 
-const Tarjeta: React.FC<{ plan: Plan }> = ({ plan }) => {
+/**
+ * Tarjeta de un plan. La usan /planes y la sección Pagos del portal.
+ * compacta deja afuera la bajada y el «Ideal para». actual la marca como el plan del cliente.
+ */
+export const Tarjeta: React.FC<{ plan: Plan; compacta?: boolean; actual?: boolean; textoBoton?: string }> = ({ plan, compacta, actual, textoBoton }) => {
   const oscura = plan.id === 'black';
   const premium = plan.id === 'eminent';
   const texto = oscura ? 'text-marfil' : 'text-tinta';
@@ -117,19 +121,19 @@ const Tarjeta: React.FC<{ plan: Plan }> = ({ plan }) => {
         oscura ? 'bg-tinta border-tinta' : premium ? 'bg-[#FBFAF6] border-bosque border-2' : 'bg-[#FBFAF6] border-tinta/15'
       } ${texto}`}
     >
-      {plan.badge && (
+      {(actual || plan.badge) && (
         <span
           className={`eyebrow absolute -top-3 left-8 px-3 py-1 ${
             oscura ? 'bg-marfil text-tinta' : 'bg-bosque text-marfil'
           }`}
         >
-          {plan.badge}
+          {actual ? 'Tu plan' : plan.badge}
         </span>
       )}
 
       <p className={`eyebrow ${oscura ? 'text-marfil/80' : 'text-bosque'}`}>{plan.nombre}</p>
       <div className="mt-3 flex items-baseline gap-2">
-        <span className="font-heading text-5xl font-black tracking-tight">{plan.precio}</span>
+        <span className={`font-heading font-black tracking-tight whitespace-nowrap ${compacta ? 'text-4xl' : 'text-5xl'}`}>{plan.precio}</span>
         <span className={`text-sm ${suave}`}>por mes</span>
       </div>
       {plan.extra && (
@@ -137,9 +141,9 @@ const Tarjeta: React.FC<{ plan: Plan }> = ({ plan }) => {
       )}
 
       <h3 className="h3 mt-6">{plan.titular}</h3>
-      <p className={`mt-3 text-[15px] leading-relaxed ${suave}`}>{plan.bajada}</p>
+      {!compacta && <p className={`mt-3 text-[15px] leading-relaxed ${suave}`}>{plan.bajada}</p>}
 
-      <ul className="mt-6 grid gap-3 flex-1">
+      <ul className="mt-6 grid gap-3 content-start flex-1">
         {plan.incluye.map((i) => (
           <li key={i} className="flex gap-3 text-[15px]">
             <Check size={18} className={`shrink-0 mt-0.5 ${oscura ? 'text-marfil' : 'text-bosque'}`} />
@@ -148,14 +152,17 @@ const Tarjeta: React.FC<{ plan: Plan }> = ({ plan }) => {
         ))}
       </ul>
 
-      <p className={`mt-6 pt-5 border-t ${linea} text-sm ${suave}`}>
-        <b className={oscura ? 'text-marfil' : 'text-tinta'}>Ideal para</b> {plan.ideal}
-      </p>
+      {!compacta && (
+        <p className={`mt-6 pt-5 border-t ${linea} text-sm ${suave}`}>
+          <b className={oscura ? 'text-marfil' : 'text-tinta'}>Ideal para</b> {plan.ideal}
+        </p>
+      )}
 
       <button
         type="button"
         onClick={() => agendarPlan(plan.id)}
-        className={`mt-6 block w-full text-center font-semibold py-4 transition-colors ${
+        disabled={actual}
+        className={`mt-6 block w-full text-center font-semibold py-4 transition-colors disabled:opacity-60 disabled:cursor-default ${
           oscura
             ? 'bg-marfil text-tinta hover:bg-marfil-oscuro'
             : premium
@@ -163,7 +170,7 @@ const Tarjeta: React.FC<{ plan: Plan }> = ({ plan }) => {
               : 'border border-tinta text-tinta hover:bg-tinta hover:text-marfil'
         }`}
       >
-        Quiero {plan.nombre}
+        {actual ? 'Es tu plan actual' : (textoBoton ?? `Quiero ${plan.nombre}`)}
       </button>
     </article>
   );

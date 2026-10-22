@@ -4,11 +4,13 @@ import { supabase } from './supabase';
 import { Aviso, Encabezado, Enlace, Etiqueta, Marco, TituloSeccion } from './ui';
 import { WHATSAPP_COMPROBANTES, mediosDisponibles, type DatoPago, type MedioAlternativo } from './mediosAlternativos';
 import { useVistaPrevia } from './vistaPrevia';
+import { PLANES, Tarjeta } from '../Planes';
 import type { Organizacion, Perfil } from './tipos';
 import {
   ESTADO_ABONO,
   ESTADO_PAGO,
   MEDIO_MANUAL,
+  PLANES_ABONO,
   PROCESADOR,
   abonoManual,
   activable,
@@ -430,6 +432,43 @@ const TarjetaMedio: React.FC<{ medio: MedioAlternativo }> = ({ medio }) => (
   </article>
 );
 
+/** Plan de /planes que corresponde a un abono vigente, por su concepto. */
+function planDelAbono(abonos: Abono[]): string | null {
+  for (const a of abonos) {
+    if (a.estado === 'cancelado' || a.estado === 'borrador') continue;
+    const p = PLANES_ABONO.find((x) => x.concepto === a.concepto);
+    if (p) return p.id.replace('-trimestral', '');
+  }
+  return null;
+}
+
+/** Los planes de FIRMA, para elegir uno o pasarse a otro. Cada botón abre la agenda con el plan. */
+const PlanesCliente: React.FC<{ abonos: Abono[] }> = ({ abonos }) => {
+  const actual = planDelAbono(abonos);
+  return (
+    <section className="flex flex-col pt-4" aria-labelledby="planes-firma">
+      <TituloSeccion
+        eyebrow="Planes de FIRMA"
+        titulo={<span id="planes-firma">{actual ? 'Tu plan y las otras opciones' : 'Elegí cómo te acompañamos'}</span>}
+        acciones={
+          <a href="/planes" target="_blank" rel="noopener" className="inline-flex items-center gap-2 text-sm font-medium text-bosque underline underline-offset-4">
+            Ver la comparativa completa
+            <ArrowUpRight size={14} aria-hidden="true" />
+          </a>
+        }
+      />
+      <p className="text-[15px] leading-[1.6] text-piedra max-w-[680px] mb-8">
+        Tocá el plan que te interesa y agendamos una reunión corta para ajustarlo a tu negocio. Después lo activás desde esta misma página.
+      </p>
+      <div className="grid gap-8 wide:grid-cols-3 items-stretch">
+        {PLANES.map((p) => (
+          <Tarjeta key={p.id} plan={p} compacta actual={p.id === actual} textoBoton={actual ? `Pasarme a ${p.nombre}` : undefined} />
+        ))}
+      </div>
+    </section>
+  );
+};
+
 /** Transferencia y cripto. El pago no se registra solo: el cliente manda el comprobante. */
 const OtrosMedios: React.FC<{ empresa?: string }> = ({ empresa }) => {
   const medios = mediosDisponibles();
@@ -593,6 +632,8 @@ export const Pagos: React.FC<{ perfil: Perfil; organizacion: Organizacion | null
             />
           ))
         )}
+
+        {abonos !== null && <PlanesCliente abonos={abonos} />}
 
         <OtrosMedios empresa={esAdmin ? undefined : organizacion?.nombre} />
       </div>
