@@ -11,6 +11,10 @@ export interface EstadoSesion {
   /** true cuando entró desde un enlace de invitación o de recuperación */
   vieneDeEnlace: boolean;
   terminarEnlace: () => void;
+  /** Enlace de acceso de firmasvc.com que todavía no se activó. */
+  enlacePendiente: boolean;
+  /** Valida el enlace pendiente. Devuelve null si entró o el motivo si no. */
+  activarEnlace: () => Promise<string | null>;
   recargar: () => Promise<void>;
 }
 
@@ -34,6 +38,7 @@ export function useSesion(): EstadoSesion {
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [organizacion, setOrganizacion] = useState<Organizacion | null>(null);
   const [vieneDeEnlace, setVieneDeEnlace] = useState(hashDeEnlace);
+  const [enlacePendiente, setEnlacePendiente] = useState(() => tokenDeEnlace() !== null);
 
   const cargarPerfil = useCallback(async (s: Session | null) => {
     if (!supabase || !s) {
@@ -57,18 +62,7 @@ export function useSesion(): EstadoSesion {
       return;
     }
     let vivo = true;
-    const sb = supabase;
-    // El token se valida recién acá, cuando la persona abre la página. Después se saca de la dirección.
-    const enlace = tokenDeEnlace();
-    const validar = enlace
-      ? sb.auth.verifyOtp(enlace).then(() => {
-          const url = new URL(window.location.href);
-          url.searchParams.delete('token_hash');
-          url.searchParams.delete('type');
-          window.history.replaceState({}, '', url);
-        })
-      : Promise.resolve();
-    void validar.then(() => sb.auth.getSession()).then(async ({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
       if (!vivo) return;
       setSesion(data.session);
       await cargarPerfil(data.session);
@@ -96,7 +90,23 @@ export function useSesion(): EstadoSesion {
 
   const terminarEnlace = useCallback(() => setVieneDeEnlace(false), []);
 
-  return { cargando, sesion, perfil, organizacion, vieneDeEnlace, terminarEnlace, recargar };
+  // El token se valida recién cuando la persona toca «Activar mi acceso». Los filtros de correo
+  // que abren el enlace para revisarlo no hacen clics, así que no lo gastan.
+  const activarEnlace = useCallback(async (): Promise<string | null> => {
+    const enlace = tokenDeEnlace();
+    if (!supabase || !enlace) return 'El enlace no es válido.';
+    const { error } = await supabase.auth.verifyOtp(enlace);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('token_hash');
+    url.searchParams.delete('type');
+    window.history.replaceState({}, '', url);
+    setEnlacePendiente(false);
+    if (error) return error.message;
+    setVieneDeEnlace(true);
+    return null;
+  }, []);
+
+  return { cargando, sesion, perfil, organizacion, vieneDeEnlace, terminarEnlace, enlacePendiente, activarEnlace, recargar };
 }
 
 /** Llama a la API de administración con el token de la sesión actual. */

@@ -19,6 +19,31 @@ export const DefinirClave: React.FC<{ estado: EstadoSesion }> = ({ estado }) => 
   const [repetir, setRepetir] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activando, setActivando] = useState(false);
+  const [enlaceFallido, setEnlaceFallido] = useState(false);
+
+  async function activar() {
+    setActivando(true);
+    const motivo = await estado.activarEnlace();
+    setActivando(false);
+    if (motivo) setEnlaceFallido(true);
+  }
+
+  // Enlace del mail sin activar: un paso con botón, así ningún filtro de correo lo gasta.
+  if (estado.enlacePendiente) {
+    return (
+      <LayoutAcceso>
+        <p className="eyebrow text-piedra mb-4">Acceso de clientes</p>
+        <h1 className="h2 mb-3">
+          Activá tu <span className="text-bosque">acceso</span>
+        </h1>
+        <p className="text-piedra mb-8">Tocá el botón para validar tu enlace. Después definís tu contraseña y entrás al portal.</p>
+        <Button size="lg" fullWidth onClick={activar} disabled={activando}>
+          {activando ? 'Validando…' : 'Activar mi acceso'}
+        </Button>
+      </LayoutAcceso>
+    );
+  }
 
   if (!estado.sesion) {
     return (
@@ -27,7 +52,10 @@ export const DefinirClave: React.FC<{ estado: EstadoSesion }> = ({ estado }) => 
         <h1 className="h2 mb-6">
           El enlace <span className="text-bosque">venció</span>
         </h1>
-        <p className="text-piedra mb-8">Los enlaces de acceso duran poco tiempo y se pueden usar una sola vez. Pedí uno nuevo desde la pantalla de ingreso.</p>
+        <p className="text-piedra mb-8">
+          {enlaceFallido ? 'Este enlace ya se usó o venció. ' : ''}Los enlaces de acceso se usan una sola vez y, si pedís uno nuevo, el anterior deja de servir. Pedí uno desde la pantalla de
+          ingreso con «Olvidé mi contraseña», o pedíselo a FIRMA.
+        </p>
         <Button size="lg" onClick={() => navegar('/portal/ingresar')}>Ir al ingreso</Button>
       </LayoutAcceso>
     );
