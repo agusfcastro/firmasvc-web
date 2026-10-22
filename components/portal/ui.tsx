@@ -129,6 +129,7 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
         ...(permisos.crm ? [{ a: '/portal/crm', titulo: 'CRM legal', activo: ruta.startsWith('/portal/crm') }] : []),
         { a: '/portal/documentos', titulo: permisos.documentosLegales ? 'Documentos' : 'Protocolos', activo: ruta.startsWith('/portal/documentos') },
         ...(permisos.documentosLegales ? [{ a: '/portal/firmas', titulo: 'Firma electrónica', activo: ruta.startsWith('/portal/firmas') }] : []),
+        ...(permisos.casos ? [{ a: '/portal/asuntos', titulo: 'Asuntos', activo: ruta.startsWith('/portal/asuntos') }] : []),
         ...(permisos.agenda ? [{ a: '/portal/agenda', titulo: 'Agenda', activo: ruta === '/portal/agenda' }] : []),
         // Pagos solo para titulares y FIRMA. El resto del equipo no ve nada de pagos.
         ...(permisos.gestion ? [{ a: '/portal/pagos', titulo: 'Pagos', activo: ruta === '/portal/pagos' }] : []),

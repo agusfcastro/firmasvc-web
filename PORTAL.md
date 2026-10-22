@@ -36,7 +36,8 @@ Los mails del portal y de la firma electrónica salen por Resend con una sola pl
 | Invitación al portal | Resend, desde `api/admin/usuarios.ts` | La de FIRMA, automática |
 | Reenviar acceso, desde Usuarios | Resend, desde `api/admin/usuarios.ts` | La de FIRMA, automática |
 | Firma electrónica: invitación, código, recordatorio, firmado y anulado | Resend, desde `api/firma` | La de FIRMA, automática |
-| «Olvidé mi contraseña», desde la pantalla de ingreso | El servidor de mails de Supabase | La que pegues en Supabase, abajo |
+| «Olvidé mi contraseña», desde la pantalla de ingreso | Resend, desde `api/portal/recuperar.ts` | La de FIRMA, automática |
+| Avisos de asuntos y documentos nuevos | Resend, desde `api/portal/avisos.ts` | La de FIRMA, automática |
 
 **1. Resend**
 
@@ -45,9 +46,9 @@ Los mails del portal y de la firma electrónica salen por Resend con una sola pl
 
 Sin `RESEND_API_KEY`, las invitaciones vuelven a salir por el servidor de Supabase, sin la marca. Si Resend rechaza un mail, la cuenta se crea igual y el panel muestra el enlace para mandarlo por WhatsApp.
 
-**2. Supabase, para «Olvidé mi contraseña»**
+**2. Supabase, solo como respaldo**
 
-El servidor de mails que trae Supabase manda muy pocos por hora y suele caer en spam. En **Authentication › Emails › SMTP Settings** cargá el de Resend:
+Con `RESEND_API_KEY` cargada, Supabase no manda ningún mail del portal. Solo los manda si falta esa variable o si la función de Vercel no responde. El servidor de mails que trae Supabase manda muy pocos por hora y suele caer en spam; si querés tener el respaldo con la marca, en **Authentication › Emails › SMTP Settings** cargá el de Resend:
 
 | Campo | Valor |
 |---|---|
@@ -438,6 +439,36 @@ Este módulo cobra pero no emite facturas. La facturación electrónica de cada 
 | `components/portal/abonos.ts` | Tipos, rótulos, países, formatos y llamadas a la API |
 
 Las tres funciones de `api/pagos` comparten un bloque común idéntico, con el cliente de dLocal Go y la sincronización, porque cada función de Vercel es autocontenida. Si se cambia en una, se cambia igual en las tres.
+
+## Estado de asuntos
+
+Cada trámite que FIRMA lleva para una empresa cliente, en `/portal/asuntos`: un contrato, un conflicto, una marca. Tiene tipo, estado (en curso, esperando al cliente, esperando a un tercero o finalizado), próximo paso, vencimiento y un historial de novedades.
+
+- **Quién lo ve:** FIRMA, el titular y el CSM de la empresa. Closers y setters no.
+- **FIRMA** crea el asunto con **Nuevo asunto**, edita sus datos y suma novedades. Con cada novedad puede cambiar el estado y elegir si avisa por mail.
+- **El cliente** ve sus asuntos y puede escribir desde **Escribile a FIRMA**. Su mensaje le llega por mail a FIRMA.
+
+Para activarlo, corré `supabase/migraciones/0017_asuntos.sql` en Supabase › SQL Editor.
+
+## Avisos por mail
+
+Salen por Resend con la plantilla de FIRMA, desde `/api/portal/avisos`. Necesitan `RESEND_API_KEY`.
+
+| Aviso | Cuándo | A quién |
+|---|---|---|
+| Novedad de FIRMA en un asunto | Al guardarla con «Avisar por mail» tildado | Titular y CSM de la empresa |
+| Mensaje del cliente en un asunto | Siempre | Los administradores de FIRMA |
+| Documento nuevo | Al cargar un documento de una empresa con «Avisar por mail» tildado | Quienes lo pueden ver en el portal, según rol y áreas |
+
+Cada aviso sale una sola vez y a cada persona por separado. Los documentos de la biblioteca común no se avisan, para no escribirle a todos los clientes a la vez.
+
+| Archivo | Para qué |
+|---|---|
+| `supabase/migraciones/0017_asuntos.sql` | Tablas de asuntos y novedades, reglas y permisos |
+| `components/portal/EstadoAsuntos.tsx` | Lista y detalle de asuntos |
+| `components/portal/asuntos.ts` | Tipos, rótulos y el pedido de avisos |
+| `api/portal/avisos.ts` | Avisos por mail de novedades y documentos |
+| `api/portal/recuperar.ts` | Mail de «Olvidé mi contraseña» con la marca |
 
 ## Logos de clientes
 

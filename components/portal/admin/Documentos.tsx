@@ -3,6 +3,7 @@ import { Plus, Upload } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { Aviso, Campo, Etiqueta, Interruptor, Pestanas, claseInput } from '../ui';
+import { avisarPorMail } from '../asuntos';
 import { BUCKET_DOCUMENTOS, EXTENSIONES_ACEPTADAS, FORMATOS, SECCIONES, TAMANO_MAXIMO, descargarArchivo, extension, formatoDe, tamano } from '../descargas';
 import { fechaCorta, type Area, type Documento, type Organizacion, type SeccionDocumento } from '../tipos';
 
@@ -44,6 +45,8 @@ export const Documentos: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
+  // Aviso por mail de un documento nuevo de una empresa. Se propone siempre y se puede destildar.
+  const [avisar, setAvisar] = useState(true);
   const formulario = useRef<HTMLFormElement>(null);
 
   async function cargar() {
@@ -189,7 +192,9 @@ export const Documentos: React.FC = () => {
       archivo_nombre: conArchivo ? (archivo?.name ?? original?.archivo_nombre ?? null) : null,
       archivo_bytes: conArchivo ? (archivo?.size ?? original?.archivo_bytes ?? null) : null,
     };
-    const { error: err } = borrador.id ? await supabase.from('documentos').update(datos).eq('id', borrador.id) : await supabase.from('documentos').insert(datos);
+    const { data: guardado, error: err } = borrador.id
+      ? await supabase.from('documentos').update(datos).eq('id', borrador.id).select('id').maybeSingle()
+      : await supabase.from('documentos').insert(datos).select('id').single();
     if (err) {
       if (rutaNueva) await supabase.storage.from(BUCKET_DOCUMENTOS).remove([rutaNueva]);
       setGuardando(false);
@@ -201,8 +206,13 @@ export const Documentos: React.FC = () => {
       await supabase.storage.from(BUCKET_DOCUMENTOS).remove([original.archivo_ruta]);
     }
 
+    let nota = borrador.id ? 'Documento actualizado.' : 'Documento cargado.';
+    if (!borrador.id && avisar && datos.organizacion_id && datos.activo && guardado?.id) {
+      const r = await avisarPorMail('documento', guardado.id);
+      nota = r.ok ? `Documento cargado. Avisamos por mail a ${r.avisados} ${r.avisados === 1 ? 'persona' : 'personas'}.` : `Documento cargado, pero el aviso por mail no salió. ${r.error ?? ''}`;
+    }
     setGuardando(false);
-    setOk(borrador.id ? 'Documento actualizado.' : 'Documento cargado.');
+    setOk(nota);
     cerrar();
     void cargar();
   }
@@ -364,6 +374,15 @@ export const Documentos: React.FC = () => {
           </div>
 
           <Interruptor activo={borrador.activo} alCambiar={(v) => setBorrador({ ...borrador, activo: v })} etiqueta="Visible en el portal" />
+
+          {!borrador.id && borrador.organizacion_id && borrador.activo && (
+            <Interruptor
+              activo={avisar}
+              alCambiar={setAvisar}
+              etiqueta="Avisar por mail a la empresa"
+              ayuda="Les llega a quienes pueden ver este documento en el portal."
+            />
+          )}
 
           <div className="flex flex-wrap gap-3">
             <Button type="submit" disabled={guardando}>

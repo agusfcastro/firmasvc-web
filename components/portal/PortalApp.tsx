@@ -16,6 +16,7 @@ import { permisosDe, type Organizacion, type Perfil } from './tipos';
 
 const CrmApp = lazy(() => import('./crm/CrmApp'));
 const Firmas = lazy(() => import('./firmas/Firmas'));
+const Asuntos = lazy(() => import('./EstadoAsuntos'));
 const PanelAdmin = lazy(() => import('./admin/PanelAdmin').then((m) => ({ default: m.PanelAdmin })));
 
 /**
@@ -97,6 +98,7 @@ export const PortalApp: React.FC = () => {
     const enCrm = (ruta === '/portal/crm' || ruta.startsWith('/portal/crm/')) && permisosVista.crm;
     const enDocumentos = ruta === '/portal/documentos' || ruta.startsWith('/portal/documentos/');
     const enFirmas = (ruta === '/portal/firmas' || ruta.startsWith('/portal/firmas/')) && permisosVista.documentosLegales;
+    const enAsuntos = (ruta === '/portal/asuntos' || ruta.startsWith('/portal/asuntos/')) && permisosVista.casos;
     return (
       <VistaPreviaContexto.Provider value={vista}>
         {enCrm ? (
@@ -106,6 +108,10 @@ export const PortalApp: React.FC = () => {
         ) : enFirmas ? (
           <Suspense fallback={<Cargando />}>
             <Firmas perfil={perfilVista} organizacion={orgVista} ruta={ruta} />
+          </Suspense>
+        ) : enAsuntos ? (
+          <Suspense fallback={<Cargando />}>
+            <Asuntos perfil={perfilVista} organizacion={orgVista} ruta={ruta} />
           </Suspense>
         ) : enDocumentos ? (
           <Documentos perfil={perfilVista} organizacion={orgVista} ruta={ruta} />
@@ -138,6 +144,14 @@ export const PortalApp: React.FC = () => {
     return (
       <Suspense fallback={<Cargando />}>
         <Firmas perfil={perfil} organizacion={estado.organizacion} ruta={ruta} />
+      </Suspense>
+    );
+  }
+
+  if ((ruta === '/portal/asuntos' || ruta.startsWith('/portal/asuntos/')) && permisos.casos) {
+    return (
+      <Suspense fallback={<Cargando />}>
+        <Asuntos perfil={perfil} organizacion={estado.organizacion} ruta={ruta} />
       </Suspense>
     );
   }
