@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api/pagos/aviso/:abono/:clave",
+      "destination": "/api/pagos/dlocalgo?abono=:abono&clave=:clave"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/app.html"
     }

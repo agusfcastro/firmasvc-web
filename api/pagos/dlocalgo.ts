@@ -293,8 +293,13 @@ function claveAviso(abonoId: string): string | null {
 }
 
 /** notification_url propia del abono. dLocal Go no firma sus avisos, por eso cada plan lleva su clave. */
+/**
+ * Dirección de aviso de un plan, sin parámetros: dLocal Go responde 500 si la
+ * notification_url lleva ?abono=…&clave=…. vercel.json la lleva a
+ * /api/pagos/dlocalgo con esos mismos parámetros.
+ */
 function urlAviso(base: string, abonoId: string): string {
-  return `${base}/api/pagos/dlocalgo?abono=${encodeURIComponent(abonoId)}&clave=${claveAviso(abonoId) ?? ''}`;
+  return `${base}/api/pagos/aviso/${encodeURIComponent(abonoId)}/${claveAviso(abonoId) ?? ''}`;
 }
 
 async function quienLlama(sb: SupabaseClient, request: Request): Promise<Quien | Response> {
@@ -544,4 +549,13 @@ export async function POST(request: Request): Promise<Response> {
   } catch {
     return json({ error: 'No se pudo procesar el aviso.' }, 500);
   }
+}
+
+/** dLocal Go puede visitar la dirección de aviso para validarla. Responde 200 sin tocar nada. */
+export function GET(): Response {
+  return json({ ok: true });
+}
+
+export function HEAD(): Response {
+  return new Response(null, { status: 200 });
 }

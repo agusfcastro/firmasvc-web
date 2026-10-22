@@ -303,8 +303,13 @@ function claveAviso(abonoId: string): string | null {
 }
 
 /** notification_url propia del abono. dLocal Go no firma sus avisos, por eso cada plan lleva su clave. */
+/**
+ * Dirección de aviso de un plan, sin parámetros: dLocal Go responde 500 si la
+ * notification_url lleva ?abono=…&clave=…. vercel.json la lleva a
+ * /api/pagos/dlocalgo con esos mismos parámetros.
+ */
 function urlAviso(base: string, abonoId: string): string {
-  return `${base}/api/pagos/dlocalgo?abono=${encodeURIComponent(abonoId)}&clave=${claveAviso(abonoId) ?? ''}`;
+  return `${base}/api/pagos/aviso/${encodeURIComponent(abonoId)}/${claveAviso(abonoId) ?? ''}`;
 }
 
 async function quienLlama(sb: SupabaseClient, request: Request): Promise<Quien | Response> {
@@ -666,7 +671,9 @@ async function diagnostico(sb: SupabaseClient, actor: string, base: string): Pro
     ['2. Plan mínimo (USD 10, Argentina, mensual)', minimo],
     ['3. Más el nombre con «·»', { ...minimo, name: 'FIRMA · Prueba · Plan del portal' }],
     ['4. Más las direcciones de vuelta', { ...minimo, success_url: `${volver}&volver=dlocalgo`, error_url: `${volver}&volver=dlocalgo&error=1`, back_url: `${volver}&cancelado=1` }],
-    ['5. Más la dirección de aviso', { ...minimo, notification_url: urlAviso(base, prueba) }],
+    ['5. Más la dirección de aviso nueva, sin parámetros', { ...minimo, notification_url: urlAviso(base, prueba) }],
+    ['5b. Dirección de aviso vieja, con ?abono=…&clave=…', { ...minimo, notification_url: `${base}/api/pagos/dlocalgo?abono=${prueba}&clave=${claveAviso(prueba) ?? ''}` }],
+    ['5c. Dirección de aviso sin nada', { ...minimo, notification_url: `${base}/api/pagos/dlocalgo` }],
     ['6. Sin país', (({ country: _sinPais, ...resto }) => resto)(minimo)],
     ['7. Como los del portal, con todo', {
       name: 'FIRMA · Prueba · Plan del portal',
