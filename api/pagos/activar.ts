@@ -9,8 +9,9 @@
  *   entorno, sandbox o produccion. Requiere sesión. Nunca devuelve claves.
  *
  * GET  /api/pagos/activar?diagnostico=1   (solo FIRMA)
- *   Prueba la conexión con dLocal Go paso por paso: leer planes, crear un
- *   plan mínimo, uno de USD 1 y uno con la forma de los del portal. Cada
+ *   Prueba la conexión con dLocal Go paso por paso: leer planes y crear un
+ *   plan mínimo al que se le suma un dato por paso hasta llegar a la forma
+ *   de los del portal, así el primer paso que falla señala el dato. Cada
  *   plan de prueba se desactiva enseguida. Responde el resultado de cada paso
  *   con lo que contestó dLocal Go, sin claves, y lo deja en el registro.
  *
@@ -657,33 +658,34 @@ async function diagnostico(sb: SupabaseClient, actor: string, base: string): Pro
   const lista = await probar('GET', '/v1/subscription/plan/all');
   const conectado = anotar('1. Leer planes (claves y entorno)', lista);
 
-  // 2. Plan mínimo, solo con lo obligatorio y un país.
-  const minimo = await probar('POST', '/v1/subscription/plan', { name: 'FIRMA prueba de conexion', description: 'Prueba', country: 'AR', currency: 'USD', amount: 10, frequency_type: 'MONTHLY' });
-  anotar('2. Crear un plan mínimo (USD 10, Argentina)', minimo);
-  await desactivar(minimo);
-
-  // 3. Lo mismo con USD 1, por si el sandbox tiene un monto mínimo.
-  const chico = await probar('POST', '/v1/subscription/plan', { name: 'FIRMA prueba de monto', description: 'Prueba', country: 'AR', currency: 'USD', amount: 1, frequency_type: 'MONTHLY' });
-  anotar('3. Crear un plan de USD 1', chico);
-  await desactivar(chico);
-
-  // 4. La forma de los planes del portal: nombre con «·», sin país, con frecuencia y direcciones de vuelta.
+  // 2 a 6. Se parte de un plan mínimo y se agrega un dato por paso: el primero que falla es el culpable.
   const prueba = '00000000-0000-0000-0000-000000000000';
   const volver = `${base}/portal/pagos?abono=${prueba}`;
-  const portal = await probar('POST', '/v1/subscription/plan', {
-    name: 'FIRMA · Prueba · Plan del portal',
-    description: 'Plan del portal',
-    currency: 'USD',
-    amount: 10,
-    frequency_type: 'MONTHLY',
-    frequency_value: 1,
-    notification_url: urlAviso(base, prueba),
-    success_url: `${volver}&volver=dlocalgo`,
-    error_url: `${volver}&volver=dlocalgo&error=1`,
-    back_url: `${volver}&cancelado=1`,
-  });
-  anotar('4. Crear un plan como los del portal (sin país)', portal);
-  await desactivar(portal);
+  const minimo = { name: 'FIRMA prueba de conexion', description: 'Prueba', country: 'AR', currency: 'USD', amount: 10, frequency_type: 'MONTHLY', frequency_value: 1 };
+  const variantes: [string, Record<string, unknown>][] = [
+    ['2. Plan mínimo (USD 10, Argentina, mensual)', minimo],
+    ['3. Más el nombre con «·»', { ...minimo, name: 'FIRMA · Prueba · Plan del portal' }],
+    ['4. Más las direcciones de vuelta', { ...minimo, success_url: `${volver}&volver=dlocalgo`, error_url: `${volver}&volver=dlocalgo&error=1`, back_url: `${volver}&cancelado=1` }],
+    ['5. Más la dirección de aviso', { ...minimo, notification_url: urlAviso(base, prueba) }],
+    ['6. Sin país', (({ country: _sinPais, ...resto }) => resto)(minimo)],
+    ['7. Como los del portal, con todo', {
+      name: 'FIRMA · Prueba · Plan del portal',
+      description: 'Plan del portal',
+      currency: 'USD',
+      amount: 10,
+      frequency_type: 'MONTHLY',
+      frequency_value: 1,
+      notification_url: urlAviso(base, prueba),
+      success_url: `${volver}&volver=dlocalgo`,
+      error_url: `${volver}&volver=dlocalgo&error=1`,
+      back_url: `${volver}&cancelado=1`,
+    }],
+  ];
+  for (const [paso, cuerpo] of variantes) {
+    const r = await probar('POST', '/v1/subscription/plan', cuerpo);
+    anotar(paso, r);
+    await desactivar(r);
+  }
 
   await sb.from('registro_accesos').insert({
     usuario_id: null,
