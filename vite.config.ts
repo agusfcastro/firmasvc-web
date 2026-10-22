@@ -3,7 +3,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
-export default defineConfig(() => {
+export default defineConfig(({ isSsrBuild }) => {
   return {
     server: {
       port: 3000,
@@ -19,7 +19,8 @@ export default defineConfig(() => {
       },
     },
     build: {
-      rollupOptions: {
+      // El build SSR (prerender del home) no divide paquetes: React queda externo.
+      rollupOptions: isSsrBuild ? {} : {
         output: {
           manualChunks: {
             react: ['react', 'react-dom'],

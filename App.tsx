@@ -30,8 +30,9 @@ const PortalApp = lazy(() => import('./components/portal/PortalApp'));
 const FirmarApp = lazy(() => import('./components/firma/FirmarApp'));
 const Verificar = lazy(() => import('./components/firma/Verificar'));
 
-function App() {
-  const path = window.location.pathname.replace(/\/$/, '');
+/** ruta viene solo del prerender del build (entry-server.tsx). En el navegador sale de la dirección. */
+function App({ ruta }: { ruta?: string }) {
+  const path = (ruta ?? window.location.pathname).replace(/\/$/, '');
   if (path === '/privacidad' || path === '/privacy') {
     return <PrivacyPolicy />;
   }

@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /portal
+Disallow: /firmar/
+Disallow: /verificar
+Disallow: /planes
+Disallow: /protocolo-llamadas
+Disallow: /api/
+
+Sitemap: https://www.firmasvc.com/sitemap.xml

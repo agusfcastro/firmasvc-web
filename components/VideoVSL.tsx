@@ -30,14 +30,17 @@ export const VideoVSL: React.FC = () => {
     // 490px es lo que ocupan header, titular, pie del video y botón; 480px es el piso para que no quede chico.
     <div className="w-full mx-auto" style={{ maxWidth: 'max(480px, min(960px, calc((100svh - 490px) * 16 / 9)))' }}>
       <div className="relative aspect-video bg-carbon overflow-hidden">
-        <iframe
-          ref={iframeRef}
-          src={EMBED_URL}
-          title="Conocé a Agustín, fundador de firma"
-          allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
-          allowFullScreen
-          className="absolute inset-0 w-full h-full"
-        />
+        {/* En el HTML del prerender va solo el recuadro: el reproductor carga una vez, en el navegador. */}
+        {typeof window !== 'undefined' && (
+          <iframe
+            ref={iframeRef}
+            src={EMBED_URL}
+            title="Conocé a Agustín, fundador de firma"
+            allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+            allowFullScreen
+            className="absolute inset-0 w-full h-full"
+          />
+        )}
 
         {/* Overlay de unmute — se desvanece al click */}
         <button
