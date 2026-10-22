@@ -77,8 +77,10 @@ export const DefinirClave: React.FC<{ estado: EstadoSesion }> = ({ estado }) => 
     }
     await supabase.rpc('registrar_ingreso');
     estado.terminarEnlace();
+    // Reemplaza /portal/clave en el historial, así «atrás» no vuelve a esta pantalla, y avisa el cambio de ruta.
     window.history.replaceState({}, '', '/portal');
-    navegar('/portal');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    window.scrollTo(0, 0);
   }
 
   return (
