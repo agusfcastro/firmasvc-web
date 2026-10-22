@@ -32,6 +32,7 @@ const ACCIONES: Record<string, string> = {
   abono_pago_manual_borrado: 'Pago manual borrado',
   abono_sin_pagos: 'Abono sin pagos, vuelve a borrador',
   aviso_documento: 'Aviso por mail de documento nuevo',
+  aviso_archivo: 'Aviso por mail de documento en un asunto',
 };
 
 /** Lo que llega de dLocal Go no tiene usuario. Se muestra quién informó. */

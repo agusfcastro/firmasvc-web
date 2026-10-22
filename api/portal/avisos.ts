@@ -3,9 +3,12 @@
  * plantilla de FIRMA. Requiere sesión.
  *
  * POST /api/portal/avisos  { tipo, id }
- *   novedad    Novedad de un asunto. La pide quien la escribió, una sola vez.
- *              Si la escribió FIRMA, avisa al titular y al CSM de la empresa.
- *              Si la escribió el cliente, avisa a FIRMA.
+ *   novedad    Nota visible de la bitácora de un asunto. La pide FIRMA, que
+ *              la escribió, una sola vez. Avisa al titular y al CSM.
+ *   mensaje    Mensaje del chat de un asunto. Lo pide quien lo escribió cuando
+ *              la otra parte no tiene el asunto abierto. Como mucho un mail
+ *              cada 15 minutos por asunto y por lado: los demás esperan.
+ *   archivo    Documento subido a un asunto. Avisa a la otra parte, una vez.
  *   documento  Documento nuevo de una empresa. Solo FIRMA, una vez por
  *              documento. Avisa a quienes lo pueden ver en el portal.
  *   Responde { avisados } con la cantidad de personas a las que salió.
@@ -97,6 +100,7 @@ async function avisoNovedad(sb: SupabaseClient, quien: Quien, id: string, base: 
   if (!nov) return error('No existe esa novedad.', 404);
   if (nov.autor_id !== quien.id) return error('Solo quien escribió la novedad puede avisar.', 403);
   if (nov.avisado_en) return json({ ok: true, avisados: nov.avisados, ya: true });
+  if (nov.interna || nov.tipo !== 'nota') return error('Las notas internas y las anotaciones automáticas no se avisan.', 409);
   if (Date.now() - Date.parse(nov.creado_en) > 3_600_000) return error('Esa novedad es vieja para avisar.', 409);
 
   const { data: asunto } = await sb.from('asuntos').select('id, titulo, estado, proximo_paso, organizacion_id').eq('id', nov.asunto_id).maybeSingle();
@@ -141,6 +145,97 @@ async function avisoNovedad(sb: SupabaseClient, quien: Quien, id: string, base: 
   );
 
   await sb.from('asunto_novedades').update({ avisado_en: new Date().toISOString(), avisados }).eq('id', id);
+  return json({ ok: true, avisados });
+}
+
+/** A quién le llega lo que escribe o sube alguien en un asunto: si es de FIRMA, a la empresa; si es del cliente, a FIRMA. */
+async function otraParte(sb: SupabaseClient, quien: Quien, organizacionId: string): Promise<Destinatario[]> {
+  if (quien.rol === 'admin') {
+    const { data } = await sb.from('perfiles').select('email, nombre').eq('organizacion_id', organizacionId).eq('activo', true).in('rol', ['titular', 'csm', 'miembro']);
+    return (data ?? []) as Destinatario[];
+  }
+  const { data } = await sb.from('perfiles').select('email, nombre').eq('rol', 'admin').eq('activo', true);
+  return ((data ?? []) as Destinatario[]).length ? (data as Destinatario[]) : [{ email: FIRMA_MAIL, nombre: null }];
+}
+
+async function datosAsunto(sb: SupabaseClient, asuntoId: string) {
+  const { data: asunto } = await sb.from('asuntos').select('id, titulo, organizacion_id').eq('id', asuntoId).maybeSingle();
+  if (!asunto) return null;
+  const { data: org } = await sb.from('organizaciones').select('nombre').eq('id', asunto.organizacion_id).maybeSingle();
+  return { ...asunto, empresa: (org?.nombre as string | undefined) ?? 'La empresa' };
+}
+
+async function avisoMensaje(sb: SupabaseClient, quien: Quien, id: string, base: string): Promise<Response> {
+  const { data: msj } = await sb.from('asunto_mensajes').select('*').eq('id', id).maybeSingle();
+  if (!msj) return error('No existe ese mensaje.', 404);
+  if (msj.autor_id !== quien.id) return error('Solo quien escribió el mensaje puede avisar.', 403);
+  if (Date.now() - Date.parse(msj.creado_en) > 3_600_000) return error('Ese mensaje es viejo para avisar.', 409);
+  const asunto = await datosAsunto(sb, msj.asunto_id);
+  if (!asunto) return error('No existe ese asunto.', 404);
+
+  // Un mail cada 15 minutos por asunto y por lado. Se reserva el turno antes de mandar, así dos mensajes seguidos no mandan dos mails.
+  const deFirma = quien.rol === 'admin';
+  const campo = deFirma ? 'aviso_chat_cliente' : 'aviso_chat_firma';
+  const limite = new Date(Date.now() - 15 * 60_000).toISOString();
+  const { data: turno } = await sb
+    .from('asuntos')
+    .update({ [campo]: new Date().toISOString() })
+    .eq('id', asunto.id)
+    .or(`${campo}.is.null,${campo}.lt."${limite}"`)
+    .select('id');
+  if (!turno?.length) return json({ ok: true, avisados: 0, pospuesto: true });
+
+  const url = `${base}/portal/asuntos/${asunto.id}`;
+  const avisados = await avisarA(
+    await otraParte(sb, quien, asunto.organizacion_id),
+    (d) => ({
+      asunto: deFirma ? `FIRMA te escribió sobre ${asunto.titulo}` : `${asunto.empresa} te escribió sobre ${asunto.titulo}`,
+      html: plantillaMail({
+        seccion: 'Estado de asuntos',
+        titulo: 'Tenés mensajes nuevos',
+        anticipo: msj.texto.slice(0, 120),
+        parrafos: [
+          hola(d),
+          `${deFirma ? 'FIRMA' : `${escapar(quien.nombre || quien.email)}, de <strong>${escapar(asunto.empresa)}</strong>,`} te escribió en el chat de <strong>${escapar(asunto.titulo)}</strong>:`,
+          `<em>${conSaltos(msj.texto.length > 600 ? `${msj.texto.slice(0, 600)}…` : msj.texto)}</em>`,
+          'Si llegan más mensajes en los próximos 15 minutos, los vas a ver en el portal sin otro mail.',
+        ],
+        boton: { texto: 'Responder en el portal', url },
+      }),
+    }),
+    deFirma ? FIRMA_MAIL : quien.email,
+  );
+  return json({ ok: true, avisados });
+}
+
+async function avisoArchivo(sb: SupabaseClient, quien: Quien, id: string, base: string): Promise<Response> {
+  const { data: arch } = await sb.from('asunto_archivos').select('*').eq('id', id).maybeSingle();
+  if (!arch) return error('No existe ese archivo.', 404);
+  if (arch.subido_por !== quien.id) return error('Solo quien subió el archivo puede avisar.', 403);
+  const { count } = await sb.from('registro_accesos').select('id', { count: 'exact', head: true }).eq('accion', 'aviso_archivo').eq('detalle->>archivo_id', id);
+  if ((count ?? 0) > 0) return json({ ok: true, avisados: 0, ya: true });
+  const asunto = await datosAsunto(sb, arch.asunto_id);
+  if (!asunto) return error('No existe ese asunto.', 404);
+  const deFirma = quien.rol === 'admin';
+
+  const avisados = await avisarA(
+    await otraParte(sb, quien, asunto.organizacion_id),
+    (d) => ({
+      asunto: `Nuevo documento en ${asunto.titulo}`,
+      html: plantillaMail({
+        seccion: 'Estado de asuntos',
+        titulo: 'Se subió un documento',
+        anticipo: arch.nombre,
+        parrafos: [
+          hola(d),
+          `${deFirma ? 'FIRMA' : `${escapar(quien.nombre || quien.email)}, de <strong>${escapar(asunto.empresa)}</strong>,`} subió <strong>${escapar(arch.nombre)}</strong> a <strong>${escapar(asunto.titulo)}</strong>.`,
+        ],
+        boton: { texto: 'Ver el documento', url: `${base}/portal/asuntos/${asunto.id}?pestana=documentos` },
+      }),
+    }),
+    deFirma ? FIRMA_MAIL : quien.email,
+  );
+  await sb.from('registro_accesos').insert({ usuario_id: null, actor_id: quien.id, accion: 'aviso_archivo', detalle: { archivo_id: id, asunto_id: asunto.id, nombre: arch.nombre, avisados } });
   return json({ ok: true, avisados });
 }
 
@@ -205,6 +300,8 @@ export async function POST(request: Request): Promise<Response> {
   try {
     if (cuerpo.tipo === 'novedad') return await avisoNovedad(sb, quien, id, base);
     if (cuerpo.tipo === 'documento') return await avisoDocumento(sb, quien, id, base);
+    if (cuerpo.tipo === 'mensaje') return await avisoMensaje(sb, quien, id, base);
+    if (cuerpo.tipo === 'archivo') return await avisoArchivo(sb, quien, id, base);
     return error('Tipo de aviso desconocido.');
   } catch {
     return error('No se pudo mandar el aviso. Probá de nuevo en unos minutos.', 500);

@@ -22,17 +22,60 @@ export interface Asunto {
   cerrado_en: string | null;
 }
 
+/** Entrada de la bitácora: nota de FIRMA, cambio de estado o documento subido. */
 export interface Novedad {
   id: string;
   asunto_id: string;
   organizacion_id: string;
   texto: string;
+  tipo: 'nota' | 'estado' | 'documento';
+  /** Solo FIRMA la ve. */
+  interna: boolean;
   estado: EstadoAsunto | null;
   autor_id: string | null;
   avisado_en: string | null;
   avisados: number;
   creado_en: string;
 }
+
+export interface Mensaje {
+  id: string;
+  asunto_id: string;
+  organizacion_id: string;
+  texto: string;
+  autor_id: string | null;
+  creado_en: string;
+}
+
+export interface Archivo {
+  id: string;
+  asunto_id: string;
+  organizacion_id: string;
+  nombre: string;
+  ruta: string;
+  bytes: number | null;
+  subido_por: string | null;
+  creado_en: string;
+}
+
+export const BUCKET_ASUNTOS = 'asuntos';
+export const MAX_BYTES_ASUNTO = 20 * 1024 * 1024;
+
+/** Formatos que acepta el bucket, por extensión. */
+export const FORMATOS_ASUNTO: Record<string, string> = {
+  pdf: 'application/pdf',
+  doc: 'application/msword',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  xls: 'application/vnd.ms-excel',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  txt: 'text/plain',
+};
+
+export const pesoArchivo = (b: number | null): string =>
+  b === null ? '' : b < 1024 * 1024 ? `${Math.max(1, Math.round(b / 1024))} KB` : `${(b / 1024 / 1024).toFixed(1).replace('.', ',')} MB`;
 
 type Tono = 'bosque' | 'piedra' | 'alerta' | 'tinta';
 
@@ -67,7 +110,7 @@ export const fechaVence = (d: string): string => {
 };
 
 /** Pide el aviso por mail de una novedad o de un documento nuevo. Devuelve a cuántas personas salió. */
-export async function avisarPorMail(tipo: 'novedad' | 'documento', id: string): Promise<{ ok: boolean; avisados?: number; error?: string }> {
+export async function avisarPorMail(tipo: 'novedad' | 'documento' | 'mensaje' | 'archivo', id: string): Promise<{ ok: boolean; avisados?: number; error?: string }> {
   if (!supabase) return { ok: false, error: 'Portal sin configurar.' };
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;

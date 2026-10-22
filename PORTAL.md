@@ -445,10 +445,15 @@ Las tres funciones de `api/pagos` comparten un bloque común idéntico, con el c
 Cada trámite que FIRMA lleva para una empresa cliente, en `/portal/asuntos`: un contrato, un conflicto, una marca. Tiene tipo, estado (en curso, esperando al cliente, esperando a un tercero o finalizado), próximo paso, vencimiento y un historial de novedades.
 
 - **Quién lo ve:** FIRMA, el titular y el CSM de la empresa. Closers y setters no.
-- **FIRMA** crea el asunto con **Nuevo asunto**, edita sus datos y suma novedades. Con cada novedad puede cambiar el estado y elegir si avisa por mail.
-- **El cliente** ve sus asuntos y puede escribir desde **Escribile a FIRMA**. Su mensaje le llega por mail a FIRMA.
+- **FIRMA** crea el asunto con **Nuevo asunto** y edita sus datos.
 
-Para activarlo, corré `supabase/migraciones/0017_asuntos.sql` en Supabase › SQL Editor.
+Cada asunto tiene tres pestañas:
+
+- **Chat.** Mensajes entre FIRMA y la empresa, en vivo con Supabase Realtime. Arriba se ve si la otra parte tiene el asunto abierto. Si no lo tiene, le llega un mail, como mucho uno cada 15 minutos por asunto y por lado.
+- **Bitácora.** Las notas de FIRMA, cada una interna (solo FIRMA) o visible para el cliente, con aviso por mail opcional. Los cambios de estado y los documentos subidos se anotan solos. El cliente ve las entradas visibles y escribe por el chat.
+- **Documentos.** FIRMA y el cliente suben PDF, Word, Excel, imágenes o TXT de hasta 20 MB al bucket privado `asuntos`. Se descargan con enlaces que vencen en un minuto. Cada subida le avisa por mail a la otra parte. Borra solo FIRMA.
+
+Para activarlo, corré en Supabase › SQL Editor `supabase/migraciones/0017_asuntos.sql` y después `supabase/migraciones/0018_asuntos_chat_archivos.sql`.
 
 ## Avisos por mail
 
@@ -456,8 +461,9 @@ Salen por Resend con la plantilla de FIRMA, desde `/api/portal/avisos`. Necesita
 
 | Aviso | Cuándo | A quién |
 |---|---|---|
-| Novedad de FIRMA en un asunto | Al guardarla con «Avisar por mail» tildado | Titular y CSM de la empresa |
-| Mensaje del cliente en un asunto | Siempre | Los administradores de FIRMA |
+| Nota visible de FIRMA en la bitácora | Al guardarla con «Avisar por mail» tildado | Titular y CSM de la empresa |
+| Mensaje del chat | Si la otra parte no tiene el asunto abierto, como mucho uno cada 15 minutos | La otra parte: la empresa o FIRMA |
+| Documento subido a un asunto | Siempre | La otra parte: la empresa o FIRMA |
 | Documento nuevo | Al cargar un documento de una empresa con «Avisar por mail» tildado | Quienes lo pueden ver en el portal, según rol y áreas |
 
 Cada aviso sale una sola vez y a cada persona por separado. Los documentos de la biblioteca común no se avisan, para no escribirle a todos los clientes a la vez.
@@ -465,6 +471,7 @@ Cada aviso sale una sola vez y a cada persona por separado. Los documentos de la
 | Archivo | Para qué |
 |---|---|
 | `supabase/migraciones/0017_asuntos.sql` | Tablas de asuntos y novedades, reglas y permisos |
+| `supabase/migraciones/0018_asuntos_chat_archivos.sql` | Bitácora con notas internas, chat en vivo y documentos del asunto |
 | `components/portal/EstadoAsuntos.tsx` | Lista y detalle de asuntos |
 | `components/portal/asuntos.ts` | Tipos, rótulos y el pedido de avisos |
 | `api/portal/avisos.ts` | Avisos por mail de novedades y documentos |
