@@ -533,12 +533,22 @@ async function sincronizar(sb: SupabaseClient, abono: Abono): Promise<Sincroniza
  * las condiciones siguen iguales y nadie creó otro plan en el medio. Si no,
  * este plan se desactiva.
  */
+/** Países que dLocal Go habilita por defecto. */
+const PAISES_DLOCALGO = ['AR', 'BO', 'BR', 'CL', 'CO', 'CR', 'EC', 'GT', 'ID', 'MX', 'MY', 'PE', 'PY', 'UY'];
+
+/** País de la empresa si dLocal Go cobra ahí. Si no, Argentina. */
+async function paisDeEmpresa(sb: SupabaseClient, organizacionId: string): Promise<string> {
+  const { data } = await sb.from('organizaciones').select('pais').eq('id', organizacionId).maybeSingle();
+  const pais = String(data?.pais ?? '').toUpperCase();
+  return PAISES_DLOCALGO.includes(pais) ? pais : 'AR';
+}
+
 async function crearPlan(sb: SupabaseClient, abono: Abono, empresa: string, base: string, actor: string): Promise<Response> {
   const volver = `${base}/portal/pagos?abono=${abono.id}`;
-  const r = await dlocal<Plan>('POST', '/v1/subscription/plan', {
+  const cuerpoPlan = (pais: string | null) => ({
     name: `FIRMA · ${empresa} · ${abono.concepto}`.slice(0, 150),
     description: abono.concepto,
-    ...(abono.pais ? { country: abono.pais } : {}),
+    ...(pais ? { country: pais } : {}),
     currency: abono.moneda,
     amount: Number(abono.monto),
     // Mensual o trimestral. Verificar en sandbox que MONTHLY con frequency_value 3 cobre cada 3 meses.
@@ -549,6 +559,15 @@ async function crearPlan(sb: SupabaseClient, abono: Abono, empresa: string, base
     error_url: `${volver}&volver=dlocalgo&error=1`,
     back_url: `${volver}&cancelado=1`,
   });
+  let pais = abono.pais;
+  let r = await dlocal<Plan>('POST', '/v1/subscription/plan', cuerpoPlan(pais));
+  // Sin país dLocal Go puede responder 500, aunque su documentación lo permite en dólares.
+  // Se reintenta una vez con el país de la empresa: el plan sale igual y el checkout no pregunta el país.
+  if (!r.ok && r.status >= 500 && !pais) {
+    await registrar(sb, 'abono_error', abono, { etapa: 'plan_sin_pais', status: r.status, mensaje: `${r.error} Se reintenta con el país de la empresa.` }, actor);
+    pais = await paisDeEmpresa(sb, abono.organizacion_id);
+    r = await dlocal<Plan>('POST', '/v1/subscription/plan', cuerpoPlan(pais));
+  }
   const id = idDe(r.datos);
   const token = typeof r.datos?.plan_token === 'string' ? r.datos.plan_token : '';
   if (!r.ok || !id || !token) {
@@ -560,7 +579,7 @@ async function crearPlan(sb: SupabaseClient, abono: Abono, empresa: string, base
 
   const condiciones = sb
     .from('abonos')
-    .update({ plan_id: id, plan_token: token, estado: 'pendiente' })
+    .update({ plan_id: id, plan_token: token, estado: 'pendiente', ...(pais !== abono.pais ? { pais } : {}) })
     .eq('id', abono.id)
     .is('plan_id', null)
     .eq('estado', abono.estado)
