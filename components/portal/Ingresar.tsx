@@ -33,7 +33,13 @@ export const Ingresar: React.FC = () => {
     if (!supabase) return;
     setEnviando(true);
     setError(null);
-    await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/portal/clave` });
+    // El mail sale por Resend con la plantilla de FIRMA. Si la función no responde, lo manda Supabase.
+    const r = await fetch('/api/portal/recuperar', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email: email.trim() }),
+    }).catch(() => null);
+    if (!r?.ok) await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/portal/clave` });
     setEnviando(false);
     // Mismo mensaje exista o no la cuenta, para no revelar qué mails están registrados.
     setOk('Si ese mail tiene acceso al portal, en unos minutos te llega un enlace para definir una contraseña nueva.');

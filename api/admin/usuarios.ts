@@ -15,7 +15,7 @@
  *   enlace_acceso { usuario_id }   devuelve { enlace } sin mandar mail
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { enviarMail, mailDisponible, plantillaMail } from '../_lib/mail.js';
+import { mailDeAcceso, mailDisponible } from '../_lib/mail.js';
 
 // miembro es el rol anterior a csm: se acepta en cuentas viejas pero ya no se asigna.
 type Rol = 'admin' | 'titular' | 'csm' | 'closer' | 'setter' | 'miembro';
@@ -45,40 +45,6 @@ function clienteServicio(): SupabaseClient | null {
 function urlDelPortal(request: Request): string {
   const base = process.env.PORTAL_URL || new URL(request.url).origin;
   return `${base.replace(/\/$/, '')}/portal/clave`;
-}
-
-function escapar(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
-const REMITENTE_PORTAL = () => process.env.PORTAL_MAIL_DIRECCION || 'portal@firmasvc.com';
-
-/** Mail de acceso al portal por Resend. Devuelve null si salió o el motivo si no. */
-async function mailDeAcceso(o: { email: string; nombre: string | null; empresa: string | null; enlace: string; tipo: 'invite' | 'recovery' }): Promise<string | null> {
-  const hola = o.nombre ? `Hola ${escapar(o.nombre.split(' ')[0])}.` : 'Hola.';
-  const invitacion = o.tipo === 'invite';
-  const parrafos = invitacion
-    ? [
-        hola,
-        `Te dimos acceso al portal de clientes de FIRMA${o.empresa ? ` para <strong>${escapar(o.empresa)}</strong>` : ''}. Ahí están los contratos, las firmas, los protocolos y la formación de tu equipo, con la última revisión de FIRMA.`,
-        'Para entrar, definí tu contraseña. Se guarda cifrada y nadie en FIRMA puede verla.',
-      ]
-    : [hola, 'Te mandamos un enlace para definir la contraseña de tu cuenta en el portal de clientes de FIRMA.'];
-  return enviarMail({
-    nombreRemitente: 'FIRMA',
-    direccion: REMITENTE_PORTAL(),
-    para: [o.email],
-    asunto: invitacion ? 'Tu acceso al portal de clientes de FIRMA' : 'Definí tu contraseña del portal de FIRMA',
-    html: plantillaMail({
-      seccion: 'Portal de clientes',
-      titulo: invitacion ? 'Tu acceso al portal de FIRMA' : 'Definí tu contraseña',
-      anticipo: invitacion ? 'Definí tu contraseña para entrar al portal de clientes.' : 'Enlace para definir tu contraseña.',
-      parrafos,
-      boton: { texto: 'Definir mi contraseña', url: o.enlace },
-      pie: 'El enlace es personal, vence en 24 horas y se usa una sola vez. Si no esperabas este mail, ignoralo.',
-    }),
-    responderA: 'agustin@firmasvc.com',
-  });
 }
 
 async function nombreEmpresa(sb: SupabaseClient, organizacionId: string | null | undefined): Promise<string | null> {

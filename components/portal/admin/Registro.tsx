@@ -10,11 +10,13 @@ const ACCIONES: Record<string, string> = {
   activacion: 'Acceso activado',
   desactivacion: 'Acceso desactivado',
   envio_acceso: 'Enlace de acceso reenviado',
+  enlace_acceso: 'Enlace de acceso copiado',
+  pedido_clave: 'Pidió una contraseña nueva',
   descarga_documento: 'Descargó un documento',
   zapsign_conectado: 'ZapSign conectado',
   zapsign_desconectado: 'ZapSign desconectado',
   abono_alta: 'Abono creado',
-  abono_aceptado: 'Débito mensual aceptado',
+  abono_aceptado: 'Débito aceptado',
   abono_activado: 'Abono activo',
   abono_pago_aprobado: 'Pago de abono aprobado',
   abono_pago_rechazado: 'Pago de abono rechazado',
@@ -26,6 +28,9 @@ const ACCIONES: Record<string, string> = {
   abono_tarjeta: 'Cambio de medio de pago pedido',
   abono_error: 'Error con dLocal Go en un abono',
   abono_duplicado: 'Suscripción de más dada de baja, revisar cobros',
+  abono_pago_manual: 'Pago manual registrado',
+  abono_pago_manual_borrado: 'Pago manual borrado',
+  abono_sin_pagos: 'Abono sin pagos, vuelve a borrador',
 };
 
 /** Lo que llega de dLocal Go no tiene usuario. Se muestra quién informó. */
