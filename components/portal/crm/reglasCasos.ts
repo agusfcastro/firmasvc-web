@@ -162,6 +162,9 @@ export function mesDe(anio: number, mes: number): Mes {
   };
 }
 
+/** Todo el historial, para los indicadores sin corte por mes. */
+export const HISTORICO: Mes = { clave: 'historico', inicio: '0001-01-01', fin: '9999-12-31', nombre: 'todo el historial', titulo: 'Histórico' };
+
 /** El mes de hoy y los anteriores, del más reciente al más viejo. */
 export function ultimosMeses(hoy: string, cantidad = 12): Mes[] {
   const [anio, mes] = hoy.split('-').map(Number);

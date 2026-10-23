@@ -244,22 +244,22 @@ Registro de reclamos y pedidos de reembolso de cada cliente final, en `firmasvc.
 
 ### Uso
 
-1. En el listado del CRM, **Casos de conflicto** abre el tablero del mes y el registro. El número rojo del botón son los casos en curso.
+1. En el listado del CRM, **Casos de conflicto** abre el tablero y el registro, con todo el historial. El número rojo del botón son los casos en curso.
 2. **Nuevo caso** abre el formulario. En la ficha de cada cliente, **Abrir un caso** lo abre con ese cliente elegido, y debajo del plan de pagos se listan sus casos.
 3. Cada caso lleva apertura, causa, canal, monto reclamado, etapa, semáforo de la compuerta legal, derivación a legales y contracargo. Para cerrarlo se pasa a la etapa Cerrado con la decisión, la fecha de cierre y el monto concedido.
-4. **Período** elige el mes, entre el actual y los once anteriores. La tabla muestra los casos que estuvieron abiertos en algún momento de ese mes.
+4. No hay corte por mes: indicadores y registro son históricos. **Mostrar** elige cuántos casos se ven por página (10, 20 o 30), con **Anteriores** y **Siguientes**.
 
 ### Indicadores
 
 | Indicador | Cálculo |
 |---|---|
-| Abiertos hoy | Casos en curso, sin importar el mes elegido |
-| Reclamos cada 100 ventas | Casos abiertos en el mes sobre clientes dados de alta en el mes en el CRM, por cien |
-| Resueltos antes de legales | Cerrados en el mes sin derivación sobre cerrados en el mes |
-| Tiempo medio de resolución | Días entre apertura y cierre de los cerrados en el mes |
-| Costo de concesiones | Monto concedido en los cerrados en el mes sobre el monto total de las altas del mes. Con más de una moneda se calcula por moneda, sin convertir |
-| Contracargos | Casos abiertos en el mes con contracargo y porcentaje ganado sobre los recibidos |
-| Causas raíz | Casos abiertos en el mes por causa, de mayor a menor |
+| Abiertos hoy | Casos en curso hoy |
+| Reclamos cada 100 ventas | Casos abiertos sobre clientes dados de alta en el CRM, por cien |
+| Resueltos antes de legales | Cerrados sin derivación sobre el total de cerrados |
+| Tiempo medio de resolución | Días entre apertura y cierre de los cerrados |
+| Costo de concesiones | Monto concedido en los cerrados sobre el monto total de las altas. Con más de una moneda se calcula por moneda, sin convertir |
+| Contracargos | Casos con contracargo y porcentaje ganado sobre los recibidos |
+| Causas raíz | Casos por causa, de mayor a menor |
 
 ### Reglas
 
@@ -420,7 +420,7 @@ Cada trámite que FIRMA lleva para una empresa cliente, en `/portal/asuntos`: un
 - **Quién lo crea:** FIRMA y también el titular o el CSM, con **Nuevo asunto**. Lo que escribe el cliente al crearlo queda como primer mensaje del chat y le llega a FIRMA por mail. Editar los datos y el estado sigue siendo de FIRMA.
 - **Cliente del CRM.** Un asunto puede vincularse a un cliente de la empresa. Es opcional, salvo en un reembolso o contracargo. La ficha del cliente lista sus asuntos y tiene **Nuevo asunto**, que lo abre ya vinculado.
 - **Aviso de asunto nuevo.** Cuando el cliente abre un asunto, a FIRMA le llega un mail «Nuevo asunto de {empresa}» con el tipo, el cliente y lo que contó.
-- **Corregir la clasificación.** En **Editar datos**, FIRMA cambia tipo, motivo y cliente. Si el asunto tiene caso de conflicto, esos tres quedan fijos.
+- **Corregir la clasificación.** En **Editar datos**, FIRMA cambia tipo, motivo y cliente. Si pasa a Conflicto › Reembolso o contracargo, pide la causa y al guardar abre el caso de conflicto, con la fecha del asunto. Si el asunto ya tiene caso, esos tres datos quedan fijos.
 - **Motivo.** Los asuntos de tipo Conflicto llevan uno: Reembolso o contracargo, Incumplimiento de entregables, Cobro de sumas adeudadas, Conflicto con el equipo u Otro conflicto.
 - **Reembolso o contracargo.** Abre además su caso de conflicto (causa, canal, monto, contracargo), que cuenta en los indicadores de CRM › Casos de conflicto. El asunto muestra la etapa, el semáforo con lo que indica el protocolo y un enlace para seguir el caso. Al cerrar el caso el asunto pasa a finalizado, y al reabrirlo vuelve a en curso. Un caso creado desde CRM › Casos de conflicto crea su asunto solo.
 - **Código.** Cada asunto recibe uno al crearse, como el de los clientes del CRM con `A-` adelante: `A-<prefijo de la empresa>-<número>`, por ejemplo `A-TB-001`. El número es correlativo por empresa y no cambia. Se busca por código en la lista y va al comienzo del asunto de cada mail.

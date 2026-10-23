@@ -25,15 +25,14 @@ import {
   calcularIndicadores,
   cantidad,
   datosDe,
+  HISTORICO,
   diasAbierto,
   enLegales,
-  limitesLocales,
   mensajeError,
   normalizarCaso,
   numero,
   ordenarCasos,
   porcentaje,
-  ultimosMeses,
   validarBorrador,
   type Alta,
   type Borrador,
@@ -50,7 +49,7 @@ import {
 /**
  * Casos de conflicto del CRM. Registro de reclamos y pedidos de reembolso de
  * cada cliente final, con los indicadores del tablero del protocolo de conflictos.
- *   /portal/crm/casos              tablero y registro del mes
+ *   /portal/crm/casos              tablero y registro histórico
  *   /portal/crm/casos?cliente=<id> abre un caso nuevo con ese cliente
  *   /portal/crm/casos?caso=<id>    abre ese caso para editarlo
  */
@@ -82,14 +81,17 @@ const FILTROS: { clave: Filtro; titulo: string }[] = [
 ];
 
 const DEFINICIONES: [string, string][] = [
-  ['Abiertos hoy', 'Casos en curso, sin importar el mes elegido.'],
-  ['Reclamos cada 100 ventas', 'Casos abiertos en el mes sobre clientes dados de alta en el mes, por cien.'],
-  ['Resueltos antes de legales', 'Cerrados en el mes sin derivación, sobre cerrados en el mes.'],
-  ['Tiempo medio', 'Días entre la apertura y el cierre de los casos cerrados en el mes.'],
-  ['Costo de concesiones', 'Monto concedido en los casos cerrados en el mes sobre el monto de las altas del mes, en la moneda de cada cliente.'],
-  ['Contracargos', 'Casos abiertos en el mes con contracargo, y el porcentaje ganado sobre los recibidos.'],
-  ['Causas raíz', 'Casos abiertos en el mes según su causa.'],
+  ['Abiertos hoy', 'Casos en curso hoy.'],
+  ['Reclamos cada 100 ventas', 'Casos abiertos sobre clientes dados de alta en el CRM, por cien. Todo el historial.'],
+  ['Resueltos antes de legales', 'Cerrados sin derivación, sobre el total de cerrados.'],
+  ['Tiempo medio', 'Días entre la apertura y el cierre de los casos cerrados.'],
+  ['Costo de concesiones', 'Monto concedido en los casos cerrados sobre el monto de todas las altas, en la moneda de cada cliente.'],
+  ['Contracargos', 'Casos con contracargo y el porcentaje ganado sobre los recibidos.'],
+  ['Causas raíz', 'Casos según su causa.'],
 ];
+
+/** Cuántos casos se ven por página en el registro. */
+const LIMITES = [10, 20, 30];
 
 export const EtiquetaSemaforo: React.FC<{ nivel: Semaforo }> = ({ nivel }) => (
   <span className={`inline-flex items-center gap-1.5 px-2 py-1 text-[11px] font-medium uppercase tracking-[0.12em] whitespace-nowrap ${ESTILO_SEMAFORO[nivel]}`}>
@@ -260,9 +262,9 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
   cambiarOrg,
 }) => {
   const hoy = hoyISO();
-  const meses = useMemo(() => ultimosMeses(hoyISO()), []);
-  const [mesClave, setMesClave] = useState(meses[0].clave);
-  const mes = meses.find((m) => m.clave === mesClave) ?? meses[0];
+  const mes = HISTORICO;
+  const [limite, setLimite] = useState(10);
+  const [pagina, setPagina] = useState(0);
   const [casos, setCasos] = useState<Caso[]>([]);
   const [abiertos, setAbiertos] = useState<CasoAbierto[]>([]);
   const [altas, setAltas] = useState<Alta[]>([]);
@@ -279,16 +281,15 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
   const formulario = useRef<HTMLFormElement>(null);
   const soloLectura = Boolean(useVistaPrevia());
 
-  // Casos con actividad en el mes, casos en curso hoy y clientes dados de alta en el mes.
+  // Todos los casos, los que siguen en curso y todas las altas del CRM: la vista es histórica.
   useEffect(() => {
     if (!supabase) return;
     let vigente = true;
     setCargando(true);
-    const { desde, hasta } = limitesLocales(mes);
     void Promise.all([
-      supabase.from('crm_casos').select(SELECT_CASO).eq('organizacion_id', orgId).lt('abierto_en', mes.fin).or(`cerrado_en.is.null,cerrado_en.gte.${mes.inicio}`),
+      supabase.from('crm_casos').select(SELECT_CASO).eq('organizacion_id', orgId),
       supabase.from('crm_casos').select('id, etapa, semaforo').eq('organizacion_id', orgId).neq('etapa', 'cerrado'),
-      supabase.from('crm_clientes').select('moneda, monto_total').eq('organizacion_id', orgId).gte('creado_en', desde).lt('creado_en', hasta),
+      supabase.from('crm_clientes').select('moneda, monto_total').eq('organizacion_id', orgId),
     ]).then(([p, a, v]) => {
       if (!vigente) return;
       const fallo = p.error ?? a.error ?? v.error;
@@ -301,7 +302,7 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
     return () => {
       vigente = false;
     };
-  }, [orgId, mes.clave, version]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [orgId, version]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Clientes de la empresa para el formulario.
   useEffect(() => {
@@ -402,12 +403,12 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
     setVersion((n) => n + 1);
   }
 
-  // Indicadores del mes elegido.
+  // Indicadores de todo el historial.
   const ind = useMemo(() => calcularIndicadores(casos, abiertos, altas, mes), [casos, abiertos, altas, mes]);
   const unaMoneda = ind.concesiones.length === 1 ? ind.concesiones[0] : null;
   const costo: Cifra =
     ind.concesiones.length === 0
-      ? { titulo: 'Costo de concesiones', valor: '·', nota: 'Sin altas en el mes' }
+      ? { titulo: 'Costo de concesiones', valor: '·', nota: 'Sin altas cargadas' }
       : unaMoneda
         ? {
             titulo: 'Costo de concesiones',
@@ -415,7 +416,7 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
             nota:
               unaMoneda.altas > 0
                 ? `${dinero(unaMoneda.concedido, unaMoneda.moneda)} sobre ${dinero(unaMoneda.altas, unaMoneda.moneda)} vendidos`
-                : `${dinero(unaMoneda.concedido, unaMoneda.moneda)} concedidos, sin altas en el mes`,
+                : `${dinero(unaMoneda.concedido, unaMoneda.moneda)} concedidos, sin altas cargadas`,
           }
         : {
             titulo: 'Costo de concesiones',
@@ -444,12 +445,12 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
       valor: ind.tasaReclamos === null ? '·' : numero(ind.tasaReclamos),
       nota: ind.ventasMes
         ? `${cantidad(ind.reclamosMes, 'reclamo', 'reclamos')} sobre ${cantidad(ind.ventasMes, 'alta', 'altas')}`
-        : `${cantidad(ind.reclamosMes, 'reclamo', 'reclamos')}, sin altas en el mes`,
+        : `${cantidad(ind.reclamosMes, 'reclamo', 'reclamos')}, sin altas cargadas`,
     },
     {
       titulo: 'Resueltos antes de legales',
       valor: ind.resueltosAntes === null ? '·' : porcentaje(ind.resueltosAntes),
-      nota: ind.cerradosMes ? `${ind.sinDerivacion} de ${cantidad(ind.cerradosMes, 'cerrado', 'cerrados')}` : 'Sin casos cerrados en el mes',
+      nota: ind.cerradosMes ? `${ind.sinDerivacion} de ${cantidad(ind.cerradosMes, 'cerrado', 'cerrados')}` : 'Sin casos cerrados',
     },
     {
       titulo: 'Tiempo medio de resolución',
@@ -462,7 +463,7 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
             <Unidad>{numero(ind.tiempoMedio) === '1' ? 'día' : 'días'}</Unidad>
           </>
         ),
-      nota: ind.cerradosMes ? `De la apertura al cierre, ${cantidad(ind.cerradosMes, 'caso', 'casos')}` : 'Sin casos cerrados en el mes',
+      nota: ind.cerradosMes ? `De la apertura al cierre, ${cantidad(ind.cerradosMes, 'caso', 'casos')}` : 'Sin casos cerrados',
     },
     costo,
     {
@@ -471,14 +472,17 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
       alerta: ind.contracargosPerdidos > 0,
       nota: ind.contracargos
         ? [`${porcentaje(ind.pctGanados ?? 0)} ganados`, ind.contracargosPendientes ? cantidad(ind.contracargosPendientes, 'pendiente', 'pendientes') : ''].filter(Boolean).join(', ')
-        : 'Sin contracargos en el mes',
+        : 'Sin contracargos',
     },
   ];
 
   const maximo = Math.max(1, ...ind.causas.map((x) => x.cantidad));
   const ordenados = useMemo(() => ordenarCasos(casos), [casos]);
   const pasa = (c: Caso, f: Filtro) => f === 'todos' || (f === 'abiertos' ? c.etapa !== 'cerrado' : c.etapa === 'cerrado');
-  const visibles = ordenados.filter((c) => pasa(c, filtro));
+  const filtrados = ordenados.filter((c) => pasa(c, filtro));
+  const paginas = Math.max(1, Math.ceil(filtrados.length / limite));
+  const paginaActual = Math.min(pagina, paginas - 1);
+  const visibles = filtrados.slice(paginaActual * limite, paginaActual * limite + limite);
 
   const opciones = precargado && !clientes.some((c) => c.id === precargado.id) ? [...clientes, precargado] : clientes;
   const clienteElegido = borrador ? (opciones.find((c) => c.id === borrador.cliente_id) ?? null) : null;
@@ -501,16 +505,6 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
         acciones={
           <>
             {selector}
-            <label className="flex flex-col gap-2">
-              <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-piedra">Período</span>
-              <select className={claseSelectorEncabezado} value={mes.clave} onChange={(e) => setMesClave(e.target.value)}>
-                {meses.map((m) => (
-                  <option key={m.clave} value={m.clave}>
-                    {m.titulo}
-                  </option>
-                ))}
-              </select>
-            </label>
             {!soloLectura && (
               <Button size="lg" className="self-end" onClick={() => abrir(borradorNuevo(hoyISO()))}>
                 <Plus size={18} /> Nuevo caso
@@ -725,15 +719,15 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
         )}
 
         <section>
-          <TituloSeccion eyebrow="Tablero" titulo={`Indicadores de ${mes.nombre}`} />
+          <TituloSeccion eyebrow="Tablero" titulo="Indicadores históricos" />
           <Cifras cargando={cargando} items={items} />
           <div className="mt-12 grid gap-12 desk:grid-cols-[7fr_5fr] desk:gap-14 items-start">
             <div className="min-w-0">
-              <h3 className="eyebrow text-piedra mb-5">Causas raíz del mes</h3>
+              <h3 className="eyebrow text-piedra mb-5">Causas raíz</h3>
               {cargando ? (
                 <p className="eyebrow text-piedra">Cargando</p>
               ) : ind.causas.length === 0 ? (
-                <p className="text-sm text-piedra">Sin reclamos abiertos en el mes.</p>
+                <p className="text-sm text-piedra">Sin reclamos registrados.</p>
               ) : (
                 <ol className="flex flex-col gap-4">
                   {ind.causas.map((x) => {
@@ -742,7 +736,7 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
                       <li
                         key={x.causa}
                         className="grid grid-cols-[110px_minmax(0,1fr)_auto] tab:grid-cols-[200px_minmax(0,1fr)_auto] items-center gap-4 text-sm"
-                        title={`${ROTULO_CAUSA[x.causa]}, ${cantidad(x.cantidad, 'caso', 'casos')}, ${parte}% de los reclamos del mes`}
+                        title={`${ROTULO_CAUSA[x.causa]}, ${cantidad(x.cantidad, 'caso', 'casos')}, ${parte}% de los reclamos`}
                       >
                         <span className="font-medium leading-tight">{ROTULO_CAUSA[x.causa]}</span>
                         <span className="h-2.5 bg-marfil-oscuro" aria-hidden="true">
@@ -756,7 +750,7 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
                   })}
                 </ol>
               )}
-              <p className="text-xs text-piedra mt-6">Las dos primeras causas del mes definen dónde se trabaja.</p>
+              <p className="text-xs text-piedra mt-6">Las dos primeras causas definen dónde se trabaja.</p>
             </div>
             <aside className="panel-carbon p-7 flex flex-col gap-5">
               <h3 className="font-heading font-bold text-[20px] leading-tight">Cómo se calculan</h3>
@@ -780,12 +774,54 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
         </section>
 
         <section>
-          <TituloSeccion eyebrow="Registro" titulo="Casos del período" />
-          <p className="text-sm text-piedra -mt-3 mb-6 max-w-[64ch]">Casos que estuvieron abiertos en algún momento de {mes.nombre}. Tocá un caso para ver el detalle o actualizarlo.</p>
-          <Pestanas<Filtro> items={FILTROS.map((f) => ({ ...f, cuenta: cargando ? undefined : casos.filter((c) => pasa(c, f.clave)).length }))} activa={filtro} alCambiar={setFiltro} />
+          <TituloSeccion
+            eyebrow="Registro"
+            titulo="Todos los casos"
+            acciones={
+              <label className="flex items-center gap-2 text-sm text-piedra">
+                Mostrar
+                <select
+                  className="h-9 px-2 bg-white border border-[rgba(27,31,27,0.25)] text-sm text-tinta"
+                  value={limite}
+                  onChange={(e) => {
+                    setLimite(Number(e.target.value));
+                    setPagina(0);
+                  }}
+                >
+                  {LIMITES.map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            }
+          />
+          <p className="text-sm text-piedra -mt-3 mb-6 max-w-[64ch]">Primero los abiertos, del más urgente al más viejo. Tocá un caso para ver el detalle o actualizarlo.</p>
+          <Pestanas<Filtro>
+            items={FILTROS.map((f) => ({ ...f, cuenta: cargando ? undefined : casos.filter((c) => pasa(c, f.clave)).length }))}
+            activa={filtro}
+            alCambiar={(f) => {
+              setFiltro(f);
+              setPagina(0);
+            }}
+          />
           <div className="mt-2">
             <TablaCasos casos={visibles} hoy={hoy} conCliente vacio="No hay casos para mostrar con este filtro." alElegir={(c) => abrir(borradorDe(c))} />
           </div>
+          {filtrados.length > limite && (
+            <div className="mt-5 flex flex-wrap items-center gap-4 text-sm">
+              <span className="text-piedra">
+                {paginaActual * limite + 1} a {Math.min(filtrados.length, (paginaActual + 1) * limite)} de {filtrados.length}
+              </span>
+              <Button type="button" size="sm" variant="ghost" disabled={paginaActual === 0} onClick={() => setPagina(paginaActual - 1)}>
+                Anteriores
+              </Button>
+              <Button type="button" size="sm" variant="ghost" disabled={paginaActual >= paginas - 1} onClick={() => setPagina(paginaActual + 1)}>
+                Siguientes
+              </Button>
+            </div>
+          )}
         </section>
       </div>
     </>

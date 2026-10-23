@@ -579,7 +579,7 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
   const [caso, setCaso] = useState<Caso | null>(null);
   const [otroPresente, setOtroPresente] = useState(false);
   const veCrm = permisosDe(perfil.rol).crm;
-  const [edicion, setEdicion] = useState<{ titulo: string; proximo_paso: string; vence_en: string; tipo: TipoAsunto; motivo: MotivoConflicto | ''; cliente_id: string } | null>(null);
+  const [edicion, setEdicion] = useState<{ titulo: string; proximo_paso: string; vence_en: string; tipo: TipoAsunto; motivo: MotivoConflicto | ''; cliente_id: string; causa: Causa | '' } | null>(null);
   const [clientesEmpresa, setClientesEmpresa] = useState<ClienteCrm[]>([]);
   const [ocupado, setOcupado] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -682,6 +682,7 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
       tipo: asunto.tipo,
       motivo: asunto.motivo ?? '',
       cliente_id: asunto.cliente_id ?? '',
+      causa: '',
     });
     const { data } = await supabase.from('crm_clientes').select('id, nombre, codigo').eq('organizacion_id', asunto.organizacion_id).order('nombre');
     setClientesEmpresa((data as ClienteCrm[]) ?? []);
@@ -692,6 +693,10 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
     if (!supabase || !asunto || !edicion) return;
     if (edicion.titulo.trim().length < 3) return setError('El título tiene que tener al menos 3 caracteres.');
     if (!caso && edicion.tipo === 'conflicto' && !edicion.motivo) return setError('Elegí el motivo del conflicto.');
+    // Pasar a reembolso o contracargo abre su caso: hace falta el cliente y la causa.
+    const abrirCaso = !caso && edicion.tipo === 'conflicto' && llevaCaso(edicion.motivo || null);
+    if (abrirCaso && !edicion.cliente_id) return setError('Un reembolso o contracargo va vinculado al cliente que lo pide. Elegilo de la lista.');
+    if (abrirCaso && !edicion.causa) return setError('Elegí la causa del reclamo para abrir el caso de conflicto.');
     setOcupado('datos');
     setError(null);
     // Con caso de conflicto, tipo, motivo y cliente son los del caso y no se tocan.
@@ -706,10 +711,24 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
       .from('asuntos')
       .update({ titulo: edicion.titulo.trim(), proximo_paso: edicion.proximo_paso.trim() || null, vence_en: edicion.vence_en || null, ...clasificacion })
       .eq('id', asunto.id);
+    if (e1) {
+      setOcupado('');
+      return setError(e1.message);
+    }
+    if (abrirCaso) {
+      // El caso se abre con la fecha del asunto, así cuenta desde que llegó el reclamo.
+      const abierto = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date(asunto.creado_en));
+      const { error: e2 } = await supabase.from('crm_casos').insert({ asunto_id: asunto.id, cliente_id: edicion.cliente_id, abierto_en: abierto, causa: edicion.causa });
+      if (e2) {
+        setOcupado('');
+        setEdicion(null);
+        void cargar();
+        return setError(`Los datos se guardaron, pero el caso de conflicto no se pudo abrir. ${e2.message}`);
+      }
+    }
     setOcupado('');
-    if (e1) return setError(e1.message);
     setEdicion(null);
-    setOk('Datos del asunto guardados.');
+    setOk(abrirCaso ? 'Datos guardados. Se abrió el caso de conflicto y ya cuenta en los indicadores.' : 'Datos del asunto guardados.');
     void cargar();
   }
 
@@ -808,12 +827,24 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
                     </select>
                   </Campo>
                   {edicion.tipo === 'conflicto' && (
-                    <Campo etiqueta="Motivo" ayuda="Un reembolso o contracargo se abre como caso desde CRM › Casos de conflicto, así cuenta en los indicadores.">
+                    <Campo etiqueta="Motivo" ayuda={llevaCaso(edicion.motivo || null) ? 'Al guardar se abre su caso de conflicto y cuenta en los indicadores.' : undefined}>
                       <select className={claseInput} value={edicion.motivo} onChange={(e) => setEdicion({ ...edicion, motivo: e.target.value as MotivoConflicto | '' })}>
                         <option value="">Elegí</option>
-                        {MOTIVOS.filter((m) => !llevaCaso(m)).map((m) => (
+                        {MOTIVOS.map((m) => (
                           <option key={m} value={m}>
                             {MOTIVO_CONFLICTO[m].titulo}
+                          </option>
+                        ))}
+                      </select>
+                    </Campo>
+                  )}
+                  {edicion.tipo === 'conflicto' && llevaCaso(edicion.motivo || null) && (
+                    <Campo etiqueta="Causa del reclamo">
+                      <select className={claseInput} value={edicion.causa} onChange={(e) => setEdicion({ ...edicion, causa: e.target.value as Causa | '' })}>
+                        <option value="">Elegí</option>
+                        {CAUSAS.map((k) => (
+                          <option key={k} value={k}>
+                            {ROTULO_CAUSA[k]}
                           </option>
                         ))}
                       </select>
