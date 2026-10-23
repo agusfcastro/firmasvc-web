@@ -26,6 +26,8 @@ export interface Abono {
   plan_token: string | null;
   suscripcion_id: string | null;
   proximo_cobro: string | null;
+  /** Fecha hasta la que rige el abono (AAAA-MM-DD). Informativa: no frena los débitos. */
+  vigente_hasta?: string | null;
   aceptado_en: string | null;
   aceptado_por: string | null;
   cancelado_en: string | null;
@@ -129,6 +131,20 @@ export function fechaCorta(iso: string | null): string {
   if (!iso) return '';
   return new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: ZONA });
 }
+
+/** vigente_hasta es una fecha sin hora: se muestra tal cual, sin pasar por la zona horaria. */
+export function fechaDia(d: string | null | undefined, larga = false): string {
+  if (!d) return '';
+  const [a, m, dia] = d.split('-').map(Number);
+  return new Date(Date.UTC(a, m - 1, dia, 12)).toLocaleDateString(
+    'es-AR',
+    larga ? { timeZone: 'UTC', day: 'numeric', month: 'long', year: 'numeric' } : { timeZone: 'UTC', day: '2-digit', month: '2-digit', year: 'numeric' },
+  );
+}
+
+/** La vigencia pactada ya pasó. */
+export const vigenciaVencida = (a: Pick<Abono, 'vigente_hasta'>): boolean =>
+  Boolean(a.vigente_hasta) && (a.vigente_hasta as string) < new Intl.DateTimeFormat('en-CA', { timeZone: ZONA }).format(new Date());
 
 /** 14.30 h, sin dos puntos, como el resto de los textos de FIRMA. */
 export function hora(iso: string | null): string {

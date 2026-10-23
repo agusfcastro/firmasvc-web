@@ -57,6 +57,8 @@ export interface Perfil {
   activo: boolean;
   creado_en: string;
   ultimo_ingreso: string | null;
+  /** Cargo que se muestra en lugar del rol, por ejemplo CEO & Founder. No cambia los permisos. */
+  cargo?: string | null;
 }
 
 export interface Area {
@@ -114,6 +116,9 @@ export const ROTULO_ROL: Record<Rol, string> = {
   setter: 'Setter',
   miembro: 'Miembro del equipo',
 };
+
+/** Lo que se lee debajo del nombre: el cargo si tiene uno, si no el rol. */
+export const cargoDe = (perfil: Pick<Perfil, 'rol' | 'cargo'>): string => perfil.cargo?.trim() || ROTULO_ROL[perfil.rol];
 
 export const AYUDA_ROL: Record<RolCliente, string> = {
   titular: 'Todo lo de su empresa, incluidos el equipo, los pagos y los servicios.',

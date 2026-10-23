@@ -15,6 +15,7 @@ import {
   diagnosticarDlocal,
   esPagoManual,
   fechaCorta,
+  fechaDia,
   fechaLarga,
   hora,
   llamarPagos,
@@ -28,6 +29,7 @@ import {
   type MonedaAbono,
   type PagoAbono,
   type PeriodoAbono,
+  vigenciaVencida,
 } from '../abonos';
 
 /**
@@ -46,6 +48,10 @@ interface Borrador {
   moneda: MonedaAbono;
   periodo: PeriodoAbono;
   email_pagador: string;
+  /** AAAA-MM-DD, o vacío si el abono no tiene fecha de fin. */
+  vigente_hasta: string;
+  /** La que tenía al abrir el borrador, para no mandar la columna si no cambió. */
+  vigenteAntes?: string;
 }
 
 interface PerfilCorto {
@@ -93,6 +99,7 @@ const Detalle: React.FC<{
   const [confirmandoBaja, setConfirmandoBaja] = useState(false);
   const [ocupado, setOcupado] = useState<string>('');
   const [manual, setManual] = useState<{ fecha: string; monto: string; moneda: MonedaAbono; medio: string; nota: string } | null>(null);
+  const [vigencia, setVigencia] = useState<string | null>(null);
   const editable = abono.estado === 'borrador';
   const gestionable = abono.estado !== 'borrador' && abono.estado !== 'cancelado';
 
@@ -129,6 +136,17 @@ const Detalle: React.FC<{
     setOcupado('');
     if (!r.ok) return alError(r.error ?? 'No se pudo borrar el pago.');
     alCambiar('Pago manual borrado.');
+  }
+
+  async function guardarVigencia(e: React.FormEvent) {
+    e.preventDefault();
+    if (vigencia === null) return;
+    setOcupado('vigencia');
+    const r = await llamarPagos('gestionar', { abono_id: abono.id, accion: 'vigencia', vigente_hasta: vigencia || null });
+    setOcupado('');
+    if (!r.ok) return alError(r.error ?? 'No se pudo guardar la vigencia.');
+    setVigencia(null);
+    alCambiar(vigencia ? `Vigencia guardada: hasta el ${fechaDia(vigencia, true)}.` : 'Vigencia quitada. El abono queda sin fecha de fin.');
   }
 
   async function darDeBaja() {
@@ -168,6 +186,30 @@ const Detalle: React.FC<{
             {abono.suscripcion_id ?? '·'}
           </Dato>
           {abono.cancelado_en && <Dato titulo="Dado de baja">{fechaLarga(abono.cancelado_en)}</Dato>}
+          <Dato titulo="Vigente hasta">
+            {vigencia === null ? (
+              <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <span className={vigenciaVencida(abono) ? 'text-[#8a2b20]' : undefined}>
+                  {abono.vigente_hasta ? `${fechaDia(abono.vigente_hasta, true)}${vigenciaVencida(abono) ? ', vencida' : ''}` : 'Sin fecha de fin'}
+                </span>
+                {!editable && (
+                  <button type="button" className="text-xs underline underline-offset-4 text-piedra hover:text-tinta" onClick={() => setVigencia(abono.vigente_hasta ?? '')}>
+                    Cambiar
+                  </button>
+                )}
+              </span>
+            ) : (
+              <form onSubmit={guardarVigencia} className="flex flex-wrap items-center gap-2">
+                <input type="date" aria-label="Vigente hasta" className={`${claseInput} max-w-[180px]`} value={vigencia} onChange={(e) => setVigencia(e.target.value)} />
+                <Button type="submit" size="sm" disabled={ocupado !== ''}>
+                  {ocupado === 'vigencia' ? 'Guardando…' : 'Guardar'}
+                </Button>
+                <Button type="button" size="sm" variant="ghost" onClick={() => setVigencia(null)}>
+                  Cancelar
+                </Button>
+              </form>
+            )}
+          </Dato>
         </dl>
 
         <div className="flex flex-col gap-3">
@@ -378,13 +420,13 @@ export const Abonos: React.FC = () => {
     const orgId = orgs.find((o) => o.activa)?.id ?? orgs[0]?.id ?? '';
     setOk(null);
     setError(null);
-    setBorrador({ organizacion_id: orgId, concepto: '', monto: '', moneda: paisDe(orgId) === 'AR' ? 'ARS' : 'USD', periodo: 1, email_pagador: titularDe(orgId) });
+    setBorrador({ organizacion_id: orgId, concepto: '', monto: '', moneda: paisDe(orgId) === 'AR' ? 'ARS' : 'USD', periodo: 1, email_pagador: titularDe(orgId), vigente_hasta: '' });
   }
 
   function editar(a: Abono) {
     setOk(null);
     setError(null);
-    setBorrador({ id: a.id, organizacion_id: a.organizacion_id, concepto: a.concepto, monto: String(Number(a.monto)), moneda: a.moneda, periodo: a.periodo_meses === 3 ? 3 : 1, email_pagador: a.email_pagador });
+    setBorrador({ id: a.id, organizacion_id: a.organizacion_id, concepto: a.concepto, monto: String(Number(a.monto)), moneda: a.moneda, periodo: a.periodo_meses === 3 ? 3 : 1, email_pagador: a.email_pagador, vigente_hasta: a.vigente_hasta ?? '', vigenteAntes: a.vigente_hasta ?? '' });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -431,6 +473,8 @@ export const Abonos: React.FC = () => {
       pais,
       periodo_meses: borrador.periodo,
       email_pagador: email,
+      // Solo si cambió: así el formulario sigue andando aunque la migración 0021 no esté corrida.
+      ...(borrador.vigente_hasta !== (borrador.vigenteAntes ?? '') ? { vigente_hasta: borrador.vigente_hasta || null } : {}),
     };
     const { error: err } = borrador.id ? await supabase.from('abonos').update(datos).eq('id', borrador.id) : await supabase.from('abonos').insert(datos);
     setGuardando(false);
@@ -573,6 +617,9 @@ export const Abonos: React.FC = () => {
           <Campo etiqueta="Mail del pagador" ayuda="Va precargado en la página de pago de dLocal Go. Se propone el del titular.">
             <input required type="email" className={claseInput} value={borrador.email_pagador} onChange={(e) => setBorrador({ ...borrador, email_pagador: e.target.value })} />
           </Campo>
+          <Campo etiqueta="Vigente hasta" ayuda="Opcional. La fecha pactada de fin del abono. Es informativa: no frena los débitos ni lo da de baja.">
+            <input type="date" className={claseInput} value={borrador.vigente_hasta} onChange={(e) => setBorrador({ ...borrador, vigente_hasta: e.target.value })} />
+          </Campo>
           {disp && !disp.dlocalgo && <Aviso tipo="info">dLocal Go no está disponible todavía. Podés guardar el borrador y el titular lo activa cuando esté configurado.</Aviso>}
           <div className="flex flex-wrap gap-3">
             <Button type="submit" disabled={guardando}>
@@ -625,6 +672,11 @@ export const Abonos: React.FC = () => {
                     <td>
                       <div className="font-medium">{empresa(a.organizacion_id)}</div>
                       <div className="text-xs text-piedra mt-1">{a.concepto}</div>
+                      {a.vigente_hasta && (
+                        <div className={`text-xs mt-1 ${vigenciaVencida(a) ? 'text-[#8a2b20]' : 'text-piedra'}`}>
+                          {vigenciaVencida(a) ? 'Vigencia vencida el' : 'Vigente hasta el'} {fechaDia(a.vigente_hasta)}
+                        </div>
+                      )}
                     </td>
                     <td className="num">
                       {montoTexto(a.monto, a.moneda)}

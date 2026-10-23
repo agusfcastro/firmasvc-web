@@ -2,11 +2,13 @@ import React from 'react';
 import { ArrowRight, BookOpen, CalendarDays, ClipboardList, FileText, GraduationCap, Kanban, PenLine, ShieldCheck, Users, Wallet } from 'lucide-react';
 import { Encabezado, Enlace, Marco } from './ui';
 import type { EstadoSesion } from './useSesion';
-import { ROTULO_ROL, permisosDe, type Permisos } from './tipos';
+import { cargoDe, permisosDe, type Permisos } from './tipos';
 
 interface Modulo {
   titulo: string;
   texto: string;
+  /** Lo que dice el enlace de la tarjeta: qué se hace al entrar. */
+  accion?: string;
   icono: React.ElementType;
   ruta?: string;
   externo?: boolean;
@@ -16,14 +18,14 @@ interface Modulo {
 }
 
 const MODULOS: Modulo[] = [
-  { titulo: 'CRM legal', texto: 'Cada cliente con su contrato, el estado de la firma y el plan de cuotas pactado.', icono: Kanban, ruta: '/portal/crm', permiso: 'crm' },
-  { titulo: 'Documentos', texto: 'Modelos redactados para tu negocio, contratos con tu equipo y documentación de la empresa.', icono: FileText, ruta: '/portal/documentos', permiso: 'documentosLegales' },
-  { titulo: 'Firma electrónica', texto: 'Enviá un PDF a firmar, seguí quién firmó y recibí el documento sellado con su constancia.', icono: PenLine, ruta: '/portal/firmas', permiso: 'documentosLegales' },
-  { titulo: 'Agenda', texto: 'Reuniones de consulta y seguimiento con Agustín Castro, en el horario que elijas.', icono: CalendarDays, ruta: '/portal/agenda', permiso: 'agenda' },
-  { titulo: 'Administración', texto: 'Empresas, usuarios, permisos y registro de accesos.', icono: ShieldCheck, ruta: '/portal/admin', soloAdmin: true },
-  { titulo: 'Protocolos', texto: 'Cómo trabaja cada área de tu equipo, por escrito y con respaldo legal.', icono: BookOpen, ruta: '/protocolo-llamadas', externo: true },
-  { titulo: 'Estado de asuntos', texto: 'Cada trámite que FIRMA lleva para tu empresa, con su estado, el próximo paso y las novedades.', icono: ClipboardList, ruta: '/portal/asuntos', permiso: 'casos' },
-  { titulo: 'Abonos y pagos', texto: 'Condiciones de tu abono, próximo débito e historial de pagos.', icono: Wallet, ruta: '/portal/pagos', permiso: 'gestion' },
+  { titulo: 'CRM legal', texto: 'Cada cliente con su contrato, el estado de la firma y el plan de cuotas pactado.', accion: 'Ver clientes', icono: Kanban, ruta: '/portal/crm', permiso: 'crm' },
+  { titulo: 'Documentos', texto: 'Modelos redactados para tu negocio, contratos con tu equipo y documentación de la empresa.', accion: 'Ver documentos', icono: FileText, ruta: '/portal/documentos', permiso: 'documentosLegales' },
+  { titulo: 'Firma electrónica', texto: 'Enviá un PDF a firmar, seguí quién firmó y recibí el documento sellado con su constancia.', accion: 'Enviar a firmar', icono: PenLine, ruta: '/portal/firmas', permiso: 'documentosLegales' },
+  { titulo: 'Agenda', texto: 'Reuniones de consulta y seguimiento con Agustín Castro, en el horario que elijas.', accion: 'Agendar reunión', icono: CalendarDays, ruta: '/portal/agenda', permiso: 'agenda' },
+  { titulo: 'Administración', texto: 'Empresas, usuarios, permisos y registro de accesos.', accion: 'Administrar', icono: ShieldCheck, ruta: '/portal/admin', soloAdmin: true },
+  { titulo: 'Protocolos', texto: 'Cómo trabaja cada área de tu equipo, por escrito y con respaldo legal.', accion: 'Leer protocolos', icono: BookOpen, ruta: '/protocolo-llamadas', externo: true },
+  { titulo: 'Estado de asuntos', texto: 'Cada trámite que FIRMA lleva para tu empresa, con su estado, el próximo paso y las novedades.', accion: 'Ver asuntos', icono: ClipboardList, ruta: '/portal/asuntos', permiso: 'casos' },
+  { titulo: 'Abonos y pagos', texto: 'Condiciones de tu abono, próximo débito e historial de pagos.', accion: 'Ver pagos', icono: Wallet, ruta: '/portal/pagos', permiso: 'gestion' },
   { titulo: 'Formación', texto: 'Videos por área para capacitar a tu equipo.', icono: GraduationCap },
   { titulo: 'Mi equipo', texto: 'Personas de tu empresa con acceso al portal.', icono: Users, permiso: 'gestion' },
 ];
@@ -51,20 +53,16 @@ export const Inicio: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
     <Marco perfil={perfil}>
       <Encabezado
         grande
-        eyebrow={`${esAdmin ? 'FIRMA' : organizacion?.nombre ?? ''} · ${ROTULO_ROL[perfil.rol]}`}
+        eyebrow={`${esAdmin ? 'FIRMA' : organizacion?.nombre ?? ''} · ${cargoDe(perfil)}`}
         titulo={
           <>
             {saludo()}
-            {nombre ? ',' : ''}
-            <br />
-            <span className="text-bosque">{nombre || 'bienvenido'}</span>
+            {nombre ? ', ' : ' '}
+            {/* En un renglón cuando entra. En pantallas angostas el nombre baja entero, sin cortarse. */}
+            <span className="text-bosque whitespace-nowrap">{nombre || 'bienvenido'}</span>
           </>
         }
-        bajada={
-          esAdmin
-            ? 'Cartera de clientes, accesos y documentación de todas las cuentas.'
-            : `Contratos, firmas y protocolos de ${organizacion?.nombre ?? 'tu empresa'}, con la última revisión de FIRMA.`
-        }
+        bajada={esAdmin ? undefined : `Contratos, firmas y protocolos de ${organizacion?.nombre ?? 'tu empresa'}.`}
       />
 
       <section className="section bg-carbon text-marfil">
@@ -88,7 +86,7 @@ export const Inicio: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
                   <p className="relative text-[15px] leading-[1.6] text-calido">{m.texto}</p>
                   {m.ruta ? (
                     <span className="ir relative">
-                      Abrir <ArrowRight size={16} />
+                      {m.accion ?? 'Abrir'} <ArrowRight size={16} />
                     </span>
                   ) : (
                     <span className="ir relative eyebrow text-[11px] text-calido">Próximamente</span>

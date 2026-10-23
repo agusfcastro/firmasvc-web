@@ -5,7 +5,7 @@ import { supabase } from './supabase';
 import { navegar } from './navegacion';
 import { salirVistaPrevia, useVistaPrevia } from './vistaPrevia';
 import { useLogoOrg } from './logos';
-import { ROTULO_ROL, permisosDe, type Perfil } from './tipos';
+import { ROTULO_ROL, cargoDe, permisosDe, type Perfil } from './tipos';
 
 import simboloClaro from '../../assets/brand/simbolo-claro.png';
 
@@ -102,7 +102,7 @@ const MenuSecciones: React.FC<{ links: Seccion[]; perfil: Perfil; compacto?: boo
           <div className="tab:hidden mt-2 pt-3 px-5 pb-2 flex flex-col gap-3" style={{ borderTop: '1px solid rgba(27,31,27,0.12)' }}>
             <span className="flex flex-col leading-tight text-sm">
               <span className="font-medium truncate">{perfil.nombre || perfil.email}</span>
-              <span className="text-[11px] uppercase tracking-[0.16em] text-piedra">{ROTULO_ROL[perfil.rol]}</span>
+              <span className="text-[11px] uppercase tracking-[0.16em] text-piedra">{cargoDe(perfil)}</span>
             </span>
             <button type="button" role="menuitem" onClick={salir} className="inline-flex items-center gap-2 text-sm font-medium hover:text-bosque">
               <LogOut size={15} aria-hidden="true" /> Salir
@@ -183,7 +183,7 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
             <div className="hidden tab:flex items-center gap-5 text-sm">
               <span className="hidden desk:flex flex-col items-end leading-tight">
                 <span className="font-medium truncate max-w-[220px]">{perfil.nombre || perfil.email}</span>
-                <span className="text-[11px] uppercase tracking-[0.16em] text-piedra">{ROTULO_ROL[perfil.rol]}</span>
+                <span className="text-[11px] uppercase tracking-[0.16em] text-piedra">{cargoDe(perfil)}</span>
               </span>
               <button
                 type="button"

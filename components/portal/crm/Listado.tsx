@@ -167,7 +167,6 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
             Clientes de <span className="text-bosque">{orgNombre}</span>
           </>
         }
-        bajada={cobranza ? 'Contratos, firmas y cobranza de cada cliente, con el respaldo legal de FIRMA.' : 'Contratos, firmas y condiciones de pago pactadas de cada cliente, con el respaldo legal de FIRMA.'}
         acciones={
           <>
             {selector}

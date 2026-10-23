@@ -92,7 +92,7 @@ export const PortalApp: React.FC = () => {
   // Modo "Ver como": el admin navega con la perspectiva de un cliente.
   const vista = perfil.rol === 'admin' ? leerVistaPrevia() : null;
   if (vista) {
-    const perfilVista: Perfil = { ...perfil, rol: vista.rol, organizacion_id: vista.orgId, areas: vista.areas, nombre: vista.nombre ?? perfil.nombre };
+    const perfilVista: Perfil = { ...perfil, rol: vista.rol, organizacion_id: vista.orgId, areas: vista.areas, nombre: vista.nombre ?? perfil.nombre, cargo: null };
     const orgVista = { id: vista.orgId, nombre: vista.orgNombre, activa: true } as Organizacion;
     const permisosVista = permisosDe(vista.rol);
     const enCrm = (ruta === '/portal/crm' || ruta.startsWith('/portal/crm/')) && permisosVista.crm;

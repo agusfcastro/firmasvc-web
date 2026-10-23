@@ -18,6 +18,7 @@ import {
   consultarDisponibilidad,
   esPagoManual,
   fechaCorta,
+  fechaDia,
   fechaLarga,
   hora,
   llamarPagos,
@@ -352,6 +353,7 @@ const TarjetaAbono: React.FC<{
                 ? fechaLarga(abono.proximo_cobro)
                 : 'Sin cobros programados'}
           </Dato>
+          {abono.vigente_hasta && <Dato titulo="Vigente hasta">{fechaDia(abono.vigente_hasta, true)}</Dato>}
           <Dato titulo="Cómo darte de baja" ancho>
             {manual
               ? 'Cuando quieras, desde esta página con Dar de baja.'
