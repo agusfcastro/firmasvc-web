@@ -7,10 +7,12 @@ import { SECCIONES, descargarArchivo, extension, fechaLarga, formatoDe, registra
 import type { Documento, Organizacion, Perfil } from './tipos';
 
 /**
- * Documentos del cliente en tres secciones, cada una con su ruta.
+ * Documentos del cliente en tres secciones, cada una con su ruta, y los
+ * protocolos y la formación en una vista aparte.
  *   /portal/documentos          contratos de servicio
  *   /portal/documentos/equipo   contratos con el equipo
  *   /portal/documentos/otros    otros documentos
+ *   /portal/protocolos          protocolos y formación (es_protocolo)
  * La base decide qué ve cada usuario. El admin, sin Ver como, ve la biblioteca común.
  */
 
@@ -37,6 +39,7 @@ export const Documentos: React.FC<{ perfil: Perfil; organizacion: Organizacion |
   const [bajando, setBajando] = useState<string | null>(null);
   // En Ver como el perfil llega con el rol del cliente, así que esto es el admin mirando la biblioteca común.
   const esAdmin = perfil.rol === 'admin';
+  const enProtocolos = ruta === '/portal/protocolos';
   const seccion = seccionDeRuta(ruta);
   const orgId = esAdmin ? null : (organizacion?.id ?? null);
 
@@ -59,8 +62,11 @@ export const Documentos: React.FC<{ perfil: Perfil; organizacion: Organizacion |
     };
   }, [esAdmin]);
 
-  const visibles = (docs ?? []).filter((d) => visibleEnPantalla(d, perfil.rol, perfil.areas ?? [], orgId));
-  const lista = visibles.filter((d) => d.seccion === seccion.clave);
+  const disponibles = (docs ?? []).filter((d) => visibleEnPantalla(d, perfil.rol, perfil.areas ?? [], orgId));
+  const protocolos = disponibles.filter((d) => d.es_protocolo);
+  // Los protocolos tienen su propia vista y no se repiten en las secciones de documentos.
+  const visibles = disponibles.filter((d) => !d.es_protocolo);
+  const lista = enProtocolos ? protocolos : visibles.filter((d) => d.seccion === seccion.clave);
   const cuenta = (clave: string) => visibles.filter((d) => d.seccion === clave).length;
   // Quien no es titular ve solo las secciones donde tiene documentos y nunca el aviso laboral, que es para el titular.
   const esMiembro = perfil.rol !== 'admin' && perfil.rol !== 'titular';
@@ -78,64 +84,91 @@ export const Documentos: React.FC<{ perfil: Perfil; organizacion: Organizacion |
 
   return (
     <Marco perfil={perfil}>
-      <Encabezado
-        eyebrow={esAdmin ? 'Documentos · Biblioteca común' : 'Documentos'}
-        titulo={
-          esAdmin ? (
+      {enProtocolos ? (
+        <Encabezado
+          eyebrow={esAdmin ? 'Protocolos · Biblioteca común' : 'Protocolos'}
+          titulo={
             <>
-              Biblioteca de <span className="text-bosque">documentos</span>
+              Protocolos de <span className="text-bosque">{esAdmin ? 'trabajo' : 'tu equipo'}</span>
             </>
-          ) : (
-            <>
-              Documentación de <span className="text-bosque">tu empresa</span>
-            </>
-          )
-        }
-        bajada={
-          esAdmin
-            ? 'Así ven tus clientes la biblioteca común. Los documentos exclusivos de cada empresa se ven con Ver como.'
-            : 'Modelos redactados para tu negocio y documentación vigente. Cuando FIRMA actualiza un documento, acá ya está la versión nueva.'
-        }
-        acciones={
-          esAdmin ? (
-            <Enlace a="/portal/admin/documentos" className="inline-flex items-center h-[52px] px-6 text-[15px] font-medium bg-bosque text-marfil transition-colors duration-150 hover:bg-bosque-dark">
-              Administrar documentos
-            </Enlace>
-          ) : undefined
-        }
-      />
+          }
+          bajada={
+            esAdmin
+              ? 'Así ven tus clientes los protocolos y la formación. Cada persona ve los de sus áreas.'
+              : 'Cómo trabaja cada área de tu equipo, por escrito y con respaldo legal, junto con la formación.'
+          }
+          acciones={
+            esAdmin ? (
+              <Enlace a="/portal/admin/documentos" className="inline-flex items-center h-[52px] px-6 text-[15px] font-medium bg-bosque text-marfil transition-colors duration-150 hover:bg-bosque-dark">
+                Administrar protocolos
+              </Enlace>
+            ) : undefined
+          }
+        />
+      ) : (
+        <Encabezado
+          eyebrow={esAdmin ? 'Documentos · Biblioteca común' : 'Documentos'}
+          titulo={
+            esAdmin ? (
+              <>
+                Biblioteca de <span className="text-bosque">documentos</span>
+              </>
+            ) : (
+              <>
+                Documentación de <span className="text-bosque">tu empresa</span>
+              </>
+            )
+          }
+          bajada={
+            esAdmin
+              ? 'Así ven tus clientes la biblioteca común. Los documentos exclusivos de cada empresa se ven con Ver como.'
+              : 'Modelos redactados para tu negocio y documentación vigente. Cuando FIRMA actualiza un documento, acá ya está la versión nueva.'
+          }
+          acciones={
+            esAdmin ? (
+              <Enlace a="/portal/admin/documentos" className="inline-flex items-center h-[52px] px-6 text-[15px] font-medium bg-bosque text-marfil transition-colors duration-150 hover:bg-bosque-dark">
+                Administrar documentos
+              </Enlace>
+            ) : undefined
+          }
+        />
+      )}
 
       <section className="bg-carbon text-marfil py-14 desk:py-20">
         <div className="wrap flex flex-col gap-10 desk:gap-12">
-          <nav aria-label="Secciones de documentos" className="flex gap-7 desk:gap-9 overflow-x-auto scrollbar-hide" style={{ borderBottom: '1px solid rgba(245,243,236,0.15)' }}>
-            {pestanas.map((s) => {
-              const activa = s.clave === seccion.clave;
-              return (
-                <Enlace
-                  key={s.clave}
-                  a={s.ruta}
-                  aria-current={activa ? 'page' : undefined}
-                  className={`pb-4 -mb-px text-[15px] font-medium whitespace-nowrap border-b-2 transition-colors duration-150 ${activa ? 'border-marfil text-marfil' : 'border-transparent text-calido hover:text-marfil'}`}
-                >
-                  {s.titulo}
-                  {docs && <span className="ml-2 tabular-nums text-xs opacity-60">{cuenta(s.clave)}</span>}
-                </Enlace>
-              );
-            })}
-          </nav>
+          {!enProtocolos && (
+            <nav aria-label="Secciones de documentos" className="flex gap-7 desk:gap-9 overflow-x-auto scrollbar-hide" style={{ borderBottom: '1px solid rgba(245,243,236,0.15)' }}>
+              {pestanas.map((s) => {
+                const activa = s.clave === seccion.clave;
+                return (
+                  <Enlace
+                    key={s.clave}
+                    a={s.ruta}
+                    aria-current={activa ? 'page' : undefined}
+                    className={`pb-4 -mb-px text-[15px] font-medium whitespace-nowrap border-b-2 transition-colors duration-150 ${activa ? 'border-marfil text-marfil' : 'border-transparent text-calido hover:text-marfil'}`}
+                  >
+                    {s.titulo}
+                    {docs && <span className="ml-2 tabular-nums text-xs opacity-60">{cuenta(s.clave)}</span>}
+                  </Enlace>
+                );
+              })}
+            </nav>
+          )}
 
-          <div className="grid gap-8 desk:grid-cols-2 desk:items-end">
-            <div className="flex flex-col gap-4">
-              <h2 className="h2">{seccion.titulo}</h2>
-              <p className="text-calido text-[17px] leading-[1.55] max-w-[48ch]">{seccion.bajada}</p>
-            </div>
-            {mostrarAviso && (
-              <div className="border-l-[3px] border-calido pl-5 flex flex-col gap-2 max-w-[60ch]">
-                <span className="eyebrow text-[11px] text-calido">{seccion.avisoTitulo}</span>
-                <p className="text-[15px] leading-[1.6] text-marfil">{seccion.aviso}</p>
+          {!enProtocolos && (
+            <div className="grid gap-8 desk:grid-cols-2 desk:items-end">
+              <div className="flex flex-col gap-4">
+                <h2 className="h2">{seccion.titulo}</h2>
+                <p className="text-calido text-[17px] leading-[1.55] max-w-[48ch]">{seccion.bajada}</p>
               </div>
-            )}
-          </div>
+              {mostrarAviso && (
+                <div className="border-l-[3px] border-calido pl-5 flex flex-col gap-2 max-w-[60ch]">
+                  <span className="eyebrow text-[11px] text-calido">{seccion.avisoTitulo}</span>
+                  <p className="text-[15px] leading-[1.6] text-marfil">{seccion.aviso}</p>
+                </div>
+              )}
+            </div>
+          )}
 
           {error && <Aviso tipo="error">{error}</Aviso>}
 
@@ -143,7 +176,7 @@ export const Documentos: React.FC<{ perfil: Perfil; organizacion: Organizacion |
             <p className="eyebrow text-calido">Cargando</p>
           ) : lista.length === 0 ? (
             <div className="flex flex-col gap-4 p-8 desk:p-10 max-w-[680px]" style={{ border: '1px solid rgba(245,243,236,0.12)' }}>
-              <p className="h3">{esAdmin ? 'Todavía no cargaste documentos acá' : 'Esta sección todavía no tiene documentos'}</p>
+              <p className="h3">{esAdmin ? 'Todavía no cargaste documentos acá' : enProtocolos ? 'Todavía no hay protocolos para tu área' : 'Esta sección todavía no tiene documentos'}</p>
               <p className="text-[15px] leading-[1.6] text-calido">
                 {esAdmin ? 'Cargalos desde Administración, en la pestaña Documentos.' : 'Si necesitás un modelo para un caso puntual, contanos en una reunión y lo redactamos.'}
               </p>

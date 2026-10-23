@@ -127,7 +127,8 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
     ? [
         { a: '/portal', titulo: 'Inicio', activo: ruta === '/portal' },
         ...(permisos.crm ? [{ a: '/portal/crm', titulo: 'CRM legal', activo: ruta.startsWith('/portal/crm') }] : []),
-        { a: '/portal/documentos', titulo: permisos.documentosLegales ? 'Documentos' : 'Protocolos', activo: ruta.startsWith('/portal/documentos') },
+        ...(permisos.documentosLegales ? [{ a: '/portal/documentos', titulo: 'Documentos', activo: ruta.startsWith('/portal/documentos') }] : []),
+        { a: '/portal/protocolos', titulo: 'Protocolos', activo: ruta === '/portal/protocolos' },
         ...(permisos.documentosLegales ? [{ a: '/portal/firmas', titulo: 'Firma electrónica', activo: ruta.startsWith('/portal/firmas') }] : []),
         ...(permisos.casos ? [{ a: '/portal/asuntos', titulo: 'Asuntos', activo: ruta.startsWith('/portal/asuntos') }] : []),
         ...(permisos.agenda ? [{ a: '/portal/agenda', titulo: 'Agenda', activo: ruta === '/portal/agenda' }] : []),

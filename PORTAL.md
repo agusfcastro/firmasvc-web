@@ -248,6 +248,7 @@ Registro de reclamos y pedidos de reembolso de cada cliente final, en `firmasvc.
 2. **Nuevo caso** abre el formulario. En la ficha de cada cliente, **Abrir un caso** lo abre con ese cliente elegido, y debajo del plan de pagos se listan sus casos.
 3. Cada caso lleva apertura, causa, canal, monto reclamado, etapa, semáforo de la compuerta legal, derivación a legales y contracargo. Para cerrarlo se pasa a la etapa Cerrado con la decisión, la fecha de cierre y el monto concedido.
 4. No hay corte por mes: indicadores y registro son históricos. **Mostrar** elige cuántos casos se ven por página (10, 20 o 30), con **Anteriores** y **Siguientes**.
+5. **Eliminar caso** borra también su asunto de Estado de asuntos, con su chat, su bitácora y sus documentos. La baja queda en el historial del cliente. Requiere `0026_borrar_caso_y_asunto.sql`, que además borra los asuntos de reembolso que quedaron sin caso.
 
 ### Indicadores
 
@@ -292,7 +293,8 @@ Plantillas de trabajo para los clientes, públicas y sin indexar, con índice en
 
 ### Puesta en marcha
 
-1. En Supabase corré `supabase/migraciones/0008_protocolos.sql` en **SQL Editor**. Suma los siete protocolos nuevos a Documentos, sección Otros documentos. Se puede correr más de una vez.
+1. En Supabase corré `supabase/migraciones/0008_protocolos.sql` en **SQL Editor**. Suma los siete protocolos nuevos a la biblioteca. Se puede correr más de una vez.
+3. En el portal, los documentos con la casilla de protocolo o formación se ven en **Protocolos** (`/portal/protocolos`), no en las secciones de Documentos. La tarjeta Protocolos del inicio entra ahí. Closer y setter, que no ven documentos legales, solo tienen esa vista.
 2. No hacen falta variables nuevas.
 
 ### Cómo está armado
@@ -431,7 +433,7 @@ Cada asunto tiene tres pestañas:
 - **Bitácora.** Las notas de FIRMA, cada una interna (solo FIRMA) o visible para el cliente, con aviso por mail opcional. Los cambios de estado y los documentos subidos se anotan solos. El cliente ve las entradas visibles y escribe por el chat.
 - **Documentos.** FIRMA y el cliente suben PDF, Word, Excel, imágenes o TXT de hasta 20 MB al bucket privado `asuntos`. Se descargan con enlaces que vencen en un minuto. Cada subida le avisa por mail a la otra parte. Borra solo FIRMA.
 
-Para activarlo, corré en Supabase › SQL Editor, en orden, `0017_asuntos.sql`, `0018_asuntos_chat_archivos.sql`, `0019_asuntos_codigo.sql` y `0024_asuntos_conflictos.sql`. La 0024 le crea un asunto a cada caso de conflicto que ya existía, con su fecha y sus notas, sin tocar el caso ni su historial.
+Para activarlo, corré en Supabase › SQL Editor, en orden, `0017_asuntos.sql`, `0018_asuntos_chat_archivos.sql`, `0019_asuntos_codigo.sql`, `0024_asuntos_conflictos.sql` y `0026_borrar_caso_y_asunto.sql`. La 0024 le crea un asunto a cada caso de conflicto que ya existía, con su fecha y sus notas, sin tocar el caso ni su historial.
 
 ## Planes, agenda y firmas
 

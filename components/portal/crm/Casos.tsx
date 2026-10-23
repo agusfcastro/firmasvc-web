@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ExternalLink, Plus, Trash2 } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
+import { BUCKET_ASUNTOS } from '../asuntos';
 import { navegar } from '../navegacion';
 import { Aviso, Campo, Cifras, Encabezado, Enlace, Etiqueta, Pestanas, TituloSeccion, claseInput, type Cifra } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
@@ -395,10 +396,15 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
 
   async function borrar() {
     if (!supabase || !borrador?.id) return;
-    if (!window.confirm('¿Eliminar este caso? Deja de contar en los indicadores y la baja queda en el historial del cliente.')) return;
+    if (!window.confirm('¿Eliminar este caso? Deja de contar en los indicadores, se elimina su asunto de Estado de asuntos y la baja queda en el historial del cliente.')) return;
+    // Los archivos del asunto se leen antes, porque al borrar el caso la base borra el asunto y su lista.
+    const { data: archivos } = borrador.asunto_id
+      ? await supabase.from('asunto_archivos').select('ruta').eq('asunto_id', borrador.asunto_id)
+      : { data: null };
     const { error: err } = await supabase.from('crm_casos').delete().eq('id', borrador.id);
     if (err) return setError(mensajeError(err));
-    setOk('Caso eliminado.');
+    if (archivos?.length) await supabase.storage.from(BUCKET_ASUNTOS).remove(archivos.map((a) => a.ruta));
+    setOk('Caso eliminado, junto con su asunto.');
     setBorrador(null);
     setVersion((n) => n + 1);
   }

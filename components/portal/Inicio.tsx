@@ -23,7 +23,7 @@ const MODULOS: Modulo[] = [
   { titulo: 'Firma electrónica', texto: 'Enviá un PDF a firmar, seguí quién firmó y recibí el documento sellado con su constancia.', accion: 'Enviar a firmar', icono: PenLine, ruta: '/portal/firmas', permiso: 'documentosLegales' },
   { titulo: 'Agenda', texto: 'Reuniones de consulta y seguimiento con Agustín Castro, en el horario que elijas.', accion: 'Agendar reunión', icono: CalendarDays, ruta: '/portal/agenda', permiso: 'agenda' },
   { titulo: 'Administración', texto: 'Empresas, usuarios, permisos y registro de accesos.', accion: 'Administrar', icono: ShieldCheck, ruta: '/portal/admin', soloAdmin: true },
-  { titulo: 'Protocolos', texto: 'Cómo trabaja cada área de tu equipo, por escrito y con respaldo legal.', accion: 'Leer protocolos', icono: BookOpen, ruta: '/protocolo-llamadas', externo: true },
+  { titulo: 'Protocolos', texto: 'Cómo trabaja cada área de tu equipo, por escrito y con respaldo legal.', accion: 'Leer protocolos', icono: BookOpen, ruta: '/portal/protocolos' },
   { titulo: 'Estado de asuntos', texto: 'Trámites con FIRMA y conflictos de tu empresa, con su estado, el próximo paso y las novedades.', accion: 'Ver asuntos', icono: ClipboardList, ruta: '/portal/asuntos', permiso: 'casos' },
   { titulo: 'Abonos y pagos', texto: 'Condiciones de tu abono, próximo débito e historial de pagos.', accion: 'Ver pagos', icono: Wallet, ruta: '/portal/pagos', permiso: 'gestion' },
   { titulo: 'Formación', texto: 'Videos por área para capacitar a tu equipo.', icono: GraduationCap },
@@ -42,11 +42,6 @@ export const Inicio: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
   const permisos = permisosDe(perfil.rol);
   // Lo que todavía no está listo solo lo ve FIRMA: al cliente, una tarjeta vacía le resta más de lo que anticipa.
   const visibles = MODULOS.filter((m) => (m.soloAdmin ? esAdmin : m.permiso ? permisos[m.permiso] : true) && (m.ruta || esAdmin));
-  // Sin documentos legales, la biblioteca muestra solo protocolos: se entra por ahí.
-  if (!permisos.documentosLegales) {
-    const i = visibles.findIndex((m) => m.titulo === 'Protocolos');
-    if (i >= 0) visibles[i] = { ...visibles[i], texto: 'Los protocolos y la formación de tu equipo, área por área.', ruta: '/portal/documentos', externo: false };
-  }
   const nombre = (perfil.nombre || '').split(' ')[0];
 
   return (

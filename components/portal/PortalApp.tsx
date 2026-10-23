@@ -25,6 +25,7 @@ const PanelAdmin = lazy(() => import('./admin/PanelAdmin').then((m) => ({ defaul
  *   /portal/clave      definir o cambiar contraseña (desde el enlace del mail)
  *   /portal            inicio según rol
  *   /portal/documentos contratos de servicio, con el equipo y otros (más /equipo y /otros)
+ *   /portal/protocolos protocolos y formación del equipo
  *   /portal/firmas     firma electrónica propia (más /nuevo y /<id>)
  *   /portal/pagos      abonos mensuales con tarjeta (solo titular y admin)
  *   /portal/admin/...  panel de administración (solo admin)
@@ -96,7 +97,7 @@ export const PortalApp: React.FC = () => {
     const orgVista = { id: vista.orgId, nombre: vista.orgNombre, activa: true } as Organizacion;
     const permisosVista = permisosDe(vista.rol);
     const enCrm = (ruta === '/portal/crm' || ruta.startsWith('/portal/crm/')) && permisosVista.crm;
-    const enDocumentos = ruta === '/portal/documentos' || ruta.startsWith('/portal/documentos/');
+    const enDocumentos = ruta === '/portal/documentos' || ruta.startsWith('/portal/documentos/') || ruta === '/portal/protocolos';
     const enFirmas = (ruta === '/portal/firmas' || ruta.startsWith('/portal/firmas/')) && permisosVista.documentosLegales;
     const enAsuntos = (ruta === '/portal/asuntos' || ruta.startsWith('/portal/asuntos/')) && permisosVista.casos;
     return (
@@ -114,7 +115,7 @@ export const PortalApp: React.FC = () => {
             <Asuntos perfil={perfilVista} organizacion={orgVista} ruta={ruta} />
           </Suspense>
         ) : enDocumentos ? (
-          <Documentos perfil={perfilVista} organizacion={orgVista} ruta={ruta} />
+          <Documentos perfil={perfilVista} organizacion={orgVista} ruta={permisosVista.documentosLegales ? ruta : '/portal/protocolos'} />
         ) : ruta === '/portal/agenda' && permisosVista.agenda ? (
           <Agenda perfil={perfilVista} organizacion={orgVista} />
         ) : ruta === '/portal/pagos' && permisosVista.gestion ? (
@@ -136,8 +137,9 @@ export const PortalApp: React.FC = () => {
     );
   }
 
-  if (ruta === '/portal/documentos' || ruta.startsWith('/portal/documentos/')) {
-    return <Documentos perfil={perfil} organizacion={estado.organizacion} ruta={ruta} />;
+  // Sin documentos legales, la biblioteca es solo protocolos: cualquier ruta de documentos cae ahí.
+  if (ruta === '/portal/documentos' || ruta.startsWith('/portal/documentos/') || ruta === '/portal/protocolos') {
+    return <Documentos perfil={perfil} organizacion={estado.organizacion} ruta={permisos.documentosLegales ? ruta : '/portal/protocolos'} />;
   }
 
   if ((ruta === '/portal/firmas' || ruta.startsWith('/portal/firmas/')) && permisos.documentosLegales) {

@@ -41,7 +41,7 @@ export const SECCIONES: InfoSeccion[] = [
     clave: 'otros',
     ruta: '/portal/documentos/otros',
     titulo: 'Otros documentos',
-    bajada: 'Términos y condiciones, política de privacidad, protocolos y demás documentación de tu empresa.',
+    bajada: 'Términos y condiciones, política de privacidad y demás documentación de tu empresa.',
     avisoTitulo: 'Para tener en cuenta',
     aviso: 'Si cambiás tu oferta, tus precios o tus medios de pago, avisanos para mantener estos documentos al día.',
   },
