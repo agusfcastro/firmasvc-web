@@ -9,7 +9,7 @@ import { BotonCopiar } from '../crm/firma';
 import { ESTADO_FIRMANTE, ESTADO_SOBRE, fechaHora } from '../../firma/comun';
 import type { Organizacion, Perfil } from '../tipos';
 import { BarraUso } from '../BarraUso';
-import { diaYMes, firmasAgotadas, usoFirmas, whatsapp, type UsoFirmas } from '../planes';
+import { diaYMes, firmasAgotadas, firmasOcupadas, usoFirmas, whatsapp, type UsoFirmas } from '../planes';
 import {
   COLUMNAS_FIRMANTE,
   ROTULO_EVENTO,
@@ -50,10 +50,10 @@ function useCupoFirmas(orgId: string | null | undefined): UsoFirmas | null {
 
 const AvisoCupo: React.FC<{ uso: UsoFirmas }> = ({ uso }) => (
   <div className="flex flex-col gap-4 max-w-[640px] bg-marfil-oscuro p-6 desk:p-8">
-    <p className="h3">Usaste los {uso.limite} documentos firmados de este mes</p>
+    <p className="h3">Llegaste a los {uso.limite} documentos de este mes</p>
     <p className="text-[15px] leading-[1.6] text-piedra">
-      Tu plan incluye {uso.limite} por mes. Vas a poder mandar nuevos envíos desde el {diaYMes(uso.hasta)}. Si necesitás uno antes, escribinos por WhatsApp. Los envíos en curso siguen
-      su camino.
+      Tu plan incluye {uso.limite} documentos firmados por mes y los envíos en curso reservan su lugar. Vas a poder mandar nuevos desde el {diaYMes(uso.hasta)}, o antes si se anula o vence
+      alguno de los que están en curso. Si necesitás uno ya, escribinos por WhatsApp.
     </p>
     <a
       href={whatsapp('Hola Agustín, llegué al límite de documentos firmados de mi plan y necesito mandar otro.')}
@@ -152,10 +152,10 @@ const Listado: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> =
       <section className="wrap py-10 desk:py-14 flex flex-col gap-10">
         {cupo && cupo.limite !== null && (
           <BarraUso
-            titulo="Documentos firmados este mes"
-            usado={cupo.usados}
+            titulo="Documentos de este mes"
+            usado={firmasOcupadas(cupo)}
             incluido={cupo.limite}
-            nota={`Cuentan los envíos que terminaron firmados. El cupo se renueva el ${diaYMes(cupo.hasta)}.`}
+            nota={`${cupo.usados} ${cupo.usados === 1 ? 'firmado' : 'firmados'}${cupo.en_curso ? ` y ${cupo.en_curso} en curso, que reservan su lugar` : ''}. Un envío anulado o vencido libera el lugar. El cupo se renueva el ${diaYMes(cupo.hasta)}.`}
           />
         )}
         {sinCupo && cupo && <AvisoCupo uso={cupo} />}

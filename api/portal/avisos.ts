@@ -9,6 +9,8 @@
  *              la otra parte no tiene el asunto abierto. Como mucho un mail
  *              cada 15 minutos por asunto y por lado: los demás esperan.
  *   archivo    Documento subido a un asunto. Avisa a la otra parte, una vez.
+ *   asunto     Asunto que abrió el cliente. Lo pide quien lo creó, una sola vez,
+ *              en la primera hora. Avisa a FIRMA con lo que contó el cliente.
  *   documento  Documento nuevo de una empresa. Solo FIRMA, una vez por
  *              documento. Avisa a quienes lo pueden ver en el portal.
  *   Responde { avisados } con la cantidad de personas a las que salió.
@@ -148,6 +150,67 @@ async function avisoNovedad(sb: SupabaseClient, quien: Quien, id: string, base: 
   );
 
   await sb.from('asunto_novedades').update({ avisado_en: new Date().toISOString(), avisados }).eq('id', id);
+  return json({ ok: true, avisados });
+}
+
+const TIPO_ASUNTO: Record<string, string> = {
+  contrato: 'Contrato',
+  conflicto: 'Conflicto',
+  marca: 'Marca',
+  societario: 'Societario',
+  cobranza: 'Cobranza',
+  consulta: 'Consulta',
+  otro: 'Otro',
+};
+
+const MOTIVO_CONFLICTO: Record<string, string> = {
+  reembolso: 'Reembolso o contracargo',
+  entregables: 'Incumplimiento de entregables',
+  cobro: 'Cobro de sumas adeudadas',
+  equipo: 'Conflicto con el equipo',
+  otro: 'Otro conflicto',
+};
+
+async function avisoAsunto(sb: SupabaseClient, quien: Quien, id: string, base: string): Promise<Response> {
+  if (quien.rol === 'admin') return error('Los asuntos que abre FIRMA se avisan con su primera novedad.', 409);
+  const { data: asunto } = await sb.from('asuntos').select('*').eq('id', id).maybeSingle();
+  if (!asunto) return error('No existe ese asunto.', 404);
+  if (asunto.creado_por !== quien.id) return error('Solo quien abrió el asunto puede avisar.', 403);
+  if (Date.now() - Date.parse(asunto.creado_en) > 3_600_000) return error('Ese asunto es viejo para avisar.', 409);
+
+  // Una sola vez. Reservar el turno del chat también evita que el primer mensaje mande otro mail.
+  const { data: turno } = await sb.from('asuntos').update({ aviso_chat_firma: new Date().toISOString() }).eq('id', id).is('aviso_chat_firma', null).select('id');
+  if (!turno?.length) return json({ ok: true, avisados: 0, ya: true });
+
+  const [{ data: org }, { data: msj }, { data: cliente }] = await Promise.all([
+    sb.from('organizaciones').select('nombre').eq('id', asunto.organizacion_id).maybeSingle(),
+    sb.from('asunto_mensajes').select('texto').eq('asunto_id', id).order('creado_en', { ascending: true }).limit(1).maybeSingle(),
+    asunto.cliente_id ? sb.from('crm_clientes').select('nombre, codigo').eq('id', asunto.cliente_id).maybeSingle() : Promise.resolve({ data: null }),
+  ]);
+  const empresa = (org?.nombre as string | undefined) ?? 'La empresa';
+  const tipo = asunto.motivo ? MOTIVO_CONFLICTO[asunto.motivo] ?? asunto.motivo : TIPO_ASUNTO[asunto.tipo] ?? asunto.tipo;
+  const texto = (msj?.texto as string | undefined) ?? '';
+  const url = `${base}/portal/asuntos/${id}`;
+
+  const avisados = await avisarA(
+    await otraParte(sb, quien, asunto.organizacion_id),
+    (d) => {
+      const parrafos = [hola(d), `${escapar(quien.nombre || quien.email)}, de <strong>${escapar(empresa)}</strong>, abrió un asunto en el portal: <strong>${escapar(asunto.titulo)}</strong>.`];
+      parrafos.push(`Tipo: <strong>${escapar(tipo)}</strong>.${cliente ? ` Cliente: <strong>${escapar(`${cliente.nombre}${cliente.codigo ? ` (${cliente.codigo})` : ''}`)}</strong>.` : ''}`);
+      if (texto) parrafos.push(`<em>${conSaltos(texto.length > 1200 ? `${texto.slice(0, 1200)}…` : texto)}</em>`);
+      return {
+        asunto: `${prefijoCodigo(asunto.codigo)}Nuevo asunto de ${empresa}: ${asunto.titulo}`,
+        html: plantillaMail({
+          seccion: 'Estado de asuntos',
+          titulo: 'Nuevo asunto en el portal',
+          anticipo: (texto || asunto.titulo).slice(0, 120),
+          parrafos,
+          boton: { texto: 'Ver el asunto', url },
+        }),
+      };
+    },
+    quien.email,
+  );
   return json({ ok: true, avisados });
 }
 
@@ -305,6 +368,7 @@ export async function POST(request: Request): Promise<Response> {
     if (cuerpo.tipo === 'documento') return await avisoDocumento(sb, quien, id, base);
     if (cuerpo.tipo === 'mensaje') return await avisoMensaje(sb, quien, id, base);
     if (cuerpo.tipo === 'archivo') return await avisoArchivo(sb, quien, id, base);
+    if (cuerpo.tipo === 'asunto') return await avisoAsunto(sb, quien, id, base);
     return error('Tipo de aviso desconocido.');
   } catch {
     return error('No se pudo mandar el aviso. Probá de nuevo en unos minutos.', 500);

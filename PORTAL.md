@@ -418,7 +418,9 @@ Cada trámite que FIRMA lleva para una empresa cliente, en `/portal/asuntos`: un
 
 - **Quién lo ve:** FIRMA, el titular y el CSM de la empresa. Closers y setters no.
 - **Quién lo crea:** FIRMA y también el titular o el CSM, con **Nuevo asunto**. Lo que escribe el cliente al crearlo queda como primer mensaje del chat y le llega a FIRMA por mail. Editar los datos y el estado sigue siendo de FIRMA.
-- **Cliente del CRM.** Un asunto puede vincularse a un cliente de la empresa. Es opcional, salvo en un reembolso o contracargo.
+- **Cliente del CRM.** Un asunto puede vincularse a un cliente de la empresa. Es opcional, salvo en un reembolso o contracargo. La ficha del cliente lista sus asuntos y tiene **Nuevo asunto**, que lo abre ya vinculado.
+- **Aviso de asunto nuevo.** Cuando el cliente abre un asunto, a FIRMA le llega un mail «Nuevo asunto de {empresa}» con el tipo, el cliente y lo que contó.
+- **Corregir la clasificación.** En **Editar datos**, FIRMA cambia tipo, motivo y cliente. Si el asunto tiene caso de conflicto, esos tres quedan fijos.
 - **Motivo.** Los asuntos de tipo Conflicto llevan uno: Reembolso o contracargo, Incumplimiento de entregables, Cobro de sumas adeudadas, Conflicto con el equipo u Otro conflicto.
 - **Reembolso o contracargo.** Abre además su caso de conflicto (causa, canal, monto, contracargo), que cuenta en los indicadores de CRM › Casos de conflicto. El asunto muestra la etapa, el semáforo con lo que indica el protocolo y un enlace para seguir el caso. Al cerrar el caso el asunto pasa a finalizado, y al reabrirlo vuelve a en curso. Un caso creado desde CRM › Casos de conflicto crea su asunto solo.
 - **Código.** Cada asunto recibe uno al crearse, como el de los clientes del CRM con `A-` adelante: `A-<prefijo de la empresa>-<número>`, por ejemplo `A-TB-001`. El número es correlativo por empresa y no cambia. Se busca por código en la lista y va al comienzo del asunto de cada mail.
@@ -443,9 +445,9 @@ El plan de cada empresa se elige en Administración › Clientes › Editar: Gol
 | A medida | Sin límite | Sin límite |
 
 - **Agenda.** Después de cada reunión cargá los minutos en Administración › Agendas › Tiempo de reuniones. El cliente ve la barra en Agenda. Una reunión puede pasarse del saldo: el exceso se le muestra como tiempo recibido de más. Con el tiempo agotado deja de ver los enlaces de reserva hasta que se renueva el período y se le ofrece escribir por WhatsApp. Un consumo cargado por error se borra desde la misma lista y vuelve al saldo.
-- **Firmas.** Cuentan los envíos de la empresa que terminaron firmados en el mes, incluidos los contratos del CRM. Los envíos de FIRMA no cuentan. Al llegar al límite no puede crear envíos nuevos, ni desde la pantalla ni por la API, y se le ofrece escribir por WhatsApp. Los envíos en curso siguen su camino.
+- **Firmas.** Ocupan el cupo los envíos de la empresa firmados en el mes, incluidos los contratos del CRM, y los que siguen en curso, que reservan su lugar. Así el tope no se pasa. Un envío anulado o vencido libera el lugar. Los envíos de FIRMA no cuentan. Al llegar al límite no puede crear envíos nuevos, ni desde la pantalla ni por la API, y se le ofrece escribir por WhatsApp.
 
-Para activarlo, corré `0022_planes_agenda_firmas.sql`. Las fechas son de Buenos Aires.
+Para activarlo, corré `0022_planes_agenda_firmas.sql` y `0025_higiene_y_cupo_firmas.sql`. Las fechas son de Buenos Aires.
 
 ## Borrar datos de prueba
 

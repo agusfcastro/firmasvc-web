@@ -21,6 +21,7 @@ export const VARIABLES: [string, string][] = [
   ['EMPRESA', 'Razón social de la empresa, o su nombre'],
   ['RESPONSABLE', 'CSM o AM a cargo'],
   ['MONEDA', 'Moneda, por ejemplo USD'],
+  ['MONEDA_LETRAS', 'Moneda en letras, por ejemplo DÓLARES ESTADOUNIDENSES'],
   ['MONTO_TOTAL', 'Monto total en números, por ejemplo 3.000'],
   ['MONTO_TOTAL_LETRAS', 'Monto total en letras, por ejemplo TRES MIL'],
   ['ANTICIPO', 'Anticipo en números'],
@@ -29,6 +30,7 @@ export const VARIABLES: [string, string][] = [
   ['SALDO_LETRAS', 'Suma de las cuotas en letras'],
   ['CANTIDAD_CUOTAS', 'Cantidad de cuotas, por ejemplo 3 (TRES)'],
   ['DETALLE_CUOTAS', 'Cada cuota con su monto y su vencimiento'],
+  ['ESQUEMA_PAGOS', 'Esquema de pagos completo, un renglón por pago, en números y en letras. Sirve igual para cuotas y para pago total'],
   ['CONDICIONES', 'Condiciones acordadas en la venta, en texto libre'],
   ['FECHA_ONBOARDING', 'Fecha del onboarding, por ejemplo 20 de octubre de 2026'],
   ['FECHA', 'Fecha en que se genera el contrato'],
@@ -105,6 +107,30 @@ function fechaLarga(d: Date): string {
   return new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: ZONA }).format(d);
 }
 
+const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+/** 2026-11-20 pasa a «20 de noviembre de 2026». Se arma a mano para que la zona horaria no corra el día. */
+function fechaLargaIso(iso: string): string {
+  const [y, m, d] = iso.slice(0, 10).split('-').map(Number);
+  return `${d} de ${MESES[m - 1]} de ${y}`;
+}
+
+const NOMBRE_MONEDA: Record<string, string> = {
+  USD: 'DÓLARES ESTADOUNIDENSES',
+  ARS: 'PESOS ARGENTINOS',
+  EUR: 'EUROS',
+  UYU: 'PESOS URUGUAYOS',
+  CLP: 'PESOS CHILENOS',
+  MXN: 'PESOS MEXICANOS',
+  COP: 'PESOS COLOMBIANOS',
+  PEN: 'SOLES',
+};
+
+/** «USD 1.000 (DÓLARES ESTADOUNIDENSES MIL)», el formato de los contratos de FIRMA. */
+function montoContrato(moneda: string, nombreMoneda: string, monto: number): string {
+  return `${moneda} ${numero(monto)} (${nombreMoneda} ${montoEnLetras(monto)})`;
+}
+
 function fechaCorta(iso: string): string {
   const [y, m, d] = iso.slice(0, 10).split('-');
   return `${d}/${m}/${y}`;
@@ -146,6 +172,19 @@ export function valoresDelContrato(c: ClienteContrato, pagos: PagoContrato[], em
     .filter((p) => !esAnticipo(p))
     .sort((a, b) => (a.vencimiento ?? '9999').localeCompare(b.vencimiento ?? '9999') || (a.creado_en ?? '').localeCompare(b.creado_en ?? ''));
   const saldo = cuotas.reduce((a, p) => a + Number(p.monto), 0);
+  const nombreMoneda = NOMBRE_MONEDA[moneda.toUpperCase()] ?? moneda;
+  // Un renglón por pago. El anticipo ya está cobrado cuando se arma el contrato.
+  const renglones: string[] = [];
+  if (anticipo > 0) {
+    const unico = cuotas.length === 0;
+    renglones.push(`Un (1) ${unico ? 'único pago' : 'pago'} de ${montoContrato(moneda, nombreMoneda, anticipo)}, que LA EMPRESA declara haber recibido a la fecha del presente.`);
+  }
+  for (const p of cuotas) {
+    const monto = montoContrato(moneda, nombreMoneda, Number(p.monto));
+    const cuando = p.vencimiento ? `, con vencimiento el ${fechaLargaIso(p.vencimiento)}` : '';
+    const unico = anticipo <= 0 && cuotas.length === 1;
+    renglones.push(`Un (1) ${unico ? 'único pago' : 'pago'} de ${monto}${cuando}.`);
+  }
   const detalle = cuotas.length
     ? cuotas
         .map((p, i) => `${i === 0 ? 'Cuota' : 'cuota'} ${i + 1} de ${moneda} ${numero(Number(p.monto))}${p.vencimiento ? ` con vencimiento el ${fechaCorta(p.vencimiento)}` : ''}`)
@@ -163,6 +202,7 @@ export function valoresDelContrato(c: ClienteContrato, pagos: PagoContrato[], em
     EMPRESA: empresa,
     RESPONSABLE: c.responsable || '',
     MONEDA: moneda,
+    MONEDA_LETRAS: nombreMoneda,
     MONTO_TOTAL: numero(total),
     MONTO_TOTAL_LETRAS: montoEnLetras(total),
     ANTICIPO: numero(anticipo),
@@ -171,6 +211,8 @@ export function valoresDelContrato(c: ClienteContrato, pagos: PagoContrato[], em
     SALDO_LETRAS: montoEnLetras(saldo),
     CANTIDAD_CUOTAS: cantidadCuotas(cuotas.length),
     DETALLE_CUOTAS: detalle,
+    // Vacía si no hay ningún pago cargado, así el portal avisa que falta el plan.
+    ESQUEMA_PAGOS: renglones.join('\n'),
     CONDICIONES: (c.condiciones || '').trim(),
     FECHA_ONBOARDING: c.fecha_onboarding ? fechaLarga(new Date(c.fecha_onboarding)) : 'a definir',
     FECHA: fechaLarga(hoy),

@@ -131,7 +131,7 @@ export const fechaVence = (d: string): string => {
 };
 
 /** Pide el aviso por mail de una novedad o de un documento nuevo. Devuelve a cuántas personas salió. */
-export async function avisarPorMail(tipo: 'novedad' | 'documento' | 'mensaje' | 'archivo', id: string): Promise<{ ok: boolean; avisados?: number; error?: string }> {
+export async function avisarPorMail(tipo: 'novedad' | 'documento' | 'mensaje' | 'archivo' | 'asunto', id: string): Promise<{ ok: boolean; avisados?: number; error?: string }> {
   if (!supabase) return { ok: false, error: 'Portal sin configurar.' };
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;

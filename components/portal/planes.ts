@@ -33,7 +33,10 @@ export interface UsoFirmas {
   plan: Plan | null;
   /** null es sin límite. */
   limite: number | null;
+  /** Firmados en el mes. */
   usados: number;
+  /** Envíos que siguen abiertos: reservan su lugar en el cupo. */
+  en_curso?: number;
   desde: string;
   hasta: string;
 }
@@ -54,7 +57,9 @@ export async function usoFirmas(orgId: string): Promise<UsoFirmas | null> {
 }
 
 export const agendaAgotada = (u: UsoAgenda | null): boolean => Boolean(u && u.incluido_min !== null && u.usado_min >= u.incluido_min);
-export const firmasAgotadas = (u: UsoFirmas | null): boolean => Boolean(u && u.limite !== null && u.usados >= u.limite);
+/** Cupo ocupado: los firmados del mes más los envíos que siguen abiertos. */
+export const firmasOcupadas = (u: UsoFirmas): number => u.usados + (u.en_curso ?? 0);
+export const firmasAgotadas = (u: UsoFirmas | null): boolean => Boolean(u && u.limite !== null && firmasOcupadas(u) >= u.limite);
 
 /** Fecha sin hora (AAAA-MM-DD) como 1 de noviembre. */
 export function diaYMes(d: string | null): string {

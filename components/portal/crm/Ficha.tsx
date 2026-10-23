@@ -7,6 +7,7 @@ import { useVistaPrevia } from '../vistaPrevia';
 import { TONO_FIRMA, dinero, fecha, hoyISO, type CambioHistorial, type ClienteCrm, type ContratoReservado, type EstadoFirma, type Pago, type Servicio } from './tipos';
 import { CAMPOS_CASO, VALORES_CASO } from './reglasCasos';
 import { CasosCliente } from './Casos';
+import { AsuntosCliente } from './AsuntosCliente';
 import { ContratoFirma } from './contratoFirma';
 
 const ROTULOS: Record<string, string> = {
@@ -426,6 +427,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
         </section>
 
         {verCasos && <CasosCliente clienteId={id} moneda={moneda} soloLectura={soloLectura} alContar={setCasosAbiertos} />}
+        {verCasos && <AsuntosCliente clienteId={id} soloLectura={soloLectura} esFirma={esAdmin && !soloLectura} />}
 
         <div className="grid gap-12 desk:grid-cols-[7fr_5fr] desk:gap-14 items-start">
           {/* Datos */}

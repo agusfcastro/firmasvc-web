@@ -184,6 +184,23 @@ const Lista: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
 
   const cambiar = (cambios: Partial<Borrador>) => setBorrador((b) => (b ? { ...b, ...cambios } : b));
 
+  // Desde la ficha del CRM: /portal/asuntos?cliente=<id> abre un asunto nuevo con ese cliente vinculado.
+  useEffect(() => {
+    const clienteId = new URLSearchParams(window.location.search).get('cliente');
+    if (!supabase || !clienteId || !puedeCrear) return;
+    window.history.replaceState(window.history.state, '', '/portal/asuntos');
+    void supabase
+      .from('crm_clientes')
+      .select('id, organizacion_id')
+      .eq('id', clienteId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) return setError('No existe ese cliente o no tenés acceso.');
+        nuevo();
+        cambiar({ organizacion_id: data.organizacion_id as string, cliente_id: data.id as string });
+      });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   async function crear(e: React.FormEvent) {
     e.preventDefault();
     if (!supabase || !borrador) return;
@@ -247,10 +264,11 @@ const Lista: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
       // Lo que cuenta el cliente abre el chat del asunto y le llega a FIRMA por mail.
       const { data: msj, error: e2 } = await supabase.from('asunto_mensajes').insert({ asunto_id: data.id, texto }).select('id').single();
       if (e2 || !msj) nota = 'Asunto creado, pero tu mensaje no se pudo guardar. Escribilo en el chat del asunto.';
-      else {
-        const r = await avisarPorMail('mensaje', msj.id);
-        nota = r.ok ? 'Asunto creado. Le avisamos a FIRMA por mail.' : 'Asunto creado. FIRMA lo ve en el portal.';
-      }
+    }
+    if (!esFirma) {
+      // El mail a FIRMA anuncia el asunto nuevo, con lo que contó el cliente.
+      const r = await avisarPorMail('asunto', data.id);
+      if (nota === 'Asunto creado.') nota = r.ok ? 'Asunto creado. Le avisamos a FIRMA por mail.' : 'Asunto creado. FIRMA lo ve en el portal.';
     }
     setGuardando(false);
     setBorrador(null);
@@ -561,7 +579,8 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
   const [caso, setCaso] = useState<Caso | null>(null);
   const [otroPresente, setOtroPresente] = useState(false);
   const veCrm = permisosDe(perfil.rol).crm;
-  const [edicion, setEdicion] = useState<{ titulo: string; proximo_paso: string; vence_en: string } | null>(null);
+  const [edicion, setEdicion] = useState<{ titulo: string; proximo_paso: string; vence_en: string; tipo: TipoAsunto; motivo: MotivoConflicto | ''; cliente_id: string } | null>(null);
+  const [clientesEmpresa, setClientesEmpresa] = useState<ClienteCrm[]>([]);
   const [ocupado, setOcupado] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
@@ -654,15 +673,38 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
     window.history.replaceState({}, '', url);
   }
 
+  async function editar() {
+    if (!supabase || !asunto) return;
+    setEdicion({
+      titulo: asunto.titulo,
+      proximo_paso: asunto.proximo_paso ?? '',
+      vence_en: asunto.vence_en ?? '',
+      tipo: asunto.tipo,
+      motivo: asunto.motivo ?? '',
+      cliente_id: asunto.cliente_id ?? '',
+    });
+    const { data } = await supabase.from('crm_clientes').select('id, nombre, codigo').eq('organizacion_id', asunto.organizacion_id).order('nombre');
+    setClientesEmpresa((data as ClienteCrm[]) ?? []);
+  }
+
   async function guardarDatos(e: React.FormEvent) {
     e.preventDefault();
     if (!supabase || !asunto || !edicion) return;
     if (edicion.titulo.trim().length < 3) return setError('El título tiene que tener al menos 3 caracteres.');
+    if (!caso && edicion.tipo === 'conflicto' && !edicion.motivo) return setError('Elegí el motivo del conflicto.');
     setOcupado('datos');
     setError(null);
+    // Con caso de conflicto, tipo, motivo y cliente son los del caso y no se tocan.
+    const clasificacion = caso
+      ? {}
+      : {
+          tipo: edicion.tipo,
+          motivo: edicion.tipo === 'conflicto' ? edicion.motivo || null : null,
+          cliente_id: edicion.cliente_id || null,
+        };
     const { error: e1 } = await supabase
       .from('asuntos')
-      .update({ titulo: edicion.titulo.trim(), proximo_paso: edicion.proximo_paso.trim() || null, vence_en: edicion.vence_en || null })
+      .update({ titulo: edicion.titulo.trim(), proximo_paso: edicion.proximo_paso.trim() || null, vence_en: edicion.vence_en || null, ...clasificacion })
       .eq('id', asunto.id);
     setOcupado('');
     if (e1) return setError(e1.message);
@@ -752,6 +794,44 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
               <Campo etiqueta="Título">
                 <input maxLength={140} className={claseInput} value={edicion.titulo} onChange={(e) => setEdicion({ ...edicion, titulo: e.target.value })} />
               </Campo>
+              {caso ? (
+                <p className="text-xs text-piedra">Tipo, motivo y cliente son los del caso de conflicto y se mantienen.</p>
+              ) : (
+                <>
+                  <Campo etiqueta="Tipo">
+                    <select className={claseInput} value={edicion.tipo} onChange={(e) => setEdicion({ ...edicion, tipo: e.target.value as TipoAsunto, motivo: '' })}>
+                      {Object.entries(TIPO_ASUNTO).map(([k, v]) => (
+                        <option key={k} value={k}>
+                          {v}
+                        </option>
+                      ))}
+                    </select>
+                  </Campo>
+                  {edicion.tipo === 'conflicto' && (
+                    <Campo etiqueta="Motivo" ayuda="Un reembolso o contracargo se abre como caso desde CRM › Casos de conflicto, así cuenta en los indicadores.">
+                      <select className={claseInput} value={edicion.motivo} onChange={(e) => setEdicion({ ...edicion, motivo: e.target.value as MotivoConflicto | '' })}>
+                        <option value="">Elegí</option>
+                        {MOTIVOS.filter((m) => !llevaCaso(m)).map((m) => (
+                          <option key={m} value={m}>
+                            {MOTIVO_CONFLICTO[m].titulo}
+                          </option>
+                        ))}
+                      </select>
+                    </Campo>
+                  )}
+                  <Campo etiqueta="Cliente del CRM">
+                    <select className={claseInput} value={edicion.cliente_id} onChange={(e) => setEdicion({ ...edicion, cliente_id: e.target.value })}>
+                      <option value="">Sin cliente</option>
+                      {clientesEmpresa.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.nombre}
+                          {c.codigo ? ` · ${c.codigo}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </Campo>
+                </>
+              )}
               <Campo etiqueta="Próximo paso">
                 <input maxLength={300} className={claseInput} value={edicion.proximo_paso} onChange={(e) => setEdicion({ ...edicion, proximo_paso: e.target.value })} />
               </Campo>
@@ -812,7 +892,7 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
                   size="sm"
                   variant="ghost"
                   className="self-start"
-                  onClick={() => setEdicion({ titulo: asunto.titulo, proximo_paso: asunto.proximo_paso ?? '', vence_en: asunto.vence_en ?? '' })}
+                  onClick={() => void editar()}
                 >
                   Editar datos
                 </Button>
