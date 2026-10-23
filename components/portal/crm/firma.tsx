@@ -1,30 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Check, ClipboardCopy } from 'lucide-react';
-import { supabase } from '../supabase';
 
-/**
- * Contrato en ZapSign desde el CRM. Pide al servidor que genere el documento
- * (el token de ZapSign nunca pasa por el navegador) y copia el link de firma.
- */
-
-export async function generarContrato(clienteId: string, regenerar = false): Promise<{ ok: boolean; firmaUrl?: string; error?: string }> {
-  if (!supabase) return { ok: false, error: 'Portal sin configurar.' };
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-  if (!token) return { ok: false, error: 'Tu sesión venció. Volvé a ingresar.' };
-  try {
-    const r = await fetch('/api/crm/contrato', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-      body: JSON.stringify({ cliente_id: clienteId, regenerar }),
-    });
-    const j = (await r.json().catch(() => ({}))) as { firma_url?: string; error?: string };
-    if (!r.ok || !j.firma_url) return { ok: false, error: j.error || `Error ${r.status}` };
-    return { ok: true, firmaUrl: j.firma_url };
-  } catch {
-    return { ok: false, error: 'No hay conexión con el servidor.' };
-  }
-}
+/** Copiar al portapapeles, con el botón que se usa en el CRM y en el panel. */
 
 export async function copiarAlPortapapeles(texto: string): Promise<boolean> {
   try {
@@ -83,10 +60,4 @@ export const BotonCopiar: React.FC<{ texto: string; etiqueta?: string; descripci
       </span>
     </button>
   );
-};
-
-export const MENSAJE_CONTRATO: Record<string, string> = {
-  sin_cuenta: 'La empresa no tiene ZapSign conectado.',
-  sin_modelo: 'No hay modelo de contrato para este servicio. FIRMA lo elige en Administración.',
-  error: 'No se pudo generar el contrato.',
 };

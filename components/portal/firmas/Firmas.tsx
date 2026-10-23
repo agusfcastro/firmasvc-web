@@ -269,6 +269,28 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const cupo = useCupoFirmas(esAdmin ? null : organizacion?.id);
+  const [clientesCrm, setClientesCrm] = useState<{ id: string; nombre: string; codigo: string | null; email: string | null }[]>([]);
+  const [clienteCrm, setClienteCrm] = useState('');
+  const orgEnvio = esAdmin ? orgId : organizacion?.id ?? '';
+
+  // Clientes del CRM de la empresa, para vincular el envío y que la ficha pase sola a Firmado.
+  useEffect(() => {
+    setClienteCrm('');
+    if (!supabase || !orgEnvio) return setClientesCrm([]);
+    let vigente = true;
+    void supabase
+      .from('crm_clientes')
+      .select('id, nombre, codigo, email')
+      .eq('organizacion_id', orgEnvio)
+      .neq('estado_firma', 'Baja')
+      .order('nombre')
+      .then(({ data }) => {
+        if (vigente) setClientesCrm((data ?? []) as { id: string; nombre: string; codigo: string | null; email: string | null }[]);
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [orgEnvio]);
 
   useEffect(() => {
     void llamarSobres<{ mail: boolean }>({ accion: 'config' }).then((r) => setMail(r.ok ? r.datos.mail : null));
@@ -309,6 +331,13 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
       return copia;
     });
 
+  function vincular(id: string) {
+    setClienteCrm(id);
+    // Con un solo firmante vacío, se propone el cliente elegido.
+    const c = clientesCrm.find((x) => x.id === id);
+    if (c && filas.length === 1 && !filas[0].nombre.trim() && !filas[0].email.trim()) cambiar(filas[0].clave, { nombre: c.nombre, email: c.email ?? '' });
+  }
+
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -331,6 +360,7 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
       secuencial,
       vence_dias: dias,
       organizacion_id: esAdmin ? orgId || null : undefined,
+      crm_cliente_id: clienteCrm || undefined,
       firmantes: lista.map((f) => ({ nombre: f.nombre, email: f.email, pedir_documento: f.pedir_documento })),
     });
     setEnviando(false);
@@ -410,6 +440,19 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
                 </Campo>
               )}
             </div>
+            {clientesCrm.length > 0 && (
+              <Campo etiqueta="Cliente del CRM (opcional)" ayuda="Si es el contrato de un cliente del CRM, vinculalo. Cuando firman todos, el cliente pasa solo a Firmado y la ficha muestra el seguimiento.">
+                <select value={clienteCrm} onChange={(e) => vincular(e.target.value)} className={claseInput}>
+                  <option value="">Sin vincular</option>
+                  {clientesCrm.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre}
+                      {c.codigo ? ` · ${c.codigo}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </Campo>
+            )}
             {!esAdmin && organizacion && <p className="text-sm text-piedra">Los mails salen a nombre de {organizacion.nombre} vía FIRMA.</p>}
           </div>
 

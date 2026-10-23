@@ -1109,7 +1109,7 @@ export function secciones(f: Ficha): Seccion[] {
             { id: 'tempranos', rotulo: 'Reclamos tempranos cada 100 altas', formato: 'num', calcular: (v) => (v.nuevas ? (n0(v.reclamos) / v.nuevas) * 100 : null) },
             { id: 'enRojo', rotulo: 'Cuentas en rojo', formato: 'pct', calcular: (v) => (v.activas ? (n0(v.rojas) / v.activas) * 100 : null) },
           ],
-          nota: 'Si el negocio usa el CRM del portal de FIRMA, los contratos se envían a firmar por ZapSign desde la ficha de cada cliente, que es la fuente natural de estos números.',
+          nota: 'Si el negocio usa el CRM del portal de FIRMA, los contratos se envían a firmar con la firma electrónica de FIRMA desde la ficha de cada cliente, que es la fuente natural de estos números.',
         },
       ],
     },

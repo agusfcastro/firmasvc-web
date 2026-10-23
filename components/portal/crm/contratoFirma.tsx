@@ -60,12 +60,18 @@ export const ContratoFirma: React.FC<{
   const [ok, setOk] = useState<string | null>(null);
   const [confirmando, setConfirmando] = useState(false);
   const [vista, setVista] = useState<string | null>(null);
+  const [otros, setOtros] = useState<Sobre[]>([]);
 
   const cargar = useCallback(async () => {
     if (!supabase) return;
-    const { data } = await supabase.from('crm_contratos_firma').select('cliente_id, estado, pdf_paginas, avisos, error, sobre_id, generado_en').eq('cliente_id', clienteId).maybeSingle();
+    const [{ data }, { data: vinculados }] = await Promise.all([
+      supabase.from('crm_contratos_firma').select('cliente_id, estado, pdf_paginas, avisos, error, sobre_id, generado_en').eq('cliente_id', clienteId).maybeSingle(),
+      // Envíos atados a este cliente desde Firma electrónica › Nuevo envío.
+      supabase.from('firma_sobres').select('*').eq('crm_cliente_id', clienteId).order('creado_en', { ascending: false }).limit(10),
+    ]);
     const fila = (data as Contrato) ?? null;
     setC(fila);
+    setOtros(((vinculados ?? []) as Sobre[]).filter((x) => x.id !== fila?.sobre_id));
     if (!fila?.sobre_id) {
       setSobre(null);
       setFirmantes([]);
@@ -179,7 +185,7 @@ export const ContratoFirma: React.FC<{
     <div className="flex flex-col gap-4">
       <div>
         {etiqueta('Contrato')}
-        <p className="text-sm text-calido">{texto}</p>
+        <p className={`text-sm ${cerrado && !generando ? 'text-[#f0b4a8]' : 'text-calido'}`}>{texto}</p>
       </div>
 
       {!generando && avisos.length > 0 && !enCurso && !completado && (
@@ -274,6 +280,34 @@ export const ContratoFirma: React.FC<{
               <ArrowUpRight size={15} aria-hidden="true" /> Seguimiento
             </Enlace>
           )}
+        </div>
+      )}
+
+      {otros.length > 0 && (
+        <div>
+          {etiqueta('Otros documentos vinculados')}
+          <ul className="flex flex-col">
+            {otros.map((o) => {
+              const e = ESTADO_SOBRE[o.estado];
+              const fallido = o.estado === 'rechazado' || o.estado === 'vencido' || o.estado === 'anulado';
+              const cuando =
+                o.estado === 'completado' ? `Firmado el ${fecha(o.completado_en)}` : o.estado === 'en_curso' ? `Vence el ${fecha(o.vence_en)}` : `${e.texto} el ${fecha(o.cerrado_en)}`;
+              return (
+                <li key={o.id} className="py-3 flex flex-col gap-1.5" style={{ borderTop: '1px solid rgba(245,243,236,0.12)' }}>
+                  <span className="flex flex-wrap items-center justify-between gap-3">
+                    <Enlace a={`/portal/firmas/${o.id}`} className="text-sm font-medium underline underline-offset-4 decoration-[rgba(245,243,236,0.4)] hover:decoration-marfil min-w-0 truncate">
+                      {o.titulo}
+                    </Enlace>
+                    <Etiqueta tono={e.tono}>{e.texto}</Etiqueta>
+                  </span>
+                  <span className={`text-xs ${fallido ? 'text-[#f0b4a8]' : 'text-calido'}`}>
+                    {cuando}.{fallido && o.motivo_cierre ? ` ${o.motivo_cierre}` : ''}
+                    {fallido ? ' Hay que volver a mandarlo.' : ''}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
 

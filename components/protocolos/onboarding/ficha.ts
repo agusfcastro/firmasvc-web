@@ -27,7 +27,7 @@ const EJEMPLO: Ficha = {
   duracion: '6',
   contenidos: 'la comunidad del programa en Skool',
   formulario: 'el formulario de ingreso',
-  firma: 'ZapSign',
+  firma: 'la firma electrónica de FIRMA',
   pasarela: 'Stripe',
   canal: 'el grupo de WhatsApp del programa',
   correoLegales: 'legales@impulso.com',
@@ -66,7 +66,7 @@ export const FICHA: DefFicha = {
     {
       titulo: 'Firma, cobro y canales',
       campos: [
-        { tipo: 'texto', clave: 'firma', etiqueta: 'Plataforma de firma', ayuda: 'Los contratos que salen del CRM del portal de FIRMA se firman por ZapSign.', ejemplo: 'Por ejemplo, ZapSign' },
+        { tipo: 'texto', clave: 'firma', etiqueta: 'Plataforma de firma', ayuda: 'Los contratos que salen del CRM del portal de FIRMA se firman con la firma electrónica de FIRMA.', ejemplo: 'Por ejemplo, la firma electrónica de FIRMA' },
         { tipo: 'texto', clave: 'pasarela', etiqueta: 'Plataforma de cobro', ayuda: 'Donde se confirma que el pago está acreditado.', ejemplo: 'Por ejemplo, Stripe' },
         { tipo: 'texto', clave: 'canal', etiqueta: 'Canal oficial del servicio', ayuda: 'Donde se confirma todo por escrito.', ejemplo: 'Por ejemplo, el grupo de WhatsApp del programa' },
         { tipo: 'texto', clave: 'correoLegales', etiqueta: 'Correo de legales', ayuda: 'Para pedidos de baja, arrepentimiento y reclamos.', ejemplo: 'Por ejemplo, legales@empresa.com' },
@@ -187,7 +187,7 @@ export const FICHA: DefFicha = {
       avisos.push({ nivel: 'info', texto: 'El primer resultado queda después del seguimiento de los 30 días. Sumá un hito intermedio para que ese seguimiento tenga algo concreto que medir.' });
     }
     if (!txt(f, 'firma')) {
-      avisos.push({ nivel: 'info', texto: 'Cargá la plataforma de firma. Si los contratos salen del CRM del portal de FIRMA, es ZapSign.' });
+      avisos.push({ nivel: 'info', texto: 'Cargá la plataforma de firma. Si los contratos salen del CRM del portal de FIRMA, es la firma electrónica de FIRMA.' });
     }
     if (!txt(f, 'duracion')) {
       avisos.push({ nivel: 'info', texto: 'Cargá la duración del programa para que la calculadora de plazos marque la revisión de mitad de programa y el cierre.' });

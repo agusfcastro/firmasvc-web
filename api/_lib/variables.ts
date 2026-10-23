@@ -1,7 +1,7 @@
 /**
  * Variables de los contratos modelo. Un solo lugar para la lista y para
  * cómo se calcula cada valor. Lo usan el servidor (contratos con firma
- * electrónica y ZapSign) y el portal, que muestra la lista para armar los
+ * electrónica) y el portal, que muestra la lista para armar los
  * modelos. Sin dependencias de Node, así también corre en el navegador.
  * La carpeta empieza con guion bajo para que Vercel no la tome como función.
  */

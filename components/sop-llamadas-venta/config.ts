@@ -75,7 +75,7 @@ export const CONFIG_EJEMPLO: ConfigSop = {
   reservaMonto: '300',
   saldoDias: '7',
   pasarela: 'Stripe',
-  firma: 'ZapSign',
+  firma: 'la firma electrónica de FIRMA',
   herramienta: 'Fathom',
   canal: 'legales@impulso.com',
   nicho: 'ninguno',

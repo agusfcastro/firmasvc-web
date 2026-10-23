@@ -5,7 +5,6 @@ import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
 import { Aviso, Cifras, Encabezado, Etiqueta, Monto, Pestanas, claseInput } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
-import { BotonCopiar } from './firma';
 import { TONO_FIRMA, dinero, fecha, hoyISO, type ClienteResumen } from './tipos';
 
 type Filtro = 'todos' | 'vencidas' | 'revisar' | 'Pendiente' | 'Firmado' | 'Baja';
@@ -35,7 +34,6 @@ function csv(filas: ClienteResumen[]): string {
     ['Monto próxima cuota', (c) => c.proxima_cuota_monto],
     ['Por cobrar en 30 días', (c) => c.por_cobrar_30_dias],
     ['Estado firma', (c) => c.estado_firma],
-    ['Link de firma', (c) => c.firma_url],
     ['Responsable', (c) => c.responsable],
     ['Onboarding', (c) => c.fecha_onboarding?.slice(0, 16).replace('T', ' ')],
     ['Notas', (c) => c.notas],
@@ -46,6 +44,9 @@ function csv(filas: ClienteResumen[]): string {
   };
   return [cols.map((c) => c[0]).join(';'), ...filas.map((f) => cols.map(([, g]) => esc(g(f))).join(';'))].join('\n');
 }
+
+/** Cómo terminó el último envío a firma, cuando no se firmó. */
+const ENVIO_FALLIDO: Record<string, string> = { rechazado: 'Firma rechazada', vencido: 'Envío vencido', anulado: 'Envío anulado' };
 
 export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: React.ReactNode; cobranza: boolean; interruptor?: React.ReactNode; verCasos?: boolean }> = ({
   orgId,
@@ -83,6 +84,29 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
       .neq('etapa', 'cerrado')
       .then(({ count, error: e }) => {
         if (vigente) setCasosAbiertos(e ? null : (count ?? 0));
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [orgId]);
+
+  // Último envío a firma de cada cliente. Si se rechazó, venció o se anuló y el cliente sigue pendiente, se avisa en la fila.
+  const [envioFallido, setEnvioFallido] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (!supabase) return;
+    let vigente = true;
+    supabase
+      .from('firma_sobres')
+      .select('crm_cliente_id, estado')
+      .eq('organizacion_id', orgId)
+      .not('crm_cliente_id', 'is', null)
+      .order('creado_en', { ascending: false })
+      .limit(1000)
+      .then(({ data }) => {
+        if (!vigente) return;
+        const ultimo: Record<string, string> = {};
+        for (const x of (data ?? []) as { crm_cliente_id: string; estado: string }[]) if (!(x.crm_cliente_id in ultimo)) ultimo[x.crm_cliente_id] = x.estado;
+        setEnvioFallido(Object.fromEntries(Object.entries(ultimo).filter(([, e]) => e in ENVIO_FALLIDO)));
       });
     return () => {
       vigente = false;
@@ -306,7 +330,7 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
                       <td>
                         <div className="flex items-center gap-2.5">
                           <Etiqueta tono={TONO_FIRMA[f.estado_firma]}>{f.estado_firma}</Etiqueta>
-                          {f.firma_url && f.estado_firma === 'Pendiente' && <BotonCopiar texto={f.firma_url} descripcion={`Copiar el link de firma de ${f.nombre}`} />}
+                          {f.estado_firma === 'Pendiente' && envioFallido[f.id] && <Etiqueta tono="alerta">{ENVIO_FALLIDO[envioFallido[f.id]]}</Etiqueta>}
                         </div>
                       </td>
                       <td className="text-piedra">{f.responsable ?? '·'}</td>

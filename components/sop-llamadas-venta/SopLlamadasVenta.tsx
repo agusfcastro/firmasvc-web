@@ -931,7 +931,7 @@ function FichaCliente({
           <legend>Herramientas y canales</legend>
           <div className={s.grillaCampos}>
             {texto('pasarela', 'Plataforma de cobro', undefined, 'Por ejemplo, Stripe')}
-            {texto('firma', 'Plataforma de firma', undefined, 'Por ejemplo, ZapSign')}
+            {texto('firma', 'Plataforma de firma', undefined, 'Por ejemplo, la firma electrónica de FIRMA')}
             {texto('herramienta', 'Registro de llamadas', undefined, 'Por ejemplo, Fathom')}
             {texto('canal', 'Canal oficial de legales', 'Donde se derivan reclamos y pedidos formales.', 'Por ejemplo, legales@empresa.com')}
           </div>

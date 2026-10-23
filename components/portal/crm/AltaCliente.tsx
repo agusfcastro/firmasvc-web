@@ -42,7 +42,7 @@ function repartir(saldo: number, cantidad: number, primera: string): Cuota[] {
   return Array.from({ length: cantidad }, (_, i) => ({ monto: aTexto(i === cantidad - 1 ? base + resto : base), vencimiento: sumarMeses(primera, i) }));
 }
 
-export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre: string; cobranza: boolean; zapsign?: boolean }> = ({ orgId, esAdmin, orgNombre }) => {
+export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre: string; cobranza: boolean }> = ({ orgId, esAdmin, orgNombre }) => {
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [f, setF] = useState({
     nombre: '', dni: '', email: '', telefono: '', domicilio: '', servicio: '', monto_total: '', modalidad: 'Cuotas' as 'Cuotas' | 'PIF',

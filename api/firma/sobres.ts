@@ -6,7 +6,9 @@
  *
  * POST /api/firma/sobres  { accion, ... }
  *   config      informa si el mail está configurado
- *   crear       { borrador_ruta, original_nombre, titulo, mensaje?, secuencial?, vence_dias?, organizacion_id?, firmantes[] }
+ *   crear       { borrador_ruta, original_nombre, titulo, mensaje?, secuencial?, vence_dias?, organizacion_id?, crm_cliente_id?, firmantes[] }
+ *               Con crm_cliente_id el envío queda atado a ese cliente del CRM de la
+ *               misma empresa: al firmarse todos, el cliente pasa a Firmado.
  *   enlaces     { sobre_id }               enlaces personales para mandar por otro medio
  *   recordar    { firmante_id }            reenvía la invitación
  *   anular      { sobre_id, motivo }
@@ -698,6 +700,17 @@ export async function POST(request: Request): Promise<Response> {
       const firmantes = leerFirmantes(cuerpo.firmantes, secuencial);
       if (typeof firmantes === 'string') return error(firmantes);
 
+      // Cliente del CRM al que se ata el envío, de la misma empresa y sin dar de baja.
+      let crm_cliente_id: string | null = null;
+      if (cuerpo.crm_cliente_id) {
+        crm_cliente_id = String(cuerpo.crm_cliente_id);
+        if (!UUID.test(crm_cliente_id)) return error('Cliente del CRM inválido.');
+        if (!organizacion_id) return error('Un envío propio de FIRMA no se vincula a un cliente del CRM.');
+        const { data: cl } = await sb.from('crm_clientes').select('organizacion_id, estado_firma').eq('id', crm_cliente_id).maybeSingle();
+        if (!cl || cl.organizacion_id !== organizacion_id) return error('Ese cliente no es de la empresa del envío.');
+        if (cl.estado_firma === 'Baja') return error('El cliente está dado de baja.', 409);
+      }
+
       // El PDF lo subió el navegador a su carpeta de borradores. Acá se valida de verdad.
       const { data: blob, error: errBajar } = await sb.storage.from(BUCKET).download(borrador);
       if (errBajar || !blob) return error('No encontramos el PDF subido. Volvé a cargarlo.');
@@ -711,7 +724,7 @@ export async function POST(request: Request): Promise<Response> {
         organizacion_id,
         emisor: q.rol === 'admin' ? 'firma' : 'cliente',
         firmantes,
-        crm_cliente_id: null,
+        crm_cliente_id,
       });
       if (creado instanceof Response) return creado;
       await sb.storage.from(BUCKET).remove([borrador]);

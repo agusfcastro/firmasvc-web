@@ -72,7 +72,6 @@ export const CrmApp: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
   const pedido = ruta.replace(/^\/portal\/crm\/?/, '');
   const orgActual = orgDatos ?? (esAdmin ? orgs.find((o) => o.id === orgId) ?? null : organizacion);
   const cobranza = Boolean(orgDatos?.seguimiento_cobranza);
-  const zapsign = Boolean(orgDatos?.zapsign_conectado);
   const interruptor = esAdmin ? (
     <Interruptor
       activo={cobranza}
@@ -110,13 +109,13 @@ export const CrmApp: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
       {!orgId ? (
         <Encabezado eyebrow="CRM legal" titulo="Sin clientes todavía" bajada="Cuando des de alta una empresa en Administración, su CRM aparece acá." />
       ) : sub === 'nuevo' ? (
-        <AltaCliente orgId={orgId} esAdmin={esAdmin} orgNombre={orgActual?.nombre ?? ''} cobranza={cobranza} zapsign={zapsign} />
+        <AltaCliente orgId={orgId} esAdmin={esAdmin} orgNombre={orgActual?.nombre ?? ''} cobranza={cobranza} />
       ) : sub === 'servicios' ? (
         <Servicios orgId={orgId} orgNombre={orgActual?.nombre ?? ''} esAdmin={esAdmin} puedeGestionar={puedeGestionar} />
       ) : sub === 'casos' ? (
         <Casos orgId={orgId} orgNombre={orgActual?.nombre ?? ''} puedeGestionar={puedeGestionar} selector={selector} cambiarOrg={esAdmin ? setOrgId : undefined} />
       ) : sub ? (
-        <Ficha id={sub} esAdmin={esAdmin} puedeGestionar={puedeGestionar} verCasos={verCasos} orgNombre={orgActual?.nombre ?? ''} cobranza={cobranza} zapsign={zapsign} />
+        <Ficha id={sub} esAdmin={esAdmin} puedeGestionar={puedeGestionar} verCasos={verCasos} orgNombre={orgActual?.nombre ?? ''} cobranza={cobranza} />
       ) : (
         <Listado orgId={orgId} orgNombre={orgActual?.nombre ?? ''} selector={selector} cobranza={cobranza} interruptor={interruptor} verCasos={verCasos} />
       )}

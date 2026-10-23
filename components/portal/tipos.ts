@@ -41,8 +41,6 @@ export interface Organizacion {
   creado_en: string;
   prefijo_crm?: string | null;
   seguimiento_cobranza?: boolean;
-  zapsign_modelo?: string | null;
-  zapsign_conectado?: boolean;
   logo_url?: string | null;
   drive_carpeta_revision?: string | null;
   /** gold, black o eminent. Vacío es un acuerdo a medida, sin límites en el portal. */

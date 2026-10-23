@@ -174,41 +174,13 @@ Cada descarga de un cliente queda en **Registro de accesos**. Formatos admitidos
 | `components/portal/admin/Documentos.tsx` | Carga, reemplazo y visibilidad desde Administración |
 | `components/portal/descargas.ts` | Secciones, formatos y descargas |
 
-## CRM con contratos en ZapSign
+## ZapSign, retirado
 
-**En pausa.** El alta ya no genera el contrato en ZapSign: ahora arma un borrador en Drive (ver *Borradores de contrato con Claude*) y el envío a firmar se hace a mano. La generación en ZapSign sigue disponible desde la ficha para las empresas que lo tengan conectado.
-
-Al dar de alta un cliente en el CRM se generaba su contrato en ZapSign con el modelo del servicio. El link de firma queda en la ficha y en el listado, con un botón para copiarlo. Cuando el cliente firma, ZapSign avisa y el estado pasa a Firmado.
-
-### Puesta en marcha
-
-1. En Supabase corré `supabase/migraciones/0006_crm_zapsign.sql` en **SQL Editor**.
-2. No hacen falta variables nuevas en Vercel. El aviso de firma usa una clave que arma el servidor con `SUPABASE_SERVICE_ROLE_KEY` y la dirección de `PORTAL_URL`. Si algún día cambiás la clave service role, volvé a conectar ZapSign en cada empresa.
-
-### Por empresa
-
-1. En ZapSign, dentro de la organización del cliente, creá el modelo DOCX con las variables que lista **Administración › ZapSign**.
-2. En **Administración › ZapSign** elegí la empresa, pegá el token de la API de esa organización (Configuración › Integración) y apretá **Conectar**. El portal valida el token y registra solo el aviso de firma.
-3. Elegí el modelo por defecto y, si hace falta, uno distinto por servicio.
-
-### Reglas
-
-- Anticipo más cuotas tiene que sumar exacto el monto acordado. Si no cierra, el alta no se guarda.
-- Si el contrato no se pudo generar, cualquier usuario de la empresa lo reintenta desde la ficha. Generar uno nuevo cuando ya hay link lo hace solo FIRMA.
-- ZapSign no le manda mails al cliente. El link lo envía el equipo.
-- El token nunca llega al navegador. Vive en la tabla `zapsign_cuentas`, que solo lee el servidor.
-
-| Archivo | Para qué |
-|---|---|
-| `supabase/migraciones/0006_crm_zapsign.sql` | Columnas del contrato, tokens privados y vista con próxima cuota y 30 días |
-| `api/crm/contrato.ts` | Genera el contrato en ZapSign y guarda el link |
-| `api/zapsign/webhook.ts` | Recibe el aviso de firma y pasa el cliente a Firmado |
-| `api/admin/zapsign.ts` | Conecta y desconecta cada empresa y lista sus modelos |
-| `components/portal/admin/ZapSign.tsx` | Pestaña de Administración con conexión, modelos, servicios y variables |
+Los contratos del CRM se firman con la firma electrónica propia (ver *Contratos del CRM con firma electrónica*). La integración con ZapSign se sacó del portal en octubre de 2026 sin haber llegado a usarse. En la base quedan, vacías y sin uso, la tabla `zapsign_cuentas` y las columnas de la migración 0006.
 
 ## Firma electrónica propia
 
-Sistema de firma propio, sin ZapSign ni otro proveedor. Desde `firmasvc.com/portal/firmas` se sube un PDF, se cargan los firmantes y cada uno firma desde el mail. Al final todos reciben el PDF firmado, con una constancia de firma al final y el código de verificación en el pie de cada hoja.
+Sistema de firma propio, sin proveedores externos. Desde `firmasvc.com/portal/firmas` se sube un PDF, se cargan los firmantes y cada uno firma desde el mail. Al final todos reciben el PDF firmado, con una constancia de firma al final y el código de verificación en el pie de cada hoja.
 
 Lo usan FIRMA, los titulares y los CSM. El titular ve todos los envíos de su empresa. El CSM, los que mandó él. Closer y setter no ven la sección.
 
@@ -216,7 +188,7 @@ Lo usan FIRMA, los titulares y los CSM. El titular ve todos los envíos de su em
 
 1. Quien envía sube el PDF, le pone título, plazo (3 a 90 días) y firmantes. Puede elegir que firmen en orden. FIRMA puede mandar a nombre propio o de un cliente.
 2. El servidor valida el PDF, calcula su SHA-256 y lo guarda en el bucket privado `firmas`. A partir de ahí no se toca.
-3. Cada firmante recibe un mail con su enlace personal (`/firmar/...`). El enlace es un sello HMAC y no se guarda en la base. Todo pasa en la web, como en ZapSign: el documento se ve hoja por hoja dentro de la página (pdf.js), sin abrirlo en el visor del navegador ni descargarlo, y se firma desde una barra fija abajo. Solo cuando firmaron todos aparece el botón para guardar una copia del PDF firmado.
+3. Cada firmante recibe un mail con su enlace personal (`/firmar/...`). El enlace es un sello HMAC y no se guarda en la base. Todo pasa en la web: el documento se ve hoja por hoja dentro de la página (pdf.js), sin abrirlo en el visor del navegador ni descargarlo, y se firma desde una barra fija abajo. Solo cuando firmaron todos aparece el botón para guardar una copia del PDF firmado.
 4. Para firmar pide un código de 6 números que le llega al mail. Vence en 10 minutos, admite 5 intentos y como mucho 8 envíos. Validado, tiene media hora para firmar.
 5. Firma dibujando o escribiendo su nombre, completa su documento si se lo piden y acepta el texto de consentimiento. Se guardan la imagen y su hash, la IP, el dispositivo y la hora.
 6. Cuando firman todos, el servidor arma el PDF final: el original intacto, el pie con el código en cada hoja y la constancia con los datos del envío, cada firmante con su firma y el registro completo de eventos. Calcula su SHA-256 y lo manda adjunto a todos.
@@ -544,6 +516,10 @@ El CRM y la firma electrónica funcionan como un solo circuito. Reemplaza a los 
 
 Lo puede usar cualquier rol con acceso al CRM. Mientras hay un envío en curso no se puede generar otro; si se anula, se rechaza o vence, se genera y se manda de nuevo.
 
+**Contratos que no salen del modelo.** En **Firma electrónica › Nuevo envío** se puede elegir un **Cliente del CRM** de la empresa (opcional). El envío queda atado a ese cliente: lo ve quien ve al cliente, aparece en su ficha en **Otros documentos vinculados** y, cuando firman todos, el cliente pasa a Firmado con el enlace al documento. Al elegir el cliente se propone como primer firmante.
+
+**Rechazos y vencimientos.** Si el último envío de un cliente pendiente se rechaza, vence o se anula, la lista del CRM lo marca en rojo (Firma rechazada, Envío vencido o Envío anulado) y la ficha muestra en rojo cómo terminó, con el motivo del rechazo, para volver a mandarlo. Quien mandó el envío además recibe el mail de rechazo, como antes.
+
 ### Puesta en marcha
 
 1. En Supabase corré `0014_crm_domicilio.sql` y `0015_crm_firma_unida.sql`.
@@ -555,7 +531,7 @@ Lo puede usar cualquier rol con acceso al CRM. Mientras hay un envío en curso n
 | Archivo | Para qué |
 |---|---|
 | `supabase/migraciones/0015_crm_firma_unida.sql` | Modelo por servicio desde la biblioteca, firmante de la empresa, vista previa y envío atado al cliente |
-| `api/_lib/variables.ts` | Lista de variables y cómo se calcula cada una. La usan el servidor, ZapSign y el portal |
+| `api/_lib/variables.ts` | Lista de variables y cómo se calcula cada una. La usan el servidor y el portal |
 | `api/_lib/word.ts` | Completa las variables del Word y lo pasa a PDF con Drive |
 | `api/firma/sobres.ts` | Acciones `crm_vista`, `crm_pdf` y `crm_enviar` |
 | `api/firma/firmar.ts` | Al completarse la firma, pasa el cliente a Firmado |

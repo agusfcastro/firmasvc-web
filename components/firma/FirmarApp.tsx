@@ -7,7 +7,7 @@ import { Visor } from './Visor';
 
 /**
  * Página pública donde cada firmante lee y firma. /firmar/<enlace personal>
- * Todo pasa en la web, como en ZapSign: el PDF se muestra hoja por hoja en
+ * Todo pasa en la web: el PDF se muestra hoja por hoja en
  * la página y nunca se abre ni se descarga mientras está pendiente.
  *   1. Lee el documento
  *   2. Confirma que es él con un código que le llega al mail
