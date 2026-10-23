@@ -13,6 +13,10 @@
  *   desactivar  { usuario_id }
  *   enviar_acceso { usuario_id }   reenvía el enlace para definir contraseña
  *   enlace_acceso { usuario_id }   devuelve { enlace } sin mandar mail
+ *   borrar_empresa { organizacion_id, confirmacion }
+ *               Borra una empresa de prueba con lo suyo, sus archivos y las cuentas
+ *               de su gente (migración 0023). Tiene que estar desactivada, sin envíos
+ *               a firma electrónica, y confirmacion tiene que ser su nombre exacto.
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { enlaceDeAcceso, mailDeAcceso, mailDisponible } from '../_lib/mail.js';
@@ -155,6 +159,8 @@ export async function POST(request: Request): Promise<Response> {
     return json({ ok: true, usuario_id: invitado.user.id, enlace, motivo });
   }
 
+  if (accion === 'borrar_empresa') return borrarEmpresa(sb, actor, cuerpo);
+
   // Las demás acciones operan sobre un usuario existente.
   const usuario_id = String(cuerpo.usuario_id || '');
   if (!/^[0-9a-f-]{36}$/i.test(usuario_id)) return error('Usuario inválido.');
@@ -230,6 +236,49 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   return error('Acción desconocida.');
+}
+
+/** Ruta dentro del bucket logos a partir de la URL pública del logo. */
+function rutaLogo(url: string | null): string | null {
+  const m = url ? /\/storage\/v1\/object\/public\/logos\/(.+)$/.exec(url.split('?')[0]) : null;
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+async function borrarEmpresa(sb: SupabaseClient, actor: string, cuerpo: Record<string, unknown>): Promise<Response> {
+  const orgId = String(cuerpo.organizacion_id || '');
+  if (!/^[0-9a-f-]{36}$/i.test(orgId)) return error('Empresa inválida.');
+  const { data: org } = await sb.from('organizaciones').select('id, nombre, activa').eq('id', orgId).maybeSingle();
+  if (!org) return error('No existe esa empresa.', 404);
+  if (org.activa) return error('Desactivá la empresa antes de borrarla.', 409);
+  if (String(cuerpo.confirmacion || '').trim() !== org.nombre) return error('Escribí el nombre exacto de la empresa para confirmar.');
+
+  const { data, error: errBorrar } = await sb.rpc('borrar_empresa', { org: orgId });
+  if (errBorrar) {
+    if (/Could not find the function|does not exist/i.test(errBorrar.message)) return error('Falta correr la migración 0023_borrar_empresa.sql en Supabase.', 500);
+    return error(errBorrar.message, 409);
+  }
+  const res = data as { nombre: string; usuarios: string[]; logo_url: string | null; documentos: string[]; asuntos: string[]; contratos: string[] };
+
+  // Los datos ya no están. Lo que sigue limpia archivos y cuentas: lo que falle queda anotado en el registro.
+  const pendientes: string[] = [];
+  const limpiar = async (bucket: string, rutas: (string | null)[]) => {
+    const lista = rutas.filter((x): x is string => Boolean(x));
+    for (let i = 0; i < lista.length; i += 100) {
+      const { error: e } = await sb.storage.from(bucket).remove(lista.slice(i, i + 100));
+      if (e) pendientes.push(`${bucket}: ${e.message}`);
+    }
+  };
+  await limpiar('documentos', res.documentos ?? []);
+  await limpiar('asuntos', res.asuntos ?? []);
+  await limpiar('firmas', res.contratos ?? []);
+  await limpiar('logos', [rutaLogo(res.logo_url)]);
+  for (const id of res.usuarios ?? []) {
+    const { error: e } = await sb.auth.admin.deleteUser(id);
+    if (e) pendientes.push(`cuenta ${id}: ${e.message}`);
+  }
+
+  await registrar(sb, actor, null, 'empresa_borrada', { organizacion_id: orgId, nombre: res.nombre, usuarios: (res.usuarios ?? []).length, pendientes });
+  return json({ ok: true, usuarios: (res.usuarios ?? []).length, pendientes });
 }
 
 export function GET(): Response {

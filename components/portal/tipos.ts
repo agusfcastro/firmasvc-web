@@ -45,6 +45,8 @@ export interface Organizacion {
   zapsign_conectado?: boolean;
   logo_url?: string | null;
   drive_carpeta_revision?: string | null;
+  /** gold, black o eminent. Vacío es un acuerdo a medida, sin límites en el portal. */
+  plan?: 'gold' | 'black' | 'eminent' | null;
 }
 
 export interface Perfil {

@@ -5,14 +5,30 @@ import { supabase } from './supabase';
 import { navegar } from './navegacion';
 import { useVistaPrevia } from './vistaPrevia';
 import { Aviso, Campo, Encabezado, Enlace, Etiqueta, Marco, Pestanas, claseInput } from './ui';
-import type { Organizacion, Perfil } from './tipos';
+import { permisosDe, type Organizacion, type Perfil } from './tipos';
+import {
+  AYUDA_SEMAFORO,
+  CANALES_SUGERIDOS,
+  CAUSAS,
+  ROTULO_CAUSA,
+  ROTULO_ETAPA,
+  ROTULO_RESULTADO,
+  ROTULO_SEMAFORO,
+  TONO_ETAPA,
+  type Caso,
+  type Causa,
+} from './crm/reglasCasos';
+import { dinero, hoyISO } from './crm/tipos';
 import {
   BUCKET_ASUNTOS,
   ESTADOS,
   ESTADO_ASUNTO,
   FORMATOS_ASUNTO,
   MAX_BYTES_ASUNTO,
+  MOTIVOS,
+  MOTIVO_CONFLICTO,
   TIPO_ASUNTO,
+  llevaCaso,
   avisarPorMail,
   fechaAsunto,
   fechaHoraAsunto,
@@ -22,15 +38,20 @@ import {
   type Asunto,
   type EstadoAsunto,
   type Mensaje,
+  type MotivoConflicto,
   type Novedad,
   type TipoAsunto,
 } from './asuntos';
 
 /**
  * Estado de asuntos en /portal/asuntos y /portal/asuntos/:id.
- * El cliente (titular y CSM) ve sus trámites con FIRMA. Cada asunto tiene
- * un chat en vivo, una bitácora con notas internas o visibles y los
- * documentos que suben las dos partes. Los avisos salen por mail.
+ * Una sola gestión para los trámites con FIRMA y los conflictos de la
+ * empresa. Los crean FIRMA o el cliente (titular y CSM) y pueden vincularse
+ * a un cliente del CRM. Un reclamo de reembolso o contracargo lleva además
+ * su caso de conflicto, con los indicadores del protocolo (CRM › Casos de
+ * conflicto). Cada asunto tiene un chat en vivo, una bitácora con notas
+ * internas o visibles y los documentos que suben las dos partes. Los avisos
+ * salen por mail.
  */
 
 const claseTextarea = `${claseInput.replace('h-12', 'min-h-[110px]')} py-3 leading-[1.5]`;
@@ -51,11 +72,25 @@ interface Borrador {
   organizacion_id: string;
   titulo: string;
   tipo: TipoAsunto;
+  motivo: MotivoConflicto | '';
+  cliente_id: string;
   estado: EstadoAsunto;
   proximo_paso: string;
   vence_en: string;
+  /** FIRMA la deja como primera novedad. El cliente, como primer mensaje del chat. */
   novedad: string;
   avisar: boolean;
+  // Caso de conflicto, para reembolso o contracargo.
+  causa: Causa | '';
+  canal: string;
+  monto_reclamado: string;
+  contracargo: boolean;
+}
+
+interface ClienteCrm {
+  id: string;
+  nombre: string;
+  codigo: string | null;
 }
 
 const Lista: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = ({ perfil, organizacion }) => {
@@ -70,6 +105,9 @@ const Lista: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
+  const [clientesCrm, setClientesCrm] = useState<ClienteCrm[]>([]);
+  const [nombresCliente, setNombresCliente] = useState<Record<string, string>>({});
+  const puedeCrear = !vista;
 
   const cargar = useCallback(async () => {
     if (!supabase) return;
@@ -77,8 +115,32 @@ const Lista: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
     if (!esFirma && orgPropia) q = q.eq('organizacion_id', orgPropia);
     const { data, error: e } = await q;
     if (e) setError(esFirma ? `${e.message}. Revisá que la migración 0017_asuntos.sql esté corrida en Supabase.` : 'No pudimos cargar tus asuntos. Probá recargar la página.');
-    setAsuntos((data as Asunto[]) ?? []);
+    const lista = (data as Asunto[]) ?? [];
+    setAsuntos(lista);
+    const ids = [...new Set(lista.map((a) => a.cliente_id).filter(Boolean) as string[])];
+    if (ids.length) {
+      const { data: cl } = await supabase.from('crm_clientes').select('id, nombre').in('id', ids);
+      setNombresCliente(Object.fromEntries(((cl as { id: string; nombre: string }[]) ?? []).map((c) => [c.id, c.nombre])));
+    }
   }, [esFirma, orgPropia]);
+
+  // Clientes del CRM de la empresa del formulario, para vincular el asunto.
+  const orgDelBorrador = borrador ? (esFirma ? borrador.organizacion_id : orgPropia) : null;
+  useEffect(() => {
+    if (!supabase || !orgDelBorrador) return setClientesCrm([]);
+    let vigente = true;
+    void supabase
+      .from('crm_clientes')
+      .select('id, nombre, codigo')
+      .eq('organizacion_id', orgDelBorrador)
+      .order('nombre')
+      .then(({ data }) => {
+        if (vigente) setClientesCrm((data as ClienteCrm[]) ?? []);
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [orgDelBorrador]);
 
   useEffect(() => {
     void cargar();
@@ -102,15 +164,40 @@ const Lista: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
   function nuevo() {
     setOk(null);
     setError(null);
-    setBorrador({ organizacion_id: filtro || orgs[0]?.id || '', titulo: '', tipo: 'contrato', estado: 'en_curso', proximo_paso: '', vence_en: '', novedad: '', avisar: true });
+    setBorrador({
+      organizacion_id: esFirma ? filtro || orgs[0]?.id || '' : orgPropia ?? '',
+      titulo: '',
+      tipo: esFirma ? 'contrato' : 'conflicto',
+      motivo: '',
+      cliente_id: '',
+      estado: 'en_curso',
+      proximo_paso: '',
+      vence_en: '',
+      novedad: '',
+      avisar: true,
+      causa: '',
+      canal: '',
+      monto_reclamado: '',
+      contracargo: false,
+    });
   }
+
+  const cambiar = (cambios: Partial<Borrador>) => setBorrador((b) => (b ? { ...b, ...cambios } : b));
 
   async function crear(e: React.FormEvent) {
     e.preventDefault();
     if (!supabase || !borrador) return;
     const titulo = borrador.titulo.trim();
+    const motivo = borrador.tipo === 'conflicto' ? borrador.motivo || null : null;
+    const conCaso = llevaCaso(motivo);
+    const monto = borrador.monto_reclamado.trim() ? Number(borrador.monto_reclamado.replace(',', '.')) : null;
     if (!borrador.organizacion_id) return setError('Elegí la empresa.');
     if (titulo.length < 3) return setError('El título tiene que tener al menos 3 caracteres.');
+    if (borrador.tipo === 'conflicto' && !motivo) return setError('Elegí el motivo del conflicto.');
+    if (conCaso && !borrador.cliente_id) return setError('Un reembolso o contracargo va vinculado al cliente que lo pide. Elegilo de la lista.');
+    if (conCaso && !borrador.causa) return setError('Elegí la causa del reclamo.');
+    if (monto !== null && (!Number.isFinite(monto) || monto < 0)) return setError('El monto reclamado no es válido.');
+    if (!esFirma && borrador.novedad.trim().length < 2) return setError('Contanos qué pasó, así FIRMA tiene el contexto.');
     setGuardando(true);
     setError(null);
     const { data, error: e1 } = await supabase
@@ -119,10 +206,13 @@ const Lista: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
         organizacion_id: borrador.organizacion_id,
         titulo,
         tipo: borrador.tipo,
-        estado: borrador.estado,
-        proximo_paso: borrador.proximo_paso.trim() || null,
-        vence_en: borrador.vence_en || null,
+        estado: esFirma ? borrador.estado : 'en_curso',
+        proximo_paso: esFirma ? borrador.proximo_paso.trim() || null : null,
+        vence_en: esFirma ? borrador.vence_en || null : null,
         creado_por: perfil.id,
+        // Solo si hay algo: así crear un asunto común sigue andando sin la migración 0024.
+        ...(motivo ? { motivo } : {}),
+        ...(borrador.cliente_id ? { cliente_id: borrador.cliente_id } : {}),
       })
       .select('id')
       .single();
@@ -130,19 +220,41 @@ const Lista: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
       setGuardando(false);
       return setError(e1?.message ?? 'No se pudo crear el asunto.');
     }
-    let nota = 'Asunto creado.';
+    const avisos: string[] = [];
+    if (conCaso) {
+      const { error: e3 } = await supabase.from('crm_casos').insert({
+        asunto_id: data.id,
+        cliente_id: borrador.cliente_id,
+        abierto_en: hoyISO(),
+        causa: borrador.causa,
+        canal: borrador.canal.trim() || null,
+        monto_reclamado: monto,
+        contracargo: borrador.contracargo,
+        contracargo_resultado: borrador.contracargo ? 'pendiente' : null,
+      });
+      if (e3) avisos.push(`El caso de conflicto no se pudo abrir (${e3.message}). Abrilo desde CRM › Casos de conflicto.`);
+    }
     const texto = borrador.novedad.trim();
-    if (texto) {
+    let nota = 'Asunto creado.';
+    if (texto && esFirma) {
       const { data: nov, error: e2 } = await supabase.from('asunto_novedades').insert({ asunto_id: data.id, texto }).select('id').single();
       if (e2 || !nov) nota = 'Asunto creado, pero la primera novedad no se pudo guardar.';
       else if (borrador.avisar) {
         const r = await avisarPorMail('novedad', nov.id);
         nota = r.ok ? `Asunto creado. Avisamos por mail a ${r.avisados} ${r.avisados === 1 ? 'persona' : 'personas'}.` : `Asunto creado, pero el aviso por mail no salió. ${r.error ?? ''}`;
       }
+    } else if (texto) {
+      // Lo que cuenta el cliente abre el chat del asunto y le llega a FIRMA por mail.
+      const { data: msj, error: e2 } = await supabase.from('asunto_mensajes').insert({ asunto_id: data.id, texto }).select('id').single();
+      if (e2 || !msj) nota = 'Asunto creado, pero tu mensaje no se pudo guardar. Escribilo en el chat del asunto.';
+      else {
+        const r = await avisarPorMail('mensaje', msj.id);
+        nota = r.ok ? 'Asunto creado. Le avisamos a FIRMA por mail.' : 'Asunto creado. FIRMA lo ve en el portal.';
+      }
     }
     setGuardando(false);
     setBorrador(null);
-    setOk(nota);
+    setOk([nota, ...avisos].join(' '));
     void cargar();
   }
 
@@ -163,11 +275,11 @@ const Lista: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
         }
         bajada={
           esFirma
-            ? 'Cada trámite que llevás para una empresa. Las novedades que sumás le llegan por mail al titular y al CSM.'
-            : 'Cada trámite que llevamos para tu empresa, con su estado, el próximo paso y las novedades. Cuando algo cambia, te avisamos por mail.'
+            ? 'Trámites y conflictos de cada empresa. Las novedades que sumás le llegan por mail al titular y al CSM.'
+            : 'Trámites y conflictos de tu empresa, con su estado, el próximo paso y las novedades. Cuando algo cambia, te avisamos por mail.'
         }
         acciones={
-          esFirma && !borrador ? (
+          puedeCrear && !borrador ? (
             <Button onClick={nuevo}>
               <Plus size={16} aria-hidden="true" /> Nuevo asunto
             </Button>
@@ -183,17 +295,19 @@ const Lista: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
           <form onSubmit={crear} className="bg-white border border-[rgba(27,31,27,0.15)] p-6 desk:p-8 flex flex-col gap-5 max-w-[820px]">
             <p className="h3">Nuevo asunto</p>
             <div className="grid gap-5 tab:grid-cols-2">
-              <Campo etiqueta="Empresa">
-                <select className={claseInput} value={borrador.organizacion_id} onChange={(e) => setBorrador({ ...borrador, organizacion_id: e.target.value })}>
-                  {orgs.map((o) => (
-                    <option key={o.id} value={o.id}>
-                      {o.nombre}
-                    </option>
-                  ))}
-                </select>
-              </Campo>
+              {esFirma && (
+                <Campo etiqueta="Empresa">
+                  <select className={claseInput} value={borrador.organizacion_id} onChange={(e) => cambiar({ organizacion_id: e.target.value, cliente_id: '' })}>
+                    {orgs.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </Campo>
+              )}
               <Campo etiqueta="Tipo">
-                <select className={claseInput} value={borrador.tipo} onChange={(e) => setBorrador({ ...borrador, tipo: e.target.value as TipoAsunto })}>
+                <select className={claseInput} value={borrador.tipo} onChange={(e) => cambiar({ tipo: e.target.value as TipoAsunto, motivo: '' })}>
                   {Object.entries(TIPO_ASUNTO).map(([k, v]) => (
                     <option key={k} value={k}>
                       {v}
@@ -201,33 +315,107 @@ const Lista: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
                   ))}
                 </select>
               </Campo>
-            </div>
-            <Campo etiqueta="Título" ayuda="Lo ve el cliente. Por ejemplo, Registro de la marca ante el INPI.">
-              <input required maxLength={140} className={claseInput} value={borrador.titulo} onChange={(e) => setBorrador({ ...borrador, titulo: e.target.value })} />
-            </Campo>
-            <div className="grid gap-5 tab:grid-cols-2">
-              <Campo etiqueta="Estado">
-                <select className={claseInput} value={borrador.estado} onChange={(e) => setBorrador({ ...borrador, estado: e.target.value as EstadoAsunto })}>
-                  {ESTADOS.map((e) => (
-                    <option key={e} value={e}>
-                      {ESTADO_ASUNTO[e].firma}
+              {borrador.tipo === 'conflicto' && (
+                <Campo etiqueta="Motivo" ayuda={borrador.motivo ? MOTIVO_CONFLICTO[borrador.motivo].ayuda : undefined}>
+                  <select required className={claseInput} value={borrador.motivo} onChange={(e) => cambiar({ motivo: e.target.value as MotivoConflicto | '' })}>
+                    <option value="">Elegí</option>
+                    {MOTIVOS.map((m) => (
+                      <option key={m} value={m}>
+                        {MOTIVO_CONFLICTO[m].titulo}
+                      </option>
+                    ))}
+                  </select>
+                </Campo>
+              )}
+              <Campo
+                etiqueta={llevaCaso(borrador.motivo || null) ? 'Cliente' : 'Cliente (opcional)'}
+                ayuda={clientesCrm.length ? 'Si el asunto es sobre un cliente de la empresa, vinculalo: aparece en su ficha del CRM.' : 'La empresa no tiene clientes cargados en el CRM.'}
+              >
+                <select
+                  required={llevaCaso(borrador.motivo || null)}
+                  className={claseInput}
+                  value={borrador.cliente_id}
+                  onChange={(e) => cambiar({ cliente_id: e.target.value })}
+                  disabled={!clientesCrm.length}
+                >
+                  <option value="">{llevaCaso(borrador.motivo || null) ? 'Elegí' : 'Sin cliente'}</option>
+                  {clientesCrm.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre}
+                      {c.codigo ? ` · ${c.codigo}` : ''}
                     </option>
                   ))}
                 </select>
               </Campo>
-              <Campo etiqueta="Vence" ayuda="Opcional. Un plazo que el cliente tenga que tener presente.">
-                <input type="date" className={claseInput} value={borrador.vence_en} onChange={(e) => setBorrador({ ...borrador, vence_en: e.target.value })} />
-              </Campo>
             </div>
-            <Campo etiqueta="Próximo paso" ayuda="Opcional. Qué sigue y quién lo hace.">
-              <input maxLength={300} className={claseInput} value={borrador.proximo_paso} onChange={(e) => setBorrador({ ...borrador, proximo_paso: e.target.value })} />
+            <Campo etiqueta="Título" ayuda={esFirma ? 'Lo ve el cliente. Por ejemplo, Registro de la marca ante el INPI.' : 'Una frase corta. Por ejemplo, Reclamo de Juan Pérez por el programa de 6 meses.'}>
+              <input required maxLength={140} className={claseInput} value={borrador.titulo} onChange={(e) => cambiar({ titulo: e.target.value })} />
             </Campo>
-            <Campo etiqueta="Primera novedad" ayuda="Opcional. Queda en el historial del asunto.">
-              <textarea maxLength={4000} className={claseTextarea} value={borrador.novedad} onChange={(e) => setBorrador({ ...borrador, novedad: e.target.value })} />
+
+            {llevaCaso(borrador.motivo || null) && (
+              <fieldset className="flex flex-col gap-5 p-5 bg-marfil-oscuro">
+                <legend className="eyebrow text-piedra px-1">Caso de conflicto</legend>
+                <p className="text-sm text-piedra -mt-2">Con esto se abre su caso y cuenta en los indicadores del protocolo. Etapa, semáforo y decisión se siguen desde el asunto.</p>
+                <div className="grid gap-5 tab:grid-cols-2">
+                  <Campo etiqueta="Causa">
+                    <select required className={claseInput} value={borrador.causa} onChange={(e) => cambiar({ causa: e.target.value as Causa | '' })}>
+                      <option value="">Elegí</option>
+                      {CAUSAS.map((k) => (
+                        <option key={k} value={k}>
+                          {ROTULO_CAUSA[k]}
+                        </option>
+                      ))}
+                    </select>
+                  </Campo>
+                  <Campo etiqueta="Canal" ayuda="Por dónde llegó el reclamo.">
+                    <input list="canales-asunto" maxLength={80} className={claseInput} value={borrador.canal} onChange={(e) => cambiar({ canal: e.target.value })} />
+                    <datalist id="canales-asunto">
+                      {CANALES_SUGERIDOS.map((c) => (
+                        <option key={c} value={c} />
+                      ))}
+                    </datalist>
+                  </Campo>
+                  <Campo etiqueta="Monto reclamado" ayuda="Opcional. En la moneda del cliente.">
+                    <input inputMode="decimal" className={claseInput} value={borrador.monto_reclamado} onChange={(e) => cambiar({ monto_reclamado: e.target.value })} />
+                  </Campo>
+                  <label className="flex items-center gap-3 text-[15px] cursor-pointer self-end h-12">
+                    <input type="checkbox" className="w-4 h-4 accent-[#173A2F]" checked={borrador.contracargo} onChange={(e) => cambiar({ contracargo: e.target.checked })} />
+                    Hubo contracargo con la tarjeta
+                  </label>
+                </div>
+              </fieldset>
+            )}
+
+            {esFirma && (
+              <>
+                <div className="grid gap-5 tab:grid-cols-2">
+                  <Campo etiqueta="Estado">
+                    <select className={claseInput} value={borrador.estado} onChange={(e) => cambiar({ estado: e.target.value as EstadoAsunto })}>
+                      {ESTADOS.map((e) => (
+                        <option key={e} value={e}>
+                          {ESTADO_ASUNTO[e].firma}
+                        </option>
+                      ))}
+                    </select>
+                  </Campo>
+                  <Campo etiqueta="Vence" ayuda="Opcional. Un plazo que el cliente tenga que tener presente.">
+                    <input type="date" className={claseInput} value={borrador.vence_en} onChange={(e) => cambiar({ vence_en: e.target.value })} />
+                  </Campo>
+                </div>
+                <Campo etiqueta="Próximo paso" ayuda="Opcional. Qué sigue y quién lo hace.">
+                  <input maxLength={300} className={claseInput} value={borrador.proximo_paso} onChange={(e) => cambiar({ proximo_paso: e.target.value })} />
+                </Campo>
+              </>
+            )}
+            <Campo
+              etiqueta={esFirma ? 'Primera novedad' : 'Qué pasó'}
+              ayuda={esFirma ? 'Opcional. Queda en el historial del asunto.' : 'Queda como primer mensaje del chat y le avisamos a FIRMA por mail.'}
+            >
+              <textarea required={!esFirma} maxLength={4000} className={claseTextarea} value={borrador.novedad} onChange={(e) => cambiar({ novedad: e.target.value })} />
             </Campo>
-            {borrador.novedad.trim() && (
+            {esFirma && borrador.novedad.trim() && (
               <label className="flex items-center gap-3 text-[15px] cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 accent-[#173A2F]" checked={borrador.avisar} onChange={(e) => setBorrador({ ...borrador, avisar: e.target.checked })} />
+                <input type="checkbox" className="w-4 h-4 accent-[#173A2F]" checked={borrador.avisar} onChange={(e) => cambiar({ avisar: e.target.checked })} />
                 Avisar por mail al titular y al CSM de la empresa
               </label>
             )}
@@ -272,17 +460,17 @@ const Lista: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
             <p className="text-[15px] leading-[1.6] text-piedra">
               {esFirma
                 ? 'Creá el primero con Nuevo asunto. El cliente lo ve en esta sección y recibe las novedades por mail.'
-                : 'Cuando FIRMA esté llevando un trámite para tu empresa, lo vas a ver acá con su estado y sus novedades.'}
+                : 'Acá vas a ver los trámites que FIRMA lleva para tu empresa. Si tenés un conflicto con un cliente o con tu equipo, abrilo con Nuevo asunto.'}
             </p>
           </div>
         ) : (
           <>
-            <ListaGrupo titulo="En curso" asuntos={abiertos} esFirma={esFirma} empresa={esFirma ? empresa : undefined} />
+            <ListaGrupo titulo="En curso" asuntos={abiertos} esFirma={esFirma} empresa={esFirma ? empresa : undefined} clientes={nombresCliente} />
             {cerrados.length > 0 && (
               <details className="group">
                 <summary className="eyebrow text-piedra cursor-pointer select-none">Finalizados ({cerrados.length})</summary>
                 <div className="pt-5">
-                  <ListaGrupo asuntos={cerrados} esFirma={esFirma} empresa={esFirma ? empresa : undefined} />
+                  <ListaGrupo asuntos={cerrados} esFirma={esFirma} empresa={esFirma ? empresa : undefined} clientes={nombresCliente} />
                 </div>
               </details>
             )}
@@ -293,7 +481,13 @@ const Lista: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
   );
 };
 
-const ListaGrupo: React.FC<{ titulo?: string; asuntos: Asunto[]; esFirma: boolean; empresa?: (id: string) => string }> = ({ titulo, asuntos, esFirma, empresa }) => (
+const ListaGrupo: React.FC<{ titulo?: string; asuntos: Asunto[]; esFirma: boolean; empresa?: (id: string) => string; clientes: Record<string, string> }> = ({
+  titulo,
+  asuntos,
+  esFirma,
+  empresa,
+  clientes,
+}) => (
   <section className="flex flex-col gap-4">
     {titulo && <h2 className="eyebrow text-piedra">{titulo} ({asuntos.length})</h2>}
     {asuntos.length === 0 ? (
@@ -307,8 +501,9 @@ const ListaGrupo: React.FC<{ titulo?: string; asuntos: Asunto[]; esFirma: boolea
                 <div className="flex flex-wrap items-center gap-3">
                   {a.codigo && <span className="font-mono text-[12px] font-medium text-bosque bg-[#E4E9E3] px-2 py-0.5">{a.codigo}</span>}
                   <span className="eyebrow text-[11px] text-piedra">
-                    {TIPO_ASUNTO[a.tipo]}
+                    {a.motivo ? MOTIVO_CONFLICTO[a.motivo].titulo : TIPO_ASUNTO[a.tipo]}
                     {empresa ? ` · ${empresa(a.organizacion_id)}` : ''}
+                    {a.cliente_id && clientes[a.cliente_id] ? ` · ${clientes[a.cliente_id]}` : ''}
                   </span>
                   <Etiqueta tono={ESTADO_ASUNTO[a.estado].tono}>{rotuloEstado(a.estado, esFirma)}</Etiqueta>
                 </div>
@@ -362,7 +557,10 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
   const [archivos, setArchivos] = useState<Archivo[]>([]);
   const [autores, setAutores] = useState<Record<string, Autor>>({});
   const [empresa, setEmpresa] = useState('');
+  const [cliente, setCliente] = useState<{ id: string; nombre: string; codigo: string | null; moneda: string } | null>(null);
+  const [caso, setCaso] = useState<Caso | null>(null);
   const [otroPresente, setOtroPresente] = useState(false);
+  const veCrm = permisosDe(perfil.rol).crm;
   const [edicion, setEdicion] = useState<{ titulo: string; proximo_paso: string; vence_en: string } | null>(null);
   const [ocupado, setOcupado] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -394,8 +592,16 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
     setArchivos(arc);
     void conocerAutores([...nov.map((x) => x.autor_id), ...msj.map((x) => x.autor_id), ...arc.map((x) => x.subido_por)]);
     if (a) {
-      const { data: o } = await supabase.from('organizaciones').select('nombre').eq('id', (a as Asunto).organizacion_id).maybeSingle();
+      const asu = a as Asunto;
+      const [{ data: o }, { data: cl }, { data: k }] = await Promise.all([
+        supabase.from('organizaciones').select('nombre').eq('id', asu.organizacion_id).maybeSingle(),
+        asu.cliente_id ? supabase.from('crm_clientes').select('id, nombre, codigo, moneda').eq('id', asu.cliente_id).maybeSingle() : Promise.resolve({ data: null }),
+        // Sin la migración 0024 la columna no existe y la consulta falla: queda sin caso.
+        supabase.from('crm_casos').select('*').eq('asunto_id', id).maybeSingle(),
+      ]);
       setEmpresa((o?.nombre as string | undefined) ?? '');
+      setCliente((cl as { id: string; nombre: string; codigo: string | null; moneda: string } | null) ?? null);
+      setCaso((k as Caso | null) ?? null);
     }
   }, [id, conocerAutores]);
 
@@ -500,7 +706,7 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
           <span className="inline-flex flex-wrap items-center gap-3">
             <Etiqueta tono={ESTADO_ASUNTO[asunto.estado].tono}>{rotuloEstado(asunto.estado, esFirma)}</Etiqueta>
             {asunto.codigo && <span className="font-mono text-[13px] font-medium text-bosque bg-[#E4E9E3] px-2 py-0.5">{asunto.codigo}</span>}
-            <span className="text-[15px]">{TIPO_ASUNTO[asunto.tipo]}</span>
+            <span className="text-[15px]">{asunto.motivo ? `${TIPO_ASUNTO[asunto.tipo]} · ${MOTIVO_CONFLICTO[asunto.motivo].titulo}` : TIPO_ASUNTO[asunto.tipo]}</span>
           </span>
         }
       />
@@ -574,6 +780,21 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
                     <dd>{fechaVence(asunto.vence_en)}</dd>
                   </div>
                 )}
+                {cliente && (
+                  <div>
+                    <dt className="text-[11px] font-medium uppercase tracking-[0.16em] text-piedra mb-1">Cliente</dt>
+                    <dd>
+                      {veCrm && !vista ? (
+                        <Enlace a={`/portal/crm/${cliente.id}`} className="underline underline-offset-4 hover:text-bosque">
+                          {cliente.nombre}
+                        </Enlace>
+                      ) : (
+                        cliente.nombre
+                      )}
+                      {cliente.codigo ? <span className="text-piedra"> · {cliente.codigo}</span> : null}
+                    </dd>
+                  </div>
+                )}
                 <div>
                   <dt className="text-[11px] font-medium uppercase tracking-[0.16em] text-piedra mb-1">Abierto</dt>
                   <dd>{fechaAsunto(asunto.creado_en)}</dd>
@@ -598,11 +819,55 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
               )}
             </>
           )}
+          {caso && <BloqueCaso caso={caso} moneda={cliente?.moneda ?? 'USD'} puedeSeguir={veCrm} />}
         </aside>
       </div>
     </Marco>
   );
 };
+
+/* ------------------------------------------------------------------ */
+/* Caso de conflicto del asunto                                         */
+/* ------------------------------------------------------------------ */
+const BloqueCaso: React.FC<{ caso: Caso; moneda: string; puedeSeguir: boolean }> = ({ caso, moneda, puedeSeguir }) => (
+  <section className="flex flex-col gap-4 pt-5" style={{ borderTop: '1px solid rgba(27,31,27,0.15)' }}>
+    <p className="eyebrow text-piedra">Caso de conflicto</p>
+    <div className="flex flex-wrap gap-2">
+      <Etiqueta tono={TONO_ETAPA[caso.etapa]}>{ROTULO_ETAPA[caso.etapa]}</Etiqueta>
+      <Etiqueta tono={caso.semaforo === 'rojo' ? 'alerta' : caso.semaforo === 'ambar' ? 'tinta' : 'bosque'}>Semáforo {ROTULO_SEMAFORO[caso.semaforo].toLowerCase()}</Etiqueta>
+    </div>
+    {/* Lo que indica el protocolo de conflictos para el color del semáforo. */}
+    <p className="text-[14px] leading-[1.5]">{AYUDA_SEMAFORO[caso.semaforo]}</p>
+    <dl className="flex flex-col gap-3 text-[14px]">
+      <div>
+        <dt className="text-[11px] font-medium uppercase tracking-[0.16em] text-piedra mb-1">Causa</dt>
+        <dd>{ROTULO_CAUSA[caso.causa]}</dd>
+      </div>
+      {caso.monto_reclamado !== null && (
+        <div>
+          <dt className="text-[11px] font-medium uppercase tracking-[0.16em] text-piedra mb-1">Monto reclamado</dt>
+          <dd>{dinero(Number(caso.monto_reclamado), moneda)}</dd>
+        </div>
+      )}
+      {caso.contracargo && (
+        <div>
+          <dt className="text-[11px] font-medium uppercase tracking-[0.16em] text-piedra mb-1">Contracargo</dt>
+          <dd>{ROTULO_RESULTADO[caso.contracargo_resultado ?? 'pendiente']}</dd>
+        </div>
+      )}
+    </dl>
+    <div className="flex flex-col gap-2 text-sm font-medium">
+      {puedeSeguir && (
+        <Enlace a={`/portal/crm/casos?caso=${caso.id}`} className="underline underline-offset-4 hover:text-bosque">
+          Actualizar etapa, semáforo y decisión
+        </Enlace>
+      )}
+      <a href="/protocolo-conflictos" target="_blank" rel="noopener" className="underline underline-offset-4 hover:text-bosque">
+        Qué indica el protocolo de conflictos
+      </a>
+    </div>
+  </section>
+);
 
 /* ------------------------------------------------------------------ */
 /* Chat                                                                 */

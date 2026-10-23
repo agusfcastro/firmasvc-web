@@ -18,7 +18,7 @@ const ROTULOS: Record<string, string> = {
   firma_url: 'Link de firma', contrato_estado: 'Contrato', contrato_error: 'Error del contrato',
   ...CAMPOS_CASO,
 };
-const OCULTOS = new Set(['id', 'organizacion_id', 'cliente_id', 'creado_por', 'codigo', 'plan_pagos_original', 'zapsign_doc', 'contrato_generado_en']);
+const OCULTOS = new Set(['id', 'organizacion_id', 'cliente_id', 'asunto_id', 'creado_por', 'codigo', 'plan_pagos_original', 'zapsign_doc', 'contrato_generado_en']);
 
 function aLocal(iso: string | null): string {
   if (!iso) return '';

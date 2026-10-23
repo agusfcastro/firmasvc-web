@@ -8,6 +8,8 @@ import { useVistaPrevia } from '../vistaPrevia';
 import { BotonCopiar } from '../crm/firma';
 import { ESTADO_FIRMANTE, ESTADO_SOBRE, fechaHora } from '../../firma/comun';
 import type { Organizacion, Perfil } from '../tipos';
+import { BarraUso } from '../BarraUso';
+import { diaYMes, firmasAgotadas, usoFirmas, whatsapp, type UsoFirmas } from '../planes';
 import {
   COLUMNAS_FIRMANTE,
   ROTULO_EVENTO,
@@ -37,6 +39,33 @@ export const Firmas: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
 
 export default Firmas;
 
+/** Cupo de documentos firmados del mes para la empresa. Sin plan con tope, null. */
+function useCupoFirmas(orgId: string | null | undefined): UsoFirmas | null {
+  const [uso, setUso] = useState<UsoFirmas | null>(null);
+  useEffect(() => {
+    if (orgId) void usoFirmas(orgId).then(setUso);
+  }, [orgId]);
+  return uso;
+}
+
+const AvisoCupo: React.FC<{ uso: UsoFirmas }> = ({ uso }) => (
+  <div className="flex flex-col gap-4 max-w-[640px] bg-marfil-oscuro p-6 desk:p-8">
+    <p className="h3">Usaste los {uso.limite} documentos firmados de este mes</p>
+    <p className="text-[15px] leading-[1.6] text-piedra">
+      Tu plan incluye {uso.limite} por mes. Vas a poder mandar nuevos envíos desde el {diaYMes(uso.hasta)}. Si necesitás uno antes, escribinos por WhatsApp. Los envíos en curso siguen
+      su camino.
+    </p>
+    <a
+      href={whatsapp('Hola Agustín, llegué al límite de documentos firmados de mi plan y necesito mandar otro.')}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="self-start inline-flex items-center gap-2 h-12 px-6 bg-bosque text-marfil font-medium text-[15px] hover:bg-bosque-dark transition-colors duration-150"
+    >
+      Escribir por WhatsApp
+    </a>
+  </div>
+);
+
 const claseBotonPrincipal = 'inline-flex items-center gap-2 h-[52px] px-6 text-[15px] font-medium bg-bosque text-marfil transition-colors duration-150 hover:bg-bosque-dark';
 
 /* ==================================================================== */
@@ -52,6 +81,8 @@ const Listado: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> =
   const [orgs, setOrgs] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<Filtro>('en_curso');
+  const cupo = useCupoFirmas(esAdmin ? null : vista?.orgId ?? organizacion?.id);
+  const sinCupo = firmasAgotadas(cupo);
 
   useEffect(() => {
     if (!supabase) return;
@@ -110,7 +141,7 @@ const Listado: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> =
         }
         bajada="Mandá un PDF, cada persona lo firma desde su mail y recibís el documento firmado con su constancia."
         acciones={
-          !vista ? (
+          !vista && !sinCupo ? (
             <Enlace a="/portal/firmas/nuevo" className={claseBotonPrincipal}>
               <Plus size={18} aria-hidden="true" /> Nuevo envío
             </Enlace>
@@ -119,6 +150,15 @@ const Listado: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> =
       />
 
       <section className="wrap py-10 desk:py-14 flex flex-col gap-10">
+        {cupo && cupo.limite !== null && (
+          <BarraUso
+            titulo="Documentos firmados este mes"
+            usado={cupo.usados}
+            incluido={cupo.limite}
+            nota={`Cuentan los envíos que terminaron firmados. El cupo se renueva el ${diaYMes(cupo.hasta)}.`}
+          />
+        )}
+        {sinCupo && cupo && <AvisoCupo uso={cupo} />}
         <Cifras
           cargando={sobres === null}
           items={[
@@ -147,7 +187,7 @@ const Listado: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> =
           ) : lista.length === 0 ? (
             <div className="bg-marfil-oscuro p-8 flex flex-col gap-3 max-w-[640px]">
               <p className="h3">{todos.length === 0 ? 'Todavía no mandaste nada a firmar' : 'No hay envíos en esta pestaña'}</p>
-              {todos.length === 0 && !vista && (
+              {todos.length === 0 && !vista && !sinCupo && (
                 <Enlace a="/portal/firmas/nuevo" className="text-sm font-medium underline underline-offset-4 self-start">
                   Mandar el primero
                 </Enlace>
@@ -228,6 +268,7 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
   const [mail, setMail] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const cupo = useCupoFirmas(esAdmin ? null : organizacion?.id);
 
   useEffect(() => {
     void llamarSobres<{ mail: boolean }>({ accion: 'config' }).then((r) => setMail(r.ok ? r.datos.mail : null));
@@ -318,113 +359,119 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
         bajada="Cada firmante recibe un mail con su enlace personal y confirma su identidad con un código antes de firmar."
       />
 
-      <form onSubmit={enviar} className="wrap py-10 desk:py-14 grid gap-12 desk:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] desk:items-start">
-        <div className="flex flex-col gap-7">
-          <p className="eyebrow text-piedra">1 · Documento</p>
-          <label
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-              e.preventDefault();
-              elegir(e.dataTransfer.files?.[0]);
-            }}
-            className="flex flex-col items-center justify-center gap-3 p-10 text-center border-2 border-dashed border-[rgba(27,31,27,0.25)] bg-white cursor-pointer hover:border-tinta transition-colors duration-150"
-          >
-            <FileUp size={28} aria-hidden="true" className="text-bosque" />
-            <span className="font-medium break-all">{archivo ? archivo.name : 'Arrastrá el PDF o tocá para elegirlo'}</span>
-            <span className="text-xs text-piedra">{archivo ? peso(archivo.size) : 'Hasta 15 MB, sin contraseña'}</span>
-            <input type="file" accept="application/pdf,.pdf" className="sr-only" onChange={(e) => elegir(e.target.files?.[0])} />
-          </label>
+      {firmasAgotadas(cupo) && cupo ? (
+        <div className="wrap py-10 desk:py-14">
+          <AvisoCupo uso={cupo} />
+        </div>
+      ) : (
+        <form onSubmit={enviar} className="wrap py-10 desk:py-14 grid gap-12 desk:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] desk:items-start">
+          <div className="flex flex-col gap-7">
+            <p className="eyebrow text-piedra">1 · Documento</p>
+            <label
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                elegir(e.dataTransfer.files?.[0]);
+              }}
+              className="flex flex-col items-center justify-center gap-3 p-10 text-center border-2 border-dashed border-[rgba(27,31,27,0.25)] bg-white cursor-pointer hover:border-tinta transition-colors duration-150"
+            >
+              <FileUp size={28} aria-hidden="true" className="text-bosque" />
+              <span className="font-medium break-all">{archivo ? archivo.name : 'Arrastrá el PDF o tocá para elegirlo'}</span>
+              <span className="text-xs text-piedra">{archivo ? peso(archivo.size) : 'Hasta 15 MB, sin contraseña'}</span>
+              <input type="file" accept="application/pdf,.pdf" className="sr-only" onChange={(e) => elegir(e.target.files?.[0])} />
+            </label>
 
-          <Campo etiqueta="Título">
-            <input value={titulo} onChange={(e) => setTitulo(e.target.value.slice(0, 200))} className={claseInput} placeholder="Contrato de servicios con Juan Pérez" />
-          </Campo>
-          <Campo etiqueta="Mensaje para los firmantes" ayuda="Opcional. Va en el mail y arriba del documento.">
-            <textarea value={mensaje} onChange={(e) => setMensaje(e.target.value.slice(0, 2000))} rows={3} className={`${claseInput} h-auto py-3`} />
-          </Campo>
-          <div className="grid grid-cols-1 tab:grid-cols-2 gap-5">
-            <Campo etiqueta="Plazo para firmar">
-              <select value={dias} onChange={(e) => setDias(Number(e.target.value))} className={claseInput}>
-                {[3, 7, 15, 30, 60, 90].map((d) => (
-                  <option key={d} value={d}>
-                    {d} días
-                  </option>
-                ))}
-              </select>
+            <Campo etiqueta="Título">
+              <input value={titulo} onChange={(e) => setTitulo(e.target.value.slice(0, 200))} className={claseInput} placeholder="Contrato de servicios con Juan Pérez" />
             </Campo>
-            {esAdmin && (
-              <Campo etiqueta="En nombre de">
-                <select value={orgId} onChange={(e) => setOrgId(e.target.value)} className={claseInput}>
-                  <option value="">FIRMA (envío propio)</option>
-                  {orgs.map((o) => (
-                    <option key={o.id} value={o.id}>
-                      {o.nombre}
+            <Campo etiqueta="Mensaje para los firmantes" ayuda="Opcional. Va en el mail y arriba del documento.">
+              <textarea value={mensaje} onChange={(e) => setMensaje(e.target.value.slice(0, 2000))} rows={3} className={`${claseInput} h-auto py-3`} />
+            </Campo>
+            <div className="grid grid-cols-1 tab:grid-cols-2 gap-5">
+              <Campo etiqueta="Plazo para firmar">
+                <select value={dias} onChange={(e) => setDias(Number(e.target.value))} className={claseInput}>
+                  {[3, 7, 15, 30, 60, 90].map((d) => (
+                    <option key={d} value={d}>
+                      {d} días
                     </option>
                   ))}
                 </select>
               </Campo>
-            )}
+              {esAdmin && (
+                <Campo etiqueta="En nombre de">
+                  <select value={orgId} onChange={(e) => setOrgId(e.target.value)} className={claseInput}>
+                    <option value="">FIRMA (envío propio)</option>
+                    {orgs.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </Campo>
+              )}
+            </div>
+            {!esAdmin && organizacion && <p className="text-sm text-piedra">Los mails salen a nombre de {organizacion.nombre} vía FIRMA.</p>}
           </div>
-          {!esAdmin && organizacion && <p className="text-sm text-piedra">Los mails salen a nombre de {organizacion.nombre} vía FIRMA.</p>}
-        </div>
 
-        <div className="flex flex-col gap-7">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <p className="eyebrow text-piedra">2 · Firmantes</p>
-            <Interruptor activo={secuencial} alCambiar={setSecuencial} etiqueta="Firman en orden" ayuda="Cada uno recibe el mail cuando firmó el anterior." />
-          </div>
+          <div className="flex flex-col gap-7">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <p className="eyebrow text-piedra">2 · Firmantes</p>
+              <Interruptor activo={secuencial} alCambiar={setSecuencial} etiqueta="Firman en orden" ayuda="Cada uno recibe el mail cuando firmó el anterior." />
+            </div>
 
-          <ol className="flex flex-col gap-4">
-            {filas.map((f, i) => (
-              <li key={f.clave} className="bg-white border border-[rgba(27,31,27,0.14)] p-5 flex flex-col gap-4">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="eyebrow text-[11px] text-piedra">Firmante {i + 1}</span>
-                  <div className="flex items-center gap-1">
-                    {secuencial && (
-                      <>
-                        <button type="button" onClick={() => mover(i, -1)} disabled={i === 0} aria-label="Subir" className="w-8 h-8 inline-flex items-center justify-center hover:bg-marfil-oscuro disabled:opacity-30">
-                          <ArrowUp size={15} aria-hidden="true" />
+            <ol className="flex flex-col gap-4">
+              {filas.map((f, i) => (
+                <li key={f.clave} className="bg-white border border-[rgba(27,31,27,0.14)] p-5 flex flex-col gap-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="eyebrow text-[11px] text-piedra">Firmante {i + 1}</span>
+                    <div className="flex items-center gap-1">
+                      {secuencial && (
+                        <>
+                          <button type="button" onClick={() => mover(i, -1)} disabled={i === 0} aria-label="Subir" className="w-8 h-8 inline-flex items-center justify-center hover:bg-marfil-oscuro disabled:opacity-30">
+                            <ArrowUp size={15} aria-hidden="true" />
+                          </button>
+                          <button type="button" onClick={() => mover(i, 1)} disabled={i === filas.length - 1} aria-label="Bajar" className="w-8 h-8 inline-flex items-center justify-center hover:bg-marfil-oscuro disabled:opacity-30">
+                            <ArrowDown size={15} aria-hidden="true" />
+                          </button>
+                        </>
+                      )}
+                      {filas.length > 1 && (
+                        <button type="button" onClick={() => setFilas((fs) => fs.filter((x) => x.clave !== f.clave))} aria-label={`Quitar firmante ${i + 1}`} className="w-8 h-8 inline-flex items-center justify-center hover:bg-marfil-oscuro">
+                          <Trash2 size={15} aria-hidden="true" />
                         </button>
-                        <button type="button" onClick={() => mover(i, 1)} disabled={i === filas.length - 1} aria-label="Bajar" className="w-8 h-8 inline-flex items-center justify-center hover:bg-marfil-oscuro disabled:opacity-30">
-                          <ArrowDown size={15} aria-hidden="true" />
-                        </button>
-                      </>
-                    )}
-                    {filas.length > 1 && (
-                      <button type="button" onClick={() => setFilas((fs) => fs.filter((x) => x.clave !== f.clave))} aria-label={`Quitar firmante ${i + 1}`} className="w-8 h-8 inline-flex items-center justify-center hover:bg-marfil-oscuro">
-                        <Trash2 size={15} aria-hidden="true" />
-                      </button>
-                    )}
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div className="grid grid-cols-1 tab:grid-cols-2 gap-4">
-                  <Campo etiqueta="Nombre y apellido">
-                    <input value={f.nombre} onChange={(e) => cambiar(f.clave, { nombre: e.target.value.slice(0, 160) })} className={claseInput} autoComplete="off" />
-                  </Campo>
-                  <Campo etiqueta="Mail">
-                    <input type="email" value={f.email} onChange={(e) => cambiar(f.clave, { email: e.target.value.trim() })} className={claseInput} autoComplete="off" />
-                  </Campo>
-                </div>
-                <Interruptor activo={f.pedir_documento} alCambiar={(v) => cambiar(f.clave, { pedir_documento: v })} etiqueta="Pedir número de documento" />
-              </li>
-            ))}
-          </ol>
-          {filas.length < 20 && (
-            <button type="button" onClick={() => setFilas((fs) => [...fs, filaVacia()])} className="inline-flex items-center gap-2 text-sm font-medium self-start hover:text-bosque">
-              <Plus size={16} aria-hidden="true" /> Sumar firmante
-            </button>
-          )}
+                  <div className="grid grid-cols-1 tab:grid-cols-2 gap-4">
+                    <Campo etiqueta="Nombre y apellido">
+                      <input value={f.nombre} onChange={(e) => cambiar(f.clave, { nombre: e.target.value.slice(0, 160) })} className={claseInput} autoComplete="off" />
+                    </Campo>
+                    <Campo etiqueta="Mail">
+                      <input type="email" value={f.email} onChange={(e) => cambiar(f.clave, { email: e.target.value.trim() })} className={claseInput} autoComplete="off" />
+                    </Campo>
+                  </div>
+                  <Interruptor activo={f.pedir_documento} alCambiar={(v) => cambiar(f.clave, { pedir_documento: v })} etiqueta="Pedir número de documento" />
+                </li>
+              ))}
+            </ol>
+            {filas.length < 20 && (
+              <button type="button" onClick={() => setFilas((fs) => [...fs, filaVacia()])} className="inline-flex items-center gap-2 text-sm font-medium self-start hover:text-bosque">
+                <Plus size={16} aria-hidden="true" /> Sumar firmante
+              </button>
+            )}
 
-          {mail === false && (
-            <Aviso>
-              El envío de mails no está configurado. El envío se crea igual y copiás el enlace de cada firmante para mandarlo por otro medio, pero nadie va a poder pedir el código para firmar hasta que se configure.
-            </Aviso>
-          )}
-          {error && <Aviso tipo="error">{error}</Aviso>}
-          <Button type="submit" disabled={enviando} size="lg">
-            <Send size={18} aria-hidden="true" /> {enviando ? 'Enviando' : 'Enviar a firmar'}
-          </Button>
-        </div>
-      </form>
+            {mail === false && (
+              <Aviso>
+                El envío de mails no está configurado. El envío se crea igual y copiás el enlace de cada firmante para mandarlo por otro medio, pero nadie va a poder pedir el código para firmar hasta que se configure.
+              </Aviso>
+            )}
+            {error && <Aviso tipo="error">{error}</Aviso>}
+            <Button type="submit" disabled={enviando} size="lg">
+              <Send size={18} aria-hidden="true" /> {enviando ? 'Enviando' : 'Enviar a firmar'}
+            </Button>
+          </div>
+        </form>
+      )}
     </>
   );
 };

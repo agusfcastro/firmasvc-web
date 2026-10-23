@@ -551,6 +551,20 @@ interface DatosSobre {
   crm_cliente_id: string | null;
 }
 
+/**
+ * Gold y Black tienen un tope de documentos firmados por mes (migración 0022).
+ * Cuentan los envíos de la empresa que terminaron firmados. Los de FIRMA no
+ * cuentan ni se frenan. Devuelve el motivo si no se puede mandar otro.
+ * Si la consulta falla (por ejemplo sin la migración), no frena.
+ */
+async function limiteDeFirmas(sb: SupabaseClient, d: Pick<DatosSobre, 'emisor' | 'organizacion_id'>): Promise<string | null> {
+  if (d.emisor !== 'cliente' || !d.organizacion_id) return null;
+  const { data, error: e } = await sb.rpc('firmas_uso', { org: d.organizacion_id });
+  const uso = !e && Array.isArray(data) ? (data[0] as { limite: number | null; usados: number } | undefined) : undefined;
+  if (!uso || uso.limite === null || uso.usados < uso.limite) return null;
+  return `Llegaste a los ${uso.limite} documentos firmados que incluye tu plan este mes. El cupo se renueva el primer día del mes que viene. Si necesitás mandar otro antes, escribinos por WhatsApp.`;
+}
+
 /** Valida el PDF, lo guarda, crea el envío con sus firmantes y avisa a quienes les toca. */
 async function crearSobre(sb: SupabaseClient, q: Quien, request: Request, d: DatosSobre): Promise<{ id: string; avisos: string[] } | Response> {
   const { bytes } = d;
@@ -565,6 +579,8 @@ async function crearSobre(sb: SupabaseClient, q: Quien, request: Request, d: Dat
     return error(protegido ? 'El PDF está protegido con contraseña. Exportalo sin protección y volvé a subirlo.' : 'No pudimos leer el PDF. Exportalo de nuevo y volvé a subirlo.');
   }
   if (paginas < 1) return error('El PDF no tiene páginas.');
+  const tope = await limiteDeFirmas(sb, d);
+  if (tope) return error(tope, 403);
   const hash = sha256(bytes);
 
   const id = randomUUID();

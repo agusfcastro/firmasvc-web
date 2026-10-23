@@ -7,6 +7,8 @@ import { supabase } from './supabase';
 
 export type EstadoAsunto = 'en_curso' | 'espera_cliente' | 'espera_tercero' | 'finalizado';
 export type TipoAsunto = 'contrato' | 'conflicto' | 'marca' | 'societario' | 'cobranza' | 'consulta' | 'otro';
+/** Motivo de un asunto de conflicto (migración 0024). */
+export type MotivoConflicto = 'reembolso' | 'entregables' | 'cobro' | 'equipo' | 'otro';
 
 export interface Asunto {
   id: string;
@@ -18,6 +20,10 @@ export interface Asunto {
   estado: EstadoAsunto;
   proximo_paso: string | null;
   vence_en: string | null;
+  /** Cliente del CRM de la empresa al que se refiere, si corresponde. */
+  cliente_id?: string | null;
+  /** Solo en los asuntos de conflicto. */
+  motivo?: MotivoConflicto | null;
   creado_por: string | null;
   creado_en: string;
   actualizado_en: string;
@@ -90,6 +96,19 @@ export const TIPO_ASUNTO: Record<TipoAsunto, string> = {
   consulta: 'Consulta',
   otro: 'Otro',
 };
+
+export const MOTIVO_CONFLICTO: Record<MotivoConflicto, { titulo: string; ayuda: string }> = {
+  reembolso: { titulo: 'Reembolso o contracargo', ayuda: 'Un cliente pide que le devuelvan lo pagado o desconoció el cargo con su tarjeta. Se sigue con el protocolo de conflictos.' },
+  entregables: { titulo: 'Incumplimiento de entregables', ayuda: 'Algo pactado no se entregó, se entregó tarde o no como se acordó.' },
+  cobro: { titulo: 'Cobro de sumas adeudadas', ayuda: 'Un cliente o un tercero le debe dinero a la empresa.' },
+  equipo: { titulo: 'Conflicto con el equipo', ayuda: 'Un desacuerdo con alguien que trabaja o trabajó para la empresa.' },
+  otro: { titulo: 'Otro conflicto', ayuda: 'Cualquier otro reclamo o disputa.' },
+};
+
+export const MOTIVOS = Object.keys(MOTIVO_CONFLICTO) as MotivoConflicto[];
+
+/** Un reclamo de reembolso o contracargo tiene su caso con los indicadores del protocolo y siempre un cliente. */
+export const llevaCaso = (motivo: MotivoConflicto | null | undefined): boolean => motivo === 'reembolso';
 
 /** Cómo lo lee el cliente y cómo lo lee FIRMA. */
 export const ESTADO_ASUNTO: Record<EstadoAsunto, { cliente: string; firma: string; tono: Tono }> = {

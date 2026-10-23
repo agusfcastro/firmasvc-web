@@ -158,6 +158,18 @@ const Detalle: React.FC<{
     alCambiar(r.datos?.sin_cambios ? 'El abono ya estaba dado de baja.' : 'Abono dado de baja. dLocal Go no hace más débitos.');
   }
 
+  /** Para los abonos de prueba ya dados de baja. Borra también su historial de pagos. */
+  async function borrarDeBaja() {
+    const n = pagos.length;
+    const detalle = n ? ` y ${n === 1 ? 'su pago' : `sus ${n} pagos`} del historial` : '';
+    if (!window.confirm(`¿Borrar ${abono.concepto}${detalle}? Es para abonos de prueba y no se puede deshacer.`)) return;
+    setOcupado('borrar');
+    const r = await llamarPagos('gestionar', { abono_id: abono.id, accion: 'borrar' });
+    setOcupado('');
+    if (!r.ok) return alError(r.error ?? 'No se pudo borrar el abono.');
+    alCambiar('Abono borrado.');
+  }
+
   async function borrar() {
     if (!supabase || !window.confirm(`¿Borrar el borrador ${abono.concepto}? No se puede deshacer.`)) return;
     setOcupado('borrar');
@@ -367,7 +379,19 @@ const Detalle: React.FC<{
             )}
           </div>
         )}
-        {abono.estado === 'cancelado' && <p className="text-sm text-piedra">Dado de baja. Para retomarlo, armá un abono nuevo.</p>}
+        {abono.estado === 'cancelado' && (
+          <div className="flex flex-col gap-3">
+            <p className="text-sm text-piedra">Dado de baja. Para retomarlo, armá un abono nuevo.</p>
+            <button
+              type="button"
+              className="self-start text-sm font-medium underline underline-offset-4 text-[#8a2b20] disabled:opacity-50"
+              onClick={borrarDeBaja}
+              disabled={ocupado !== ''}
+            >
+              {ocupado === 'borrar' ? 'Borrando…' : 'Borrar abono de prueba'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

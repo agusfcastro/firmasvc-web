@@ -28,6 +28,10 @@
  *   vigencia           { vigente_hasta } Fecha AAAA-MM-DD hasta la que rige el
  *                      abono, o null para sacarla. Es informativa: no da de baja
  *                      ni cambia los débitos.
+ *
+ * Borrar, solo FIRMA. Para los abonos de prueba.
+ *   borrar             Borra un abono dado de baja con su historial de pagos.
+ *                      Un abono vigente primero se da de baja.
  */
 import { createHmac, randomUUID } from 'node:crypto';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
@@ -641,6 +645,15 @@ async function vigencia(sb: SupabaseClient, abono: Abono, valor: unknown, actor:
   return json({ ok: true });
 }
 
+async function borrarAbono(sb: SupabaseClient, abono: Abono, actor: string): Promise<Response> {
+  if (abono.estado !== 'cancelado') return error('Solo se borran abonos dados de baja. Dalo de baja primero.', 409);
+  const { count } = await sb.from('abono_pagos').select('id', { count: 'exact', head: true }).eq('abono_id', abono.id);
+  const { error: e } = await sb.from('abonos').delete().eq('id', abono.id);
+  if (e) return error('No se pudo borrar el abono.', 500);
+  await registrar(sb, 'abono_borrado', abono, { concepto: abono.concepto, monto: abono.monto, moneda: abono.moneda, pagos: count ?? 0 }, actor);
+  return json({ ok: true });
+}
+
 async function baja(sb: SupabaseClient, abono: Abono, actor: string): Promise<Response> {
   if (abono.estado === 'cancelado') return json({ ok: true, sin_cambios: true, estado: 'cancelado' });
   if (abono.estado === 'borrador') return error('El abono todavía no está activo. FIRMA puede borrarlo desde Administración.', 409);
@@ -729,10 +742,11 @@ export async function POST(request: Request): Promise<Response> {
   const abonoId = String(cuerpo?.abono_id || '');
   const accion = String(cuerpo?.accion || '');
   if (!UUID.test(abonoId)) return error('Falta el abono.');
-  if (!['sincronizar', 'baja', 'tarjeta', 'pago_manual', 'borrar_pago_manual', 'vigencia'].includes(accion)) return error('Acción desconocida.');
+  if (!['sincronizar', 'baja', 'tarjeta', 'pago_manual', 'borrar_pago_manual', 'vigencia', 'borrar'].includes(accion)) return error('Acción desconocida.');
   const manual = accion === 'pago_manual' || accion === 'borrar_pago_manual';
   if (manual && !esAdmin) return error('Solo FIRMA registra pagos manuales.', 403);
   if (accion === 'vigencia' && !esAdmin) return error('Solo FIRMA cambia la vigencia del abono.', 403);
+  if (accion === 'borrar' && !esAdmin) return error('Solo FIRMA borra abonos.', 403);
 
   const { data: abono } = await sb.from('abonos').select('*').eq('id', abonoId).maybeSingle<Abono>();
   if (!abono) return error('No existe ese abono.', 404);
@@ -740,6 +754,15 @@ export async function POST(request: Request): Promise<Response> {
     if (quien.organizacion_id !== abono.organizacion_id) return error('No tenés acceso a este abono.', 403);
     const { data: org } = await sb.from('organizaciones').select('activa').eq('id', abono.organizacion_id).maybeSingle();
     if (!org?.activa) return error('La empresa no está activa.', 403);
+  }
+
+  // Un abono de baja ya no tiene nada en dLocal Go.
+  if (accion === 'borrar') {
+    try {
+      return await borrarAbono(sb, abono, quien.id);
+    } catch {
+      return error('No se pudo borrar el abono. Probá de nuevo en unos minutos.', 500);
+    }
   }
 
   // La vigencia es un dato de FIRMA, no pasa por dLocal Go.

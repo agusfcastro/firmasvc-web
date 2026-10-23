@@ -4,6 +4,7 @@ import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { Aviso, Campo, Etiqueta, Interruptor, claseInput } from '../ui';
 import type { Agenda, Organizacion } from '../tipos';
+import { TiempoAgenda } from './TiempoAgenda';
 
 type Borrador = Omit<Agenda, 'id'> & { id?: string };
 const VACIO: Borrador = { organizacion_id: null, titulo: '', descripcion: '', duracion_min: 30, url: '', orden: 0, activa: true };
@@ -63,6 +64,7 @@ export const Agendas: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <TiempoAgenda orgs={orgs} />
       {error && <Aviso tipo="error">{error}</Aviso>}
       {borrador ? (
         <form onSubmit={guardar} className="bg-marfil-oscuro p-6 desk:p-8 space-y-5 max-w-[680px]">

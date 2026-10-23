@@ -37,6 +37,8 @@ export interface Caso {
   creado_por: string | null;
   creado_en: string;
   actualizado_en: string;
+  /** Asunto donde se sigue el reclamo, con su chat, bitácora y documentos (migración 0024). */
+  asunto_id?: string | null;
   cliente?: ClienteDelCaso | null;
 }
 
@@ -239,6 +241,8 @@ export function mensajeError(e: { message?: string; code?: string } | null | und
 
 export interface Borrador {
   id?: string;
+  /** Solo para enlazar al asunto. No se guarda desde el formulario. */
+  asunto_id?: string | null;
   cliente_id: string;
   abierto_en: string;
   cerrado_en: string;
@@ -279,6 +283,7 @@ export function borradorNuevo(hoy: string, clienteId = ''): Borrador {
 export function borradorDe(c: Caso): Borrador {
   return {
     id: c.id,
+    asunto_id: c.asunto_id ?? null,
     cliente_id: c.cliente_id,
     abierto_en: c.abierto_en,
     cerrado_en: c.cerrado_en ?? '',

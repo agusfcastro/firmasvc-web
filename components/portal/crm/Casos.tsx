@@ -387,7 +387,7 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
     const { error: err } = borrador.id ? await supabase.from('crm_casos').update(datos).eq('id', borrador.id) : await supabase.from('crm_casos').insert(datos);
     setGuardando(false);
     if (err) return setError(mensajeError(err));
-    setOk(borrador.id ? 'Caso actualizado.' : 'Caso registrado. Ya cuenta en los indicadores.');
+    setOk(borrador.id ? 'Caso actualizado.' : 'Caso registrado. Ya cuenta en los indicadores y tiene su asunto en Estado de asuntos.');
     setBorrador(null);
     setVersion((n) => n + 1);
   }
@@ -497,7 +497,7 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
             Casos de <span className="text-bosque">conflicto</span>
           </>
         }
-        bajada={`Reclamos y pedidos de reembolso de los clientes de ${orgNombre || 'la empresa'}, con los indicadores del protocolo de conflictos.`}
+        bajada={`Indicadores del protocolo y seguimiento de los reembolsos y contracargos de ${orgNombre || 'la empresa'}. Cada caso tiene su asunto, con el chat y los documentos.`}
         acciones={
           <>
             {selector}
@@ -536,11 +536,18 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
                 <p className="eyebrow text-piedra">{borrador.id ? 'Editar caso' : 'Nuevo caso'}</p>
                 <h2 className="h3">{clienteElegido ? clienteElegido.nombre : 'Reclamo o pedido de reembolso'}</h2>
               </div>
-              {borrador.cliente_id && (
-                <Enlace a={`/portal/crm/${borrador.cliente_id}`} className="text-sm font-medium underline underline-offset-4 hover:text-bosque">
-                  Ver la ficha del cliente
-                </Enlace>
-              )}
+              <div className="flex flex-wrap gap-x-6 gap-y-2">
+                {borrador.asunto_id && (
+                  <Enlace a={`/portal/asuntos/${borrador.asunto_id}`} className="text-sm font-medium underline underline-offset-4 hover:text-bosque">
+                    Ver el asunto, con el chat y los documentos
+                  </Enlace>
+                )}
+                {borrador.cliente_id && (
+                  <Enlace a={`/portal/crm/${borrador.cliente_id}`} className="text-sm font-medium underline underline-offset-4 hover:text-bosque">
+                    Ver la ficha del cliente
+                  </Enlace>
+                )}
+              </div>
             </div>
 
             <fieldset disabled={soloLectura} className="flex flex-col gap-8 min-w-0">

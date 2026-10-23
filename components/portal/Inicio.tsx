@@ -24,7 +24,7 @@ const MODULOS: Modulo[] = [
   { titulo: 'Agenda', texto: 'Reuniones de consulta y seguimiento con Agustín Castro, en el horario que elijas.', accion: 'Agendar reunión', icono: CalendarDays, ruta: '/portal/agenda', permiso: 'agenda' },
   { titulo: 'Administración', texto: 'Empresas, usuarios, permisos y registro de accesos.', accion: 'Administrar', icono: ShieldCheck, ruta: '/portal/admin', soloAdmin: true },
   { titulo: 'Protocolos', texto: 'Cómo trabaja cada área de tu equipo, por escrito y con respaldo legal.', accion: 'Leer protocolos', icono: BookOpen, ruta: '/protocolo-llamadas', externo: true },
-  { titulo: 'Estado de asuntos', texto: 'Cada trámite que FIRMA lleva para tu empresa, con su estado, el próximo paso y las novedades.', accion: 'Ver asuntos', icono: ClipboardList, ruta: '/portal/asuntos', permiso: 'casos' },
+  { titulo: 'Estado de asuntos', texto: 'Trámites con FIRMA y conflictos de tu empresa, con su estado, el próximo paso y las novedades.', accion: 'Ver asuntos', icono: ClipboardList, ruta: '/portal/asuntos', permiso: 'casos' },
   { titulo: 'Abonos y pagos', texto: 'Condiciones de tu abono, próximo débito e historial de pagos.', accion: 'Ver pagos', icono: Wallet, ruta: '/portal/pagos', permiso: 'gestion' },
   { titulo: 'Formación', texto: 'Videos por área para capacitar a tu equipo.', icono: GraduationCap },
   { titulo: 'Mi equipo', texto: 'Personas de tu empresa con acceso al portal.', icono: Users, permiso: 'gestion' },

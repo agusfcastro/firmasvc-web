@@ -31,6 +31,8 @@ const ACCIONES: Record<string, string> = {
   abono_pago_manual: 'Pago manual registrado',
   abono_pago_manual_borrado: 'Pago manual borrado',
   abono_vigencia: 'Vigencia del abono cambiada',
+  abono_borrado: 'Abono de prueba borrado',
+  empresa_borrada: 'Empresa de prueba borrada',
   abono_sin_pagos: 'Abono sin pagos, vuelve a borrador',
   aviso_documento: 'Aviso por mail de documento nuevo',
   aviso_archivo: 'Aviso por mail de documento en un asunto',

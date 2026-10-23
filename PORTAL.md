@@ -445,7 +445,10 @@ Las tres funciones de `api/pagos` comparten un bloque común idéntico, con el c
 Cada trámite que FIRMA lleva para una empresa cliente, en `/portal/asuntos`: un contrato, un conflicto, una marca. Tiene tipo, estado (en curso, esperando al cliente, esperando a un tercero o finalizado), próximo paso, vencimiento y un historial de novedades.
 
 - **Quién lo ve:** FIRMA, el titular y el CSM de la empresa. Closers y setters no.
-- **FIRMA** crea el asunto con **Nuevo asunto** y edita sus datos.
+- **Quién lo crea:** FIRMA y también el titular o el CSM, con **Nuevo asunto**. Lo que escribe el cliente al crearlo queda como primer mensaje del chat y le llega a FIRMA por mail. Editar los datos y el estado sigue siendo de FIRMA.
+- **Cliente del CRM.** Un asunto puede vincularse a un cliente de la empresa. Es opcional, salvo en un reembolso o contracargo.
+- **Motivo.** Los asuntos de tipo Conflicto llevan uno: Reembolso o contracargo, Incumplimiento de entregables, Cobro de sumas adeudadas, Conflicto con el equipo u Otro conflicto.
+- **Reembolso o contracargo.** Abre además su caso de conflicto (causa, canal, monto, contracargo), que cuenta en los indicadores de CRM › Casos de conflicto. El asunto muestra la etapa, el semáforo con lo que indica el protocolo y un enlace para seguir el caso. Al cerrar el caso el asunto pasa a finalizado, y al reabrirlo vuelve a en curso. Un caso creado desde CRM › Casos de conflicto crea su asunto solo.
 - **Código.** Cada asunto recibe uno al crearse, como el de los clientes del CRM con `A-` adelante: `A-<prefijo de la empresa>-<número>`, por ejemplo `A-TB-001`. El número es correlativo por empresa y no cambia. Se busca por código en la lista y va al comienzo del asunto de cada mail.
 
 Cada asunto tiene tres pestañas:
@@ -454,7 +457,31 @@ Cada asunto tiene tres pestañas:
 - **Bitácora.** Las notas de FIRMA, cada una interna (solo FIRMA) o visible para el cliente, con aviso por mail opcional. Los cambios de estado y los documentos subidos se anotan solos. El cliente ve las entradas visibles y escribe por el chat.
 - **Documentos.** FIRMA y el cliente suben PDF, Word, Excel, imágenes o TXT de hasta 20 MB al bucket privado `asuntos`. Se descargan con enlaces que vencen en un minuto. Cada subida le avisa por mail a la otra parte. Borra solo FIRMA.
 
-Para activarlo, corré en Supabase › SQL Editor, en orden, `0017_asuntos.sql`, `0018_asuntos_chat_archivos.sql` y `0019_asuntos_codigo.sql`.
+Para activarlo, corré en Supabase › SQL Editor, en orden, `0017_asuntos.sql`, `0018_asuntos_chat_archivos.sql`, `0019_asuntos_codigo.sql` y `0024_asuntos_conflictos.sql`. La 0024 le crea un asunto a cada caso de conflicto que ya existía, con su fecha y sus notas, sin tocar el caso ni su historial.
+
+## Planes, agenda y firmas
+
+El plan de cada empresa se elige en Administración › Clientes › Editar: Gold, Black, Eminent o A medida.
+
+| Plan | Agenda | Documentos firmados |
+|---|---|---|
+| Gold | 60 minutos por mes calendario | 20 por mes calendario |
+| Black | 60 minutos por semana, de lunes a domingo | 50 por mes calendario |
+| Eminent | Sin límite | Sin límite |
+| A medida | Sin límite | Sin límite |
+
+- **Agenda.** Después de cada reunión cargá los minutos en Administración › Agendas › Tiempo de reuniones. El cliente ve la barra en Agenda. Una reunión puede pasarse del saldo: el exceso se le muestra como tiempo recibido de más. Con el tiempo agotado deja de ver los enlaces de reserva hasta que se renueva el período y se le ofrece escribir por WhatsApp. Un consumo cargado por error se borra desde la misma lista y vuelve al saldo.
+- **Firmas.** Cuentan los envíos de la empresa que terminaron firmados en el mes, incluidos los contratos del CRM. Los envíos de FIRMA no cuentan. Al llegar al límite no puede crear envíos nuevos, ni desde la pantalla ni por la API, y se le ofrece escribir por WhatsApp. Los envíos en curso siguen su camino.
+
+Para activarlo, corré `0022_planes_agenda_firmas.sql`. Las fechas son de Buenos Aires.
+
+## Borrar datos de prueba
+
+- **Abono de prueba.** En Administración › Abonos, un abono dado de baja tiene **Borrar abono de prueba**, que lo borra con su historial de pagos. Un borrador se borra como siempre.
+- **Empresa de prueba.** Desactivala en Clientes › Editar y guardá. Al volver a editarla aparece **Borrar empresa de prueba**, que pide escribir su nombre y borra la empresa con sus usuarios y sus cuentas de acceso, CRM, casos, asuntos, documentos, abonos, pagos y archivos. Una empresa con envíos a firma electrónica no se borra: el registro de cada firma es evidencia. Queda desactivada.
+- El historial del CRM y el registro de accesos no se borran. El borrado queda anotado en el registro.
+
+Para activarlo, corré `0023_borrar_empresa.sql`.
 
 ## Avisos por mail
 

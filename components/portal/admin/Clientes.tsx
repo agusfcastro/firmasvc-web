@@ -4,8 +4,10 @@ import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { Aviso, Campo, Etiqueta, Interruptor, claseInput } from '../ui';
 import { iniciarVistaPrevia } from '../vistaPrevia';
+import { llamarApiAdmin } from '../useSesion';
 import { PAISES, ROLES_CLIENTE, ROTULO_ROL, type Organizacion, type RolCliente } from '../tipos';
 import { TIPOS_LOGO, borrarArchivoLogo, fijarLogo, subirLogo } from '../logos';
+import { INCLUYE_PLAN, ROTULO_PLAN, type Plan } from '../planes';
 
 type Borrador = Pick<Organizacion, 'nombre' | 'razon_social' | 'pais' | 'activa' | 'notas'> & {
   id?: string;
@@ -13,6 +15,7 @@ type Borrador = Pick<Organizacion, 'nombre' | 'razon_social' | 'pais' | 'activa'
   seguimiento_cobranza?: boolean;
   logo_url?: string | null;
   drive_carpeta_revision?: string | null;
+  plan?: Plan | null;
   /** Logo elegido y todavía sin subir. null quita el actual. */
   logoNuevo?: File | null;
 };
@@ -25,6 +28,8 @@ export const Clientes: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [previa, setPrevia] = useState<string | null>(null);
+  const [ok, setOk] = useState<string | null>(null);
+  const [borrando, setBorrando] = useState(false);
 
   // Vista previa local del logo elegido antes de guardar.
   useEffect(() => {
@@ -67,6 +72,8 @@ export const Clientes: React.FC = () => {
       prefijo_crm: borrador.prefijo_crm?.trim().toUpperCase() || null,
       seguimiento_cobranza: Boolean(borrador.seguimiento_cobranza),
       drive_carpeta_revision: borrador.drive_carpeta_revision?.trim() || null,
+      // Solo si hay plan o ya tenía uno: así guarda aunque la migración 0022 no esté corrida.
+      ...(borrador.plan || borrador.plan === null ? { plan: borrador.plan || null } : {}),
     };
     const { data: fila, error: err } = borrador.id
       ? await supabase.from('organizaciones').update(datos).eq('id', borrador.id).select('id').single()
@@ -103,9 +110,29 @@ export const Clientes: React.FC = () => {
     void cargar();
   }
 
+  /** Solo para empresas de prueba ya desactivadas. Se confirma escribiendo el nombre. */
+  async function borrarEmpresa(o: Organizacion) {
+    const escrito = window.prompt(
+      `Vas a borrar ${o.nombre} con sus usuarios, CRM, casos, asuntos, documentos, abonos y pagos. No se puede deshacer.\n\nPara confirmar, escribí el nombre exacto de la empresa.`,
+    );
+    if (escrito === null) return;
+    if (escrito.trim() !== o.nombre) return setError('El nombre no coincide. No se borró nada.');
+    setBorrando(true);
+    setError(null);
+    const r = await llamarApiAdmin({ accion: 'borrar_empresa', organizacion_id: o.id, confirmacion: escrito.trim() });
+    setBorrando(false);
+    if (!r.ok) return setError(r.error ?? 'No se pudo borrar la empresa.');
+    setBorrador(null);
+    setOk(`${o.nombre} se borró del portal.`);
+    void cargar();
+  }
+
+  const guardada = borrador?.id ? lista.find((o) => o.id === borrador.id) : undefined;
+
   return (
     <div className="space-y-6">
       {error && <Aviso tipo="error">{error}</Aviso>}
+      {ok && <Aviso tipo="ok">{ok}</Aviso>}
 
       {borrador ? (
         <form onSubmit={guardar} className="bg-marfil-oscuro p-6 desk:p-8 space-y-5 max-w-[680px]">
@@ -142,6 +169,16 @@ export const Clientes: React.FC = () => {
                 </button>
               )}
             </div>
+          </Campo>
+          <Campo etiqueta="Plan" ayuda={borrador.plan ? INCLUYE_PLAN[borrador.plan] : 'A medida: sin límites de agenda ni de firmas en el portal.'}>
+            <select className={claseInput} value={borrador.plan ?? ''} onChange={(e) => setBorrador({ ...borrador, plan: (e.target.value || null) as Plan | null })}>
+              <option value="">A medida</option>
+              {(Object.keys(ROTULO_PLAN) as Plan[]).map((p) => (
+                <option key={p} value={p}>
+                  {ROTULO_PLAN[p]}
+                </option>
+              ))}
+            </select>
           </Campo>
           <Campo etiqueta="País">
             <select className={claseInput} value={borrador.pais} onChange={(e) => setBorrador({ ...borrador, pais: e.target.value })}>
@@ -187,6 +224,22 @@ export const Clientes: React.FC = () => {
               Cancelar
             </Button>
           </div>
+          {guardada && !guardada.activa && (
+            <div className="pt-5 flex flex-col gap-3" style={{ borderTop: '1px solid rgba(27,31,27,0.15)' }}>
+              <p className="text-sm text-piedra">
+                Para empresas de prueba. Borra la empresa con sus usuarios, CRM, casos, asuntos, documentos, abonos y pagos. Si tiene envíos a firma electrónica no se puede borrar: esos registros son
+                evidencia y la empresa queda desactivada.
+              </p>
+              <button
+                type="button"
+                className="self-start text-sm font-medium underline underline-offset-4 text-[#8a2b20] disabled:opacity-50"
+                disabled={borrando}
+                onClick={() => borrarEmpresa(guardada)}
+              >
+                {borrando ? 'Borrando…' : 'Borrar empresa de prueba'}
+              </button>
+            </div>
+          )}
         </form>
       ) : (
         <Button onClick={() => setBorrador({ ...VACIO })}>
@@ -199,6 +252,7 @@ export const Clientes: React.FC = () => {
           <thead>
             <tr>
               <th>Cliente</th>
+              <th>Plan</th>
               <th>País</th>
               <th>Usuarios</th>
               <th>Cobranza</th>
@@ -209,7 +263,7 @@ export const Clientes: React.FC = () => {
           <tbody>
             {lista.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-6 text-piedra">
+                <td colSpan={7} className="p-6 text-piedra">
                   Todavía no cargaste clientes.
                 </td>
               </tr>
@@ -227,6 +281,7 @@ export const Clientes: React.FC = () => {
                     </div>
                   </div>
                 </td>
+                <td>{o.plan ? ROTULO_PLAN[o.plan] : <span className="text-piedra">A medida</span>}</td>
                 <td>{PAISES[o.pais] ?? o.pais}</td>
                 <td>{conteo[o.id] ?? 0}</td>
                 <td>{o.seguimiento_cobranza ? <Etiqueta tono="bosque">Con seguimiento</Etiqueta> : <Etiqueta>Solo plan</Etiqueta>}</td>
