@@ -16,7 +16,7 @@
  *
  * Contratos de los clientes del CRM (cualquier rol con acceso al CRM):
  *   crm_vista   { cliente_id }             completa el modelo del servicio y deja el PDF de vista previa
- *   crm_pdf     { cliente_id }             enlace corto al PDF, el firmado si ya está
+ *   crm_pdf     { cliente_id, descargar? }  enlace corto al PDF, el firmado si ya está. Con descargar, baja el archivo
  *   crm_enviar  { cliente_id, mensaje? }   lo manda a firmar al cliente y a la empresa a la vez
  */
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
@@ -465,7 +465,7 @@ async function crmVista(sb: SupabaseClient, q: Quien, cuerpo: Record<string, unk
   }
 }
 
-/** Enlace corto al PDF del contrato: el firmado si ya está, si no la vista previa. */
+/** Enlace corto al PDF del contrato: el firmado si ya está, si no la vista previa. Con descargar, baja como archivo. */
 async function crmPdf(sb: SupabaseClient, q: Quien, cuerpo: Record<string, unknown>): Promise<Response> {
   const cliente = await clienteCrm(sb, q, cuerpo.cliente_id);
   if (cliente instanceof Response) return cliente;
@@ -473,9 +473,11 @@ async function crmPdf(sb: SupabaseClient, q: Quien, cuerpo: Record<string, unkno
   const vigente = await envioVigente(sb, c?.sobre_id ?? null);
   const ruta = vigente?.final_ruta || vigente?.original_ruta || c?.pdf_ruta;
   if (!ruta) return error('Todavía no hay contrato generado.', 404);
-  const { data, error: e } = await sb.storage.from(BUCKET).createSignedUrl(ruta, 10 * 60);
+  const firmado = Boolean(vigente?.final_ruta);
+  const nombre = `Contrato ${cliente.codigo ? `${cliente.codigo} ` : ''}${cliente.nombre}${firmado ? ' (firmado)' : ''}.pdf`.replace(/[\\/:*?"<>|]/g, '-');
+  const { data, error: e } = await sb.storage.from(BUCKET).createSignedUrl(ruta, 10 * 60, cuerpo.descargar ? { download: nombre } : undefined);
   if (e || !data) return error('No se pudo preparar el PDF.', 500);
-  return json({ ok: true, url: data.signedUrl, firmado: Boolean(vigente?.final_ruta) });
+  return json({ ok: true, url: data.signedUrl, firmado });
 }
 
 /** Quién firma por la empresa: el elegido en Servicios o, si no hay, el titular. */

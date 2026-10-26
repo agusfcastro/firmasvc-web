@@ -143,6 +143,15 @@ export const ContratoFirma: React.FC<{
     setVista(r.datos.url);
   }
 
+  async function bajarPdf() {
+    setOcupado('bajar');
+    setFalla(null);
+    const r = await llamarSobres<{ url: string }>({ accion: 'crm_pdf', cliente_id: clienteId, descargar: true });
+    setOcupado(null);
+    if (!r.ok) return setFalla(r.error ?? 'No se pudo descargar el PDF.');
+    window.location.href = r.datos.url;
+  }
+
   async function recordar(f: Firmante) {
     setOcupado(f.id);
     setFalla(null);
@@ -268,6 +277,11 @@ export const ContratoFirma: React.FC<{
           {!generando && (c?.estado === 'listo' || c?.estado === 'faltan_datos' || sobre) && (
             <button type="button" className={claseSecundario} disabled={ocupado === 'ver'} onClick={() => void verPdf()}>
               <Eye size={15} aria-hidden="true" /> {ocupado === 'ver' ? 'Abriendo…' : completado ? 'Ver firmado' : 'Ver contrato'}
+            </button>
+          )}
+          {!generando && !completado && (c?.estado === 'listo' || c?.estado === 'faltan_datos' || sobre) && (
+            <button type="button" className={claseSecundario} disabled={ocupado === 'bajar'} onClick={() => void bajarPdf()}>
+              <ArrowDown size={15} aria-hidden="true" /> {ocupado === 'bajar' ? 'Preparando…' : 'Descargar PDF'}
             </button>
           )}
           {puedeGenerar && (
