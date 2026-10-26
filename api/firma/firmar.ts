@@ -398,6 +398,7 @@ const ROTULO_EVENTO: Record<string, string> = {
   invitacion_enviada: 'Invitación enviada por mail',
   recordatorio_enviado: 'Recordatorio enviado por mail',
   error_mail: 'No salió un mail',
+  email_corregido: 'Se corrigió el mail del firmante',
   documento_abierto: 'Abrió el documento',
   codigo_enviado: 'Código enviado por mail',
   codigo_validado: 'Validó el código del mail',

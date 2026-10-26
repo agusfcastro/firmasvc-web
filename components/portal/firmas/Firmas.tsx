@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpRight, FileUp, Plus, RefreshCw, Send, ShieldCheck, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpRight, FileUp, Pencil, Plus, RefreshCw, Send, ShieldCheck, Trash2, X } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
@@ -563,6 +563,8 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [anulando, setAnulando] = useState(false);
   const [motivo, setMotivo] = useState('');
+  const [editando, setEditando] = useState<string | null>(null);
+  const [nuevoEmail, setNuevoEmail] = useState('');
   const [avisos] = useState<string[]>(() => {
     try {
       const v = window.sessionStorage.getItem(`firma-avisos-${id}`);
@@ -611,6 +613,24 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
     setOcupado(null);
     if (!r.ok) return setError(r.error);
     setOk(exito);
+    setVersion((v) => v + 1);
+  }
+
+  async function corregirEmail(f: Firmante) {
+    setOcupado(`email-${f.id}`);
+    setError(null);
+    setOk(null);
+    const r = await llamarSobres<{ invitado: boolean; aviso?: string }>({ accion: 'corregir_email', firmante_id: f.id, email: nuevoEmail });
+    setOcupado(null);
+    if (!r.ok) return setError(r.error);
+    setEditando(null);
+    if (r.datos.aviso) setError(r.datos.aviso);
+    else
+      setOk(
+        r.datos.invitado
+          ? `Corregimos el mail de ${f.nombre} y le mandamos la invitación. El enlace anterior ya no funciona.`
+          : `Corregimos el mail de ${f.nombre}. El enlace anterior ya no funciona${sobre?.entrega === 'enlace' ? ', copiá el nuevo' : ''}.`,
+      );
     setVersion((v) => v + 1);
   }
 
@@ -743,6 +763,21 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
                       {pendiente && !soloLectura && (
                         <button
                           type="button"
+                          title="Corregir el mail"
+                          aria-label={`Corregir el mail de ${f.nombre}`}
+                          aria-expanded={editando === f.id}
+                          onClick={() => {
+                            setEditando(editando === f.id ? null : f.id);
+                            setNuevoEmail(f.email);
+                          }}
+                          className="inline-flex items-center justify-center w-9 h-9 border border-[rgba(27,31,27,0.22)] bg-white hover:border-tinta"
+                        >
+                          <Pencil size={15} aria-hidden="true" />
+                        </button>
+                      )}
+                      {pendiente && !soloLectura && (
+                        <button
+                          type="button"
                           title={f.notificado_en ? 'Reenviar el mail' : 'Mandarle el enlace por mail'}
                           aria-label={`${f.notificado_en ? 'Reenviar el mail' : 'Mandarle el enlace por mail'} a ${f.nombre}`}
                           disabled={ocupado === f.id}
@@ -753,6 +788,30 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
                         </button>
                       )}
                     </div>
+                    {pendiente && !soloLectura && editando === f.id && (
+                      <form
+                        onSubmit={(ev) => {
+                          ev.preventDefault();
+                          void corregirEmail(f);
+                        }}
+                        className="w-full bg-marfil-oscuro p-5 flex flex-col gap-3"
+                      >
+                        <Campo
+                          etiqueta={`Mail de ${f.nombre}`}
+                          ayuda={porEnlace ? 'El enlace anterior deja de funcionar. Copiá el nuevo y pasáselo.' : 'El enlace anterior deja de funcionar. Si ya le toca firmar, le mandamos la invitación al mail nuevo.'}
+                        >
+                          <input type="email" autoFocus value={nuevoEmail} onChange={(ev) => setNuevoEmail(ev.target.value.slice(0, 200))} className={claseInput} />
+                        </Campo>
+                        <div className="flex gap-3">
+                          <Button type="submit" variant="dark" size="sm" disabled={ocupado === `email-${f.id}` || !nuevoEmail.trim() || nuevoEmail.trim().toLowerCase() === f.email.toLowerCase()}>
+                            {ocupado === `email-${f.id}` ? 'Guardando' : 'Guardar'}
+                          </Button>
+                          <Button type="button" variant="ghost" size="sm" onClick={() => setEditando(null)}>
+                            Volver
+                          </Button>
+                        </div>
+                      </form>
+                    )}
                   </li>
                 );
               })}

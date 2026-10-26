@@ -11,6 +11,7 @@
  *               misma empresa: al firmarse todos, el cliente pasa a Firmado.
  *   enlaces     { sobre_id }               enlaces personales para mandar por otro medio
  *   recordar    { firmante_id }            reenvía la invitación
+ *   corregir_email { firmante_id, email }  cambia el mail de quien no firmó. El enlace anterior deja de andar
  *   anular      { sobre_id, motivo }
  *   descargar   { sobre_id, cual }         cual es original o final. Enlace que vence en dos minutos
  *
@@ -785,6 +786,56 @@ export async function POST(request: Request): Promise<Response> {
       const fallo = await notificarFirmante(sb, s, f as Firmante, request, q.id, Boolean(f.notificado_en));
       if (fallo) return error(`No salió el mail. ${fallo}`, 502);
       return json({ ok: true });
+    }
+
+    /* -------------------------------------------------------------- */
+    /* Corregir el mail de un firmante                                 */
+    /* -------------------------------------------------------------- */
+    if (accion === 'corregir_email') {
+      const firmanteId = String(cuerpo.firmante_id || '');
+      const email = String(cuerpo.email || '').trim().toLowerCase().slice(0, 200);
+      if (!UUID.test(firmanteId)) return error('Firmante inválido.');
+      if (!EMAIL_VALIDO.test(email)) return error('Revisá el mail.');
+      const { data: f } = await sb.from('firma_firmantes').select('*').eq('id', firmanteId).maybeSingle();
+      if (!f) return error('No existe ese firmante.', 404);
+      const s = await cargarSobre(sb, q, f.sobre_id);
+      if (s instanceof Response) return s;
+      if (s.estado !== 'en_curso') return error('El envío ya no está en curso.');
+      if (f.estado === 'firmado' || f.estado === 'rechazado') return error('Esa persona ya respondió. No se le cambia el mail.');
+      if (String(f.email).toLowerCase() === email) return error('Es el mismo mail que ya tiene.');
+      const { data: todos } = await sb.from('firma_firmantes').select('*').eq('sobre_id', s.id);
+      if (((todos ?? []) as Firmante[]).some((x) => x.id !== f.id && x.email.toLowerCase() === email)) return error('Ese mail ya es de otro firmante del envío.');
+      // Con la versión nueva, el enlace que fue al mail equivocado deja de funcionar. Vuelve a pendiente y sin código pedido.
+      const { data: corregido } = await sb
+        .from('firma_firmantes')
+        .update({
+          email,
+          version_enlace: f.version_enlace + 1,
+          estado: 'pendiente',
+          notificado_en: null,
+          visto_en: null,
+          ultimo_recordatorio: null,
+          otp_hash: null,
+          otp_vence: null,
+          otp_intentos: 0,
+          otp_enviados: 0,
+          otp_ultimo_envio: null,
+          otp_verificado_en: null,
+        })
+        .eq('id', f.id)
+        .eq('version_enlace', f.version_enlace)
+        .in('estado', ['pendiente', 'notificado', 'visto'])
+        .select('*')
+        .maybeSingle();
+      if (!corregido) return error('El firmante cambió de estado. Recargá la página.', 409);
+      await evento(sb, s.id, f.id, q.id, 'email_corregido', request, { antes: f.email, ahora: email });
+      // Por mail y si ya le toca, la invitación sale a la dirección nueva.
+      const leToca = enTurno(((todos ?? []) as Firmante[]), s.secuencial).some((x) => x.id === f.id);
+      if (s.entrega === 'enlace' || !leToca) return json({ ok: true, invitado: false });
+      if (!mailDisponible()) return json({ ok: true, invitado: false, aviso: 'El envío de mails no está configurado. Copiá el enlace nuevo y mandáselo por otro medio.' });
+      const fallo = await notificarFirmante(sb, s, corregido as Firmante, request, q.id);
+      if (fallo) return json({ ok: true, invitado: false, aviso: `Se corrigió el mail, pero no salió la invitación. ${fallo}` });
+      return json({ ok: true, invitado: true });
     }
 
     /* -------------------------------------------------------------- */
