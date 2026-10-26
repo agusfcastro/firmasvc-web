@@ -194,6 +194,15 @@ Lo usan FIRMA, los titulares y los CSM. El titular ve todos los envíos de su em
 6. Cuando firman todos, el servidor arma el PDF final: el original intacto, el pie con el código en cada hoja y la constancia con los datos del envío, cada firmante con su firma y el registro completo de eventos. Calcula su SHA-256 y lo manda adjunto a todos.
 7. Cualquiera verifica un documento en `firmasvc.com/verificar`, subiendo el PDF (el hash se calcula en el navegador) o con el código.
 
+### Por mail o por enlace
+
+Al crear el envío (o al tocar **Mandar a firmar** en la ficha del CRM) se elige cómo les llega:
+
+- **Por mail.** Lo de arriba: cada firmante recibe la invitación y confirma con el código.
+- **Compartir el enlace.** No sale ningún mail. En la ficha del envío quien lo mandó copia el enlace de cada firmante y se lo pasa, por ejemplo en la llamada de onboarding. Se firma **sin código**, así que el enlace tiene que llegarle solo a esa persona. No hay recordatorios automáticos. El botón de reenviar le manda igual el enlace por mail si hace falta. La constancia del PDF firmado dice que el enlace lo entregó quien envió, sin código. La copia final del PDF firmado sí sale por mail a todos.
+
+Necesita la migración `0027_firma_por_enlace.sql`. Sin ella, los envíos por mail siguen funcionando y los por enlace fallan al crearse.
+
 Si alguien rechaza, el envío se cierra y avisa a quien lo mandó. Quien envía puede anular, reenviar el mail, copiar los enlaces para mandarlos por WhatsApp y descargar el original o el firmado.
 
 ### Registro de eventos
@@ -227,6 +236,7 @@ Cada paso queda en `firma_eventos`: creación, mails, aperturas, códigos pedido
 | Archivo | Para qué |
 |---|---|
 | `supabase/migraciones/0010_firma_electronica.sql` | Envíos, firmantes, registro encadenado, permisos y bucket |
+| `supabase/migraciones/0027_firma_por_enlace.sql` | Columna `entrega` (mail o enlace) de cada envío |
 | `api/firma/sobres.ts` | Crear, enlaces, recordar, anular y descargar, con la sesión del portal |
 | `api/firma/firmar.ts` | Lado del firmante, armado del PDF, verificación pública y tarea diaria |
 | `components/portal/firmas/` | Sección Firma electrónica del portal |

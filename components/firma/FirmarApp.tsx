@@ -10,7 +10,8 @@ import { Visor } from './Visor';
  * Todo pasa en la web: el PDF se muestra hoja por hoja en
  * la página y nunca se abre ni se descarga mientras está pendiente.
  *   1. Lee el documento
- *   2. Confirma que es él con un código que le llega al mail
+ *   2. Confirma que es él con un código que le llega al mail, salvo que
+ *      el envío vaya por enlace (se lo pasó en mano quien envía)
  *   3. Firma dibujando o escribiendo su nombre, y acepta
  * También puede rechazarlo con un motivo.
  */
@@ -34,6 +35,8 @@ interface Datos {
   pdf: string | null;
   consentimiento: string;
   mail: boolean;
+  /** Por enlace no se pide código. Una versión vieja del servidor no lo manda. */
+  sin_codigo?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -471,48 +474,50 @@ export const FirmarApp: React.FC<{ token: string }> = ({ token }) => {
 
             {!rechazando ? (
               <div className="p-6 flex flex-col gap-7">
-                {/* Paso 1 */}
-                <div className="flex flex-col gap-3">
-                  <p className="eyebrow text-[11px] text-piedra">Paso 1 · Confirmá que sos vos</p>
-                  {validado ? (
-                    <p className="inline-flex items-center gap-2 text-sm font-medium text-bosque">
-                      <Check size={16} aria-hidden="true" /> Mail confirmado
-                    </p>
-                  ) : !codigoEnviado ? (
-                    <>
-                      <p className="text-[15px] leading-[1.6]">Te mandamos un código de 6 números a {firmante.email}.</p>
-                      <Button onClick={pedirCodigo} disabled={ocupado || !datos.mail} fullWidth>
-                        {ocupado ? 'Enviando' : 'Mandarme el código'}
-                      </Button>
-                      {!datos.mail && <Aviso tipo="error">El envío de mails no está configurado. Avisale a {sobre.emisor}.</Aviso>}
-                    </>
-                  ) : (
-                    <form onSubmit={validar} className="flex flex-col gap-3">
-                      <p className="text-[15px] leading-[1.6]">Escribí el código que te llegó a {codigoEnviado}. Si no lo ves, revisá spam.</p>
-                      <input
-                        value={codigo}
-                        onChange={(e) => setCodigo(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                        inputMode="numeric"
-                        autoComplete="one-time-code"
-                        aria-label="Código de 6 números"
-                        placeholder="000000"
-                        className={`${claseInput} text-center text-2xl tracking-[0.4em] tabular-nums`}
-                        autoFocus
-                      />
-                      <Button type="submit" disabled={ocupado || codigo.length !== 6} fullWidth>
-                        {ocupado ? 'Revisando' : 'Confirmar'}
-                      </Button>
-                      <button type="button" onClick={pedirCodigo} disabled={ocupado} className="text-sm text-piedra underline underline-offset-4 self-start hover:text-tinta">
-                        Mandarme otro código
-                      </button>
-                    </form>
-                  )}
-                  {error && !validado && <Aviso tipo="error">{error}</Aviso>}
-                </div>
+                {/* Paso 1, solo si va por mail */}
+                {!datos.sin_codigo && (
+                  <div className="flex flex-col gap-3">
+                    <p className="eyebrow text-[11px] text-piedra">Paso 1 · Confirmá que sos vos</p>
+                    {validado ? (
+                      <p className="inline-flex items-center gap-2 text-sm font-medium text-bosque">
+                        <Check size={16} aria-hidden="true" /> Mail confirmado
+                      </p>
+                    ) : !codigoEnviado ? (
+                      <>
+                        <p className="text-[15px] leading-[1.6]">Te mandamos un código de 6 números a {firmante.email}.</p>
+                        <Button onClick={pedirCodigo} disabled={ocupado || !datos.mail} fullWidth>
+                          {ocupado ? 'Enviando' : 'Mandarme el código'}
+                        </Button>
+                        {!datos.mail && <Aviso tipo="error">El envío de mails no está configurado. Avisale a {sobre.emisor}.</Aviso>}
+                      </>
+                    ) : (
+                      <form onSubmit={validar} className="flex flex-col gap-3">
+                        <p className="text-[15px] leading-[1.6]">Escribí el código que te llegó a {codigoEnviado}. Si no lo ves, revisá spam.</p>
+                        <input
+                          value={codigo}
+                          onChange={(e) => setCodigo(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                          inputMode="numeric"
+                          autoComplete="one-time-code"
+                          aria-label="Código de 6 números"
+                          placeholder="000000"
+                          className={`${claseInput} text-center text-2xl tracking-[0.4em] tabular-nums`}
+                          autoFocus
+                        />
+                        <Button type="submit" disabled={ocupado || codigo.length !== 6} fullWidth>
+                          {ocupado ? 'Revisando' : 'Confirmar'}
+                        </Button>
+                        <button type="button" onClick={pedirCodigo} disabled={ocupado} className="text-sm text-piedra underline underline-offset-4 self-start hover:text-tinta">
+                          Mandarme otro código
+                        </button>
+                      </form>
+                    )}
+                    {error && !validado && <Aviso tipo="error">{error}</Aviso>}
+                  </div>
+                )}
 
                 {/* Paso 2 */}
                 <form onSubmit={firmar} className={`flex flex-col gap-5 ${validado ? '' : 'opacity-40 pointer-events-none select-none'}`} aria-disabled={!validado}>
-                  <p className="eyebrow text-[11px] text-piedra">Paso 2 · Firmá</p>
+                  <p className="eyebrow text-[11px] text-piedra">{datos.sin_codigo ? 'Firmá' : 'Paso 2 · Firmá'}</p>
                   <div className="flex border border-tinta self-start" role="tablist">
                     {(
                       [

@@ -1,7 +1,8 @@
 /**
  * Firma electrónica del lado de quien firma (Vercel Function). Es pública:
  * cada firmante entra con su enlace personal y confirma que es él con un
- * código que le llega al mail. También verifica documentos y corre las
+ * código que le llega al mail. Si el envío va por enlace (lo pasa en mano
+ * quien envía), firma sin código. También verifica documentos y corre las
  * tareas diarias.
  *
  * POST /api/firma/firmar  { accion, ... }
@@ -56,6 +57,8 @@ interface Sobre {
   final_sha256: string | null;
   error_sellado: string | null;
   crm_cliente_id: string | null;
+  /** Por enlace no salen invitaciones y se firma sin código por mail. Sin la migración 0027 no viene. */
+  entrega?: 'mail' | 'enlace';
 }
 
 interface Firmante {
@@ -247,7 +250,9 @@ async function notificarFirmante(
     `${escapar(emisor)} te envió <strong>${escapar(sobre.titulo)}</strong> para que lo leas y lo firmes de forma electrónica.`,
   ];
   if (sobre.mensaje) parrafos.push(`<em>${escapar(sobre.mensaje).replace(/\n/g, '<br>')}</em>`);
-  parrafos.push(`Tenés tiempo hasta el ${escapar(fechaHora(sobre.vence_en))}. Para firmar te vamos a mandar un código a este mismo mail.`);
+  parrafos.push(
+    `Tenés tiempo hasta el ${escapar(fechaHora(sobre.vence_en))}.${sobre.entrega === 'enlace' ? '' : ' Para firmar te vamos a mandar un código a este mismo mail.'}`,
+  );
   const fallo = await enviarMail({
     nombreRemitente: emisor === 'FIRMA' ? 'FIRMA' : `${emisor} vía FIRMA`,
     para: [f.email],
@@ -320,6 +325,9 @@ async function firmantesDe(sb: SupabaseClient, sobreId: string): Promise<Firmant
   return (data ?? []) as Firmante[];
 }
 
+/** Por enlace no se pide código: el enlace lo entregó en mano quien envía. */
+const sinCodigo = (sobre: Sobre) => sobre.entrega === 'enlace';
+
 function codigoVigente(f: Firmante): boolean {
   return Boolean(f.otp_verificado_en && Date.now() - new Date(f.otp_verificado_en).getTime() < VALIDACION_VIGENCIA_MS);
 }
@@ -336,7 +344,9 @@ function bloqueo(sobre: Sobre, f: Firmante, todos: Firmante[]): string | null {
   if (sobre.estado === 'completado' || f.estado === 'firmado') return 'Ya firmaste este documento.';
   if (f.estado === 'rechazado') return 'Rechazaste este documento.';
   if (sobre.error_sellado) return 'Ya firmaron todos. Estamos armando el documento final.';
-  if (!enTurno(todos, sobre.secuencial).some((x) => x.id === f.id)) return 'Todavía no es tu turno. Te avisamos por mail cuando firmen las personas anteriores.';
+  if (!enTurno(todos, sobre.secuencial).some((x) => x.id === f.id)) {
+    return sinCodigo(sobre) ? 'Todavía no es tu turno. Vas a poder firmar cuando firmen las personas anteriores.' : 'Todavía no es tu turno. Te avisamos por mail cuando firmen las personas anteriores.';
+  }
   return null;
 }
 
@@ -528,8 +538,11 @@ async function armarFinal(sb: SupabaseClient, sobre: Sobre, firmantes: Firmante[
 
   const h = new Hoja(doc, normal, negrita, sobre.codigo);
   h.parrafo('Constancia de firma electrónica', { tam: 20, negrita: true, interlineado: 1.2, despues: 6 });
+  const identidad = sinCodigo(sobre)
+    ? 'Cada una entró con un enlace personal que le entregó directamente quien envió el documento, sin código por mail.'
+    : 'Cada una entró con un enlace personal y confirmó su identidad con un código de un solo uso enviado a su mail.';
   h.parrafo(
-    `Este documento fue firmado de forma electrónica por las personas que se detallan abajo. Cada una entró con un enlace personal y confirmó su identidad con un código de un solo uso enviado a su mail. Las hojas anteriores son el documento original, sin cambios en su contenido.`,
+    `Este documento fue firmado de forma electrónica por las personas que se detallan abajo. ${identidad} Las hojas anteriores son el documento original, sin cambios en su contenido.`,
     { color: PIEDRA, despues: 10 },
   );
 
@@ -541,6 +554,7 @@ async function armarFinal(sb: SupabaseClient, sobre: Sobre, firmantes: Firmante[
   h.dato('Creado', fechaHora(sobre.creado_en));
   h.dato('Completado', fechaHora(new Date().toISOString()));
   h.dato('Orden de firma', sobre.secuencial ? 'Uno después del otro' : 'Todos a la vez');
+  h.dato('Entrega', sinCodigo(sobre) ? 'Enlace compartido por quien envió, sin código por mail' : 'Invitación y código por mail');
   h.dato('Verificación', verificar);
 
   h.raya(14);
@@ -574,7 +588,10 @@ async function armarFinal(sb: SupabaseClient, sobre: Sobre, firmantes: Firmante[
     if (f.documento) linea('Documento de identidad', f.documento);
     linea('Firmó', fechaHora(f.firmado_en));
     linea('Tipo de firma', f.firma_tipo === 'escrita' ? 'Nombre escrito' : 'Firma dibujada');
-    linea('Identidad', validacion ? `Código por mail validado el ${fechaHora(validacion.creado_en)}` : 'Código por mail');
+    linea(
+      'Identidad',
+      validacion ? `Código por mail validado el ${fechaHora(validacion.creado_en)}` : sinCodigo(sobre) ? 'Enlace personal compartido por quien envió' : 'Código por mail',
+    );
     linea('IP', f.ip || 'Sin dato');
     linea('Dispositivo', (f.user_agent || 'Sin dato').slice(0, 160));
     if (f.firma_sha256) linea('SHA-256 de la firma', f.firma_sha256);
@@ -774,7 +791,7 @@ export async function GET(request: Request): Promise<Response> {
         resumen.vencidos++;
         continue;
       }
-      if (!mailDisponible()) continue;
+      if (!mailDisponible() || sinCodigo(sobre)) continue;
       const todos = await firmantesDe(sb, sobre.id);
       for (const f of enTurno(todos, sobre.secuencial)) {
         const ultimo = f.ultimo_recordatorio || f.notificado_en;
@@ -873,13 +890,14 @@ export async function POST(request: Request): Promise<Response> {
           email: enmascarar(f.email),
           estado: f.estado,
           pedir_documento: f.pedir_documento,
-          validado: codigoVigente(f),
+          validado: sinCodigo(sobre) || codigoVigente(f),
           firmado_en: f.firmado_en,
         },
         otros: todos.filter((x) => x.id !== f.id).map((x) => ({ nombre: x.nombre, estado: x.estado, orden: x.orden })),
         pdf,
         consentimiento: CONSENTIMIENTO,
         mail: mailDisponible(),
+        sin_codigo: sinCodigo(sobre),
       });
     }
 
@@ -889,6 +907,8 @@ export async function POST(request: Request): Promise<Response> {
     /* -------------------------------------------------------------- */
     /* Código por mail                                                 */
     /* -------------------------------------------------------------- */
+    if ((accion === 'codigo' || accion === 'validar') && sinCodigo(sobre)) return error('Para este documento no hace falta código. Firmá directamente.');
+
     if (accion === 'codigo') {
       if (!mailDisponible()) return error('El envío de mails no está configurado. Avisale a quien te mandó el documento.', 503);
       if (f.otp_ultimo_envio && Date.now() - new Date(f.otp_ultimo_envio).getTime() < CODIGO_ESPERA_MS) {
@@ -952,7 +972,7 @@ export async function POST(request: Request): Promise<Response> {
     /* Firmar                                                          */
     /* -------------------------------------------------------------- */
     if (accion === 'firmar') {
-      if (!codigoVigente(f)) return error('Validá de nuevo el código del mail para firmar.', 403);
+      if (!sinCodigo(sobre) && !codigoVigente(f)) return error('Validá de nuevo el código del mail para firmar.', 403);
       if (cuerpo.acepto !== true) return error('Tenés que aceptar para firmar.');
       const tipo = cuerpo.tipo === 'escrita' ? 'escrita' : 'dibujada';
       const documento = String(cuerpo.documento || '').replace(/\s+/g, ' ').trim().slice(0, 40) || null;
@@ -995,12 +1015,13 @@ export async function POST(request: Request): Promise<Response> {
         firma_sha256: hashFirma,
         original_sha256: sobre.original_sha256,
         consentimiento: CONSENTIMIENTO,
+        identidad: sinCodigo(sobre) ? 'enlace' : 'codigo_mail',
       });
 
       const despues = await firmantesDe(sb, sobre.id);
       if (despues.every((x) => x.estado === 'firmado')) {
         await sellar(sb, sobre.id);
-      } else if (sobre.secuencial) {
+      } else if (sobre.secuencial && !sinCodigo(sobre)) {
         // Le toca al grupo siguiente. Se avisa a los que todavía no recibieron nada.
         for (const sig of enTurno(despues, true)) {
           if (sig.estado === 'pendiente') await notificarFirmante(sb, sobre, sig, null, null);

@@ -59,6 +59,7 @@ export const ContratoFirma: React.FC<{
   const [falla, setFalla] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
   const [confirmando, setConfirmando] = useState(false);
+  const [entrega, setEntrega] = useState<'mail' | 'enlace'>('mail');
   const [vista, setVista] = useState<string | null>(null);
   const [otros, setOtros] = useState<Sobre[]>([]);
 
@@ -126,11 +127,12 @@ export const ContratoFirma: React.FC<{
     setOcupado('enviar');
     setFalla(null);
     setOk(null);
-    const r = await llamarSobres<{ id: string; avisos: string[] }>({ accion: 'crm_enviar', cliente_id: clienteId });
+    const r = await llamarSobres<{ id: string; avisos: string[] }>({ accion: 'crm_enviar', cliente_id: clienteId, entrega });
     setOcupado(null);
     setConfirmando(false);
     if (!r.ok) return setFalla(r.error ?? 'No se pudo mandar a firmar.');
-    setOk(r.datos.avisos?.length ? r.datos.avisos.join(' ') : 'Listo. Les llegó el mail al cliente y a quien firma por la empresa.');
+    if (r.datos.avisos?.length) setOk(r.datos.avisos.join(' '));
+    else setOk(entrega === 'enlace' ? 'Listo. Copiá el enlace de cada uno y pasáselo. Firman sin código.' : 'Listo. Les llegó el mail al cliente y a quien firma por la empresa.');
     await cargar();
   }
 
@@ -181,7 +183,7 @@ export const ContratoFirma: React.FC<{
   let texto: string;
   if (generando) texto = 'Armando el contrato con el modelo del servicio. Tarda unos segundos.';
   else if (completado) texto = `Firmado por todos el ${fecha(sobre!.completado_en)}.`;
-  else if (enCurso) texto = `En firma. Vence el ${fecha(sobre!.vence_en)}.`;
+  else if (enCurso) texto = `En firma${sobre!.entrega === 'enlace' ? ' por enlace' : ''}. Vence el ${fecha(sobre!.vence_en)}.`;
   else if (cerrado) texto = `El envío anterior quedó ${ESTADO_SOBRE[cerrado.estado].texto.toLowerCase()}. ${cerrado.motivo_cierre ?? ''} Podés generarlo y mandarlo de nuevo.`;
   else if (!c) texto = 'Todavía no se generó.';
   else if (c.estado === 'sin_modelo') texto = 'El servicio no tiene contrato modelo. El titular lo elige en CRM › Servicios.';
@@ -218,13 +220,14 @@ export const ContratoFirma: React.FC<{
                   <span className="text-xs text-calido truncate">{f.firmado_en ? `Firmó el ${fechaHora(f.firmado_en)}` : f.email}</span>
                 </span>
                 <span className="flex items-center gap-2">
-                  <Etiqueta tono={e.tono}>{e.texto}</Etiqueta>
+                  {/* Por enlace nadie pasa a notificado. Firman a la vez, así que pendiente no es esperar turno. */}
+                  <Etiqueta tono={e.tono}>{f.estado === 'pendiente' ? ESTADO_FIRMANTE.notificado.texto : e.texto}</Etiqueta>
                   {pendiente && !soloLectura && enlaces[f.id] && <BotonCopiar texto={enlaces[f.id]} descripcion={`Copiar el enlace de ${f.nombre}`} />}
                   {pendiente && !soloLectura && (
                     <button
                       type="button"
-                      title="Reenviar el mail"
-                      aria-label={`Reenviar el mail a ${f.nombre}`}
+                      title={f.notificado_en ? 'Reenviar el mail' : 'Mandarle el enlace por mail'}
+                      aria-label={`${f.notificado_en ? 'Reenviar el mail' : 'Mandarle el enlace por mail'} a ${f.nombre}`}
                       disabled={ocupado === f.id}
                       onClick={() => void recordar(f)}
                       className="inline-flex items-center justify-center w-9 h-9 border border-[rgba(245,243,236,0.3)] text-marfil hover:border-marfil disabled:opacity-50"
@@ -245,10 +248,26 @@ export const ContratoFirma: React.FC<{
       {/* Confirmación antes de mandar */}
       {confirmando && (
         <div className="bg-[rgba(245,243,236,0.08)] p-4 flex flex-col gap-3">
-          <p className="text-sm">Le llega un mail al cliente y a quien firma por la empresa, y firman a la vez. ¿Lo mandamos?</p>
+          <div className="flex flex-col gap-2" role="radiogroup" aria-label="Cómo les llega">
+            {(
+              [
+                ['mail', 'Por mail', 'Le llega un mail al cliente y a quien firma por la empresa, y confirman con un código.'],
+                ['enlace', 'Compartir el enlace', 'No sale ningún mail. Copiás el enlace de cada uno y se lo pasás, por ejemplo en el onboarding. Firman sin código.'],
+              ] as const
+            ).map(([clave, rotulo, ayuda]) => (
+              <label key={clave} className="flex items-start gap-3 cursor-pointer">
+                <input type="radio" name={`entrega-${clienteId}`} checked={entrega === clave} onChange={() => setEntrega(clave)} className="mt-1 w-4 h-4 accent-[#F5F3EC] shrink-0" />
+                <span className="flex flex-col">
+                  <span className="text-sm font-medium">{rotulo}</span>
+                  <span className="text-xs text-calido leading-[1.5]">{ayuda}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+          <p className="text-sm">Firman a la vez. ¿Lo mandamos?</p>
           <div className="flex flex-wrap gap-3">
             <button type="button" className={claseBoton} disabled={ocupado === 'enviar'} onClick={() => void enviar()}>
-              <Send size={15} aria-hidden="true" /> {ocupado === 'enviar' ? 'Enviando…' : 'Sí, mandar a firmar'}
+              <Send size={15} aria-hidden="true" /> {ocupado === 'enviar' ? 'Enviando…' : entrega === 'enlace' ? 'Sí, crear los enlaces' : 'Sí, mandar a firmar'}
             </button>
             <button type="button" className={claseSecundario} onClick={() => setConfirmando(false)}>
               Cancelar

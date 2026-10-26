@@ -262,6 +262,7 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
   const [mensaje, setMensaje] = useState('');
   const [dias, setDias] = useState(15);
   const [secuencial, setSecuencial] = useState(false);
+  const [entrega, setEntrega] = useState<'mail' | 'enlace'>('mail');
   const [filas, setFilas] = useState<FilaFirmante[]>([filaVacia()]);
   const [orgId, setOrgId] = useState('');
   const [orgs, setOrgs] = useState<{ id: string; nombre: string }[]>([]);
@@ -361,6 +362,7 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
       vence_dias: dias,
       organizacion_id: esAdmin ? orgId || null : undefined,
       crm_cliente_id: clienteCrm || undefined,
+      entrega,
       firmantes: lista.map((f) => ({ nombre: f.nombre, email: f.email, pedir_documento: f.pedir_documento })),
     });
     setEnviando(false);
@@ -386,7 +388,7 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
             Nuevo envío <span className="text-bosque">a firma</span>
           </>
         }
-        bajada="Cada firmante recibe un mail con su enlace personal y confirma su identidad con un código antes de firmar."
+        bajada="Cada firmante recibe un mail con su enlace personal y confirma su identidad con un código antes de firmar. O copiás el enlace y se lo pasás vos."
       />
 
       {firmasAgotadas(cupo) && cupo ? (
@@ -459,7 +461,12 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
           <div className="flex flex-col gap-7">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <p className="eyebrow text-piedra">2 · Firmantes</p>
-              <Interruptor activo={secuencial} alCambiar={setSecuencial} etiqueta="Firman en orden" ayuda="Cada uno recibe el mail cuando firmó el anterior." />
+              <Interruptor
+                activo={secuencial}
+                alCambiar={setSecuencial}
+                etiqueta="Firman en orden"
+                ayuda={entrega === 'enlace' ? 'Cada uno puede firmar cuando firmó el anterior.' : 'Cada uno recibe el mail cuando firmó el anterior.'}
+              />
             </div>
 
             <ol className="flex flex-col gap-4">
@@ -503,14 +510,35 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
               </button>
             )}
 
-            {mail === false && (
+            <fieldset className="flex flex-col gap-3">
+              <legend className="eyebrow text-piedra mb-3">3 · Cómo les llega</legend>
+              {(
+                [
+                  ['mail', 'Por mail', 'Le mandamos el enlace a cada firmante y confirma con un código antes de firmar.'],
+                  ['enlace', 'Compartir el enlace', 'No sale ningún mail. Copiás el enlace de cada firmante y se lo pasás vos, por ejemplo en el onboarding. Firma sin código.'],
+                ] as const
+              ).map(([clave, rotulo, ayuda]) => (
+                <label
+                  key={clave}
+                  className={`flex items-start gap-3 p-4 border cursor-pointer ${entrega === clave ? 'border-tinta bg-white' : 'border-[rgba(27,31,27,0.18)] hover:border-tinta'}`}
+                >
+                  <input type="radio" name="entrega" checked={entrega === clave} onChange={() => setEntrega(clave)} className="mt-1 w-4 h-4 accent-[#173A2F] shrink-0" />
+                  <span className="flex flex-col gap-0.5">
+                    <span className="text-sm font-medium">{rotulo}</span>
+                    <span className="text-xs text-piedra leading-[1.5]">{ayuda}</span>
+                  </span>
+                </label>
+              ))}
+            </fieldset>
+
+            {mail === false && entrega === 'mail' && (
               <Aviso>
                 El envío de mails no está configurado. El envío se crea igual y copiás el enlace de cada firmante para mandarlo por otro medio, pero nadie va a poder pedir el código para firmar hasta que se configure.
               </Aviso>
             )}
             {error && <Aviso tipo="error">{error}</Aviso>}
             <Button type="submit" disabled={enviando} size="lg">
-              <Send size={18} aria-hidden="true" /> {enviando ? 'Enviando' : 'Enviar a firmar'}
+              <Send size={18} aria-hidden="true" /> {enviando ? 'Creando' : entrega === 'enlace' ? 'Crear y copiar los enlaces' : 'Enviar a firmar'}
             </Button>
           </div>
         </form>
@@ -614,6 +642,11 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
 
   const estado = ESTADO_SOBRE[sobre.estado];
   const enCurso = sobre.estado === 'en_curso';
+  const porEnlace = sobre.entrega === 'enlace';
+  // Por enlace nadie pasa a notificado: a quien le toca firmar se lo muestra como pendiente, no esperando turno.
+  const faltan = firmantes.filter((f) => f.estado !== 'firmado' && f.estado !== 'rechazado');
+  const primero = Math.min(...faltan.map((f) => f.orden));
+  const turno = new Set(faltan.filter((f) => !sobre.secuencial || f.orden === primero).map((f) => f.id));
 
   return (
     <>
@@ -673,6 +706,11 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
 
           <div className="flex flex-col gap-4">
             <h2 className="h3">{sobre.secuencial ? 'Firmantes, en orden' : 'Firmantes'}</h2>
+            {porEnlace && enCurso && !soloLectura && (
+              <p className="text-sm text-piedra leading-[1.6]">
+                Va por enlace: no salió ningún mail. Copiá el enlace de cada firmante y pasáselo. Firma sin código, así que mandáselo solo a esa persona.
+              </p>
+            )}
             <ul className="flex flex-col">
               {firmantes.map((f) => {
                 const e = ESTADO_FIRMANTE[f.estado];
@@ -694,19 +732,21 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
                               ? `Lo abrió el ${fechaHora(f.visto_en)}`
                               : f.notificado_en
                                 ? `Mail enviado el ${fechaHora(f.ultimo_recordatorio ?? f.notificado_en)}`
-                                : 'Todavía no le llegó el mail'}
+                                : porEnlace
+                                  ? 'Todavía no abrió el enlace'
+                                  : 'Todavía no le llegó el mail'}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Etiqueta tono={e.tono}>{e.texto}</Etiqueta>
+                      <Etiqueta tono={e.tono}>{porEnlace && f.estado === 'pendiente' && turno.has(f.id) ? ESTADO_FIRMANTE.notificado.texto : e.texto}</Etiqueta>
                       {pendiente && !soloLectura && enlaces[f.id] && <BotonCopiar texto={enlaces[f.id]} descripcion={`Copiar el enlace de ${f.nombre}`} />}
                       {pendiente && !soloLectura && (
                         <button
                           type="button"
-                          title="Reenviar el mail"
-                          aria-label={`Reenviar el mail a ${f.nombre}`}
+                          title={f.notificado_en ? 'Reenviar el mail' : 'Mandarle el enlace por mail'}
+                          aria-label={`${f.notificado_en ? 'Reenviar el mail' : 'Mandarle el enlace por mail'} a ${f.nombre}`}
                           disabled={ocupado === f.id}
-                          onClick={() => accion(f.id, { accion: 'recordar', firmante_id: f.id }, `Le reenviamos el mail a ${f.nombre}.`)}
+                          onClick={() => accion(f.id, { accion: 'recordar', firmante_id: f.id }, `Le mandamos el mail a ${f.nombre}.`)}
                           className="inline-flex items-center justify-center w-9 h-9 border border-[rgba(27,31,27,0.22)] bg-white hover:border-tinta disabled:opacity-50"
                         >
                           <RefreshCw size={15} aria-hidden="true" className={ocupado === f.id ? 'animate-spin' : ''} />

@@ -31,6 +31,8 @@ export interface Sobre {
   final_ruta: string | null;
   final_sha256: string | null;
   error_sellado: string | null;
+  /** Sin la migración 0027 no viene y se toma como mail. */
+  entrega?: 'mail' | 'enlace';
 }
 
 export interface Firmante {

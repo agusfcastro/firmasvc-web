@@ -6,7 +6,7 @@
  *
  * POST /api/firma/sobres  { accion, ... }
  *   config      informa si el mail está configurado
- *   crear       { borrador_ruta, original_nombre, titulo, mensaje?, secuencial?, vence_dias?, organizacion_id?, crm_cliente_id?, firmantes[] }
+ *   crear       { borrador_ruta, original_nombre, titulo, mensaje?, secuencial?, vence_dias?, organizacion_id?, crm_cliente_id?, entrega?, firmantes[] }
  *               Con crm_cliente_id el envío queda atado a ese cliente del CRM de la
  *               misma empresa: al firmarse todos, el cliente pasa a Firmado.
  *   enlaces     { sobre_id }               enlaces personales para mandar por otro medio
@@ -17,7 +17,10 @@
  * Contratos de los clientes del CRM (cualquier rol con acceso al CRM):
  *   crm_vista   { cliente_id }             completa el modelo del servicio y deja el PDF de vista previa
  *   crm_pdf     { cliente_id, descargar? }  enlace corto al PDF, el firmado si ya está. Con descargar, baja el archivo
- *   crm_enviar  { cliente_id, mensaje? }   lo manda a firmar al cliente y a la empresa a la vez
+ *   crm_enviar  { cliente_id, mensaje?, entrega? }  lo manda a firmar al cliente y a la empresa a la vez
+ *
+ * entrega es mail (por defecto) o enlace. Por enlace no salen invitaciones:
+ * quien envía copia el enlace de cada firmante y se firma sin código por mail.
  */
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
@@ -60,6 +63,8 @@ interface Sobre {
   final_sha256: string | null;
   error_sellado: string | null;
   crm_cliente_id: string | null;
+  /** Por enlace no salen invitaciones y se firma sin código por mail. Sin la migración 0027 no viene. */
+  entrega?: 'mail' | 'enlace';
 }
 
 interface Firmante {
@@ -251,7 +256,9 @@ async function notificarFirmante(
     `${escapar(emisor)} te envió <strong>${escapar(sobre.titulo)}</strong> para que lo leas y lo firmes de forma electrónica.`,
   ];
   if (sobre.mensaje) parrafos.push(`<em>${escapar(sobre.mensaje).replace(/\n/g, '<br>')}</em>`);
-  parrafos.push(`Tenés tiempo hasta el ${escapar(fechaHora(sobre.vence_en))}. Para firmar te vamos a mandar un código a este mismo mail.`);
+  parrafos.push(
+    `Tenés tiempo hasta el ${escapar(fechaHora(sobre.vence_en))}.${sobre.entrega === 'enlace' ? '' : ' Para firmar te vamos a mandar un código a este mismo mail.'}`,
+  );
   const fallo = await enviarMail({
     nombreRemitente: emisor === 'FIRMA' ? 'FIRMA' : `${emisor} vía FIRMA`,
     para: [f.email],
@@ -283,6 +290,8 @@ async function notificarFirmante(
 const MAX_BYTES = 15 * 1024 * 1024;
 const MAX_FIRMANTES = 20;
 const ESPERA_RECORDATORIO_MS = 30 * 60 * 1000;
+
+const entregaDe = (v: unknown): 'mail' | 'enlace' => (v === 'enlace' ? 'enlace' : 'mail');
 
 interface Quien {
   id: string;
@@ -536,6 +545,7 @@ async function crmEnviar(sb: SupabaseClient, q: Quien, request: Request, cuerpo:
       { nombre: empresa.nombre.slice(0, 160), email: empresa.email.toLowerCase(), pedir_documento: false, orden: 1 },
     ],
     crm_cliente_id: cliente.id,
+    entrega: entregaDe(cuerpo.entrega),
   });
   if (creado instanceof Response) return creado;
   await sb.from('crm_contratos_firma').update({ sobre_id: creado.id }).eq('cliente_id', cliente.id);
@@ -553,6 +563,7 @@ interface DatosSobre {
   emisor: 'firma' | 'cliente';
   firmantes: FirmanteNuevo[];
   crm_cliente_id: string | null;
+  entrega: 'mail' | 'enlace';
 }
 
 /**
@@ -570,7 +581,7 @@ async function limiteDeFirmas(sb: SupabaseClient, d: Pick<DatosSobre, 'emisor' |
   return `Llegaste a los ${uso.limite} documentos que incluye tu plan este mes, contando los firmados y los que están en curso. El cupo se renueva el primer día del mes que viene, o antes si se anula o vence un envío en curso. Si necesitás mandar otro ya, escribinos por WhatsApp.`;
 }
 
-/** Valida el PDF, lo guarda, crea el envío con sus firmantes y avisa a quienes les toca. */
+/** Valida el PDF, lo guarda, crea el envío con sus firmantes y, si va por mail, avisa a quienes les toca. */
 async function crearSobre(sb: SupabaseClient, q: Quien, request: Request, d: DatosSobre): Promise<{ id: string; avisos: string[] } | Response> {
   const { bytes } = d;
   if (bytes.length === 0 || bytes.length > MAX_BYTES) return error('El PDF tiene que pesar menos de 15 MB.');
@@ -611,6 +622,8 @@ async function crearSobre(sb: SupabaseClient, q: Quien, request: Request, d: Dat
       original_sha256: hash,
       original_paginas: paginas,
       crm_cliente_id: d.crm_cliente_id,
+      // Solo si va por enlace, así un envío por mail no depende de la migración 0027.
+      ...(d.entrega === 'enlace' ? { entrega: 'enlace' } : {}),
     })
     .select('*')
     .single();
@@ -635,6 +648,7 @@ async function crearSobre(sb: SupabaseClient, q: Quien, request: Request, d: Dat
     organizacion_id: d.organizacion_id,
     crm_cliente_id: d.crm_cliente_id,
     secuencial: d.secuencial,
+    entrega: d.entrega,
     vence_en,
     firmantes: d.firmantes.map((f) => ({ nombre: f.nombre, email: f.email, orden: f.orden })),
   });
@@ -646,6 +660,7 @@ async function crearSobre(sb: SupabaseClient, q: Quien, request: Request, d: Dat
   });
 
   const avisos: string[] = [];
+  if (d.entrega === 'enlace') return { id, avisos };
   for (const f of enTurno(filas as Firmante[], d.secuencial)) {
     const fallo = await notificarFirmante(sb, sobre as Sobre, f, request, q.id);
     if (fallo) avisos.push(`No salió el mail a ${f.email}. Copiá su enlace y mandáselo por otro medio.`);
@@ -728,6 +743,7 @@ export async function POST(request: Request): Promise<Response> {
         emisor: q.rol === 'admin' ? 'firma' : 'cliente',
         firmantes,
         crm_cliente_id,
+        entrega: entregaDe(cuerpo.entrega),
       });
       if (creado instanceof Response) return creado;
       await sb.storage.from(BUCKET).remove([borrador]);
