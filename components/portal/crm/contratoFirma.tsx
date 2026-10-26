@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useCallback, useEffect, useState } from 'react';
-import { ArrowDown, ArrowUpRight, Eye, RefreshCw, RotateCcw, Send, X } from 'lucide-react';
+import { ArrowDown, ArrowUpRight, Eye, Pencil, RefreshCw, RotateCcw, Send, X } from 'lucide-react';
 import { supabase } from '../supabase';
 import { Enlace, Etiqueta } from '../ui';
 import { BotonCopiar } from './firma';
@@ -62,6 +62,8 @@ export const ContratoFirma: React.FC<{
   const [entrega, setEntrega] = useState<'mail' | 'enlace'>('mail');
   const [vista, setVista] = useState<string | null>(null);
   const [otros, setOtros] = useState<Sobre[]>([]);
+  const [editando, setEditando] = useState<string | null>(null);
+  const [nuevoEmail, setNuevoEmail] = useState('');
 
   const cargar = useCallback(async () => {
     if (!supabase) return;
@@ -165,6 +167,19 @@ export const ContratoFirma: React.FC<{
     await cargar();
   }
 
+  async function corregirEmail(f: Firmante) {
+    setOcupado(`email-${f.id}`);
+    setFalla(null);
+    setOk(null);
+    const r = await llamarSobres<{ invitado: boolean; aviso?: string }>({ accion: 'corregir_email', firmante_id: f.id, email: nuevoEmail });
+    setOcupado(null);
+    if (!r.ok) return setFalla(r.error ?? 'No se pudo corregir el mail.');
+    setEditando(null);
+    if (r.datos.aviso) setFalla(r.datos.aviso);
+    else setOk(r.datos.invitado ? `Corregimos el mail de ${f.nombre} y le mandamos la invitación. El enlace anterior ya no funciona.` : `Corregimos el mail de ${f.nombre}. El enlace anterior ya no funciona, copiá el nuevo.`);
+    await cargar();
+  }
+
   async function bajarFirmado() {
     if (!sobre) return;
     setOcupado('bajar');
@@ -226,6 +241,21 @@ export const ContratoFirma: React.FC<{
                   {pendiente && !soloLectura && (
                     <button
                       type="button"
+                      title="Corregir el mail"
+                      aria-label={`Corregir el mail de ${f.nombre}`}
+                      aria-expanded={editando === f.id}
+                      onClick={() => {
+                        setEditando(editando === f.id ? null : f.id);
+                        setNuevoEmail(f.email);
+                      }}
+                      className="inline-flex items-center justify-center w-9 h-9 border border-[rgba(245,243,236,0.3)] text-marfil hover:border-marfil"
+                    >
+                      <Pencil size={15} aria-hidden="true" />
+                    </button>
+                  )}
+                  {pendiente && !soloLectura && (
+                    <button
+                      type="button"
                       title={f.notificado_en ? 'Reenviar el mail' : 'Mandarle el enlace por mail'}
                       aria-label={`${f.notificado_en ? 'Reenviar el mail' : 'Mandarle el enlace por mail'} a ${f.nombre}`}
                       disabled={ocupado === f.id}
@@ -236,6 +266,37 @@ export const ContratoFirma: React.FC<{
                     </button>
                   )}
                 </span>
+                {pendiente && !soloLectura && editando === f.id && (
+                  <form
+                    onSubmit={(ev) => {
+                      ev.preventDefault();
+                      void corregirEmail(f);
+                    }}
+                    className="w-full bg-[rgba(245,243,236,0.08)] p-4 flex flex-col gap-3"
+                  >
+                    <label className="flex flex-col gap-1.5">
+                      <span className="text-sm font-medium">Mail de {f.nombre}</span>
+                      <input
+                        type="email"
+                        autoFocus
+                        value={nuevoEmail}
+                        onChange={(ev) => setNuevoEmail(ev.target.value.slice(0, 200))}
+                        className="h-11 px-3 bg-transparent border border-[rgba(245,243,236,0.3)] text-marfil text-sm focus:outline-none focus:border-marfil"
+                      />
+                      <span className="text-xs text-calido leading-[1.5]">
+                        El enlace anterior deja de funcionar. {sobre.entrega === 'enlace' ? 'Copiá el nuevo y pasáselo.' : 'Le mandamos la invitación al mail nuevo.'} La ficha del cliente no cambia.
+                      </span>
+                    </label>
+                    <div className="flex flex-wrap gap-3">
+                      <button type="submit" className={claseBoton} disabled={ocupado === `email-${f.id}` || !nuevoEmail.trim() || nuevoEmail.trim().toLowerCase() === f.email.toLowerCase()}>
+                        {ocupado === `email-${f.id}` ? 'Guardando…' : 'Guardar'}
+                      </button>
+                      <button type="button" className={claseSecundario} onClick={() => setEditando(null)}>
+                        Cancelar
+                      </button>
+                    </div>
+                  </form>
+                )}
               </li>
             );
           })}
