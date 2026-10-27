@@ -19,11 +19,13 @@
  *               a firma electrónica, y confirmacion tiene que ser su nombre exacto.
  *   demo        Crea la empresa demo si falta, con un titular, un CSM y un closer
  *               (alias del mail de quien llama), y la deja con datos ficticios
- *               nuevos (migración 0029). Devuelve { usuarios } con el enlace para
- *               definir la contraseña de los que se acaban de crear.
+ *               nuevos (migración 0029) y un contrato modelo en sus servicios.
+ *               Devuelve { usuarios } con el enlace para definir la contraseña de
+ *               los que se acaban de crear.
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { enlaceDeAcceso, mailDeAcceso, mailDisponible } from '../_lib/mail.js';
+import { modeloDemoDocx } from '../_lib/modeloDemo.js';
 
 // miembro es el rol anterior a csm: se acepta en cuentas viejas pero ya no se asigna.
 type Rol = 'admin' | 'titular' | 'csm' | 'closer' | 'setter' | 'miembro';
@@ -323,6 +325,8 @@ async function demo(sb: SupabaseClient, actor: string, request: Request): Promis
     return error(errReinicio.message, 500);
   }
   const res = data as { asuntos: string[]; contratos: string[]; firmas: string[] };
+  const fallaModelo = await modeloDemo(sb, org.id);
+  if (fallaModelo) return error(fallaModelo, 500);
   const pendientes: string[] = [];
   for (const [bucket, rutas] of [['asuntos', res.asuntos ?? []], ['firmas', [...(res.contratos ?? []), ...(res.firmas ?? [])]]] as const) {
     for (let i = 0; i < rutas.length; i += 100) {
@@ -332,6 +336,48 @@ async function demo(sb: SupabaseClient, actor: string, request: Request): Promis
   }
   await registrar(sb, actor, null, 'demo_reiniciada', { organizacion_id: org.id, pendientes });
   return json({ ok: true, organizacion_id: org.id, usuarios, pendientes });
+}
+
+/**
+ * Contrato modelo de la demo en la biblioteca de documentos, asignado a sus
+ * servicios, para mostrar cómo se genera el contrato desde la ficha. Se vuelve
+ * a subir en cada reinicio, así queda el original aunque lo hayan cambiado.
+ */
+async function modeloDemo(sb: SupabaseClient, orgId: string): Promise<string | null> {
+  const ruta = `servicio/demo-${orgId}.docx`;
+  const bytes = modeloDemoDocx();
+  const { error: errSubir } = await sb.storage
+    .from('documentos')
+    .upload(ruta, bytes, { contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', upsert: true });
+  if (errSubir) return `No se pudo subir el contrato modelo. ${errSubir.message}`;
+
+  const datos = {
+    seccion: 'servicio',
+    organizacion_id: orgId,
+    titulo: 'Contrato de servicios (modelo demo)',
+    descripcion: 'Modelo de ejemplo con las variables del CRM. Se genera desde la ficha de cada cliente.',
+    archivo_ruta: ruta,
+    archivo_nombre: 'Contrato de servicios - modelo demo.docx',
+    archivo_bytes: bytes.length,
+    activo: true,
+  };
+  const { data: previo } = await sb.from('documentos').select('id').eq('archivo_ruta', ruta).maybeSingle();
+  const { data: doc, error: errDoc } = previo
+    ? await sb.from('documentos').update(datos).eq('id', previo.id).select('id').single()
+    : await sb.from('documentos').insert(datos).select('id').single();
+  if (errDoc || !doc) return `No se pudo cargar el contrato modelo. ${errDoc?.message ?? ''}`.trim();
+
+  const { error: errServicios } = await sb.from('crm_servicios').update({ documento_id: doc.id, documento_pif_id: null }).eq('organizacion_id', orgId).in('clave', ['3M', '6M', 'MENTORIA']);
+  if (errServicios) return `No se pudo asignar el contrato modelo a los servicios. ${errServicios.message}`;
+  // Condiciones de ejemplo en la venta pendiente, que es la que se usa para mostrar el contrato.
+  await sb
+    .from('crm_clientes')
+    .update({ condiciones: 'Se bonifica el 10 % del total por pago de la primera cuota dentro de las 48 horas. Incluye dos sesiones extra de seguimiento al terminar el programa.' })
+    .eq('organizacion_id', orgId)
+    .eq('email', 'sofia.ramirez@ejemplo.com');
+  // Ese cambio no es de nadie: la ficha arranca sin historial, como la deja demo_reiniciar.
+  await sb.from('crm_historial').delete().eq('organizacion_id', orgId);
+  return null;
 }
 
 /** Ruta dentro del bucket logos a partir de la URL pública del logo. */
