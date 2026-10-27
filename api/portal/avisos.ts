@@ -110,6 +110,7 @@ async function avisoNovedad(sb: SupabaseClient, quien: Quien, id: string, base: 
 
   const { data: asunto } = await sb.from('asuntos').select('id, codigo, titulo, estado, proximo_paso, organizacion_id').eq('id', nov.asunto_id).maybeSingle();
   if (!asunto) return error('No existe ese asunto.', 404);
+  if (await esDemo(sb, asunto.organizacion_id)) return json({ ok: true, avisados: 0 });
   const { data: org } = await sb.from('organizaciones').select('nombre').eq('id', asunto.organizacion_id).maybeSingle();
   const empresa = (org?.nombre as string | undefined) ?? 'La empresa';
   const deFirma = quien.rol === 'admin';
@@ -214,8 +215,15 @@ async function avisoAsunto(sb: SupabaseClient, quien: Quien, id: string, base: s
   return json({ ok: true, avisados });
 }
 
+/** La empresa demo es para grabar procesos: lo que pasa en ella no sale por mail. */
+async function esDemo(sb: SupabaseClient, organizacionId: string): Promise<boolean> {
+  const { data } = await sb.from('organizaciones').select('demo').eq('id', organizacionId).maybeSingle();
+  return data?.demo === true;
+}
+
 /** A quién le llega lo que escribe o sube alguien en un asunto: si es de FIRMA, a la empresa; si es del cliente, a FIRMA. */
 async function otraParte(sb: SupabaseClient, quien: Quien, organizacionId: string): Promise<Destinatario[]> {
+  if (await esDemo(sb, organizacionId)) return [];
   if (quien.rol === 'admin') {
     const { data } = await sb.from('perfiles').select('email, nombre').eq('organizacion_id', organizacionId).eq('activo', true).in('rol', ['titular', 'csm', 'miembro']);
     return (data ?? []) as Destinatario[];
@@ -311,6 +319,7 @@ async function avisoDocumento(sb: SupabaseClient, quien: Quien, id: string, base
   if (!doc) return error('No existe ese documento.', 404);
   if (!doc.organizacion_id) return error('Los documentos de la biblioteca común no se avisan por mail.', 409);
   if (!doc.activo) return error('El documento está oculto.', 409);
+  if (await esDemo(sb, doc.organizacion_id)) return json({ ok: true, avisados: 0 });
   const { count } = await sb.from('registro_accesos').select('id', { count: 'exact', head: true }).eq('accion', 'aviso_documento').eq('detalle->>documento_id', id);
   if ((count ?? 0) > 0) return json({ ok: true, avisados: 0, ya: true });
 

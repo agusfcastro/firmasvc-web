@@ -45,6 +45,8 @@ export interface Organizacion {
   drive_carpeta_revision?: string | null;
   /** gold, black o eminent. Vacío es un acuerdo a medida, sin límites en el portal. */
   plan?: 'gold' | 'black' | 'eminent' | null;
+  /** Empresa ficticia para grabar procesos (migración 0029). No manda mails. */
+  demo?: boolean;
 }
 
 export interface Perfil {

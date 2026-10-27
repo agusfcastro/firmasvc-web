@@ -17,6 +17,10 @@
  *               Borra una empresa de prueba con lo suyo, sus archivos y las cuentas
  *               de su gente (migración 0023). Tiene que estar desactivada, sin envíos
  *               a firma electrónica, y confirmacion tiene que ser su nombre exacto.
+ *   demo        Crea la empresa demo si falta, con un titular, un CSM y un closer
+ *               (alias del mail de quien llama), y la deja con datos ficticios
+ *               nuevos (migración 0029). Devuelve { usuarios } con el enlace para
+ *               definir la contraseña de los que se acaban de crear.
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { enlaceDeAcceso, mailDeAcceso, mailDisponible } from '../_lib/mail.js';
@@ -160,6 +164,7 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   if (accion === 'borrar_empresa') return borrarEmpresa(sb, actor, cuerpo);
+  if (accion === 'demo') return demo(sb, actor, request);
 
   // Las demás acciones operan sobre un usuario existente.
   const usuario_id = String(cuerpo.usuario_id || '');
@@ -236,6 +241,97 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   return error('Acción desconocida.');
+}
+
+/** Usuarios de la empresa demo. El mail es un alias del de quien la crea, así lo que llegue le llega a él. */
+const USUARIOS_DEMO: { rol: Rol; nombre: string; alias: string; areas: string[] }[] = [
+  { rol: 'titular', nombre: 'Paula Demo', alias: 'demo-titular', areas: [] },
+  { rol: 'csm', nombre: 'Martina Demo', alias: 'demo-csm', areas: ['atencion', 'operaciones', 'legales'] },
+  { rol: 'closer', nombre: 'Tomás Demo', alias: 'demo-closer', areas: [] },
+];
+
+function alias(email: string, sufijo: string): string {
+  const [local, dominio] = email.split('@');
+  return `${local.split('+')[0]}+${sufijo}@${dominio}`;
+}
+
+async function demo(sb: SupabaseClient, actor: string, request: Request): Promise<Response> {
+  const { data: yo } = await sb.from('perfiles').select('email').eq('id', actor).maybeSingle();
+  if (!yo?.email) return error('No se encontró tu mail.', 500);
+
+  // 1. La empresa, una sola.
+  const { data: existente, error: errBuscar } = await sb.from('organizaciones').select('id, nombre').eq('demo', true).maybeSingle();
+  if (errBuscar) {
+    if (/demo/.test(errBuscar.message)) return error('Falta correr la migración 0029_empresa_demo.sql en Supabase.', 500);
+    return error(errBuscar.message, 500);
+  }
+  let org = existente as { id: string; nombre: string } | null;
+  if (!org) {
+    const { data: nueva, error: errOrg } = await sb
+      .from('organizaciones')
+      .insert({
+        nombre: 'Empresa Demo',
+        razon_social: 'Empresa Demo S.A.',
+        pais: 'AR',
+        activa: true,
+        demo: true,
+        plan: 'eminent',
+        prefijo_crm: 'DEM',
+        seguimiento_cobranza: true,
+        notas: 'Empresa ficticia para grabar procesos. Se reinicia desde Administración › Clientes.',
+      })
+      .select('id, nombre')
+      .single();
+    if (errOrg || !nueva) return error(`No se pudo crear la empresa demo. ${errOrg?.message ?? ''}`.trim(), 500);
+    org = nueva as { id: string; nombre: string };
+    await registrar(sb, actor, null, 'demo_creada', { organizacion_id: org.id });
+  }
+
+  // 2. Los usuarios que falten. Sin mail: el enlace vuelve para definir la contraseña.
+  const usuarios: { rol: Rol; nombre: string; email: string; enlace: string | null }[] = [];
+  for (const u of USUARIOS_DEMO) {
+    const email = alias(String(yo.email).toLowerCase(), u.alias);
+    const { data: ya } = await sb.from('perfiles').select('id').eq('email', email).maybeSingle();
+    if (ya) {
+      usuarios.push({ rol: u.rol, nombre: u.nombre, email, enlace: null });
+      continue;
+    }
+    const r = await sb.auth.admin.generateLink({ type: 'invite', email, options: { redirectTo: urlDelPortal(request), data: { nombre: u.nombre } } });
+    if (r.error || !r.data?.user || !r.data.properties?.hashed_token) return error(`No se pudo crear ${email}. ${r.error?.message ?? ''}`.trim(), 502);
+    const { error: errPerfil } = await sb.from('perfiles').upsert({
+      id: r.data.user.id,
+      email,
+      nombre: u.nombre,
+      rol: u.rol,
+      organizacion_id: org.id,
+      areas: u.areas,
+      activo: true,
+      invitado_por: actor,
+    });
+    if (errPerfil) {
+      await sb.auth.admin.deleteUser(r.data.user.id);
+      return error(`No se pudo crear el perfil de ${email}. ${errPerfil.message}`, 500);
+    }
+    await registrar(sb, actor, r.data.user.id, 'invitacion', { email, rol: u.rol, organizacion_id: org.id, demo: true });
+    usuarios.push({ rol: u.rol, nombre: u.nombre, email, enlace: enlaceDeAcceso(urlDelPortal(request), r.data.properties.hashed_token, 'invite') });
+  }
+
+  // 3. Datos nuevos. Después se limpian los archivos de lo que se borró.
+  const { data, error: errReinicio } = await sb.rpc('demo_reiniciar', { org: org.id, firma: actor });
+  if (errReinicio) {
+    if (/Could not find the function|does not exist/i.test(errReinicio.message)) return error('Falta correr la migración 0029_empresa_demo.sql en Supabase.', 500);
+    return error(errReinicio.message, 500);
+  }
+  const res = data as { asuntos: string[]; contratos: string[]; firmas: string[] };
+  const pendientes: string[] = [];
+  for (const [bucket, rutas] of [['asuntos', res.asuntos ?? []], ['firmas', [...(res.contratos ?? []), ...(res.firmas ?? [])]]] as const) {
+    for (let i = 0; i < rutas.length; i += 100) {
+      const { error: e } = await sb.storage.from(bucket).remove(rutas.slice(i, i + 100));
+      if (e) pendientes.push(`${bucket}: ${e.message}`);
+    }
+  }
+  await registrar(sb, actor, null, 'demo_reiniciada', { organizacion_id: org.id, pendientes });
+  return json({ ok: true, organizacion_id: org.id, usuarios, pendientes });
 }
 
 /** Ruta dentro del bucket logos a partir de la URL pública del logo. */

@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, RotateCcw } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { Aviso, Campo, Etiqueta, Interruptor, claseInput } from '../ui';
 import { iniciarVistaPrevia } from '../vistaPrevia';
-import { llamarApiAdmin } from '../useSesion';
+import { llamarApiAdmin, type RespuestaAdmin } from '../useSesion';
+import { BotonCopiar } from '../crm/firma';
 import { PAISES, ROLES_CLIENTE, ROTULO_ROL, type Organizacion, type RolCliente } from '../tipos';
 import { TIPOS_LOGO, borrarArchivoLogo, fijarLogo, subirLogo } from '../logos';
 import { INCLUYE_PLAN, ROTULO_PLAN, type Plan } from '../planes';
@@ -30,6 +31,8 @@ export const Clientes: React.FC = () => {
   const [previa, setPrevia] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
   const [borrando, setBorrando] = useState(false);
+  const [reiniciando, setReiniciando] = useState(false);
+  const [usuariosDemo, setUsuariosDemo] = useState<RespuestaAdmin['usuarios']>(undefined);
 
   // Vista previa local del logo elegido antes de guardar.
   useEffect(() => {
@@ -124,6 +127,20 @@ export const Clientes: React.FC = () => {
     if (!r.ok) return setError(r.error ?? 'No se pudo borrar la empresa.');
     setBorrador(null);
     setOk(`${o.nombre} se borró del portal.`);
+    void cargar();
+  }
+
+  /** Crea la empresa demo si falta y la deja con datos ficticios nuevos. */
+  async function reiniciarDemo(existe: boolean) {
+    if (existe && !window.confirm('¿Reiniciar la empresa demo? Se borran sus clientes, casos, asuntos y envíos a firma, y se cargan los datos ficticios de nuevo. Los usuarios quedan.')) return;
+    setReiniciando(true);
+    setError(null);
+    setOk(null);
+    const r = await llamarApiAdmin({ accion: 'demo' });
+    setReiniciando(false);
+    if (!r.ok) return setError(r.error ?? 'No se pudo preparar la demo.');
+    setUsuariosDemo(r.usuarios);
+    setOk(existe ? 'La demo quedó como nueva.' : 'Empresa demo creada, con sus usuarios y datos ficticios.');
     void cargar();
   }
 
@@ -247,6 +264,8 @@ export const Clientes: React.FC = () => {
         </Button>
       )}
 
+      {!borrador && <PanelDemo demo={lista.find((o) => o.demo)} reiniciando={reiniciando} usuarios={usuariosDemo} alReiniciar={reiniciarDemo} />}
+
       <div className="overflow-x-auto">
         <table className="tabla min-w-[760px]">
           <thead>
@@ -276,7 +295,9 @@ export const Clientes: React.FC = () => {
                       {o.logo_url ? <img src={o.logo_url} alt="" className="max-h-8 max-w-[48px] object-contain" /> : <span className="text-[10px] text-piedra">Sin logo</span>}
                     </div>
                     <div>
-                      <div className="font-heading font-bold text-[16px] leading-tight">{o.nombre}</div>
+                      <div className="font-heading font-bold text-[16px] leading-tight">
+                        {o.nombre} {o.demo && <Etiqueta tono="tinta">Demo</Etiqueta>}
+                      </div>
                       {o.razon_social && <div className="text-xs text-piedra">{o.razon_social}</div>}
                     </div>
                   </div>
@@ -312,3 +333,37 @@ export const Clientes: React.FC = () => {
     </div>
   );
 };
+
+/** Empresa ficticia para grabar videos de procesos, con un botón para dejarla como nueva. */
+const PanelDemo: React.FC<{
+  demo: Organizacion | undefined;
+  reiniciando: boolean;
+  usuarios: RespuestaAdmin['usuarios'];
+  alReiniciar: (existe: boolean) => void;
+}> = ({ demo, reiniciando, usuarios, alReiniciar }) => (
+  <section className="bg-marfil-oscuro p-6 flex flex-col gap-4 max-w-[860px]">
+    <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="flex flex-col gap-1 max-w-[560px]">
+        <h2 className="h3">Empresa demo</h2>
+        <p className="text-sm text-piedra">
+          Para grabar procesos con datos ficticios: clientes con cuotas, casos de conflicto y asuntos con chat. No manda mails de avisos. Reiniciarla borra lo que hayas hecho y vuelve a cargar los datos. Para firmar, mandá los envíos por enlace.
+        </p>
+      </div>
+      <Button size="sm" variant={demo ? 'ghost' : 'primary'} disabled={reiniciando} onClick={() => alReiniciar(Boolean(demo))}>
+        {demo ? <RotateCcw size={15} aria-hidden="true" /> : <Plus size={15} aria-hidden="true" />}
+        {reiniciando ? 'Preparando…' : demo ? 'Reiniciar demo' : 'Crear empresa demo'}
+      </Button>
+    </div>
+    {usuarios && usuarios.length > 0 && (
+      <ul className="flex flex-col gap-2 text-sm">
+        {usuarios.map((u) => (
+          <li key={u.email} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span className="font-medium">{u.nombre}</span>
+            <span className="text-piedra">{ROTULO_ROL[u.rol as RolCliente] ?? u.rol} · {u.email}</span>
+            {u.enlace ? <BotonCopiar texto={u.enlace} descripcion={`Copiar el enlace para que ${u.nombre} defina su contraseña`} /> : <span className="text-xs text-piedra">Ya tenía cuenta</span>}
+          </li>
+        ))}
+      </ul>
+    )}
+  </section>
+);

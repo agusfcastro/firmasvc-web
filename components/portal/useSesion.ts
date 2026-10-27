@@ -116,6 +116,8 @@ export interface RespuestaAdmin {
   /** Enlace de acceso para mandar a mano cuando no sale el mail */
   enlace?: string | null;
   motivo?: string | null;
+  /** Usuarios de la empresa demo (accion demo). El enlace solo viene en los recién creados. */
+  usuarios?: { rol: string; nombre: string; email: string; enlace: string | null }[];
 }
 
 export async function llamarApiAdmin(cuerpo: Record<string, unknown>): Promise<RespuestaAdmin> {
@@ -131,7 +133,7 @@ export async function llamarApiAdmin(cuerpo: Record<string, unknown>): Promise<R
     });
     const j = (await r.json().catch(() => ({}))) as Omit<RespuestaAdmin, 'ok'>;
     if (!r.ok) return { ok: false, error: j.error || `Error ${r.status}` };
-    return { ok: true, enlace: j.enlace ?? null, motivo: j.motivo ?? null };
+    return { ok: true, enlace: j.enlace ?? null, motivo: j.motivo ?? null, usuarios: j.usuarios };
   } catch {
     return { ok: false, error: 'No hay conexión con el servidor.' };
   }
