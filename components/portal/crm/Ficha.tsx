@@ -4,6 +4,8 @@ import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { Aviso, Campo, Cifras, Encabezado, Enlace, Etiqueta, Monto, TituloSeccion, claseInput } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
+import { navegar } from '../navegacion';
+import { BUCKET_ASUNTOS } from '../asuntos';
 import { TONO_FIRMA, dinero, fecha, hoyISO, type CambioHistorial, type ClienteCrm, type ContratoReservado, type EstadoFirma, type Pago, type Servicio } from './tipos';
 import { CAMPOS_CASO, VALORES_CASO } from './reglasCasos';
 import { CasosCliente } from './Casos';
@@ -142,6 +144,24 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
     setGuardando(false);
     setMensaje(error ? { tipo: 'error', texto: error.message } : { tipo: 'ok', texto: 'Cambios guardados.' });
     if (!error) void cargar();
+  }
+
+  async function borrarCliente() {
+    if (!supabase || !cliente) return;
+    if (!window.confirm(`¿Eliminar a ${cliente.nombre} del CRM? Se eliminan sus cuotas, contratos, casos de conflicto y asuntos, con sus documentos. Los envíos a firma electrónica quedan, sin el cliente. No se puede deshacer.`)) return;
+    setGuardando(true);
+    setMensaje(null);
+    // Los archivos de sus asuntos se leen antes, porque al borrar el cliente la base borra los asuntos (migración 0028).
+    const { data: asuntos } = await supabase.from('asuntos').select('id').eq('cliente_id', id);
+    const ids = (asuntos ?? []).map((a) => a.id as string);
+    const { data: archivos } = ids.length ? await supabase.from('asunto_archivos').select('ruta').in('asunto_id', ids) : { data: null };
+    const { error } = await supabase.from('crm_clientes').delete().eq('id', id);
+    if (error) {
+      setGuardando(false);
+      return setMensaje({ tipo: 'error', texto: error.message });
+    }
+    if (archivos?.length) await supabase.storage.from(BUCKET_ASUNTOS).remove(archivos.map((a) => a.ruta as string));
+    navegar('/portal/crm');
   }
 
   async function actualizarPago(p: Pago, cambios: Partial<Pago>) {
@@ -516,10 +536,20 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
               )}
 
               {!soloLectura && (
-                <div>
+                <div className="flex flex-wrap items-center gap-3">
                   <Button type="submit" size="lg" disabled={guardando}>
                     {guardando ? 'Guardando…' : 'Guardar cambios'}
                   </Button>
+                  {esAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => void borrarCliente()}
+                      disabled={guardando}
+                      className="ml-auto inline-flex items-center gap-2 h-[52px] px-4 text-sm font-medium text-[#8a2b20] transition-colors duration-150 hover:bg-[#f6e7e4] disabled:opacity-40"
+                    >
+                      <Trash2 size={16} aria-hidden="true" /> Eliminar cliente
+                    </button>
+                  )}
                 </div>
               )}
             </fieldset>

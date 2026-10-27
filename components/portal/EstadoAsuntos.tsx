@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, Download, FileText, Mail, Paperclip, Plus, RefreshCw, Send, StickyNote, Upload } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Download, FileText, Mail, Paperclip, Plus, RefreshCw, Send, StickyNote, Trash2, Upload } from 'lucide-react';
 import { Button } from '../Button';
 import { supabase } from './supabase';
 import { navegar } from './navegacion';
@@ -732,6 +732,28 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
     void cargar();
   }
 
+  async function borrar() {
+    if (!supabase || !asunto) return;
+    const aviso = caso
+      ? '¿Eliminar este asunto? Se elimina también su caso de conflicto, que deja de contar en los indicadores, con el chat, la bitácora y los documentos. No se puede deshacer.'
+      : '¿Eliminar este asunto? Se eliminan el chat, la bitácora y los documentos. No se puede deshacer.';
+    if (!window.confirm(aviso)) return;
+    setOcupado('borrar');
+    setError(null);
+    // Los archivos se leen antes, porque al borrar el asunto la base borra su lista.
+    const { data: lista } = await supabase.from('asunto_archivos').select('ruta').eq('asunto_id', asunto.id);
+    // Con caso, se borra el caso y la base borra su asunto (migración 0026).
+    const { error: e } = caso
+      ? await supabase.from('crm_casos').delete().eq('id', caso.id)
+      : await supabase.from('asuntos').delete().eq('id', asunto.id);
+    if (e) {
+      setOcupado('');
+      return setError(e.message);
+    }
+    if (lista?.length) await supabase.storage.from(BUCKET_ASUNTOS).remove(lista.map((a) => a.ruta));
+    navegar('/portal/asuntos');
+  }
+
   if (asunto === undefined) {
     return (
       <Marco perfil={perfil}>
@@ -927,6 +949,16 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
                 >
                   Editar datos
                 </Button>
+              )}
+              {esFirma && (
+                <button
+                  type="button"
+                  onClick={() => void borrar()}
+                  disabled={ocupado !== ''}
+                  className="self-start inline-flex items-center gap-2 h-10 px-3 -ml-3 text-sm font-medium text-[#8a2b20] transition-colors duration-150 hover:bg-[#f6e7e4] disabled:opacity-40"
+                >
+                  <Trash2 size={15} aria-hidden="true" /> {ocupado === 'borrar' ? 'Eliminando…' : 'Eliminar asunto'}
+                </button>
               )}
             </>
           )}

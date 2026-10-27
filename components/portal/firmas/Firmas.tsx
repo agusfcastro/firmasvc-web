@@ -616,6 +616,20 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
     setVersion((v) => v + 1);
   }
 
+  // Pensado para los envíos de prueba: se va todo, también el registro de eventos y los PDF.
+  async function eliminar() {
+    if (!sobre) return;
+    const firmado = sobre.estado === 'completado' ? ' Ya está firmado: se pierde el PDF firmado y su constancia, y el código de verificación deja de andar.' : '';
+    if (!window.confirm(`¿Eliminar «${sobre.titulo}»? Se borran el documento, los firmantes y el registro de eventos.${firmado} Usalo solo para envíos de prueba. No se puede deshacer.`)) return;
+    setOcupado('eliminar');
+    setError(null);
+    setOk(null);
+    const r = await llamarSobres({ accion: 'eliminar', sobre_id: sobre.id });
+    setOcupado(null);
+    if (!r.ok) return setError(r.error);
+    navegar('/portal/firmas');
+  }
+
   async function corregirEmail(f: Firmante) {
     setOcupado(`email-${f.id}`);
     setError(null);
@@ -893,6 +907,17 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
                 </form>
               )}
             </div>
+          )}
+
+          {perfil.rol === 'admin' && !soloLectura && (
+            <button
+              type="button"
+              onClick={() => void eliminar()}
+              disabled={ocupado !== null}
+              className="self-start inline-flex items-center gap-2 h-10 px-3 -ml-3 text-sm font-medium text-[#8a2b20] transition-colors duration-150 hover:bg-[#f6e7e4] disabled:opacity-40"
+            >
+              <Trash2 size={15} aria-hidden="true" /> {ocupado === 'eliminar' ? 'Eliminando…' : 'Eliminar el envío'}
+            </button>
           )}
         </aside>
       </section>

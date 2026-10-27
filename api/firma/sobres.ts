@@ -14,6 +14,7 @@
  *   corregir_email { firmante_id, email }  cambia el mail de quien no firmó. El enlace anterior deja de andar
  *   anular      { sobre_id, motivo }
  *   descargar   { sobre_id, cual }         cual es original o final. Enlace que vence en dos minutos
+ *   eliminar    { sobre_id }               solo FIRMA. Borra el envío con su registro, para los de prueba (migración 0028)
  *
  * Contratos de los clientes del CRM (cualquier rol con acceso al CRM):
  *   crm_vista   { cliente_id }             completa el modelo del servicio y deja el PDF de vista previa
@@ -871,6 +872,23 @@ export async function POST(request: Request): Promise<Response> {
           responderA: q.email,
         });
       }
+      return json({ ok: true });
+    }
+
+    /* -------------------------------------------------------------- */
+    /* Eliminar (solo FIRMA, para los envíos de prueba)                */
+    /* -------------------------------------------------------------- */
+    if (accion === 'eliminar') {
+      if (q.rol !== 'admin') return error('Solo FIRMA elimina envíos.', 403);
+      const s = await cargarSobre(sb, q, cuerpo.sobre_id);
+      if (s instanceof Response) return s;
+      const { data, error: e } = await sb.rpc('firma_borrar_sobre', { p_sobre: s.id });
+      if (e) {
+        const falta = /firma_borrar_sobre/.test(e.message) && /function|schema cache/i.test(e.message);
+        return error(falta ? 'Falta correr la migración 0028_borrar_cliente_y_firmas.sql en Supabase.' : e.message, 500);
+      }
+      const rutas = [data?.original_ruta, data?.final_ruta].filter(Boolean) as string[];
+      if (rutas.length) await sb.storage.from(BUCKET).remove(rutas);
       return json({ ok: true });
     }
 
