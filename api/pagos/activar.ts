@@ -165,12 +165,12 @@ function enlace(planToken: string, email: string): string {
 
 /** Variables que faltan para cobrar. Se nombran, nunca se muestran sus valores. */
 function faltantes(): string[] {
-  return ['DLOCALGO_API_KEY', 'DLOCALGO_SECRET_KEY'].filter((n) => !process.env[n]);
+  return ['DLOCALGO_API_KEY', 'DLOCALGO_SECRET_KEY', 'DLOCALGO_CLAVE_AVISOS'].filter((n) => !process.env[n]);
 }
 
 /** Dirección del portal para las vueltas y los avisos. Va con www, el dominio sin www redirige. */
-function baseDe(request: Request): string {
-  return (process.env.PORTAL_URL || new URL(request.url).origin).replace(/\/$/, '');
+function baseDe(): string {
+  return (process.env.PORTAL_URL || 'https://www.firmasvc.com').replace(/\/$/, '');
 }
 
 /** Saca de un texto cualquier clave antes de devolverlo o registrarlo. */
@@ -296,9 +296,9 @@ function codigoMoneda(v: unknown): string | null {
   return /^[A-Z]{3}$/.test(s) ? s : null;
 }
 
-/** Clave del aviso de cada abono, HMAC SHA256 del id con DLOCALGO_CLAVE_AVISOS o, si no está, con la clave service role. */
+/** Clave del aviso de cada abono, HMAC SHA256 del id con DLOCALGO_CLAVE_AVISOS. */
 function claveAviso(abonoId: string): string | null {
-  const secreto = process.env.DLOCALGO_CLAVE_AVISOS || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const secreto = process.env.DLOCALGO_CLAVE_AVISOS;
   return secreto ? createHmac('sha256', secreto).update(abonoId).digest('hex') : null;
 }
 
@@ -710,7 +710,7 @@ export async function GET(request: Request): Promise<Response> {
   if (quien instanceof Response) return quien;
   if (new URL(request.url).searchParams.get('diagnostico') === '1') {
     if (quien.rol !== 'admin') return error('Solo FIRMA puede probar la conexión.', 403);
-    return diagnostico(sb, quien.id, baseDe(request));
+    return diagnostico(sb, quien.id, baseDe());
   }
   return json({ dlocalgo: faltantes().length === 0, entorno: entorno() });
 }
@@ -775,7 +775,7 @@ export async function POST(request: Request): Promise<Response> {
   await registrar(sb, 'abono_aceptado', actual, { aceptado_en: aceptadoEn, aceptado_por: quien.id, periodicidad: actual.periodo_meses === 3 ? 'trimestral' : 'mensual' }, quien.id);
 
   // 6. Plan del abono y enlace de suscripción con el mail del pagador.
-  const base = baseDe(request);
+  const base = baseDe();
   if (!abono.plan_id || !abono.plan_token) return crearPlan(sb, abono, String(org.nombre ?? 'Empresa'), base, quien.id);
 
   // Lo ya pagado no se vuelve a cobrar. El plan da esos días sin cobro a la suscripción nueva.

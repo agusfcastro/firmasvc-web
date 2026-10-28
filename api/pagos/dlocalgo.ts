@@ -4,7 +4,7 @@
  * POST /api/pagos/dlocalgo?abono=...&clave=...
  *   Cada plan de dLocal Go tiene como notification_url esta dirección, con el
  *   id de su abono y una clave propia (HMAC SHA256 del id con
- *   DLOCALGO_CLAVE_AVISOS o, si no está, con la clave service role).
+ *   DLOCALGO_CLAVE_AVISOS).
  *   1. Valida la clave en tiempo constante. Si no coincide responde 401 y no
  *      toca nada.
  *   2. No toma el aviso como verdad. dLocal Go no firma sus avisos, así que
@@ -155,12 +155,12 @@ function enlace(planToken: string, email: string): string {
 
 /** Variables que faltan para cobrar. Se nombran, nunca se muestran sus valores. */
 function faltantes(): string[] {
-  return ['DLOCALGO_API_KEY', 'DLOCALGO_SECRET_KEY'].filter((n) => !process.env[n]);
+  return ['DLOCALGO_API_KEY', 'DLOCALGO_SECRET_KEY', 'DLOCALGO_CLAVE_AVISOS'].filter((n) => !process.env[n]);
 }
 
 /** Dirección del portal para las vueltas y los avisos. Va con www, el dominio sin www redirige. */
-function baseDe(request: Request): string {
-  return (process.env.PORTAL_URL || new URL(request.url).origin).replace(/\/$/, '');
+function baseDe(): string {
+  return (process.env.PORTAL_URL || 'https://www.firmasvc.com').replace(/\/$/, '');
 }
 
 /** Saca de un texto cualquier clave antes de devolverlo o registrarlo. */
@@ -286,9 +286,9 @@ function codigoMoneda(v: unknown): string | null {
   return /^[A-Z]{3}$/.test(s) ? s : null;
 }
 
-/** Clave del aviso de cada abono, HMAC SHA256 del id con DLOCALGO_CLAVE_AVISOS o, si no está, con la clave service role. */
+/** Clave del aviso de cada abono, HMAC SHA256 del id con DLOCALGO_CLAVE_AVISOS. */
 function claveAviso(abonoId: string): string | null {
-  const secreto = process.env.DLOCALGO_CLAVE_AVISOS || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const secreto = process.env.DLOCALGO_CLAVE_AVISOS;
   return secreto ? createHmac('sha256', secreto).update(abonoId).digest('hex') : null;
 }
 

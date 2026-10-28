@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { GlobalWorkerOptions, getDocument, type PDFDocumentProxy } from 'pdfjs-dist';
-import trabajador from 'pdfjs-dist/build/pdf.worker.min.js?url';
+// Build legacy: también corre en celulares con navegadores de hace algunos años.
+import { GlobalWorkerOptions, getDocument, type PDFDocumentProxy } from 'pdfjs-dist/legacy/build/pdf.mjs';
+import trabajador from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
 
 GlobalWorkerOptions.workerSrc = trabajador;
 

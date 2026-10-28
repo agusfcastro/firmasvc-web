@@ -219,7 +219,7 @@ Cada paso queda en `firma_eventos`: creación, mails, aperturas, códigos pedido
 |---|---|
 | `RESEND_API_KEY` | La API key de Resend. Sin ella el envío se crea igual, pero nadie puede pedir el código para firmar |
 | `FIRMA_MAIL_DIRECCION` | Opcional. Remitente de los mails, por defecto `firmas@firmasvc.com` |
-| `FIRMA_CLAVE_FIRMAS` | Opcional pero recomendada. Una clave larga al azar para los enlaces y los códigos (`openssl rand -hex 32`). Si falta se deriva de la service role. Cambiarla invalida los enlaces que estén en curso |
+| `FIRMA_CLAVE_FIRMAS` | Obligatoria. Una clave larga al azar para los enlaces y los códigos (`openssl rand -hex 32`). Sin ella la firma electrónica no funciona. Cambiarla invalida los enlaces que estén en curso |
 | `CRON_SECRET` | Una clave larga al azar. Vercel la manda sola a la tarea diaria |
 
 4. La tarea diaria ya está en `vercel.json` (todos los días a las 10, hora de Buenos Aires). Vence los envíos con el plazo cumplido, manda un recordatorio a quien no firmó cada tres días y reintenta los PDF firmados que no se pudieron armar.
@@ -363,7 +363,7 @@ En **Settings › Environment Variables** cargá estas variables para Production
 | `DLOCALGO_API_KEY` | API key de dLocal Go |
 | `DLOCALGO_SECRET_KEY` | Secret key de dLocal Go |
 | `DLOCALGO_ENTORNO` | `sandbox` para probar y `produccion` para cobrar. Si falta, es sandbox, así nadie cobra de verdad por error |
-| `DLOCALGO_CLAVE_AVISOS` | Opcional. Una clave larga al azar para los avisos. Si falta se usa la clave service role |
+| `DLOCALGO_CLAVE_AVISOS` | Obligatoria. Una clave larga al azar para los avisos (`openssl rand -hex 32`). Sin ella el pago aparece como no disponible |
 | `PORTAL_URL` | `https://www.firmasvc.com` |
 
 `PORTAL_URL` tiene que ser `https://www.firmasvc.com`, con www, porque el dominio sin www redirige y un aviso redirigido se pierde. Con ese valor las invitaciones al portal también salen con www, así que en Supabase, en **Authentication › URL Configuration**, sumá `https://www.firmasvc.com/portal/clave` a Redirect URLs. `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` siguen como estaban.
@@ -372,7 +372,7 @@ En **Settings › Environment Variables** cargá estas variables para Production
 
 Si falta la API key o la secret key, la API responde un error claro y en el portal el pago figura como no disponible. Los borradores se pueden armar igual. En **Administración › Abonos** se ve si dLocal Go está disponible y si está en sandbox o en producción.
 
-Cada plan guarda su dirección de aviso con la clave y la dirección del momento en que se creó. Si después cambiás `DLOCALGO_CLAVE_AVISOS`, la clave service role o `PORTAL_URL`, los avisos de los planes ya creados dejan de validar. El estado se sigue actualizando al volver de dLocal Go y con Actualizar estado, pero conviene definir las tres antes del primer abono y no tocarlas.
+Cada plan guarda su dirección de aviso con la clave y la dirección del momento en que se creó. Si después cambiás `DLOCALGO_CLAVE_AVISOS` o `PORTAL_URL`, los avisos de los planes ya creados dejan de validar. El estado se sigue actualizando al volver de dLocal Go y con Actualizar estado, pero conviene definir las tres antes del primer abono y no tocarlas.
 
 **4. Prueba completa en el sandbox**
 

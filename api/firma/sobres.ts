@@ -120,10 +120,11 @@ function basePortal(): string {
   return (process.env.PORTAL_URL || 'https://www.firmasvc.com').replace(/\/$/, '');
 }
 
-/** Clave para los enlaces de firma y los códigos por mail. Si falta FIRMA_CLAVE_FIRMAS se deriva de la service role. */
+/** Clave para los enlaces de firma y los códigos por mail. Propia, así cambiar la service role no rompe los enlaces. */
 function secreto(): string {
-  if (process.env.FIRMA_CLAVE_FIRMAS) return process.env.FIRMA_CLAVE_FIRMAS;
-  return createHmac('sha256', process.env.SUPABASE_SERVICE_ROLE_KEY || '').update('firma-electronica').digest('hex');
+  const clave = process.env.FIRMA_CLAVE_FIRMAS;
+  if (!clave) throw new Error('Falta configurar FIRMA_CLAVE_FIRMAS.');
+  return clave;
 }
 
 function sha256(datos: Uint8Array | string): string {
@@ -682,6 +683,7 @@ async function crearSobre(sb: SupabaseClient, q: Quien, request: Request, d: Dat
 export async function POST(request: Request): Promise<Response> {
   const sb = clienteServicio();
   if (!sb) return error('El servidor no tiene configuradas las variables de Supabase.', 500);
+  if (!process.env.FIRMA_CLAVE_FIRMAS) return error('El servidor no tiene configurada FIRMA_CLAVE_FIRMAS.', 500);
 
   const q = await identificar(sb, request);
   if (q instanceof Response) return q;

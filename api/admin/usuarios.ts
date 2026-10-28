@@ -52,8 +52,8 @@ function clienteServicio(): SupabaseClient | null {
   return createClient(url, clave, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
-function urlDelPortal(request: Request): string {
-  const base = process.env.PORTAL_URL || new URL(request.url).origin;
+function urlDelPortal(): string {
+  const base = process.env.PORTAL_URL || 'https://www.firmasvc.com';
   return `${base.replace(/\/$/, '')}/portal/clave`;
 }
 
@@ -112,7 +112,7 @@ export async function POST(request: Request): Promise<Response> {
       if (!org) return error('El cliente elegido no existe.');
     }
 
-    const opciones = { redirectTo: urlDelPortal(request), data: { nombre } };
+    const opciones = { redirectTo: urlDelPortal(), data: { nombre } };
     const ya = (m?: string) => /already|registered|exists/i.test(m || '');
     let invitado: { user: { id: string } } | null = null;
     let enlace: string | null = null;
@@ -126,7 +126,7 @@ export async function POST(request: Request): Promise<Response> {
       if (ya(r.error?.message)) return error('Ese mail ya tiene una cuenta. Buscalo en la lista y copiale el enlace de acceso.', 409);
       if (r.error || !r.data?.user || !r.data.properties?.hashed_token) return error(`No se pudo crear la cuenta. ${r.error?.message ?? ''}`.trim(), 502);
       invitado = { user: r.data.user };
-      porResend = enlaceDeAcceso(urlDelPortal(request), r.data.properties.hashed_token, 'invite');
+      porResend = enlaceDeAcceso(urlDelPortal(), r.data.properties.hashed_token, 'invite');
     } else if (!cuerpo.sin_mail) {
       const r = await sb.auth.admin.inviteUserByEmail(email, opciones);
       if (ya(r.error?.message)) return error('Ese mail ya tiene una cuenta. Buscalo en la lista y copiale el enlace de acceso.', 409);
@@ -139,7 +139,7 @@ export async function POST(request: Request): Promise<Response> {
       if (ya(r.error?.message)) return error('Ese mail ya tiene una cuenta. Buscalo en la lista y copiale el enlace de acceso.', 409);
       if (r.error || !r.data?.user || !r.data.properties?.hashed_token) return error(`No se pudo crear la cuenta. ${r.error?.message ?? motivo ?? ''}`.trim(), 502);
       invitado = { user: r.data.user };
-      enlace = enlaceDeAcceso(urlDelPortal(request), r.data.properties.hashed_token, 'invite');
+      enlace = enlaceDeAcceso(urlDelPortal(), r.data.properties.hashed_token, 'invite');
     }
 
     const { error: errPerfil } = await sb.from('perfiles').upsert({
@@ -213,18 +213,18 @@ export async function POST(request: Request): Promise<Response> {
       // Quien nunca aceptó la invitación recibe otra; quien ya tiene cuenta, un enlace para definir contraseña.
       const { data: cuenta } = await sb.auth.admin.getUserById(usuario_id);
       const tipo = cuenta?.user?.email_confirmed_at ? 'recovery' : 'invite';
-      const { data: link, error: errLink } = await sb.auth.admin.generateLink({ type: tipo, email: perfil.email, options: { redirectTo: urlDelPortal(request) } });
+      const { data: link, error: errLink } = await sb.auth.admin.generateLink({ type: tipo, email: perfil.email, options: { redirectTo: urlDelPortal() } });
       if (errLink || !link?.properties?.hashed_token) return error(`No se pudo generar el enlace. ${errLink?.message ?? ''}`.trim(), 502);
       const fallo = await mailDeAcceso({
         email: perfil.email,
         nombre: perfil.nombre ?? null,
         empresa: await nombreEmpresa(sb, perfil.organizacion_id),
-        enlace: enlaceDeAcceso(urlDelPortal(request), link.properties.hashed_token, tipo),
+        enlace: enlaceDeAcceso(urlDelPortal(), link.properties.hashed_token, tipo),
         tipo,
       });
       if (fallo) return error(`No se pudo enviar el mail. ${fallo}`, 502);
     } else {
-      const { error: errMail } = await sb.auth.resetPasswordForEmail(perfil.email, { redirectTo: urlDelPortal(request) });
+      const { error: errMail } = await sb.auth.resetPasswordForEmail(perfil.email, { redirectTo: urlDelPortal() });
       if (errMail) return error(`No se pudo enviar el mail. ${errMail.message}`, 502);
     }
     await registrar(sb, actor, usuario_id, 'envio_acceso');
@@ -236,10 +236,10 @@ export async function POST(request: Request): Promise<Response> {
     // Quien nunca aceptó la invitación recibe otra; quien ya tiene cuenta, un enlace para definir contraseña.
     const { data: cuenta } = await sb.auth.admin.getUserById(usuario_id);
     const tipo = cuenta?.user?.email_confirmed_at ? 'recovery' : 'invite';
-    const { data: link, error: errLink } = await sb.auth.admin.generateLink({ type: tipo, email: perfil.email, options: { redirectTo: urlDelPortal(request) } });
+    const { data: link, error: errLink } = await sb.auth.admin.generateLink({ type: tipo, email: perfil.email, options: { redirectTo: urlDelPortal() } });
     if (errLink || !link?.properties?.hashed_token) return error(`No se pudo generar el enlace. ${errLink?.message ?? ''}`.trim(), 502);
     await registrar(sb, actor, usuario_id, 'enlace_acceso');
-    return json({ ok: true, enlace: enlaceDeAcceso(urlDelPortal(request), link.properties.hashed_token, tipo) });
+    return json({ ok: true, enlace: enlaceDeAcceso(urlDelPortal(), link.properties.hashed_token, tipo) });
   }
 
   return error('Acción desconocida.');
@@ -298,7 +298,7 @@ async function demo(sb: SupabaseClient, actor: string, request: Request): Promis
       usuarios.push({ rol: u.rol, nombre: u.nombre, email, enlace: null });
       continue;
     }
-    const r = await sb.auth.admin.generateLink({ type: 'invite', email, options: { redirectTo: urlDelPortal(request), data: { nombre: u.nombre } } });
+    const r = await sb.auth.admin.generateLink({ type: 'invite', email, options: { redirectTo: urlDelPortal(), data: { nombre: u.nombre } } });
     if (r.error || !r.data?.user || !r.data.properties?.hashed_token) return error(`No se pudo crear ${email}. ${r.error?.message ?? ''}`.trim(), 502);
     const { error: errPerfil } = await sb.from('perfiles').upsert({
       id: r.data.user.id,
@@ -315,7 +315,7 @@ async function demo(sb: SupabaseClient, actor: string, request: Request): Promis
       return error(`No se pudo crear el perfil de ${email}. ${errPerfil.message}`, 500);
     }
     await registrar(sb, actor, r.data.user.id, 'invitacion', { email, rol: u.rol, organizacion_id: org.id, demo: true });
-    usuarios.push({ rol: u.rol, nombre: u.nombre, email, enlace: enlaceDeAcceso(urlDelPortal(request), r.data.properties.hashed_token, 'invite') });
+    usuarios.push({ rol: u.rol, nombre: u.nombre, email, enlace: enlaceDeAcceso(urlDelPortal(), r.data.properties.hashed_token, 'invite') });
   }
 
   // 3. Datos nuevos. Después se limpian los archivos de lo que se borró.

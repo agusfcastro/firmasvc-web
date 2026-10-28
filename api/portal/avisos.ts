@@ -59,8 +59,8 @@ function clienteServicio(): SupabaseClient | null {
   return createClient(url, clave, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
-function basePortal(request: Request): string {
-  return (process.env.PORTAL_URL || new URL(request.url).origin).replace(/\/$/, '');
+function basePortal(): string {
+  return (process.env.PORTAL_URL || 'https://www.firmasvc.com').replace(/\/$/, '');
 }
 
 function escapar(s: string): string {
@@ -370,7 +370,7 @@ export async function POST(request: Request): Promise<Response> {
   }
   const id = String(cuerpo?.id ?? '');
   if (!UUID.test(id)) return error('Falta el id.');
-  const base = basePortal(request);
+  const base = basePortal();
 
   try {
     if (cuerpo.tipo === 'novedad') return await avisoNovedad(sb, quien, id, base);

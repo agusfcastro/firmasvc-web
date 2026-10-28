@@ -117,10 +117,11 @@ function basePortal(): string {
   return (process.env.PORTAL_URL || 'https://www.firmasvc.com').replace(/\/$/, '');
 }
 
-/** Clave para los enlaces de firma y los códigos por mail. Si falta FIRMA_CLAVE_FIRMAS se deriva de la service role. */
+/** Clave para los enlaces de firma y los códigos por mail. Propia, así cambiar la service role no rompe los enlaces. */
 function secreto(): string {
-  if (process.env.FIRMA_CLAVE_FIRMAS) return process.env.FIRMA_CLAVE_FIRMAS;
-  return createHmac('sha256', process.env.SUPABASE_SERVICE_ROLE_KEY || '').update('firma-electronica').digest('hex');
+  const clave = process.env.FIRMA_CLAVE_FIRMAS;
+  if (!clave) throw new Error('Falta configurar FIRMA_CLAVE_FIRMAS.');
+  return clave;
 }
 
 function sha256(datos: Uint8Array | string): string {
@@ -852,6 +853,7 @@ export async function GET(request: Request): Promise<Response> {
   if (!clave || !iguales(request.headers.get('authorization') || '', `Bearer ${clave}`)) return error('No autorizado.', 401);
   const sb = clienteServicio();
   if (!sb) return error('El servidor no tiene configuradas las variables de Supabase.', 500);
+  if (!process.env.FIRMA_CLAVE_FIRMAS) return error('El servidor no tiene configurada FIRMA_CLAVE_FIRMAS.', 500);
 
   const resumen = { vencidos: 0, recordatorios: 0, sellados: 0, bfa_enviados: 0, bfa_registrados: 0, errores: [] as string[] };
   const { data } = await sb.from('firma_sobres').select('*').eq('estado', 'en_curso').limit(500);
@@ -901,6 +903,7 @@ export async function GET(request: Request): Promise<Response> {
 export async function POST(request: Request): Promise<Response> {
   const sb = clienteServicio();
   if (!sb) return error('El servidor no tiene configuradas las variables de Supabase.', 500);
+  if (!process.env.FIRMA_CLAVE_FIRMAS) return error('El servidor no tiene configurada FIRMA_CLAVE_FIRMAS.', 500);
 
   let cuerpo: Record<string, unknown>;
   try {

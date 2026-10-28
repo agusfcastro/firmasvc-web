@@ -7,6 +7,7 @@
  *   Responde siempre lo mismo, exista o no la cuenta, para no revelar qué
  *   mails tienen acceso. Solo manda el mail a una cuenta activa del portal y
  *   como mucho tres veces por hora, así nadie puede llenarle la casilla a otro.
+ *   Desde una misma IP salen como mucho diez por hora, sumando todas las cuentas.
  *   Sin RESEND_API_KEY lo manda el servidor de mails de Supabase.
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
@@ -14,6 +15,7 @@ import { enlaceDeAcceso, mailDeAcceso, mailDisponible } from '../_lib/mail.js';
 
 const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAXIMO_POR_HORA = 3;
+const MAXIMO_POR_IP = 10;
 
 function json(cuerpo: unknown, status = 200): Response {
   return new Response(JSON.stringify(cuerpo), {
@@ -29,8 +31,14 @@ function clienteServicio(): SupabaseClient | null {
   return createClient(url, clave, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
-function urlDelPortal(request: Request): string {
-  const base = process.env.PORTAL_URL || new URL(request.url).origin;
+/** IP de quien pide. Vercel pisa estos headers con la del cliente, así que no se pueden falsear. */
+function ipDe(request: Request): string | null {
+  const ip = request.headers.get('x-real-ip') || (request.headers.get('x-forwarded-for') || '').split(',')[0];
+  return ip.trim().slice(0, 64) || null;
+}
+
+function urlDelPortal(): string {
+  const base = process.env.PORTAL_URL || 'https://www.firmasvc.com';
   return `${base.replace(/\/$/, '')}/portal/clave`;
 }
 
@@ -58,9 +66,20 @@ export async function POST(request: Request): Promise<Response> {
     .eq('accion', 'pedido_clave')
     .gte('creado_en', haceUnaHora);
   if ((count ?? 0) >= MAXIMO_POR_HORA) return listo;
-  await sb.from('registro_accesos').insert({ usuario_id: perfil.id, actor_id: null, accion: 'pedido_clave', detalle: {} });
 
-  const redirectTo = urlDelPortal(request);
+  const ip = ipDe(request);
+  if (ip) {
+    const { count: deLaIp } = await sb
+      .from('registro_accesos')
+      .select('id', { count: 'exact', head: true })
+      .eq('accion', 'pedido_clave')
+      .eq('detalle->>ip', ip)
+      .gte('creado_en', haceUnaHora);
+    if ((deLaIp ?? 0) >= MAXIMO_POR_IP) return listo;
+  }
+  await sb.from('registro_accesos').insert({ usuario_id: perfil.id, actor_id: null, accion: 'pedido_clave', detalle: ip ? { ip } : {} });
+
+  const redirectTo = urlDelPortal();
   if (!mailDisponible()) {
     await sb.auth.resetPasswordForEmail(email, { redirectTo });
     return listo;
