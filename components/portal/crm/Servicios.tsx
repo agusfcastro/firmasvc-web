@@ -306,6 +306,10 @@ export const Servicios: React.FC<{ orgId: string; orgNombre: string; esAdmin: bo
               <span className="text-sm text-piedra group-open:hidden">Ver lista</span>
             </summary>
             <p className="text-sm text-piedra mt-4 mb-4">Escribilas en el Word tal cual, con llaves dobles. Se reemplazan con los datos de la ficha al generar el contrato.</p>
+            <p className="text-sm text-piedra mb-4">
+              Si un dato puede faltar, encerrá el texto que depende de él entre {'{{#VARIABLE}}'} y {'{{/VARIABLE}}'}, dentro del mismo párrafo. Por ejemplo{' '}
+              <code>{'{{NOMBRE}}{{#DNI}}, DNI {{DNI}}{{/DNI}}{{#DOMICILIO}}, con domicilio en {{DOMICILIO}}{{/DOMICILIO}}'}</code>. Sin el dato, ese texto no sale y el contrato se puede mandar a firmar igual.
+            </p>
             <ul className="flex flex-col">
               {VARIABLES.map(([clave, texto]) => (
                 <li key={clave} className="flex items-center justify-between gap-4 py-2.5" style={{ borderTop: '1px solid rgba(27,31,27,0.08)' }}>

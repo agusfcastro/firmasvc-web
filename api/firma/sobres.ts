@@ -459,7 +459,8 @@ async function crmVista(sb: SupabaseClient, q: Quien, cuerpo: Record<string, unk
     const vacias = word.usadas.filter((v) => !valores[v]?.trim() && !OPCIONALES.has(v));
     for (const v of vacias) avisos.push(`Falta {{${v}}}. Completalo en la ficha y volvé a generar el contrato.`);
     for (const v of word.desconocidas) avisos.push(`El modelo usa {{${v}}}, que no es una variable del sistema. Quedó tal cual.`);
-    if (word.usadas.length === 0) avisos.push('El modelo no tiene variables {{...}}. Salió igual al original.');
+    for (const v of word.sinCerrar) avisos.push(`El tramo {{#${v}}}…{{/${v}}} no abre y cierra en el mismo párrafo. Su marca quedó tal cual.`);
+    if (word.usadas.length === 0 && word.condicionales.length === 0) avisos.push('El modelo no tiene variables {{...}}. Salió igual al original.');
 
     const pdf = await wordAPdf(word.bytes, `${cliente.codigo ?? cliente.id} ${cliente.nombre}`);
     const ruta = `crm/${cliente.id}/contrato.pdf`;
