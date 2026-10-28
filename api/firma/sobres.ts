@@ -26,6 +26,7 @@
  */
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { FALTA_SEGUNDO_FACTOR, nivelDe } from '../_lib/nivel.js';
 import { enviarMail, mailDisponible, plantillaMail } from '../_lib/mail.js';
 import { PDFDocument } from 'pdf-lib';
 import { OPCIONALES, valoresDelContrato, type ClienteContrato, type PagoContrato } from '../_lib/variables.js';
@@ -316,6 +317,7 @@ async function identificar(sb: SupabaseClient, request: Request): Promise<Quien 
   const { data: p } = await sb.from('perfiles').select('id, email, rol, organizacion_id, activo').eq('id', data.user.id).maybeSingle();
   if (!p || !p.activo) return error('Tu cuenta no tiene acceso activo.', 403);
   if (!ROLES_CRM.includes(String(p.rol))) return error('Tu rol no tiene acceso a la firma electrónica.', 403);
+  if (p.rol === 'admin' && nivelDe(token) !== 'aal2') return error(FALTA_SEGUNDO_FACTOR, 403);
   if (p.rol !== 'admin') {
     const { data: org } = await sb.from('organizaciones').select('activa').eq('id', p.organizacion_id).maybeSingle();
     if (!org?.activa) return error('Tu empresa no tiene acceso activo.', 403);

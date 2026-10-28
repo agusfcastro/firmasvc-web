@@ -138,11 +138,24 @@ Las cuentas viejas con rol Miembro del equipo funcionan como CSM. Para que rijan
 
 Los permisos los aplica la base de datos. Aunque alguien manipule la página, un cliente no puede leer datos de otro.
 
+### Verificación en dos pasos
+
+Las cuentas Admin FIRMA, además de la contraseña, piden el código de 6 números de una app autenticadora (Google Authenticator, 1Password o similar). La primera vez que un admin entra, el portal le muestra un QR para registrar la app; después pide el código en cada ingreso. Con la contraseña sola una cuenta admin no ve nada: no lo deja el portal, ni la API, ni la base.
+
+Puesta en marcha, en este orden:
+
+1. En Supabase, **Authentication › Multi-Factor** (o **Sign In / Providers › Multi-Factor**), revisá que **TOTP** esté habilitado. Viene habilitado de fábrica.
+2. Con el código desplegado, cada admin entra al portal y registra su app.
+3. Recién entonces corré `supabase/migraciones/0033_mfa_admin.sql` en **SQL Editor**. Hace que la base exija el segundo factor para los permisos de admin. Si la corrés antes de desplegar el código, los admins se quedan sin permisos en la base hasta que el portal tenga la pantalla del código.
+
+Si un admin pierde el celular: en Supabase, **Authentication › Users**, abrí su usuario y borrá el factor en **Multi-Factor**. Al volver a entrar le pide registrar la app de nuevo. Guardá la clave de texto que muestra el alta, debajo del QR, en un lugar seguro: con ella podés cargar la app en otro celular.
+
 ## Archivos del módulo
 
 | Archivo | Para qué |
 |---|---|
 | `supabase/migraciones/0001_portal_accesos.sql` | Tablas, roles y permisos |
+| `supabase/migraciones/0033_mfa_admin.sql` | Los permisos de admin piden la verificación en dos pasos |
 | `supabase/primer_admin.sql` | Alta de tu usuario admin |
 | `api/admin/usuarios.ts` | Invitar, editar, activar y desactivar (servidor) |
 | `components/portal/` | Pantallas del portal y del panel |

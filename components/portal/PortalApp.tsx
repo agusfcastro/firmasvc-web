@@ -7,6 +7,7 @@ import { Aviso, Cargando } from './ui';
 import { LayoutAcceso } from './LayoutAcceso';
 import { Ingresar } from './Ingresar';
 import { DefinirClave } from './DefinirClave';
+import { SegundoFactor } from './SegundoFactor';
 import { Inicio } from './Inicio';
 import { Agenda } from './Agenda';
 import { Documentos } from './Documentos';
@@ -66,6 +67,11 @@ export const PortalApp: React.FC = () => {
   }
 
   if (cargando) return <Cargando />;
+  // Las cuentas de FIRMA no pasan de acá sin el segundo factor, ni siquiera para cambiar la contraseña.
+  if (sesion && perfil?.rol === 'admin' && perfil.activo && !estado.enlacePendiente) {
+    if (!estado.mfa) return <Cargando />;
+    if (estado.mfa.actual !== 'aal2') return <SegundoFactor estado={estado} />;
+  }
   if (ruta === '/portal/clave') return <DefinirClave estado={estado} />;
   if (!sesion) return <Ingresar />;
 

@@ -35,6 +35,7 @@
  */
 import { createHmac, randomUUID } from 'node:crypto';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { FALTA_SEGUNDO_FACTOR, nivelDe } from '../_lib/nivel.js';
 
 /* ================================================================== */
 /* Bloque común de pagos con dLocal Go                                  */
@@ -329,6 +330,7 @@ async function quienLlama(sb: SupabaseClient, request: Request): Promise<Quien |
   if (errUsuario || !data?.user) return error('Sesión inválida o vencida.', 401);
   const { data: perfil } = await sb.from('perfiles').select('rol, activo, organizacion_id').eq('id', data.user.id).maybeSingle();
   if (!perfil || !perfil.activo) return error('Tu cuenta no está habilitada.', 403);
+  if (perfil.rol === 'admin' && nivelDe(token) !== 'aal2') return error(FALTA_SEGUNDO_FACTOR, 403);
   return { id: data.user.id, rol: perfil.rol, organizacion_id: perfil.organizacion_id };
 }
 

@@ -16,6 +16,9 @@ export interface EstadoSesion {
   /** Valida el enlace pendiente. Devuelve null si entró o el motivo si no. */
   activarEnlace: () => Promise<string | null>;
   recargar: () => Promise<void>;
+  /** Nivel de la sesión: aal2 si ya pasó el segundo factor. null mientras se lee. */
+  mfa: { actual: string | null; posible: string | null } | null;
+  recargarMfa: () => Promise<void>;
 }
 
 /** Enlace propio de firmasvc.com: /portal/clave?token_hash=…&type=invite|recovery */
@@ -39,6 +42,19 @@ export function useSesion(): EstadoSesion {
   const [organizacion, setOrganizacion] = useState<Organizacion | null>(null);
   const [vieneDeEnlace, setVieneDeEnlace] = useState(hashDeEnlace);
   const [enlacePendiente, setEnlacePendiente] = useState(() => tokenDeEnlace() !== null);
+  const [mfa, setMfa] = useState<EstadoSesion['mfa']>(null);
+
+  // Se lee del token de la sesión, sin ir al servidor.
+  const recargarMfa = useCallback(async () => {
+    if (!supabase) return;
+    const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    setMfa({ actual: data?.currentLevel ?? null, posible: data?.nextLevel ?? null });
+  }, []);
+
+  useEffect(() => {
+    if (sesion) void recargarMfa();
+    else setMfa(null);
+  }, [sesion, recargarMfa]);
 
   const cargarPerfil = useCallback(async (s: Session | null) => {
     if (!supabase || !s) {
@@ -106,7 +122,7 @@ export function useSesion(): EstadoSesion {
     return null;
   }, []);
 
-  return { cargando, sesion, perfil, organizacion, vieneDeEnlace, terminarEnlace, enlacePendiente, activarEnlace, recargar };
+  return { cargando, sesion, perfil, organizacion, vieneDeEnlace, terminarEnlace, enlacePendiente, activarEnlace, recargar, mfa, recargarMfa };
 }
 
 /** Llama a la API de administración con el token de la sesión actual. */

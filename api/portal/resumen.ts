@@ -25,6 +25,7 @@
  */
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { FALTA_SEGUNDO_FACTOR, nivelDe } from '../_lib/nivel.js';
 import { enviarMail, mailDisponible, plantillaMail } from '../_lib/mail.js';
 
 const ZONA = 'America/Argentina/Buenos_Aires';
@@ -464,6 +465,7 @@ async function mandarPrueba(sb: SupabaseClient, request: Request): Promise<Respo
   if (!u?.user) return error('Sesión requerida.', 401);
   const { data: yo } = await sb.from('perfiles').select('id, email, nombre, rol, activo').eq('id', u.user.id).maybeSingle();
   if (!yo?.activo || yo.rol !== 'admin') return error('Solo FIRMA manda pruebas.', 403);
+  if (nivelDe(token) !== 'aal2') return error(FALTA_SEGUNDO_FACTOR, 403);
   if (!mailDisponible()) return error('El envío de mails no está configurado.', 503);
   const baja = enlaceBaja(yo.id);
   if (!baja) return error('El servidor no tiene configurada PORTAL_CLAVE_AVISOS.', 500);

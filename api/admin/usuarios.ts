@@ -24,6 +24,7 @@
  *               los que se acaban de crear.
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { FALTA_SEGUNDO_FACTOR, nivelDe } from '../_lib/nivel.js';
 import { enlaceDeAcceso, mailDeAcceso, mailDisponible } from '../_lib/mail.js';
 import { modeloDemoDocx } from '../_lib/modeloDemo.js';
 
@@ -86,6 +87,7 @@ export async function POST(request: Request): Promise<Response> {
 
   const { data: perfilActor } = await sb.from('perfiles').select('rol, activo').eq('id', actor).maybeSingle();
   if (!perfilActor || perfilActor.rol !== 'admin' || !perfilActor.activo) return error('No tenés permisos de administración.', 403);
+  if (nivelDe(token) !== 'aal2') return error(FALTA_SEGUNDO_FACTOR, 403);
 
   let cuerpo: Record<string, unknown>;
   try {

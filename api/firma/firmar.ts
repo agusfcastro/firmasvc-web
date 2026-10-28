@@ -21,6 +21,7 @@
  */
 import { createHash, createHmac, randomInt, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { FALTA_SEGUNDO_FACTOR, nivelDe } from '../_lib/nivel.js';
 import { enviarMail, mailDisponible, plantillaMail } from '../_lib/mail.js';
 import { PDFDocument, StandardFonts, degrees, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
 
@@ -922,6 +923,7 @@ export async function POST(request: Request): Promise<Response> {
       if (!u?.user) return error('Sesión requerida.', 401);
       const { data: p } = await sb.from('perfiles').select('rol, activo').eq('id', u.user.id).maybeSingle();
       if (!p?.activo || p.rol !== 'admin') return error('Solo FIRMA puede reintentar el armado.', 403);
+      if (nivelDe(token) !== 'aal2') return error(FALTA_SEGUNDO_FACTOR, 403);
       const sobreId = String(cuerpo.sobre_id || '');
       if (!UUID.test(sobreId)) return error('Envío inválido.');
       const fallo = await sellar(sb, sobreId);
