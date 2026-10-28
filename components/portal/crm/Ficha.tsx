@@ -6,7 +6,7 @@ import { Aviso, Campo, Cifras, Encabezado, Enlace, Etiqueta, Monto, TituloSeccio
 import { useVistaPrevia } from '../vistaPrevia';
 import { navegar } from '../navegacion';
 import { BUCKET_ASUNTOS } from '../asuntos';
-import { TONO_FIRMA, dinero, fecha, hoyISO, type CambioHistorial, type ClienteCrm, type ContratoReservado, type EstadoFirma, type Pago, type Servicio } from './tipos';
+import { TONO_FIRMA, dinero, hoyISO, type CambioHistorial, type ClienteCrm, type ContratoReservado, type EstadoFirma, type Pago, type Servicio } from './tipos';
 import { CAMPOS_CASO, VALORES_CASO } from './reglasCasos';
 import { CasosCliente } from './Casos';
 import { AsuntosCliente } from './AsuntosCliente';
@@ -63,7 +63,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
   const [historial, setHistorial] = useState<CambioHistorial[]>([]);
   const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
   const [guardando, setGuardando] = useState(false);
-  const [nueva, setNueva] = useState<{ monto: string; vencimiento: string; nota: string } | null>(null);
+  const [nueva, setNueva] = useState<{ anticipo: boolean; monto: string; fecha: string; nota: string } | null>(null);
   const [noExiste, setNoExiste] = useState(false);
   const soloLectura = Boolean(useVistaPrevia());
   const [casosAbiertos, setCasosAbiertos] = useState(0);
@@ -172,7 +172,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
   }
 
   async function borrarPago(p: Pago) {
-    if (!supabase || !window.confirm(`¿Eliminar la cuota de ${dinero(p.monto, moneda)}?`)) return;
+    if (!supabase || !window.confirm(`¿Eliminar el pago de ${dinero(p.monto, moneda)}?`)) return;
     const { error } = await supabase.from('crm_pagos').delete().eq('id', p.id);
     if (error) setMensaje({ tipo: 'error', texto: error.message });
     void cargar();
@@ -187,7 +187,8 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
       cliente_id: id,
       organizacion_id: cliente!.organizacion_id,
       monto,
-      vencimiento: nueva.vencimiento || null,
+      // El anticipo va pagado y sin vencimiento, así el contrato lo toma como anticipo.
+      ...(nueva.anticipo ? { estado: 'pagado', fecha_pago: nueva.fecha || hoy } : { vencimiento: nueva.fecha || null }),
       nota: nueva.nota.trim() || null,
     });
     if (error) return setMensaje({ tipo: 'error', texto: error.message });
@@ -224,23 +225,26 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                       onBlur={(e) => e.target.value !== (p.vencimiento ?? '') && actualizarPago(p, { vencimiento: e.target.value || null })}
                     />
                   ) : (
-                    <span className="text-piedra">{p.fecha_pago ? `Pagó el ${fecha(p.fecha_pago)}` : 'Pagado'}</span>
+                    <input
+                      type="date"
+                      aria-label="Fecha de pago"
+                      title="Fecha de pago"
+                      className={`${claseInput} h-10 w-[160px]`}
+                      defaultValue={p.fecha_pago ?? ''}
+                      onBlur={(e) => e.target.value !== (p.fecha_pago ?? '') && actualizarPago(p, { fecha_pago: e.target.value || null })}
+                    />
                   )}
                 </td>
                 <td className="num !py-2.5">
-                  {p.estado === 'pendiente' ? (
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0.01"
-                      aria-label="Monto"
-                      className={`${claseInput} h-10 w-28 text-right`}
-                      defaultValue={p.monto}
-                      onBlur={(e) => Number(e.target.value) > 0 && Number(e.target.value) !== p.monto && actualizarPago(p, { monto: Number(e.target.value) })}
-                    />
-                  ) : (
-                    <span className="font-medium">{dinero(p.monto, moneda)}</span>
-                  )}
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    aria-label="Monto"
+                    className={`${claseInput} h-10 w-28 text-right`}
+                    defaultValue={p.monto}
+                    onBlur={(e) => Number(e.target.value) > 0 && Number(e.target.value) !== p.monto && actualizarPago(p, { monto: Number(e.target.value) })}
+                  />
                 </td>
                 <td>
                   {p.estado === 'pagado' ? <Etiqueta tono="bosque">Pagada</Etiqueta> : vencida ? <Etiqueta tono="alerta">Vencida</Etiqueta> : <Etiqueta>Pendiente</Etiqueta>}
@@ -425,22 +429,27 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                 <Campo etiqueta={`Monto (${moneda})`}>
                   <input required type="number" step="0.01" min="0.01" className={claseInput} value={nueva.monto} onChange={(e) => setNueva({ ...nueva, monto: e.target.value })} />
                 </Campo>
-                <Campo etiqueta="Vencimiento">
-                  <input type="date" className={claseInput} value={nueva.vencimiento} onChange={(e) => setNueva({ ...nueva, vencimiento: e.target.value })} />
+                <Campo etiqueta={nueva.anticipo ? 'Fecha de pago' : 'Vencimiento'}>
+                  <input type="date" className={claseInput} value={nueva.fecha} onChange={(e) => setNueva({ ...nueva, fecha: e.target.value })} />
                 </Campo>
                 <Campo etiqueta="Nota">
                   <input className={claseInput} value={nueva.nota} onChange={(e) => setNueva({ ...nueva, nota: e.target.value })} />
                 </Campo>
-                <Button type="submit">Agregar</Button>
+                <Button type="submit">{nueva.anticipo ? 'Agregar anticipo' : 'Agregar cuota'}</Button>
                 <Button type="button" variant="ghost" onClick={() => setNueva(null)}>
                   Cancelar
                 </Button>
               </form>
             ) : (
               !soloLectura && (
-                <Button variant="ghost" size="sm" className="mt-6" onClick={() => setNueva({ monto: diferencia > 0 ? String(diferencia) : '', vencimiento: '', nota: '' })}>
-                  <Plus size={16} /> Agregar cuota
-                </Button>
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <Button variant="ghost" size="sm" onClick={() => setNueva({ anticipo: false, monto: diferencia > 0 ? String(diferencia) : '', fecha: '', nota: '' })}>
+                    <Plus size={16} /> Agregar cuota
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setNueva({ anticipo: true, monto: diferencia > 0 ? String(diferencia) : '', fecha: hoy, nota: 'Anticipo' })}>
+                    <Plus size={16} /> Agregar anticipo
+                  </Button>
+                </div>
               )
             )}
           </fieldset>
