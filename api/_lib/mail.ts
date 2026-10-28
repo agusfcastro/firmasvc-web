@@ -36,6 +36,8 @@ export interface Plantilla {
   seccion: string;
   titulo: string;
   parrafos: string[];
+  /** Listas con su rótulo, debajo de los párrafos. Cada ítem ya viene escapado, como los párrafos. */
+  bloques?: { titulo: string; items: string[] }[];
   boton?: { texto: string; url: string };
   pie?: string;
   /** Texto que algunos clientes muestran junto al asunto en la bandeja. */
@@ -45,6 +47,16 @@ export interface Plantilla {
 export function plantillaMail(o: Plantilla): string {
   const parrafos = o.parrafos
     .map((p) => `<p style="margin:0 0 16px;font-family:${TEXTO};font-size:15px;line-height:1.65;color:${TINTA}">${p}</p>`)
+    .join('');
+  const bloques = (o.bloques ?? [])
+    .filter((b) => b.items.length)
+    .map(
+      (b) =>
+        `<p style="margin:28px 0 6px;font-family:${TEXTO};font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:${PIEDRA}">${escaparMail(b.titulo)}</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${b.items
+          .map((i) => `<tr><td style="padding:10px 0;border-top:1px solid ${LINEA};font-family:${TEXTO};font-size:14px;line-height:1.55;color:${TINTA}">${i}</td></tr>`)
+          .join('')}</table>`,
+    )
     .join('');
   const boton = o.boton
     ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0 12px"><tr><td style="background:${BOSQUE}">
@@ -74,7 +86,7 @@ ${anticipo}
 <tr><td style="background:#FFFFFF;border:1px solid ${LINEA};border-top:3px solid ${BOSQUE};padding:36px 32px">
 <p style="margin:0 0 14px;font-family:${TEXTO};font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:${PIEDRA}">${escaparMail(o.seccion)}</p>
 <h1 style="margin:0 0 22px;font-family:${TITULO};font-size:26px;font-weight:900;line-height:1.2;letter-spacing:-.01em;color:${TINTA}">${escaparMail(o.titulo)}</h1>
-${parrafos}${boton}${pie}
+${parrafos}${bloques}${boton}${pie}
 </td></tr>
 <tr><td style="background:${CARBON};padding:22px 32px">
 <p style="margin:0 0 4px;font-family:${TEXTO};font-size:13px;font-weight:600;color:${MARFIL}">Agustín Castro · Abogado (UBA)</p>
@@ -95,6 +107,8 @@ export async function enviarMail(o: {
   adjuntos?: { filename: string; content: string }[];
   /** Dirección del remitente. Si falta, la de FIRMA_MAIL_DIRECCION o firmas@firmasvc.com. */
   direccion?: string;
+  /** Encabezados extra, como List-Unsubscribe en los mails periódicos. */
+  encabezados?: Record<string, string>;
 }): Promise<string | null> {
   const clave = process.env.RESEND_API_KEY;
   if (!clave) return 'Falta configurar RESEND_API_KEY.';
@@ -111,6 +125,7 @@ export async function enviarMail(o: {
         html: o.html,
         ...(o.responderA ? { reply_to: o.responderA } : {}),
         ...(o.adjuntos?.length ? { attachments: o.adjuntos } : {}),
+        ...(o.encabezados ? { headers: o.encabezados } : {}),
       }),
     });
     if (!r.ok) {

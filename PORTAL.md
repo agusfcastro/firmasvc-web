@@ -492,6 +492,54 @@ Cada aviso sale una sola vez y a cada persona por separado. Los documentos de la
 | `api/portal/avisos.ts` | Avisos por mail de novedades y documentos |
 | `api/portal/recuperar.ts` | Mail de «Olvidé mi contraseña» con la marca |
 
+## Mail de los lunes y alertas
+
+Mails que el portal manda solo, sin que nadie los pida, desde `/api/portal/resumen`. Corre todos los días a las 9 de Buenos Aires con Vercel Cron. En el plan Hobby de Vercel la tarea puede salir en cualquier momento entre las 9 y las 10. Las empresas desactivadas y la demo no reciben nada.
+
+**Alertas de vencimientos.** Todos los días, un solo mail por persona con todo lo que vence pronto en su empresa, y uno a FIRMA con todas las empresas.
+
+| Qué | Cuándo avisa | A quién |
+|---|---|---|
+| Asunto abierto con vencimiento | 7 días antes y el día anterior | Titular y CSM, y FIRMA |
+| Envío a firma en curso | 3 días antes de que venza | Titular y CSM, y FIRMA |
+| Abono con fecha de fin (Vigente hasta) | 30 días antes y 7 días antes | Titular, y FIRMA |
+
+Cada alerta sale una vez por umbral. Si cambia la fecha de vencimiento, se vuelve a avisar con la nueva.
+
+**Mail de los lunes.** Un solo mail por persona, en este orden:
+
+| Parte | Qué lleva | A quién |
+|---|---|---|
+| Novedades | El video y el artículo de la semana, cargados en Administración › Newsletter | Todos los usuarios de la empresa |
+| Vencimientos de esta semana | Asuntos y envíos a firma que vencen de lunes a domingo, y el abono si termina esa semana (este solo al titular) | Titular y CSM |
+| Tu semana en resumen | Una línea por tema: asuntos abiertos y cuáles esperan su respuesta, asuntos con novedades, finalizados, firmas en curso y completadas, documentos nuevos | Titular y CSM |
+
+El mail de los lunes sale solo si activaste la newsletter de esa semana. Sin una newsletter activada, ese lunes no sale nada, tampoco el resumen. Las alertas de vencimientos no dependen de esto. Si el lunes no alcanzó el tiempo de la función, el martes y el miércoles manda lo que faltó.
+
+**Newsletter.** En Administración › Newsletter, **Nueva newsletter**: el lunes en que sale, el video (título y enlace) y el artículo (título, bajada y enlace). Alcanza con uno de los dos. Los videos de YouTube muestran su miniatura en el mail; Vimeo, Loom y otros van como enlace. Se guarda como Borrador.
+
+1. **Enviarme una prueba** te la manda al mail, como la ve un closer.
+2. **Activar envío** la deja lista para salir ese lunes a las 9. Hasta las 9 se puede **Desactivar**, editar o borrar.
+3. Después de salir queda como Enviada y ya no se edita.
+
+**Baja.** El pie del mail de los lunes tiene «Dejar de recibir este mail». Lleva a una página que pide un clic, así un filtro de correo que abre el enlace no da de baja a nadie. Gmail y Apple Mail muestran además su botón de baja (List-Unsubscribe). Desde la misma página se vuelve a recibir. Las alertas no se dan de baja, porque suelen tener plazos. Cada cambio queda en el registro.
+
+### Puesta en marcha
+
+1. Corré `0032_resumen_y_alertas.sql` en Supabase › SQL Editor.
+2. En Vercel cargá `PORTAL_CLAVE_AVISOS` con `openssl rand -hex 32`. `CRON_SECRET` y `RESEND_API_KEY` ya están por la firma electrónica.
+3. Redeploy. Para probar sin esperar al lunes, llamá a la tarea con el mail de los lunes forzado. Manda de verdad a todos, una vez por persona y por semana. Para ver solo la newsletter, usá **Enviarme una prueba**.
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" "https://www.firmasvc.com/api/portal/resumen?resumen=1"
+```
+
+| Archivo | Para qué |
+|---|---|
+| `supabase/migraciones/0032_resumen_y_alertas.sql` | Preferencia del mail de los lunes, newsletters y registro de lo que ya salió |
+| `api/portal/resumen.ts` | Tarea diaria, alertas, mail de los lunes, prueba y página de baja |
+| `components/portal/admin/Newsletter.tsx` | Administración › Newsletter |
+
 ## Logos de clientes
 
 Cada empresa puede tener su logo. Se ve en el header del portal al lado del de FIRMA para todo su equipo, y en el CRM y los casos de esa empresa. Cuando un admin elige una empresa en el CRM, ve el logo de esa empresa.

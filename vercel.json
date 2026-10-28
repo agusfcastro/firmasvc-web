@@ -170,12 +170,19 @@
     },
     "api/firma/sobres.ts": {
       "maxDuration": 60
+    },
+    "api/portal/resumen.ts": {
+      "maxDuration": 60
     }
   },
   "crons": [
     {
       "path": "/api/firma/firmar",
       "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/portal/resumen",
+      "schedule": "0 12 * * *"
     }
   ]
 }
