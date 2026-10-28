@@ -11,11 +11,14 @@ type Bloque = { titulo: string } | { texto: string; negrita?: boolean; centrado?
 const CONTENIDO: Bloque[] = [
   { titulo: 'CONTRATO DE PRESTACIÓN DE SERVICIOS' },
   { texto: 'Modelo de ejemplo de la empresa demo. No tiene validez legal.', centrado: true },
-  { texto: 'En la fecha {{FECHA}}, entre {{EMPRESA}}, en adelante «LA EMPRESA», y {{NOMBRE}}, DNI {{DNI}}, con domicilio en {{DOMICILIO}} y mail {{EMAIL}}, en adelante «EL CLIENTE», acuerdan celebrar el presente contrato, que se rige por las siguientes cláusulas.' },
+  {
+    texto:
+      'En la fecha {{FECHA}}, entre {{EMPRESA}}, en adelante «LA EMPRESA», y {{#RAZON_SOCIAL_CLIENTE}}{{RAZON_SOCIAL_CLIENTE}}{{#ID_FISCAL_CLIENTE}}, {{ID_FISCAL_CLIENTE}}{{/ID_FISCAL_CLIENTE}}{{#DOMICILIO}}, con domicilio en {{DOMICILIO}}{{/DOMICILIO}}, representada por {{NOMBRE}}{{#DNI}}, documento {{DNI}}{{/DNI}}{{#CARGO}}, en su carácter de {{CARGO}}{{/CARGO}},{{/RAZON_SOCIAL_CLIENTE}}{{^RAZON_SOCIAL_CLIENTE}}{{NOMBRE}}{{#DNI}}, DNI {{DNI}}{{/DNI}}{{#DOMICILIO}}, con domicilio en {{DOMICILIO}}{{/DOMICILIO}},{{/RAZON_SOCIAL_CLIENTE}} con mail {{EMAIL}}, en adelante «EL CLIENTE», acuerdan celebrar el presente contrato, que se rige por las siguientes cláusulas.',
+  },
   { texto: 'PRIMERA. Objeto.', negrita: true },
   { texto: 'LA EMPRESA prestará a EL CLIENTE el servicio {{SERVICIO}}, con el alcance que se describe en la propuesta comercial aceptada, que forma parte de este contrato.' },
   { texto: 'SEGUNDA. Inicio y responsable.', negrita: true },
-  { texto: 'El servicio comienza con el onboarding del {{FECHA_ONBOARDING}}. La persona a cargo del seguimiento por parte de LA EMPRESA es {{RESPONSABLE}}.' },
+  { texto: 'El servicio comienza con el onboarding del {{FECHA_ONBOARDING}}.{{#RESPONSABLE}} La persona a cargo del seguimiento por parte de LA EMPRESA es {{RESPONSABLE}}.{{/RESPONSABLE}}' },
   { texto: 'TERCERA. Precio.', negrita: true },
   { texto: 'EL CLIENTE abonará la suma total de {{MONEDA_LETRAS}} {{MONTO_TOTAL_LETRAS}} ({{MONEDA}} {{MONTO_TOTAL}}), en la modalidad {{MODALIDAD}}, según el siguiente esquema:' },
   { texto: '{{ESQUEMA_PAGOS}}' },
