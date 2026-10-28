@@ -1,10 +1,16 @@
 export type EstadoFirma = 'Pendiente' | 'Firmado' | 'Baja';
+export type TipoCliente = 'persona' | 'empresa';
 
 export interface ClienteCrm {
   id: string;
   organizacion_id: string;
   codigo: string;
+  /** Persona o empresa. En una empresa, nombre es la razón social y dni, email y telefono son del representante. */
+  tipo?: TipoCliente;
   nombre: string;
+  id_fiscal?: string | null;
+  representante?: string | null;
+  cargo?: string | null;
   dni: string | null;
   email: string | null;
   telefono: string | null;

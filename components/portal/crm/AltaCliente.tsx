@@ -6,7 +6,8 @@ import { navegar } from '../navegacion';
 import { Aviso, Campo, Encabezado, Enlace, TituloSeccion, claseInput } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
 import { generarContratoFirma } from './contratoFirma';
-import { dinero, hoyISO, type Servicio } from './tipos';
+import { dinero, hoyISO, type Servicio, type TipoCliente } from './tipos';
+import { DatosCliente, filaIdentidad } from './DatosCliente';
 
 const FECHA_VALIDA = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -45,7 +46,7 @@ function repartir(saldo: number, cantidad: number, primera: string): Cuota[] {
 export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre: string; cobranza: boolean }> = ({ orgId, esAdmin, orgNombre }) => {
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [f, setF] = useState({
-    nombre: '', dni: '', email: '', telefono: '', domicilio: '', servicio: '', monto_total: '', modalidad: 'Cuotas' as 'Cuotas' | 'PIF',
+    tipo: 'persona' as TipoCliente, nombre: '', id_fiscal: '', representante: '', cargo: '', dni: '', email: '', telefono: '', domicilio: '', servicio: '', monto_total: '', modalidad: 'Cuotas' as 'Cuotas' | 'PIF',
     fecha_onboarding: '', responsable: '', notas: '', condiciones: '', anticipo: '', cantidad: '2', primera: hoyISO(),
   });
   const [cuotas, setCuotas] = useState<Cuota[]>([]);
@@ -121,11 +122,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
       .from('crm_clientes')
       .insert({
         organizacion_id: orgId,
-        nombre: f.nombre.trim(),
-        dni: f.dni.trim() || null,
-        email: f.email.trim().toLowerCase() || null,
-        telefono: f.telefono.trim() || null,
-        domicilio: f.domicilio.trim() || null,
+        ...filaIdentidad(f),
         servicio: f.servicio || null,
         monto_total: total / 100,
         modalidad: f.modalidad,
@@ -195,24 +192,9 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
         </Aviso>
       )}
 
+      <DatosCliente d={f} alCambiar={set} mailObligatorio nombreGrupo="tipo-alta" />
+
       <div className="grid gap-5 tab:grid-cols-2">
-        <Campo etiqueta="Nombre completo">
-          <input required className={claseInput} value={f.nombre} onChange={(e) => set('nombre', e.target.value)} />
-        </Campo>
-        <Campo etiqueta="DNI">
-          <input className={claseInput} value={f.dni} onChange={(e) => set('dni', e.target.value)} />
-        </Campo>
-        <Campo etiqueta="Mail">
-          <input type="email" required className={claseInput} value={f.email} onChange={(e) => set('email', e.target.value)} />
-        </Campo>
-        <Campo etiqueta="Teléfono">
-          <input className={claseInput} value={f.telefono} onChange={(e) => set('telefono', e.target.value)} />
-        </Campo>
-        <div className="tab:col-span-2">
-          <Campo etiqueta="Domicilio" ayuda="Calle, número, localidad, provincia y país. Va en el contrato.">
-            <input className={claseInput} value={f.domicilio} maxLength={300} onChange={(e) => set('domicilio', e.target.value)} />
-          </Campo>
-        </div>
         <Campo etiqueta="Servicio">
           <select
             required

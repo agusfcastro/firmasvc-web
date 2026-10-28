@@ -16,8 +16,9 @@ import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate';
 const PARRAFO = /<w:p(?:\s[^>]*)?>[\s\S]*?<\/w:p>/g;
 const TEXTO = /(<w:t(?:\s[^>]*[^/>])?>)([\s\S]*?)(<\/w:t>)|<w:t(?:\s[^>]*)?\/>/g;
 // {{NOMBRE}} es una variable. {{#DNI}}…{{/DNI}} es un tramo que solo queda
-// si el DNI tiene valor. El tramo abre y cierra dentro del mismo párrafo.
-const MARCA = /\{\{\s*([#/]?)\s*([A-Za-z_ÁÉÍÓÚÑáéíóúñ0-9]+)\s*\}\}/g;
+// si el DNI tiene valor, y {{^DNI}}…{{/DNI}} uno que solo queda si está vacío.
+// El tramo abre y cierra dentro del mismo párrafo.
+const MARCA = /\{\{\s*([#^/]?)\s*([A-Za-z_ÁÉÍÓÚÑáéíóúñ0-9]+)\s*\}\}/g;
 
 function desescapar(s: string): string {
   return s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
@@ -56,7 +57,7 @@ interface Marca {
   clave: string;
 }
 
-type Pieza = ({ tipo: 'variable' } & Marca) | { tipo: 'tramo'; abre: Marca; cierra: Marca; hijos: Pieza[] };
+type Pieza = ({ tipo: 'variable' } & Marca) | { tipo: 'tramo'; inverso: boolean; abre: Marca; cierra: Marca; hijos: Pieza[] };
 
 /** Un cambio sobre el texto unido del párrafo: lo que va de inicio a fin pasa a valor. */
 interface Cambio {
@@ -75,11 +76,11 @@ interface Registro {
 /** Arma el árbol de variables y tramos del párrafo. Las marcas que no cierran quedan como texto. */
 function piezasDe(unido: string, reg: Registro): Pieza[] {
   const raiz: Pieza[] = [];
-  const pila: { abre: Marca; hijos: Pieza[] }[] = [];
+  const pila: { abre: Marca; inverso: boolean; hijos: Pieza[] }[] = [];
   const actual = () => (pila.length ? pila[pila.length - 1].hijos : raiz);
   for (const m of unido.matchAll(MARCA)) {
     const marca = { inicio: m.index ?? 0, fin: (m.index ?? 0) + m[0].length, clave: claveDe(m[2]) };
-    if (m[1] === '#') pila.push({ abre: marca, hijos: [] });
+    if (m[1] === '#' || m[1] === '^') pila.push({ abre: marca, inverso: m[1] === '^', hijos: [] });
     else if (m[1] === '/') {
       const tope = pila[pila.length - 1];
       if (tope?.abre.clave !== marca.clave) {
@@ -87,7 +88,7 @@ function piezasDe(unido: string, reg: Registro): Pieza[] {
         continue;
       }
       pila.pop();
-      actual().push({ tipo: 'tramo', abre: tope.abre, cierra: marca, hijos: tope.hijos });
+      actual().push({ tipo: 'tramo', inverso: tope.inverso, abre: tope.abre, cierra: marca, hijos: tope.hijos });
     } else actual().push({ tipo: 'variable', ...marca });
   }
   // Un tramo sin cierre: su marca queda tal cual y lo de adentro se completa igual.
@@ -116,8 +117,9 @@ function cambiosDe(piezas: Pieza[], valores: Record<string, string>, reg: Regist
       continue;
     }
     reg.condicionales.add(p.abre.clave);
-    if (!valores[p.abre.clave]?.trim()) {
-      // Sin dato, el tramo entero se va, con lo que tenga adentro.
+    const vacia = !valores[p.abre.clave]?.trim();
+    if (p.inverso ? !vacia : vacia) {
+      // El tramo entero se va, con lo que tenga adentro.
       cambios.push({ inicio: p.abre.inicio, fin: p.cierra.fin, valor: '' });
       continue;
     }
@@ -176,7 +178,7 @@ export interface WordCompletado {
   bytes: Uint8Array;
   /** Variables que quedaron escritas en el contrato. Las de un tramo que se quitó no cuentan. */
   usadas: string[];
-  /** Variables que abren un tramo {{#...}}. */
+  /** Variables que abren un tramo {{#...}} o {{^...}}. */
   condicionales: string[];
   /** Tramos que no cierran en el mismo párrafo. Quedan como están. */
   sinCerrar: string[];

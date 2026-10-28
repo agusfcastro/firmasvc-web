@@ -244,6 +244,15 @@ const Listado: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> =
 /* ==================================================================== */
 /* Nuevo envío                                                            */
 /* ==================================================================== */
+/** Cliente del CRM para vincular un envío. Si es una empresa, firma su representante. */
+interface ClienteVinculable {
+  id: string;
+  nombre: string;
+  representante: string | null;
+  codigo: string | null;
+  email: string | null;
+}
+
 interface FilaFirmante {
   clave: string;
   nombre: string;
@@ -270,7 +279,7 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const cupo = useCupoFirmas(esAdmin ? null : organizacion?.id);
-  const [clientesCrm, setClientesCrm] = useState<{ id: string; nombre: string; codigo: string | null; email: string | null }[]>([]);
+  const [clientesCrm, setClientesCrm] = useState<ClienteVinculable[]>([]);
   const [clienteCrm, setClienteCrm] = useState('');
   const orgEnvio = esAdmin ? orgId : organizacion?.id ?? '';
 
@@ -281,12 +290,12 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
     let vigente = true;
     void supabase
       .from('crm_clientes')
-      .select('id, nombre, codigo, email')
+      .select('id, nombre, representante, codigo, email')
       .eq('organizacion_id', orgEnvio)
       .neq('estado_firma', 'Baja')
       .order('nombre')
       .then(({ data }) => {
-        if (vigente) setClientesCrm((data ?? []) as { id: string; nombre: string; codigo: string | null; email: string | null }[]);
+        if (vigente) setClientesCrm((data ?? []) as ClienteVinculable[]);
       });
     return () => {
       vigente = false;
@@ -336,7 +345,7 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
     setClienteCrm(id);
     // Con un solo firmante vacío, se propone el cliente elegido.
     const c = clientesCrm.find((x) => x.id === id);
-    if (c && filas.length === 1 && !filas[0].nombre.trim() && !filas[0].email.trim()) cambiar(filas[0].clave, { nombre: c.nombre, email: c.email ?? '' });
+    if (c && filas.length === 1 && !filas[0].nombre.trim() && !filas[0].email.trim()) cambiar(filas[0].clave, { nombre: c.representante || c.nombre, email: c.email ?? '' });
   }
 
   async function enviar(e: React.FormEvent) {

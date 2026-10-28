@@ -310,6 +310,13 @@ export const Servicios: React.FC<{ orgId: string; orgNombre: string; esAdmin: bo
               Si un dato puede faltar, encerrá el texto que depende de él entre {'{{#VARIABLE}}'} y {'{{/VARIABLE}}'}, dentro del mismo párrafo. Por ejemplo{' '}
               <code>{'{{NOMBRE}}{{#DNI}}, DNI {{DNI}}{{/DNI}}{{#DOMICILIO}}, con domicilio en {{DOMICILIO}}{{/DOMICILIO}}'}</code>. Sin el dato, ese texto no sale y el contrato se puede mandar a firmar igual.
             </p>
+            <p className="text-sm text-piedra mb-4">
+              Con {'{{^VARIABLE}}'} el texto sale solo si el dato está vacío. Sirve para clientes que pueden ser personas o empresas:{' '}
+              <code>
+                {'{{#RAZON_SOCIAL_CLIENTE}}{{RAZON_SOCIAL_CLIENTE}}, {{ID_FISCAL_CLIENTE}}, representada por {{NOMBRE}}, en su carácter de {{CARGO}}{{/RAZON_SOCIAL_CLIENTE}}{{^RAZON_SOCIAL_CLIENTE}}{{NOMBRE}}, DNI {{DNI}}{{/RAZON_SOCIAL_CLIENTE}}'}
+              </code>
+              .
+            </p>
             <ul className="flex flex-col">
               {VARIABLES.map(([clave, texto]) => (
                 <li key={clave} className="flex items-center justify-between gap-4 py-2.5" style={{ borderTop: '1px solid rgba(27,31,27,0.08)' }}>

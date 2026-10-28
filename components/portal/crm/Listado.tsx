@@ -21,7 +21,10 @@ const FILTROS: { clave: Filtro; titulo: string }[] = [
 function csv(filas: ClienteResumen[]): string {
   const cols: [string, (c: ClienteResumen) => unknown][] = [
     ['Código', (c) => c.codigo],
-    ['Nombre', (c) => c.nombre],
+    ['Nombre o razón social', (c) => c.nombre],
+    ['Tipo', (c) => (c.tipo === 'empresa' ? 'Empresa' : 'Persona')],
+    ['Identificación fiscal', (c) => c.id_fiscal],
+    ['Representante', (c) => c.representante],
     ['DNI', (c) => c.dni],
     ['Email', (c) => c.email],
     ['Servicio', (c) => c.servicio],
@@ -149,7 +152,7 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
       if (filtro === 'revisar' && !f.revisar_pagos) return false;
       if ((filtro === 'Pendiente' || filtro === 'Firmado' || filtro === 'Baja') && f.estado_firma !== filtro) return false;
       if (!q) return true;
-      return [f.codigo, f.nombre, f.email, f.dni, f.responsable].some((v) => (v ?? '').toLowerCase().includes(q));
+      return [f.codigo, f.nombre, f.representante, f.id_fiscal, f.email, f.dni, f.responsable].some((v) => (v ?? '').toLowerCase().includes(q));
     });
   }, [filas, filtro, busqueda]);
 
@@ -288,6 +291,7 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
                         </a>
                         <div className="text-xs text-piedra mt-1 flex flex-wrap items-center gap-x-2">
                           <span className="tabular-nums">{f.codigo}</span>
+                          {f.tipo === 'empresa' && <span>{f.representante ? `Empresa · ${f.representante}` : 'Empresa'}</span>}
                           {f.revisar_pagos && (
                             <span className="inline-flex items-center gap-1 text-[#8a2b20]">
                               <AlertTriangle size={12} aria-hidden="true" /> revisar pagos

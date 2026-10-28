@@ -10,9 +10,13 @@ const ZONA = 'America/Argentina/Buenos_Aires';
 
 /** Variables disponibles, en el orden en que se muestran. En el Word van entre llaves dobles, por ejemplo {{NOMBRE}}. */
 export const VARIABLES: [string, string][] = [
-  ['NOMBRE', 'Nombre completo del cliente'],
-  ['DNI', 'DNI o documento'],
-  ['DOMICILIO', 'Domicilio del cliente'],
+  ['CLIENTE', 'Quien contrata: la razón social si es una empresa o el nombre si es una persona'],
+  ['NOMBRE', 'Nombre completo de quien firma: el cliente o, si es una empresa, su representante'],
+  ['DNI', 'DNI o documento de quien firma'],
+  ['DOMICILIO', 'Domicilio del cliente o de la empresa'],
+  ['RAZON_SOCIAL_CLIENTE', 'Razón social del cliente si es una empresa. Vacía si es una persona'],
+  ['ID_FISCAL_CLIENTE', 'Identificación fiscal de la empresa cliente, con su tipo, por ejemplo CUIT 30-71234567-8 o EIN 12-3456789'],
+  ['CARGO', 'Cargo del representante de la empresa cliente'],
   ['EMAIL', 'Mail'],
   ['TELEFONO', 'Teléfono'],
   ['CODIGO', 'Código del CRM, por ejemplo AT-001'],
@@ -148,7 +152,12 @@ export interface PagoContrato {
 
 export interface ClienteContrato {
   codigo: string | null;
+  /** En una empresa, nombre es la razón social y dni, email y telefono son del representante. */
+  tipo?: string | null;
   nombre: string;
+  id_fiscal?: string | null;
+  representante?: string | null;
+  cargo?: string | null;
   dni: string | null;
   domicilio?: string | null;
   email: string | null;
@@ -190,8 +199,13 @@ export function valoresDelContrato(c: ClienteContrato, pagos: PagoContrato[], em
         .map((p, i) => `${i === 0 ? 'Cuota' : 'cuota'} ${i + 1} de ${moneda} ${numero(Number(p.monto))}${p.vencimiento ? ` con vencimiento el ${fechaCorta(p.vencimiento)}` : ''}`)
         .join('; ') + '.'
     : 'Sin cuotas. El precio se cancela con el anticipo.';
+  const esEmpresa = c.tipo === 'empresa';
   return {
-    NOMBRE: c.nombre,
+    CLIENTE: c.nombre,
+    NOMBRE: esEmpresa ? c.representante || '' : c.nombre,
+    RAZON_SOCIAL_CLIENTE: esEmpresa ? c.nombre : '',
+    ID_FISCAL_CLIENTE: esEmpresa ? c.id_fiscal || '' : '',
+    CARGO: esEmpresa ? c.cargo || '' : '',
     DNI: c.dni || '',
     DOMICILIO: c.domicilio || '',
     EMAIL: c.email || '',

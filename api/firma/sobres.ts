@@ -458,6 +458,9 @@ async function crmVista(sb: SupabaseClient, q: Quien, cuerpo: Record<string, unk
     const avisos: string[] = [];
     const vacias = word.usadas.filter((v) => !valores[v]?.trim() && !OPCIONALES.has(v));
     for (const v of vacias) avisos.push(`Falta {{${v}}}. Completalo en la ficha y volvé a generar el contrato.`);
+    const nombraEmpresa = ['CLIENTE', 'RAZON_SOCIAL_CLIENTE'].some((v) => word.usadas.includes(v) || word.condicionales.includes(v));
+    if (cliente.tipo === 'empresa' && !nombraEmpresa)
+      avisos.push('El cliente es una empresa y el modelo no nombra su razón social. Usá {{CLIENTE}} o {{RAZON_SOCIAL_CLIENTE}} para que figure como parte.');
     for (const v of word.desconocidas) avisos.push(`El modelo usa {{${v}}}, que no es una variable del sistema. Quedó tal cual.`);
     for (const v of word.sinCerrar) avisos.push(`El tramo {{#${v}}}…{{/${v}}} no abre y cierra en el mismo párrafo. Su marca quedó tal cual.`);
     if (word.usadas.length === 0 && word.condicionales.length === 0) avisos.push('El modelo no tiene variables {{...}}. Salió igual al original.');
@@ -490,6 +493,11 @@ async function crmPdf(sb: SupabaseClient, q: Quien, cuerpo: Record<string, unkno
   const { data, error: e } = await sb.storage.from(BUCKET).createSignedUrl(ruta, 10 * 60, cuerpo.descargar ? { download: nombre } : undefined);
   if (e || !data) return error('No se pudo preparar el PDF.', 500);
   return json({ ok: true, url: data.signedUrl, firmado });
+}
+
+/** Quién firma por el cliente: él mismo o, si es una empresa, su representante. */
+function firmanteCliente(c: ClienteCrm): string {
+  return (c.tipo === 'empresa' && c.representante) || c.nombre;
 }
 
 /** Quién firma por la empresa: el elegido en Servicios o, si no hay, el titular. */
@@ -544,7 +552,7 @@ async function crmEnviar(sb: SupabaseClient, q: Quien, request: Request, cuerpo:
     organizacion_id: cliente.organizacion_id,
     emisor: 'cliente',
     firmantes: [
-      { nombre: cliente.nombre.slice(0, 160), email, pedir_documento: true, orden: 1 },
+      { nombre: firmanteCliente(cliente).slice(0, 160), email, pedir_documento: true, orden: 1 },
       { nombre: empresa.nombre.slice(0, 160), email: empresa.email.toLowerCase(), pedir_documento: false, orden: 1 },
     ],
     crm_cliente_id: cliente.id,

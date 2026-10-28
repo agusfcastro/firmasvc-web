@@ -11,9 +11,10 @@ import { CAMPOS_CASO, VALORES_CASO } from './reglasCasos';
 import { CasosCliente } from './Casos';
 import { AsuntosCliente } from './AsuntosCliente';
 import { ContratoFirma } from './contratoFirma';
+import { DatosCliente, filaIdentidad, type Identidad } from './DatosCliente';
 
 const ROTULOS: Record<string, string> = {
-  nombre: 'Nombre', dni: 'DNI', email: 'Mail', telefono: 'Teléfono', domicilio: 'Domicilio', servicio: 'Servicio', monto_total: 'Monto total',
+  tipo: 'Tipo', nombre: 'Nombre', id_fiscal: 'Identificación fiscal', representante: 'Representante', cargo: 'Cargo', dni: 'DNI', email: 'Mail', telefono: 'Teléfono', domicilio: 'Domicilio', servicio: 'Servicio', monto_total: 'Monto total',
   modalidad: 'Modalidad', fecha_onboarding: 'Onboarding', estado_firma: 'Estado de la firma', link_contrato_servicio: 'Contrato de servicio',
   responsable: 'Responsable', notas: 'Notas', condiciones: 'Condiciones acordadas', revisar_pagos: 'Revisar pagos', monto: 'Monto', vencimiento: 'Vencimiento', estado: 'Estado',
   fecha_pago: 'Fecha de pago', nota: 'Nota', link_contrato_cliente: 'Contrato del cliente', link_documento: 'Documento generado',
@@ -21,6 +22,20 @@ const ROTULOS: Record<string, string> = {
   ...CAMPOS_CASO,
 };
 const OCULTOS = new Set(['id', 'organizacion_id', 'cliente_id', 'asunto_id', 'creado_por', 'codigo', 'plan_pagos_original', 'zapsign_doc', 'contrato_generado_en']);
+
+function identidadDe(c: ClienteCrm): Identidad {
+  return {
+    tipo: c.tipo ?? 'persona',
+    nombre: c.nombre,
+    id_fiscal: c.id_fiscal ?? '',
+    representante: c.representante ?? '',
+    cargo: c.cargo ?? '',
+    dni: c.dni ?? '',
+    email: c.email ?? '',
+    telefono: c.telefono ?? '',
+    domicilio: c.domicilio ?? '',
+  };
+}
 
 function aLocal(iso: string | null): string {
   if (!iso) return '';
@@ -110,11 +125,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
     setGuardando(true);
     setMensaje(null);
     const cambios: Partial<ClienteCrm> = {
-      nombre: borrador.nombre.trim(),
-      dni: borrador.dni?.trim() || null,
-      email: borrador.email?.trim().toLowerCase() || null,
-      telefono: borrador.telefono?.trim() || null,
-      domicilio: borrador.domicilio?.trim() || null,
+      ...filaIdentidad(identidadDe(borrador)),
       servicio: borrador.servicio || null,
       monto_total: borrador.monto_total === null || (borrador.monto_total as unknown) === '' ? null : Number(borrador.monto_total),
       modalidad: borrador.modalidad,
@@ -393,7 +404,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
           </>
         }
         titulo={cliente.nombre}
-        bajada={[cliente.servicio && `Programa ${cliente.servicio}`, cliente.email, cliente.responsable && `Responsable ${cliente.responsable}`].filter(Boolean).join(' · ')}
+        bajada={[cliente.servicio && `Programa ${cliente.servicio}`, cliente.tipo === 'empresa' && cliente.representante && `Representante ${cliente.representante}`, cliente.email, cliente.responsable && `Responsable ${cliente.responsable}`].filter(Boolean).join(' · ')}
         acciones={
           <>
             {casosAbiertos > 0 && <Etiqueta tono="alerta">{casosAbiertos === 1 ? 'Caso abierto' : `${casosAbiertos} casos abiertos`}</Etiqueta>}
@@ -463,22 +474,8 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
           <form onSubmit={guardarDatos} className="min-w-0">
             <TituloSeccion eyebrow="Ficha" titulo="Datos del cliente" />
             <fieldset disabled={soloLectura} className="flex flex-col gap-6 min-w-0">
+              <DatosCliente d={identidadDe(borrador)} alCambiar={(k, v) => setBorrador({ ...borrador, [k]: v })} nombreGrupo={`tipo-${id}`} />
               <div className="grid gap-5 tab:grid-cols-2">
-                <Campo etiqueta="Nombre completo">
-                  <input required className={claseInput} value={borrador.nombre} onChange={(e) => set('nombre', e.target.value)} />
-                </Campo>
-                <Campo etiqueta="DNI">
-                  <input className={claseInput} value={borrador.dni ?? ''} onChange={(e) => set('dni', e.target.value)} />
-                </Campo>
-                <Campo etiqueta="Mail">
-                  <input type="email" className={claseInput} value={borrador.email ?? ''} onChange={(e) => set('email', e.target.value)} />
-                </Campo>
-                <Campo etiqueta="Teléfono">
-                  <input className={claseInput} value={borrador.telefono ?? ''} onChange={(e) => set('telefono', e.target.value)} />
-                </Campo>
-                <Campo etiqueta="Domicilio">
-                  <input className={claseInput} value={borrador.domicilio ?? ''} maxLength={300} onChange={(e) => set('domicilio', e.target.value)} />
-                </Campo>
                 <Campo etiqueta="Servicio">
                   <select className={claseInput} value={borrador.servicio ?? ''} onChange={(e) => set('servicio', e.target.value)}>
                     <option value="">Sin definir</option>
