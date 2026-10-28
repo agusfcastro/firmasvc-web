@@ -342,13 +342,16 @@ async function demo(sb: SupabaseClient, actor: string, request: Request): Promis
  * Contrato modelo de la demo en la biblioteca de documentos, asignado a sus
  * servicios, para mostrar cómo se genera el contrato desde la ficha. Se vuelve
  * a subir en cada reinicio, así queda el original aunque lo hayan cambiado.
+ * Cada vez con una ruta nueva: si se pisa la misma, la CDN de Storage puede
+ * seguir sirviendo el modelo anterior hasta una hora.
  */
 async function modeloDemo(sb: SupabaseClient, orgId: string): Promise<string | null> {
-  const ruta = `servicio/demo-${orgId}.docx`;
+  const prefijo = `servicio/demo-${orgId}`;
+  const ruta = `${prefijo}-${Date.now()}.docx`;
   const bytes = modeloDemoDocx();
   const { error: errSubir } = await sb.storage
     .from('documentos')
-    .upload(ruta, bytes, { contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', upsert: true });
+    .upload(ruta, bytes, { contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', upsert: false });
   if (errSubir) return `No se pudo subir el contrato modelo. ${errSubir.message}`;
 
   const datos = {
@@ -361,11 +364,18 @@ async function modeloDemo(sb: SupabaseClient, orgId: string): Promise<string | n
     archivo_bytes: bytes.length,
     activo: true,
   };
-  const { data: previo } = await sb.from('documentos').select('id').eq('archivo_ruta', ruta).maybeSingle();
+  const { data: previo } = await sb
+    .from('documentos')
+    .select('id, archivo_ruta')
+    .like('archivo_ruta', `${prefijo}%`)
+    .order('creado_en', { ascending: false })
+    .limit(1)
+    .maybeSingle();
   const { data: doc, error: errDoc } = previo
     ? await sb.from('documentos').update(datos).eq('id', previo.id).select('id').single()
     : await sb.from('documentos').insert(datos).select('id').single();
   if (errDoc || !doc) return `No se pudo cargar el contrato modelo. ${errDoc?.message ?? ''}`.trim();
+  if (previo?.archivo_ruta && previo.archivo_ruta !== ruta) await sb.storage.from('documentos').remove([previo.archivo_ruta]);
 
   const { error: errServicios } = await sb.from('crm_servicios').update({ documento_id: doc.id, documento_pif_id: null }).eq('organizacion_id', orgId).in('clave', ['3M', '6M', 'MENTORIA']);
   if (errServicios) return `No se pudo asignar el contrato modelo a los servicios. ${errServicios.message}`;
