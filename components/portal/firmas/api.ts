@@ -33,6 +33,10 @@ export interface Sobre {
   error_sellado: string | null;
   /** Sin la migración 0027 no viene y se toma como mail. */
   entrega?: 'mail' | 'enlace';
+  /** Sello de tiempo en BFA. Sin la migración 0031 no viene. */
+  bfa_recibo?: string | null;
+  bfa_bloque?: number | null;
+  bfa_registrado_en?: string | null;
 }
 
 export interface Firmante {
@@ -135,6 +139,8 @@ export const ROTULO_EVENTO: Record<string, string> = {
   documento_sellado: 'PDF firmado generado',
   sobre_completado: 'Completado',
   crm_no_actualizado: 'No se pudo marcar el cliente como firmado en el CRM',
+  bfa_enviado: 'Hash enviado a la Blockchain Federal Argentina',
+  bfa_registrado: 'Hash registrado en la Blockchain Federal Argentina',
 };
 
 export function peso(bytes: number): string {

@@ -27,6 +27,8 @@ interface Resultado {
     final_sha256: string | null;
     paginas: number;
   };
+  /** Sello de tiempo en la Blockchain Federal Argentina. Sin bloque, todavía está entrando. */
+  bfa?: { bloque: number | null; registrado_en: string | null; recibo: string } | null;
   firmantes?: { nombre: string; email: string; estado: string; firmado_en: string | null; rechazado_en: string | null }[];
 }
 
@@ -226,9 +228,30 @@ export const Verificar: React.FC<{ codigoInicial?: string }> = ({ codigoInicial 
                   })}
                 </ul>
 
+                {resultado?.bfa && (
+                  <div className="flex flex-col gap-1.5 p-4 text-sm bg-marfil-oscuro">
+                    <span className="text-[11px] uppercase tracking-[0.14em] text-piedra">Blockchain Federal Argentina</span>
+                    {resultado.bfa.bloque ? (
+                      <span className="inline-flex items-start gap-1.5">
+                        <Check size={14} aria-hidden="true" className="text-bosque shrink-0 mt-1" />
+                        <span>
+                          El hash del PDF firmado quedó registrado en el bloque {resultado.bfa.bloque}
+                          {resultado.bfa.registrado_en ? ` el ${fechaHora(resultado.bfa.registrado_en)}` : ''}.
+                        </span>
+                      </span>
+                    ) : (
+                      <span>El hash del PDF firmado se envió a la blockchain y está esperando entrar en un bloque.</span>
+                    )}
+                    <span className="text-xs text-piedra leading-[1.55]">
+                      Solo se registró la huella, no el documento ni datos personales. Con el SHA-256 firmado y el recibo de abajo cualquiera puede comprobarlo en el sello de tiempo de BFA, sin pasar por FIRMA.
+                    </span>
+                  </div>
+                )}
+
                 <div className="flex flex-col gap-1 text-xs text-piedra break-all">
                   {s.final_sha256 && <span>SHA-256 firmado {s.final_sha256}</span>}
                   <span>SHA-256 original {s.original_sha256}</span>
+                  {resultado?.bfa && <span>Recibo de BFA {resultado.bfa.recibo}</span>}
                 </div>
               </div>
             </>

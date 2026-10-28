@@ -876,6 +876,14 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
             </span>
             <span className="text-xs text-piedra break-all">SHA-256 original {sobre.original_sha256}</span>
             {sobre.final_sha256 && <span className="text-xs text-piedra break-all">SHA-256 firmado {sobre.final_sha256}</span>}
+            {sobre.bfa_bloque ? (
+              <span className="text-xs text-piedra">
+                Blockchain Federal Argentina · bloque {sobre.bfa_bloque}
+                {sobre.bfa_registrado_en ? ` · ${fechaHora(sobre.bfa_registrado_en)}` : ''}
+              </span>
+            ) : sobre.bfa_recibo ? (
+              <span className="text-xs text-piedra">Blockchain Federal Argentina · esperando el bloque</span>
+            ) : null}
             <a href={`/verificar/${sobre.codigo}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 font-medium mt-1 hover:text-bosque">
               <ArrowUpRight size={15} aria-hidden="true" /> Página de verificación
             </a>

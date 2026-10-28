@@ -16,7 +16,8 @@
  *
  * GET /api/firma/firmar  tarea diaria de Vercel Cron con CRON_SECRET.
  *   Vence los envíos con el plazo cumplido, manda recordatorios cada tres
- *   días y reintenta los PDF firmados que no se pudieron armar.
+ *   días, reintenta los PDF firmados que no se pudieron armar y los sellos
+ *   de tiempo en BFA que quedaron sin enviar o sin bloque.
  */
 import { createHash, createHmac, randomInt, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
@@ -59,6 +60,10 @@ interface Sobre {
   crm_cliente_id: string | null;
   /** Por enlace no salen invitaciones y se firma sin código por mail. Sin la migración 0027 no viene. */
   entrega?: 'mail' | 'enlace';
+  /** Sello de tiempo en BFA. Sin la migración 0031 no viene. */
+  bfa_recibo?: string | null;
+  bfa_bloque?: number | null;
+  bfa_registrado_en?: string | null;
 }
 
 interface Firmante {
@@ -413,6 +418,8 @@ const ROTULO_EVENTO: Record<string, string> = {
   documento_sellado: 'PDF firmado generado',
   sobre_completado: 'Envío completado',
   crm_no_actualizado: 'No se pudo marcar el cliente como firmado en el CRM',
+  bfa_enviado: 'Hash enviado a la Blockchain Federal Argentina',
+  bfa_registrado: 'Hash registrado en la Blockchain Federal Argentina',
 };
 
 interface Evento {
@@ -669,6 +676,9 @@ async function sellar(sb: SupabaseClient, sobreId: string): Promise<string | nul
   if (!cerrado) return null;
   await evento(sb, sobre.id, null, null, 'sobre_completado', null, { final_sha256: hash });
 
+  // Si BFA falla no frena el cierre. La tarea diaria lo reintenta.
+  await enviarABfa(sb, { id: sobre.id, final_sha256: hash });
+
   // Si vino del CRM, el cliente pasa solo a Firmado y queda el enlace al envío.
   if (sobre.crm_cliente_id) {
     const { error: errCrm } = await sb
@@ -710,6 +720,70 @@ async function sellar(sb: SupabaseClient, sobreId: string): Promise<string | nul
   return null;
 }
 
+/* -------------------------------------------------------------------- */
+/* Sello de tiempo en la Blockchain Federal Argentina                     */
+/* -------------------------------------------------------------------- */
+
+const BFA_API = 'https://tsaapi.bfa.ar/api/tsa';
+
+async function pedirBfa(ruta: 'stamp' | 'verify', cuerpo: Record<string, string>, espera = 10_000): Promise<Record<string, unknown>> {
+  const r = await fetch(`${BFA_API}/${ruta}/`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(cuerpo),
+    signal: AbortSignal.timeout(espera),
+  });
+  const datos = (await r.json().catch(() => null)) as Record<string, unknown> | null;
+  if (!datos) throw new Error(`BFA respondió ${r.status} sin datos.`);
+  return datos;
+}
+
+/**
+ * Manda el hash del PDF firmado al sello de tiempo de BFA. Solo viaja el hash.
+ * BFA devuelve un recibo y lo sube a un bloque unos minutos después. Si falla,
+ * la tarea diaria lo reintenta. Devuelve el motivo si falló.
+ */
+async function enviarABfa(sb: SupabaseClient, sobre: Pick<Sobre, 'id' | 'final_sha256'>): Promise<string | null> {
+  if (!sobre.final_sha256) return null;
+  try {
+    const r = await pedirBfa('stamp', { file_hash: sobre.final_sha256 });
+    const recibo = typeof r.temporary_rd === 'string' ? r.temporary_rd : null;
+    if (r.status !== 'success' || !recibo) return `BFA no selló el hash. ${String(r.messages || r.detail || '')}`.trim().slice(0, 300);
+    const { error: e } = await sb.from('firma_sobres').update({ bfa_recibo: recibo }).eq('id', sobre.id).is('bfa_recibo', null);
+    if (e) return `No se pudo guardar el recibo de BFA. ${e.message}`.slice(0, 300);
+    await evento(sb, sobre.id, null, null, 'bfa_enviado', null, { sha256: sobre.final_sha256 });
+    return null;
+  } catch (e) {
+    return `BFA no respondió. ${(e as Error).message}`.slice(0, 300);
+  }
+}
+
+/** Pregunta a BFA si el hash ya entró en un bloque. Si entró, guarda el número y la fecha. Devuelve el sobre al día. */
+async function confirmarBfa(sb: SupabaseClient, sobre: Sobre, espera = 10_000): Promise<Sobre> {
+  if (!sobre.final_sha256 || !sobre.bfa_recibo || sobre.bfa_bloque) return sobre;
+  try {
+    const r = await pedirBfa('verify', { file_hash: sobre.final_sha256, rd: sobre.bfa_recibo }, espera);
+    if (r.status !== 'success') return sobre;
+    // El bloque viene en el mensaje ("fue ingresado en el bloque 50555425 el ...") y al final del recibo permanente.
+    const recibo = typeof r.permanent_rd === 'string' && r.permanent_rd ? r.permanent_rd : null;
+    const delMensaje = /bloque (\d+)/.exec(String(r.messages || ''))?.[1];
+    const delRecibo = recibo ? /-(\d+)$/.exec(Buffer.from(recibo, 'base64').toString('utf8'))?.[1] : undefined;
+    const bloque = Number(delMensaje ?? delRecibo);
+    if (!Number.isInteger(bloque) || bloque <= 0) return sobre;
+    // attestation_time viene como dd/mm/aaaa hh:mm:ss en hora de Buenos Aires.
+    const f = /^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}:\d{2}:\d{2})$/.exec(String(r.attestation_time || ''));
+    const registrado = f ? new Date(`${f[3]}-${f[2]}-${f[1]}T${f[4]}-03:00`).toISOString() : new Date().toISOString();
+    const cambios: Record<string, unknown> = { bfa_bloque: bloque, bfa_registrado_en: registrado };
+    if (recibo) cambios.bfa_recibo = recibo;
+    const { data } = await sb.from('firma_sobres').update(cambios).eq('id', sobre.id).is('bfa_bloque', null).select('*').maybeSingle();
+    if (!data) return sobre;
+    await evento(sb, sobre.id, null, null, 'bfa_registrado', null, { bloque, registrado_en: registrado });
+    return data as Sobre;
+  } catch {
+    return sobre;
+  }
+}
+
 /** Avisa a quien mandó el envío. Para rechazos. */
 async function avisarCreador(sb: SupabaseClient, sobre: Sobre, asunto: string, titulo: string, parrafos: string[]): Promise<void> {
   const creador = await mailDelCreador(sb, sobre);
@@ -742,7 +816,8 @@ async function verificar(sb: SupabaseClient, cuerpo: Record<string, unknown>): P
     fila = ((data ?? [])[0] as Sobre) ?? null;
   }
   if (!fila) return json({ ok: true, encontrado: false });
-  const sobre = await alDia(sb, fila);
+  // La página pública no espera mucho a BFA. Si tarda, el bloque se muestra en la próxima consulta.
+  const sobre = await confirmarBfa(sb, await alDia(sb, fila), 4_000);
   const firmantes = await firmantesDe(sb, sobre.id);
   const { data: cadena } = await sb.rpc('firma_verificar_cadena', { p_sobre: sobre.id });
   const coincide = !hash ? null : hash === sobre.final_sha256 ? 'final' : hash === sobre.original_sha256 ? 'original' : 'ninguno';
@@ -763,6 +838,7 @@ async function verificar(sb: SupabaseClient, cuerpo: Record<string, unknown>): P
       final_sha256: sobre.final_sha256,
       paginas: sobre.original_paginas,
     },
+    bfa: sobre.bfa_recibo ? { bloque: sobre.bfa_bloque ?? null, registrado_en: sobre.bfa_registrado_en ?? null, recibo: sobre.bfa_recibo } : null,
     firmantes: firmantes.map((f) => ({ nombre: f.nombre, email: enmascarar(f.email), estado: f.estado, firmado_en: f.firmado_en, rechazado_en: f.rechazado_en })),
   });
 }
@@ -777,7 +853,7 @@ export async function GET(request: Request): Promise<Response> {
   const sb = clienteServicio();
   if (!sb) return error('El servidor no tiene configuradas las variables de Supabase.', 500);
 
-  const resumen = { vencidos: 0, recordatorios: 0, sellados: 0, errores: [] as string[] };
+  const resumen = { vencidos: 0, recordatorios: 0, sellados: 0, bfa_enviados: 0, bfa_registrados: 0, errores: [] as string[] };
   const { data } = await sb.from('firma_sobres').select('*').eq('estado', 'en_curso').limit(500);
   for (const fila of (data ?? []) as Sobre[]) {
     try {
@@ -804,6 +880,16 @@ export async function GET(request: Request): Promise<Response> {
     } catch (e) {
       resumen.errores.push(`${fila.codigo}: ${(e as Error).message}`);
     }
+  }
+
+  // Completados que todavía no tienen su bloque en BFA. Sin la migración 0031 la consulta falla y no hay nada.
+  const { data: sinBloque } = await sb.from('firma_sobres').select('*').eq('estado', 'completado').is('bfa_bloque', null).not('final_sha256', 'is', null).limit(200);
+  for (const fila of (sinBloque ?? []) as Sobre[]) {
+    if (!fila.bfa_recibo) {
+      const fallo = await enviarABfa(sb, fila);
+      if (fallo) resumen.errores.push(`${fila.codigo}: ${fallo}`);
+      else resumen.bfa_enviados++;
+    } else if ((await confirmarBfa(sb, fila)).bfa_bloque) resumen.bfa_registrados++;
   }
   return json({ ok: true, ...resumen });
 }
