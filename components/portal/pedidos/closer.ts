@@ -293,7 +293,7 @@ export const CLOSER: Modelo = {
           clave: 'medios',
           tipo: 'varias',
           etiqueta: 'Medios de pago',
-          opciones: op(['swift', 'Transferencia internacional'], ['wise', 'Wise o Payoneer'], ['cripto', 'USDT o USDC'], ['paypal', 'PayPal'], ['local', 'Transferencia local']),
+          opciones: op(['swift', 'Transferencia internacional'], ['cripto', 'USDT o USDC'], ['local', 'Transferencia local']),
           otra: true,
           porDefecto: ['swift', 'cripto'],
         },
