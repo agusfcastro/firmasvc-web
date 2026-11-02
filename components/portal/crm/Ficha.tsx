@@ -231,7 +231,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                     <input
                       type="date"
                       aria-label="Vencimiento"
-                      className={`${claseInput} h-10 w-[160px] ${vencida ? 'text-[#8a2b20] border-[#8a2b20]' : ''}`}
+                      className={`${claseInput} h-10 w-[160px] ${vencida ? 'text-peligro border-peligro' : ''}`}
                       defaultValue={p.vencimiento ?? ''}
                       onBlur={(e) => e.target.value !== (p.vencimiento ?? '') && actualizarPago(p, { vencimiento: e.target.value || null })}
                     />
@@ -281,7 +281,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                       </button>
                     )}
                     {puedeGestionar && (
-                      <button type="button" aria-label="Eliminar cuota" className="px-3 h-10 text-[#8a2b20] hover:bg-[#f6e7e4] disabled:opacity-40" onClick={() => borrarPago(p)}>
+                      <button type="button" aria-label="Eliminar cuota" className="px-3 h-10 text-peligro hover:bg-peligro-suave disabled:opacity-40" onClick={() => borrarPago(p)}>
                         <Trash2 size={15} />
                       </button>
                     )}
@@ -360,7 +360,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                 </td>
                 <td className="!py-2.5 text-right">
                   {puedeGestionar && (
-                    <button type="button" aria-label="Eliminar" className="px-3 h-10 text-[#8a2b20] hover:bg-[#f6e7e4] disabled:opacity-40" onClick={() => borrarPago(p)}>
+                    <button type="button" aria-label="Eliminar" className="px-3 h-10 text-peligro hover:bg-peligro-suave disabled:opacity-40" onClick={() => borrarPago(p)}>
                       <Trash2 size={15} />
                     </button>
                   )}
@@ -535,7 +535,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                     </>
                   )}
                   <label className="tab:col-span-2 flex items-center gap-2.5 text-sm">
-                    <input type="checkbox" className="w-4 h-4 accent-[#173A2F]" checked={borrador.revisar_pagos} onChange={(e) => set('revisar_pagos', e.target.checked)} />
+                    <input type="checkbox" className="w-4 h-4 accent-bosque" checked={borrador.revisar_pagos} onChange={(e) => set('revisar_pagos', e.target.checked)} />
                     Marcar el plan de pagos para revisar
                   </label>
                 </div>
@@ -551,7 +551,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                       type="button"
                       onClick={() => void borrarCliente()}
                       disabled={guardando}
-                      className="ml-auto inline-flex items-center gap-2 h-[52px] px-4 text-sm font-medium text-[#8a2b20] transition-colors duration-150 hover:bg-[#f6e7e4] disabled:opacity-40"
+                      className="ml-auto inline-flex items-center gap-2 h-[52px] px-4 text-sm font-medium text-peligro transition-colors duration-150 hover:bg-peligro-suave disabled:opacity-40"
                     >
                       <Trash2 size={16} aria-hidden="true" /> Eliminar cliente
                     </button>

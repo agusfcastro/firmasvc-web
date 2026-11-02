@@ -58,15 +58,15 @@ import {
 const SELECT_CASO = '*, cliente:crm_clientes(id, nombre, codigo, moneda)';
 
 const ESTILO_SEMAFORO: Record<Semaforo, string> = {
-  verde: 'text-bosque bg-[#E4E9E3]',
-  ambar: 'text-[#85621a] bg-[#f6ecd2]',
-  rojo: 'text-[#8a2b20] bg-[#f6e7e4]',
+  verde: 'text-bosque bg-bosque-suave',
+  ambar: 'text-aviso bg-aviso-suave',
+  rojo: 'text-peligro bg-peligro-suave',
 };
 
 const PUNTO_SEMAFORO: Record<Semaforo, string> = {
   verde: 'bg-bosque',
-  ambar: 'bg-[#85621a]',
-  rojo: 'bg-[#8a2b20]',
+  ambar: 'bg-aviso',
+  rojo: 'bg-peligro',
 };
 
 const claseEtiqueta = 'block text-[11px] font-medium uppercase tracking-[0.16em] text-piedra mb-2';
@@ -631,7 +631,7 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
                 <label className="flex items-start gap-2.5 text-sm">
                   <input
                     type="checkbox"
-                    className="w-4 h-4 mt-0.5 accent-[#173A2F]"
+                    className="w-4 h-4 mt-0.5 accent-bosque"
                     checked={borrador.derivado_legales || enLegales(borrador.etapa)}
                     disabled={enLegales(borrador.etapa)}
                     onChange={(e) => cambiar({ derivado_legales: e.target.checked })}
@@ -645,7 +645,7 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
                 </label>
                 <div className="flex flex-col gap-4">
                   <label className="flex items-start gap-2.5 text-sm">
-                    <input type="checkbox" className="w-4 h-4 mt-0.5 accent-[#173A2F]" checked={borrador.contracargo} onChange={(e) => cambiar({ contracargo: e.target.checked })} />
+                    <input type="checkbox" className="w-4 h-4 mt-0.5 accent-bosque" checked={borrador.contracargo} onChange={(e) => cambiar({ contracargo: e.target.checked })} />
                     <span>
                       Hubo contracargo
                       <span className="block text-xs text-piedra mt-0.5">Disputa del cliente ante la tarjeta o el banco.</span>
@@ -713,7 +713,7 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
                     <button
                       type="button"
                       onClick={borrar}
-                      className="ml-auto inline-flex items-center gap-2 h-[52px] px-4 text-sm font-medium text-[#8a2b20] transition-colors duration-150 hover:bg-[#f6e7e4]"
+                      className="ml-auto inline-flex items-center gap-2 h-[52px] px-4 text-sm font-medium text-peligro transition-colors duration-150 hover:bg-peligro-suave"
                     >
                       <Trash2 size={16} aria-hidden="true" /> Eliminar caso
                     </button>

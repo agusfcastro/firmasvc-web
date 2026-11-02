@@ -247,7 +247,7 @@ const TarjetaAbono: React.FC<{
         <label className={`flex items-start gap-3 text-[15px] leading-[1.6] ${soloLectura || sinProcesador ? 'opacity-70' : 'cursor-pointer'}`}>
           <input
             type="checkbox"
-            className="mt-1 w-4 h-4 shrink-0 accent-[#F5F3EC]"
+            className="mt-1 w-4 h-4 shrink-0 accent-marfil"
             checked={acepto}
             disabled={Boolean(soloLectura) || sinProcesador}
             onChange={(e) => setAcepto(e.target.checked)}
@@ -375,7 +375,7 @@ const TarjetaAbono: React.FC<{
           </p>
         )}
         {error && (
-          <p role="alert" className="border-l-[3px] border-[#e3a59b] pl-3 text-sm leading-[1.5] text-[#f6e7e4]">
+          <p role="alert" className="border-l-[3px] border-peligro-borde pl-3 text-sm leading-[1.5] text-peligro-suave">
             {error}
           </p>
         )}
@@ -401,7 +401,7 @@ const Copiar: React.FC<{ texto: string; etiqueta: string }> = ({ texto, etiqueta
       type="button"
       onClick={copiar}
       aria-label={hecho ? `${etiqueta} copiado` : `Copiar ${etiqueta}`}
-      className="shrink-0 inline-flex items-center gap-1.5 h-8 px-2.5 text-[13px] font-medium text-bosque border border-[rgba(23,58,47,0.3)] transition-colors duration-150 hover:bg-[#E4E9E3]"
+      className="shrink-0 inline-flex items-center gap-1.5 h-8 px-2.5 text-[13px] font-medium text-bosque border border-[rgba(23,58,47,0.3)] transition-colors duration-150 hover:bg-bosque-suave"
     >
       {hecho ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
       {hecho ? 'Copiado' : 'Copiar'}

@@ -201,7 +201,7 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
               <Button variant="ghost" size="lg" onClick={() => navegar('/portal/crm/casos')} className="self-end">
                 <ShieldAlert size={18} /> Casos de conflicto
                 {casosAbiertos ? (
-                  <span className="inline-flex items-center justify-center min-w-6 h-6 px-1.5 bg-[#8a2b20] text-marfil text-xs font-medium tabular-nums">
+                  <span className="inline-flex items-center justify-center min-w-6 h-6 px-1.5 bg-peligro text-marfil text-xs font-medium tabular-nums">
                     {casosAbiertos}
                     <span className="sr-only">{casosAbiertos === 1 ? ' caso abierto' : ' casos abiertos'}</span>
                   </span>
@@ -293,7 +293,7 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
                           <span className="tabular-nums">{f.codigo}</span>
                           {f.tipo === 'empresa' && <span>{f.representante ? `Empresa · ${f.representante}` : 'Empresa'}</span>}
                           {f.revisar_pagos && (
-                            <span className="inline-flex items-center gap-1 text-[#8a2b20]">
+                            <span className="inline-flex items-center gap-1 text-peligro">
                               <AlertTriangle size={12} aria-hidden="true" /> revisar pagos
                             </span>
                           )}
@@ -322,9 +322,9 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
                         <td className="whitespace-nowrap">
                           {f.pendiente > 0 ? (
                             <>
-                              <div className={vencida ? 'text-[#8a2b20] font-medium' : ''}>{fecha(f.proximo_vencimiento)}</div>
+                              <div className={vencida ? 'text-peligro font-medium' : ''}>{fecha(f.proximo_vencimiento)}</div>
                               {f.proxima_cuota_monto !== null && <div className="text-xs text-piedra mt-0.5 tabular-nums">{dinero(f.proxima_cuota_monto, f.moneda)}</div>}
-                              {vencida && <div className="text-xs text-[#8a2b20] mt-0.5">{f.cuotas_vencidas === 1 ? '1 cuota vencida' : `${f.cuotas_vencidas} cuotas vencidas`}</div>}
+                              {vencida && <div className="text-xs text-peligro mt-0.5">{f.cuotas_vencidas === 1 ? '1 cuota vencida' : `${f.cuotas_vencidas} cuotas vencidas`}</div>}
                             </>
                           ) : (
                             <span className="text-bosque font-medium">Pagado</span>

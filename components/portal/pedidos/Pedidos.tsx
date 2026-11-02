@@ -340,7 +340,7 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
       acciones={
         soloLectura || prueba ? undefined : (
           <span className="text-sm text-piedra self-center" aria-live="polite">
-            {guardado === 'guardando' ? 'Guardando…' : guardado === 'error' ? <span className="text-[#8a2b20]">No se pudo guardar</span> : guardado === 'listo' ? 'Borrador guardado' : ''}
+            {guardado === 'guardando' ? 'Guardando…' : guardado === 'error' ? <span className="text-peligro">No se pudo guardar</span> : guardado === 'listo' ? 'Borrador guardado' : ''}
           </span>
         )
       }
@@ -421,14 +421,14 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
                   >
                     <span className={`tabular-nums text-xs ${activo ? 'text-calido' : 'text-piedra'}`}>{String(i + 1).padStart(2, '0')}</span>
                     <span className="whitespace-nowrap">{t}</span>
-                    {conFaltas && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#8a2b20]" aria-label="Falta una respuesta obligatoria" />}
+                    {conFaltas && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-peligro" aria-label="Falta una respuesta obligatoria" />}
                   </button>
                 </li>
               );
             })}
           </ol>
           {pedido && puedeEditar && (
-            <button type="button" onClick={() => void descartar()} className="mt-6 self-start inline-flex items-center gap-2 h-10 px-3 -ml-3 text-sm font-medium text-[#8a2b20] transition-colors duration-150 hover:bg-[#f6e7e4]">
+            <button type="button" onClick={() => void descartar()} className="mt-6 self-start inline-flex items-center gap-2 h-10 px-3 -ml-3 text-sm font-medium text-peligro transition-colors duration-150 hover:bg-peligro-suave">
               <Trash2 size={15} aria-hidden="true" /> Descartar borrador
             </button>
           )}
@@ -538,14 +538,14 @@ export default Pedido;
 /* Una pregunta                                                         */
 /* ------------------------------------------------------------------ */
 const Nota: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <p className="flex gap-2.5 border-l-[3px] border-[#8a2b20] bg-[#f6e7e4] px-4 py-3 text-sm leading-[1.5] text-[#5c1d15]">
+  <p className="flex gap-2.5 border-l-[3px] border-peligro bg-peligro-suave px-4 py-3 text-sm leading-[1.5] text-peligro-fuerte">
     <TriangleAlert size={16} className="shrink-0 mt-0.5" aria-hidden="true" />
     <span>{children}</span>
   </p>
 );
 
 const claseOpcion = (activa: boolean) =>
-  `flex items-start gap-3 px-4 py-3 text-left text-[15px] border transition-colors duration-150 ${activa ? 'border-bosque bg-[#E4E9E3]' : 'border-[rgba(27,31,27,0.22)] bg-white hover:border-[rgba(27,31,27,0.45)]'}`;
+  `flex items-start gap-3 px-4 py-3 text-left text-[15px] border transition-colors duration-150 ${activa ? 'border-bosque bg-bosque-suave' : 'border-[rgba(27,31,27,0.22)] bg-white hover:border-[rgba(27,31,27,0.45)]'}`;
 
 const Marca: React.FC<{ activa: boolean; redonda?: boolean }> = ({ activa, redonda }) => (
   <span aria-hidden="true" className={`shrink-0 mt-0.5 w-[18px] h-[18px] border flex items-center justify-center ${redonda ? 'rounded-full' : ''} ${activa ? 'bg-bosque border-bosque text-marfil' : 'border-[rgba(27,31,27,0.45)] bg-white'}`}>
@@ -636,7 +636,7 @@ const CampoPregunta: React.FC<{ pregunta: Pregunta; respuestas: Respuestas; alCa
                 aria-label={`Quitar la fila ${i + 1}`}
                 disabled={lineas.length === 1}
                 onClick={() => poner(lineas.filter((_, j) => j !== i))}
-                className="h-12 flex items-center justify-center text-piedra transition-colors duration-150 hover:text-[#8a2b20] disabled:opacity-30"
+                className="h-12 flex items-center justify-center text-piedra transition-colors duration-150 hover:text-peligro disabled:opacity-30"
               >
                 <Trash2 size={16} aria-hidden="true" />
               </button>
@@ -656,7 +656,7 @@ const CampoPregunta: React.FC<{ pregunta: Pregunta; respuestas: Respuestas; alCa
       <label id={`${id}-e`} htmlFor={p.tipo === 'texto' || p.tipo === 'largo' ? id : undefined} className="flex flex-col gap-1">
         <span className="text-[16px] font-medium leading-[1.4]">
           {p.etiqueta}
-          {p.obligatoria && <span className="text-[#8a2b20]"> *</span>}
+          {p.obligatoria && <span className="text-peligro"> *</span>}
         </span>
         {p.ayuda && <span className="text-sm text-piedra leading-[1.5]">{p.ayuda}</span>}
       </label>

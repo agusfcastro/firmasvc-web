@@ -398,7 +398,7 @@ const Lista: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
                     <input inputMode="decimal" className={claseInput} value={borrador.monto_reclamado} onChange={(e) => cambiar({ monto_reclamado: e.target.value })} />
                   </Campo>
                   <label className="flex items-center gap-3 text-[15px] cursor-pointer self-end h-12">
-                    <input type="checkbox" className="w-4 h-4 accent-[#173A2F]" checked={borrador.contracargo} onChange={(e) => cambiar({ contracargo: e.target.checked })} />
+                    <input type="checkbox" className="w-4 h-4 accent-bosque" checked={borrador.contracargo} onChange={(e) => cambiar({ contracargo: e.target.checked })} />
                     Hubo contracargo con la tarjeta
                   </label>
                 </div>
@@ -434,7 +434,7 @@ const Lista: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
             </Campo>
             {esFirma && borrador.novedad.trim() && (
               <label className="flex items-center gap-3 text-[15px] cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 accent-[#173A2F]" checked={borrador.avisar} onChange={(e) => cambiar({ avisar: e.target.checked })} />
+                <input type="checkbox" className="w-4 h-4 accent-bosque" checked={borrador.avisar} onChange={(e) => cambiar({ avisar: e.target.checked })} />
                 Avisar por mail al titular y al CSM de la empresa
               </label>
             )}
@@ -518,7 +518,7 @@ const ListaGrupo: React.FC<{ titulo?: string; asuntos: Asunto[]; esFirma: boolea
             <Enlace a={`/portal/asuntos/${a.id}`} className="group flex flex-col tab:flex-row tab:items-center gap-4 bg-white border border-[rgba(27,31,27,0.15)] p-5 desk:p-6 transition-colors duration-150 hover:border-bosque">
               <div className="flex flex-col gap-2 min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-3">
-                  {a.codigo && <span className="font-mono text-[12px] font-medium text-bosque bg-[#E4E9E3] px-2 py-0.5">{a.codigo}</span>}
+                  {a.codigo && <span className="font-mono text-[12px] font-medium text-bosque bg-bosque-suave px-2 py-0.5">{a.codigo}</span>}
                   <span className="eyebrow text-[11px] text-piedra">
                     {a.motivo ? MOTIVO_CONFLICTO[a.motivo].titulo : TIPO_ASUNTO[a.tipo]}
                     {empresa ? ` · ${empresa(a.organizacion_id)}` : ''}
@@ -793,7 +793,7 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
         bajada={
           <span className="inline-flex flex-wrap items-center gap-3">
             <Etiqueta tono={ESTADO_ASUNTO[asunto.estado].tono}>{rotuloEstado(asunto.estado, esFirma)}</Etiqueta>
-            {asunto.codigo && <span className="font-mono text-[13px] font-medium text-bosque bg-[#E4E9E3] px-2 py-0.5">{asunto.codigo}</span>}
+            {asunto.codigo && <span className="font-mono text-[13px] font-medium text-bosque bg-bosque-suave px-2 py-0.5">{asunto.codigo}</span>}
             <span className="text-[15px]">{asunto.motivo ? `${TIPO_ASUNTO[asunto.tipo]} · ${MOTIVO_CONFLICTO[asunto.motivo].titulo}` : TIPO_ASUNTO[asunto.tipo]}</span>
           </span>
         }
@@ -962,7 +962,7 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
                   type="button"
                   onClick={() => void borrar()}
                   disabled={ocupado !== ''}
-                  className="self-start inline-flex items-center gap-2 h-10 px-3 -ml-3 text-sm font-medium text-[#8a2b20] transition-colors duration-150 hover:bg-[#f6e7e4] disabled:opacity-40"
+                  className="self-start inline-flex items-center gap-2 h-10 px-3 -ml-3 text-sm font-medium text-peligro transition-colors duration-150 hover:bg-peligro-suave disabled:opacity-40"
                 >
                   <Trash2 size={15} aria-hidden="true" /> {ocupado === 'borrar' ? 'Eliminando…' : 'Eliminar asunto'}
                 </button>
@@ -1069,7 +1069,7 @@ const Chat: React.FC<{
           {otroPresente ? `${otro.charAt(0).toUpperCase()}${otro.slice(1)} tiene el asunto abierto` : `Si ${otro} no está conectado, le llega un mail`}
         </span>
       </div>
-      <div ref={fondo} className="h-[440px] overflow-y-auto px-5 py-5 flex flex-col gap-4 bg-[#FBFAF6]">
+      <div ref={fondo} className="h-[440px] overflow-y-auto px-5 py-5 flex flex-col gap-4 bg-marfil-claro">
         {mensajes.length === 0 ? (
           <p className="m-auto text-sm text-piedra text-center max-w-[36ch]">Todavía no hay mensajes. Escribí la primera consulta sobre este asunto.</p>
         ) : (
@@ -1198,13 +1198,13 @@ const Bitacora: React.FC<{
             </Campo>
             <div className="flex flex-col justify-end gap-2 pb-1">
               <label className="flex items-center gap-3 text-[15px] cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 accent-[#173A2F]" checked={interna} onChange={(e) => setInterna(e.target.checked)} />
+                <input type="checkbox" className="w-4 h-4 accent-bosque" checked={interna} onChange={(e) => setInterna(e.target.checked)} />
                 <span>
                   Nota interna <span className="text-piedra">(solo FIRMA)</span>
                 </span>
               </label>
               <label className={`flex items-center gap-3 text-[15px] ${interna ? 'opacity-50' : 'cursor-pointer'}`}>
-                <input type="checkbox" className="w-4 h-4 accent-[#173A2F]" disabled={interna} checked={avisar && !interna} onChange={(e) => setAvisar(e.target.checked)} />
+                <input type="checkbox" className="w-4 h-4 accent-bosque" disabled={interna} checked={avisar && !interna} onChange={(e) => setAvisar(e.target.checked)} />
                 Avisar por mail a la empresa
               </label>
             </div>
@@ -1225,7 +1225,7 @@ const Bitacora: React.FC<{
             const Icono = ICONO_NOVEDAD[n.tipo] ?? StickyNote;
             return (
               <li key={n.id} className="relative pl-8 pb-7 last:pb-0 border-l border-[rgba(27,31,27,0.15)] last:border-transparent ml-2">
-                <span aria-hidden="true" className={`absolute -left-[13px] top-0 w-[26px] h-[26px] flex items-center justify-center rounded-full ${n.interna ? 'bg-[#f6e7e4] text-[#8a2b20]' : 'bg-marfil-oscuro text-bosque'}`}>
+                <span aria-hidden="true" className={`absolute -left-[13px] top-0 w-[26px] h-[26px] flex items-center justify-center rounded-full ${n.interna ? 'bg-peligro-suave text-peligro' : 'bg-marfil-oscuro text-bosque'}`}>
                   <Icono size={13} />
                 </span>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-piedra mb-1.5">

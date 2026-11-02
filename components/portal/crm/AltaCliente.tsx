@@ -163,8 +163,8 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
     );
 
   const estiloResumen = {
-    ok: 'border-bosque bg-[#E4E9E3] text-bosque',
-    error: 'border-[#8a2b20] bg-[#f6e7e4] text-[#5c1d15]',
+    ok: 'border-bosque bg-bosque-suave text-bosque',
+    error: 'border-peligro bg-peligro-suave text-peligro-fuerte',
     info: 'border-tinta bg-marfil-oscuro text-tinta',
   }[tonoResumen];
 
@@ -305,7 +305,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
                 aria-label={`Quitar la cuota ${i + 1}`}
                 title="Quitar cuota"
                 onClick={() => quitarCuota(i)}
-                className="h-12 w-11 inline-flex items-center justify-center text-piedra hover:text-[#8a2b20] transition-colors duration-150"
+                className="h-12 w-11 inline-flex items-center justify-center text-piedra hover:text-peligro transition-colors duration-150"
               >
                 <Trash2 size={16} aria-hidden="true" />
               </button>

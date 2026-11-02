@@ -85,7 +85,7 @@ const MenuSecciones: React.FC<{ links: Seccion[]; perfil: Perfil; compacto?: boo
         )}
       </button>
       {abierto && (
-        <div role="menu" className="absolute right-0 tab:left-0 tab:right-auto top-[calc(100%+8px)] z-50 min-w-[240px] bg-marfil border border-tinta shadow-[0_12px_32px_rgba(27,31,27,0.18)] py-2">
+        <div role="menu" className="absolute right-0 tab:left-0 tab:right-auto top-[calc(100%+8px)] z-50 min-w-[240px] bg-marfil border border-tinta rounded-tarjeta shadow-flotante py-2">
           {links.map((l) => (
             <Enlace
               key={l.a}
@@ -190,7 +190,7 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
               <button
                 type="button"
                 onClick={salir}
-                className="inline-flex items-center gap-2 h-10 px-4 border border-tinta font-medium transition-colors duration-150 hover:bg-tinta hover:text-marfil"
+                className="inline-flex items-center gap-2 h-10 px-4 border border-tinta rounded-control font-medium transition-colors duration-150 hover:bg-tinta hover:text-marfil"
               >
                 <LogOut size={15} aria-hidden="true" /> Salir
               </button>
@@ -272,7 +272,7 @@ export const Cifras: React.FC<{ items: Cifra[]; cargando?: boolean }> = ({ items
   <div className="cifras">
     {items.map((c) => (
       <div key={c.titulo} className="cifra">
-        <span className={`cifra-valor ${c.alerta ? 'text-[#8a2b20]' : 'text-bosque'}`}>{cargando ? '·' : c.valor}</span>
+        <span className={`cifra-valor ${c.alerta ? 'text-peligro' : 'text-bosque'}`}>{cargando ? '·' : c.valor}</span>
         <span className="eyebrow stat-label text-piedra">{c.titulo}</span>
         {c.nota && <span className="text-xs text-piedra">{c.nota}</span>}
       </div>
@@ -327,7 +327,7 @@ export const Interruptor: React.FC<{ activo: boolean; alCambiar?: (v: boolean) =
       aria-checked={activo}
       disabled={deshabilitado}
       onClick={() => alCambiar?.(!activo)}
-      className={`relative shrink-0 w-11 h-6 mt-0.5 border transition-colors duration-150 ${activo ? 'bg-bosque border-bosque' : 'bg-white border-[rgba(27,31,27,0.35)]'}`}
+      className={`relative shrink-0 w-11 h-6 mt-0.5 border rounded-control transition-colors duration-150 ${activo ? 'bg-bosque border-bosque' : 'bg-white border-[rgba(27,31,27,0.35)]'}`}
     >
       <span className={`absolute top-[3px] w-4 h-4 transition-all duration-150 ${activo ? 'left-[23px] bg-marfil' : 'left-[3px] bg-tinta'}`} />
     </button>
@@ -350,16 +350,16 @@ export const Campo: React.FC<{ etiqueta: string; ayuda?: string; children: React
 );
 
 export const claseInput =
-  'w-full h-12 px-3.5 bg-white border border-[rgba(27,31,27,0.22)] rounded-none text-[15px] transition-colors duration-150 hover:border-[rgba(27,31,27,0.45)] focus:outline-none focus:border-bosque focus:ring-1 focus:ring-bosque disabled:bg-marfil-oscuro disabled:text-piedra disabled:hover:border-[rgba(27,31,27,0.22)]';
+  'w-full h-12 px-3.5 bg-white border border-[rgba(27,31,27,0.22)] rounded-control text-[15px] transition-colors duration-150 hover:border-[rgba(27,31,27,0.45)] focus:outline-none focus:border-bosque focus:ring-1 focus:ring-bosque disabled:bg-marfil-oscuro disabled:text-piedra disabled:hover:border-[rgba(27,31,27,0.22)]';
 
 export const Aviso: React.FC<{ tipo?: 'error' | 'ok' | 'info'; children: React.ReactNode }> = ({ tipo = 'info', children }) => {
   const estilos = {
-    error: 'border-[#8a2b20] bg-[#f6e7e4] text-[#5c1d15]',
-    ok: 'border-bosque bg-[#E4E9E3] text-bosque',
+    error: 'border-peligro bg-peligro-suave text-peligro-fuerte',
+    ok: 'border-bosque bg-bosque-suave text-bosque',
     info: 'border-tinta bg-marfil-oscuro text-tinta',
   }[tipo];
   return (
-    <div role={tipo === 'error' ? 'alert' : 'status'} className={`border-l-[3px] px-4 py-3 text-sm leading-[1.5] ${estilos}`}>
+    <div role={tipo === 'error' ? 'alert' : 'status'} className={`border-l-[3px] rounded-control px-4 py-3 text-sm leading-[1.5] ${estilos}`}>
       {children}
     </div>
   );
@@ -375,13 +375,13 @@ export const Cargando: React.FC = () => (
 /** Estado con punto de color, en el registro tipográfico de los eyebrow. */
 export const Etiqueta: React.FC<{ children: React.ReactNode; tono?: 'bosque' | 'piedra' | 'alerta' | 'tinta' }> = ({ children, tono = 'piedra' }) => {
   const c = {
-    bosque: 'text-bosque bg-[#E4E9E3]',
+    bosque: 'text-bosque bg-bosque-suave',
     piedra: 'text-piedra bg-marfil-oscuro',
-    alerta: 'text-[#8a2b20] bg-[#f6e7e4]',
+    alerta: 'text-peligro bg-peligro-suave',
     tinta: 'text-marfil bg-tinta',
   }[tono];
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2 py-1 text-[11px] font-medium uppercase tracking-[0.12em] whitespace-nowrap ${c}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-control text-[11px] font-medium uppercase tracking-[0.12em] whitespace-nowrap ${c}`}>
       <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-current" />
       {children}
     </span>

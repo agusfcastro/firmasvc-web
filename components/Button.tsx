@@ -34,7 +34,7 @@ export const Button: React.FC<ButtonProps> = ({
 }) => {
   // Radio 0 y sin sombras: la marca no usa esquinas redondeadas ni profundidad decorativa.
   const baseStyles =
-    'inline-flex items-center justify-center gap-2.5 rounded-none font-medium whitespace-nowrap transition-[background-color,color] duration-150';
+    'inline-flex items-center justify-center gap-2.5 rounded-control font-medium whitespace-nowrap transition-[background-color,color] duration-150';
 
   return (
     <button

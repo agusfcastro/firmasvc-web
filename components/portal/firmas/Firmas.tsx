@@ -531,7 +531,7 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
                   key={clave}
                   className={`flex items-start gap-3 p-4 border cursor-pointer ${entrega === clave ? 'border-tinta bg-white' : 'border-[rgba(27,31,27,0.18)] hover:border-tinta'}`}
                 >
-                  <input type="radio" name="entrega" checked={entrega === clave} onChange={() => setEntrega(clave)} className="mt-1 w-4 h-4 accent-[#173A2F] shrink-0" />
+                  <input type="radio" name="entrega" checked={entrega === clave} onChange={() => setEntrega(clave)} className="mt-1 w-4 h-4 accent-bosque shrink-0" />
                   <span className="flex flex-col gap-0.5">
                     <span className="text-sm font-medium">{rotulo}</span>
                     <span className="text-xs text-piedra leading-[1.5]">{ayuda}</span>
@@ -845,7 +845,7 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
             <div className="flex flex-wrap items-end justify-between gap-3">
               <h2 className="h3">Registro</h2>
               {cadena !== null && (
-                <span className={`inline-flex items-center gap-1.5 text-sm font-medium ${cadena ? 'text-bosque' : 'text-[#8a2b20]'}`}>
+                <span className={`inline-flex items-center gap-1.5 text-sm font-medium ${cadena ? 'text-bosque' : 'text-peligro'}`}>
                   {cadena ? <ShieldCheck size={16} aria-hidden="true" /> : <X size={16} aria-hidden="true" />}
                   {cadena ? 'Cadena íntegra' : 'La cadena no cierra'}
                 </span>
@@ -859,7 +859,7 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
                     {ROTULO_EVENTO[ev.tipo] ?? ev.tipo}
                     {ev.firmante_id && nombres.get(ev.firmante_id) ? ` · ${nombres.get(ev.firmante_id)}` : ''}
                     {ev.ip ? <span className="text-piedra"> · IP {ev.ip}</span> : null}
-                    {ev.tipo === 'error_mail' && typeof ev.detalle.motivo === 'string' ? <span className="block text-xs text-[#8a2b20]">{ev.detalle.motivo}</span> : null}
+                    {ev.tipo === 'error_mail' && typeof ev.detalle.motivo === 'string' ? <span className="block text-xs text-peligro">{ev.detalle.motivo}</span> : null}
                   </span>
                 </li>
               ))}
@@ -931,7 +931,7 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
               type="button"
               onClick={() => void eliminar()}
               disabled={ocupado !== null}
-              className="self-start inline-flex items-center gap-2 h-10 px-3 -ml-3 text-sm font-medium text-[#8a2b20] transition-colors duration-150 hover:bg-[#f6e7e4] disabled:opacity-40"
+              className="self-start inline-flex items-center gap-2 h-10 px-3 -ml-3 text-sm font-medium text-peligro transition-colors duration-150 hover:bg-peligro-suave disabled:opacity-40"
             >
               <Trash2 size={15} aria-hidden="true" /> {ocupado === 'eliminar' ? 'Eliminando…' : 'Eliminar el envío'}
             </button>
