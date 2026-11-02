@@ -255,7 +255,7 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
         return setEnviadoSinEsquema(asuntoId);
       }
     }
-    navegar(`/portal/asuntos/${asuntoId}?pestana=formulario`);
+    navegar(`/portal/asuntos/${asuntoId}?pestana=formulario&enviado=1`);
   }
 
   /** Después de enviar: guarda los datos del closer y le avisa a FIRMA por el chat. */
@@ -442,13 +442,13 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
               <div className="flex flex-col gap-3">
                 <h2 className="h3">Revisar y enviar</h2>
                 <p className="text-piedra text-[15px] leading-[1.6]">
-                  Así nos llegan tus respuestas. Al enviar se abre un asunto de contrato, te avisamos por ahí cuando el borrador esté listo y podés subir el manual o los guiones en Documentos.
+                  Así nos llegan tus respuestas. Al enviar se abre un asunto de contrato y nos ponemos en contacto en un plazo de hasta 7 días. Ahí podés subir el manual o los guiones en Documentos.
                 </p>
               </div>
               {enviadoSinEsquema && (
                 <Aviso tipo="info">
-                  Le enviamos el formulario a FIRMA, pero el esquema no se pudo guardar.{' '}
-                  <Enlace a={`/portal/asuntos/${enviadoSinEsquema}?pestana=formulario`} className="underline underline-offset-2">
+                  Le enviamos el formulario a FIRMA y nos ponemos en contacto en un plazo de hasta 7 días, pero el esquema no se pudo guardar.{' '}
+                  <Enlace a={`/portal/asuntos/${enviadoSinEsquema}?pestana=formulario&enviado=1`} className="underline underline-offset-2">
                     Ir al asunto
                   </Enlace>
                 </Aviso>
@@ -713,6 +713,14 @@ export const ListaRespuestas: React.FC<{ modelo: Modelo; respuestas: Respuestas;
 /** Pestaña Formulario del asunto. */
 export const FormularioDelAsunto: React.FC<{ pedido: PedidoContrato; empresa: string; puedeCompletar: boolean }> = ({ pedido, empresa, puedeCompletar }) => {
   const [copiado, setCopiado] = useState(false);
+  // Recién enviado: la confirmación se muestra una vez y sale de la dirección.
+  const [recienEnviado] = useState(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('enviado') !== '1') return false;
+    url.searchParams.delete('enviado');
+    window.history.replaceState({}, '', url);
+    return true;
+  });
   const modelo = MODELOS[pedido.modelo];
   async function copiar() {
     const encabezado = `${modelo.tituloAsunto(pedido.respuestas)}${empresa ? ` · ${empresa}` : ''}${pedido.enviado_en ? ` · enviado el ${fecha(pedido.enviado_en)}` : ''}`;
@@ -732,6 +740,11 @@ export const FormularioDelAsunto: React.FC<{ pedido: PedidoContrato; empresa: st
           {copiado ? <Check size={15} aria-hidden="true" /> : <Copy size={15} aria-hidden="true" />} {copiado ? 'Copiado' : 'Copiar respuestas'}
         </Button>
       </div>
+      {recienEnviado && puedeCompletar && (
+        <Aviso tipo="ok">
+          <strong>Recibimos tu formulario.</strong> Nos ponemos en contacto en un plazo de hasta 7 días. Mientras tanto, si querés sumar algo, escribinos en el chat o subí archivos en Documentos.
+        </Aviso>
+      )}
       {datosPendientes(modelo, pedido.respuestas) && (
         <Aviso tipo="info">
           {puedeCompletar ? (
