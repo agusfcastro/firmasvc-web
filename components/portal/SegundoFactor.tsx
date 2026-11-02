@@ -92,7 +92,7 @@ export const SegundoFactor: React.FC<{ estado: EstadoSesion }> = ({ estado }) =>
         <div className="mb-8">
           {alta ? (
             <>
-              <QrMarca texto={alta.uri} etiqueta="Código QR para la app autenticadora" className="w-56 h-56 shadow-[0_1px_4px_rgba(27,31,27,0.15)] rounded-[10px]" />
+              <QrMarca texto={alta.uri} etiqueta="Código QR para la app autenticadora" className="w-56 h-56 shadow-hoja rounded-[10px]" />
               <p className="mt-4 text-xs text-piedra leading-relaxed">
                 ¿No podés escanear? Cargá esta clave a mano: <span className="font-mono text-tinta break-all select-all">{alta.secreto}</span>
               </p>

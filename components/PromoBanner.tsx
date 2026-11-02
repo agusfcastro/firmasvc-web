@@ -26,7 +26,7 @@ export const PromoBanner: React.FC = () => {
   if (restante <= 0) return null;
 
   return (
-    <div className="bg-[#B3261E] text-white">
+    <div className="bg-urgente text-white">
       <div className="wrap flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 py-2.5 text-center text-[13px] leading-snug sm:text-sm">
         <p>
           <strong className="font-semibold uppercase tracking-wide">Solo por 72 hs:</strong>{' '}
@@ -41,7 +41,7 @@ export const PromoBanner: React.FC = () => {
           <button
             type="button"
             onClick={openCalendly}
-            className="bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#B3261E] transition-colors duration-150 hover:bg-marfil"
+            className="bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wide text-urgente transition-colors duration-150 hover:bg-marfil"
           >
             Quiero mi lugar
           </button>

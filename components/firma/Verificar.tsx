@@ -101,7 +101,7 @@ export const Verificar: React.FC<{ codigoInicial?: string }> = ({ codigoInicial 
               setArrastrando(false);
               elegir(e.dataTransfer.files?.[0]);
             }}
-            className={`flex flex-col items-center justify-center gap-3 p-10 text-center border-2 border-dashed cursor-pointer transition-colors duration-150 ${arrastrando ? 'border-bosque bg-[#E4E9E3]' : 'border-[rgba(27,31,27,0.25)] bg-white hover:border-tinta'}`}
+            className={`flex flex-col items-center justify-center gap-3 p-10 text-center border-2 border-dashed cursor-pointer transition-colors duration-150 ${arrastrando ? 'border-bosque bg-bosque-suave' : 'border-[rgba(27,31,27,0.25)] bg-white hover:border-tinta'}`}
           >
             <FileUp size={28} aria-hidden="true" className="text-bosque" />
             <span className="font-medium">{archivo ? archivo.name : 'Arrastrá el PDF o tocá para elegirlo'}</span>
@@ -137,7 +137,7 @@ export const Verificar: React.FC<{ codigoInicial?: string }> = ({ codigoInicial 
           {error && <Aviso tipo="error">{error}</Aviso>}
 
           {resultado && !resultado.encontrado && (
-            <div className="bg-[#f6e7e4] p-7 flex flex-col gap-3 text-[#5c1d15]">
+            <div className="bg-peligro-suave p-7 flex flex-col gap-3 text-peligro-fuerte">
               <span className="inline-flex items-center gap-2 font-semibold">
                 <X size={18} aria-hidden="true" /> No hay registro
               </span>
@@ -152,7 +152,7 @@ export const Verificar: React.FC<{ codigoInicial?: string }> = ({ codigoInicial 
           {s && estado && (
             <>
               {resultado?.coincide === 'final' && (
-                <div className="bg-[#E4E9E3] p-6 flex items-start gap-3 text-bosque">
+                <div className="bg-bosque-suave p-6 flex items-start gap-3 text-bosque">
                   <ShieldCheck size={22} aria-hidden="true" className="shrink-0 mt-0.5" />
                   <p className="text-[15px] leading-[1.6]">
                     <strong>Es el documento firmado original.</strong> Coincide byte por byte con el PDF que generamos cuando firmaron todos.

@@ -23,6 +23,7 @@ import { createHash, createHmac, randomInt, randomUUID, timingSafeEqual } from '
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { FALTA_SEGUNDO_FACTOR, nivelDe } from '../_lib/nivel.js';
 import { enviarMail, mailDisponible, plantillaMail } from '../_lib/mail.js';
+import { COLOR, rgb01 } from '../_lib/marca.js';
 import { PDFDocument, StandardFonts, degrees, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
 
 /* ==================================================================== */
@@ -438,9 +439,9 @@ interface Evento {
 
 const A4: [number, number] = [595.28, 841.89];
 const MARGEN = 56;
-const TINTA = rgb(0.106, 0.122, 0.106);
-const PIEDRA = rgb(0.42, 0.396, 0.325);
-const BOSQUE = rgb(0.09, 0.227, 0.184);
+const TINTA = rgb(...rgb01(COLOR.tinta));
+const PIEDRA = rgb(...rgb01(COLOR.piedra));
+const BOSQUE = rgb(...rgb01(COLOR.bosque));
 const LINEA = rgb(0.8, 0.79, 0.75);
 
 /** Escritura de arriba hacia abajo que agrega páginas solas cuando se llena la actual. */

@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && vite build --ssr entry-server.tsx --outDir dist-ssr && node scripts/prerender.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "db:probar": "node scripts/db/probar.mjs",
+    "marca:verificar": "node scripts/marca/verificar.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.3",
@@ -19,6 +22,7 @@
     "react-dom": "^19.2.3"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.14",
     "@tailwindcss/vite": "^4.0.0",
     "@types/node": "^22.14.0",
     "@types/react": "^19.3.0",

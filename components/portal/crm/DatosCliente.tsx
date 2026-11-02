@@ -68,7 +68,7 @@ export const DatosCliente: React.FC<{ d: Identidad; alCambiar: (k: keyof Identid
             key={clave}
             className={`flex items-start gap-3 p-4 border cursor-pointer ${d.tipo === clave ? 'border-tinta bg-white' : 'border-[rgba(27,31,27,0.18)] hover:border-tinta'}`}
           >
-            <input type="radio" name={nombreGrupo} checked={d.tipo === clave} onChange={() => alCambiar('tipo', clave)} className="mt-1 w-4 h-4 accent-[#173A2F] shrink-0" />
+            <input type="radio" name={nombreGrupo} checked={d.tipo === clave} onChange={() => alCambiar('tipo', clave)} className="mt-1 w-4 h-4 accent-bosque shrink-0" />
             <span className="flex flex-col gap-0.5">
               <span className="text-sm font-medium">{rotulo}</span>
               <span className="text-xs text-piedra leading-[1.5]">{ayuda}</span>

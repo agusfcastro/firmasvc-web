@@ -16,6 +16,37 @@
   --color-firma-dark: #12302A;
   --color-firma-light: #2B5646;
 
+  /* Superficies y líneas */
+  --color-marfil-claro: #FBFAF6;
+  --color-linea: #DEDBD0;
+  --color-linea-suave: #E7E5DD;
+  --color-bosque-suave: #E4E9E3;
+  --color-bosque-claro: #B9D4C4;
+
+  /* Estados. Los -claro van como texto sobre fondo oscuro */
+  --color-peligro: #8A2B20;
+  --color-peligro-fuerte: #5C1D15;
+  --color-peligro-suave: #F6E7E4;
+  --color-peligro-borde: #E3A59B;
+  --color-peligro-claro: #F0B4A8;
+  --color-aviso: #85621A;
+  --color-aviso-suave: #F6ECD2;
+  --color-aviso-claro: #F0D2A8;
+  --color-urgente: #B3261E;
+
+  /* Radios. La marca va en ángulo recto; pastilla es para etiquetas y chips */
+  --radius-control: 0px;
+  --radius-tarjeta: 0px;
+  --radius-pastilla: 9999px;
+
+  /* Sombras */
+  --shadow-suave: 0 1px 3px rgba(27, 31, 27, 0.06);
+  --shadow-hoja: 0 1px 4px rgba(27, 31, 27, 0.15);
+  --shadow-flotante: 0 12px 32px rgba(27, 31, 27, 0.18);
+
+  /* Si cambiás un valor de esta sección, cambialo igual en api/_lib/marca.ts
+     (mails, PDF firmado y QR). npm run marca:verificar compara los dos. */
+
   --font-sans: 'Archivo', system-ui, sans-serif;
   --font-heading: 'Bitter', Georgia, serif;
 

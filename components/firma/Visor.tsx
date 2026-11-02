@@ -33,9 +33,9 @@ export const Visor: React.FC<{ url: string; titulo: string }> = ({ url, titulo }
   }
 
   return (
-    <div className="relative bg-[#E7E5DD] px-3 py-4 tab:px-6 tab:py-6 flex flex-col items-center gap-4 tab:gap-6" aria-label={`Documento ${titulo}`}>
+    <div className="relative bg-linea-suave px-3 py-4 tab:px-6 tab:py-6 flex flex-col items-center gap-4 tab:gap-6" aria-label={`Documento ${titulo}`}>
       {!doc ? (
-        <div className="w-full max-w-[820px] bg-white shadow-[0_1px_4px_rgba(27,31,27,0.15)] flex items-center justify-center" style={{ aspectRatio: '1 / 1.414' }}>
+        <div className="w-full max-w-[820px] bg-white shadow-hoja flex items-center justify-center" style={{ aspectRatio: '1 / 1.414' }}>
           <span className="eyebrow text-piedra animate-pulse">Cargando el documento</span>
         </div>
       ) : (
@@ -114,7 +114,7 @@ const Hoja: React.FC<{ doc: PDFDocumentProxy; numero: number; alVer: (n: number)
   }, [cerca, doc, numero]);
 
   return (
-    <div ref={caja} className="relative w-full max-w-[820px] bg-white shadow-[0_1px_4px_rgba(27,31,27,0.15)]" style={{ aspectRatio: `1 / ${proporcion}` }}>
+    <div ref={caja} className="relative w-full max-w-[820px] bg-white shadow-hoja" style={{ aspectRatio: `1 / ${proporcion}` }}>
       <canvas ref={lienzo} className={`block w-full h-full select-none transition-opacity duration-200 ${lista ? 'opacity-100' : 'opacity-0'}`} onContextMenu={(e) => e.preventDefault()} aria-label={`Hoja ${numero}`} />
     </div>
   );

@@ -118,7 +118,7 @@ export const Tarjeta: React.FC<{ plan: Plan; compacta?: boolean; actual?: boolea
   return (
     <article
       className={`relative flex flex-col p-8 border ${
-        oscura ? 'bg-tinta border-tinta' : premium ? 'bg-[#FBFAF6] border-bosque border-2' : 'bg-[#FBFAF6] border-tinta/15'
+        oscura ? 'bg-tinta border-tinta' : premium ? 'bg-marfil-claro border-bosque border-2' : 'bg-marfil-claro border-tinta/15'
       } ${texto}`}
     >
       {(actual || plan.badge) && (
@@ -137,7 +137,7 @@ export const Tarjeta: React.FC<{ plan: Plan; compacta?: boolean; actual?: boolea
         <span className={`text-sm ${suave}`}>por mes</span>
       </div>
       {plan.extra && (
-        <p className="mt-3 text-sm font-medium text-bosque bg-[#E4E9E3] px-3 py-2">{plan.extra}</p>
+        <p className="mt-3 text-sm font-medium text-bosque bg-bosque-suave px-3 py-2">{plan.extra}</p>
       )}
 
       <h3 className="h3 mt-6">{plan.titular}</h3>
@@ -228,7 +228,7 @@ export const Planes: React.FC = () => {
 
         <section className="wrap section">
           <h2 className="h3 text-center mb-8">Comparativa</h2>
-          <div className="overflow-x-auto border border-tinta/15 bg-[#FBFAF6]">
+          <div className="overflow-x-auto border border-tinta/15 bg-marfil-claro">
             <table className="w-full min-w-[640px] border-collapse text-[15px]">
               <thead>
                 <tr className="border-b border-tinta/15">

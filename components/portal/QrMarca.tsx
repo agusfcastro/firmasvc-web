@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react';
 import qrcode from 'qrcode-generator';
+import { COLOR } from '../../api/_lib/marca';
 
-const BOSQUE = '#173A2F';
-const MARFIL = '#F5F3EC';
+const BOSQUE = COLOR.bosque;
+const MARFIL = COLOR.marfil;
 /** Margen alrededor del código, en módulos. */
 const MARGEN = 3;
 

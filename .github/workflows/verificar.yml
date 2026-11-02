@@ -1,0 +1,32 @@
+# Corre en cada push y en cada pull request.
+#   codigo       tipos, colores de marca y pruebas de permisos sobre PGlite (sin Docker)
+#   migraciones  aplica todas las migraciones sobre la imagen real de Supabase
+name: Verificar
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  codigo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run marca:verificar
+      - run: npm run db:probar
+
+  migraciones:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.122.1
+      # Levanta solo Postgres con los esquemas de Supabase y aplica supabase/migrations en orden.
+      - run: supabase db start

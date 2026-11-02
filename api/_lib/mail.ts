@@ -6,17 +6,20 @@
  * La carpeta empieza con guion bajo para que Vercel no la tome como función.
  */
 
-const MARFIL = '#F5F3EC';
-const TINTA = '#1B1F1B';
-const PIEDRA = '#6B6553';
-const BOSQUE = '#173A2F';
-const LINEA = '#DEDBD0';
-const CARBON = '#2B2B2B';
-const CALIDO = '#A9A79E';
+import { COLOR, FUENTE } from './marca.js';
+
+const MARFIL = COLOR.marfil;
+const TINTA = COLOR.tinta;
+const PIEDRA = COLOR.piedra;
+const BOSQUE = COLOR.bosque;
+const LINEA = COLOR.linea;
+const CARBON = COLOR.carbon;
+const CALIDO = COLOR.calido;
+const BLANCO = COLOR.blanco;
 
 /** Fuentes de la marca. Apple Mail y algunos clientes las cargan; el resto usa Georgia y Arial. */
-const TITULO = "'Bitter', Georgia, 'Times New Roman', serif";
-const TEXTO = "'Archivo', Arial, Helvetica, sans-serif";
+const TITULO = FUENTE.titulo;
+const TEXTO = FUENTE.texto;
 
 function escaparMail(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -83,7 +86,7 @@ ${anticipo}
 <tr><td style="padding:0 4px 24px">
 <img src="${baseWeb()}/mail/firma-lockup.png" width="200" height="45" alt="firma · Castro &amp; Partners Legal Consulting" style="display:block;border:0;width:200px;height:auto;font-family:${TITULO};font-size:24px;font-weight:900;color:${TINTA}">
 </td></tr>
-<tr><td style="background:#FFFFFF;border:1px solid ${LINEA};border-top:3px solid ${BOSQUE};padding:36px 32px">
+<tr><td style="background:${BLANCO};border:1px solid ${LINEA};border-top:3px solid ${BOSQUE};padding:36px 32px">
 <p style="margin:0 0 14px;font-family:${TEXTO};font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:${PIEDRA}">${escaparMail(o.seccion)}</p>
 <h1 style="margin:0 0 22px;font-family:${TITULO};font-size:26px;font-weight:900;line-height:1.2;letter-spacing:-.01em;color:${TINTA}">${escaparMail(o.titulo)}</h1>
 ${parrafos}${bloques}${boton}${pie}

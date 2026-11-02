@@ -457,7 +457,7 @@ export const Documentos: React.FC = () => {
                   <button type="button" className={`${claseLink} mr-4`} onClick={() => editar(d)}>
                     Editar
                   </button>
-                  <button type="button" className="underline underline-offset-4 text-[#8a2b20]" onClick={() => borrar(d)}>
+                  <button type="button" className="underline underline-offset-4 text-peligro" onClick={() => borrar(d)}>
                     Eliminar
                   </button>
                 </td>

@@ -26,5 +26,13 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "dist-ssr",
+    ".preview-build",
+    "Claude outputs",
+    "design_handoff_firma_home"
+  ]
 }

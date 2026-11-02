@@ -146,7 +146,7 @@ export const Agendas: React.FC = () => {
                   <button type="button" className="underline underline-offset-4 hover:text-bosque mr-4" onClick={() => setBorrador({ ...a })}>
                     Editar
                   </button>
-                  <button type="button" className="underline underline-offset-4 text-[#8a2b20]" onClick={() => borrar(a)}>
+                  <button type="button" className="underline underline-offset-4 text-peligro" onClick={() => borrar(a)}>
                     Eliminar
                   </button>
                 </td>

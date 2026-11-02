@@ -10,7 +10,7 @@ Accesos, roles, panel de administración y registro de ingresos. Se hace una sol
 ## 2. Crear las tablas y los permisos
 
 1. En Supabase abrí **SQL Editor › New query**.
-2. Pegá todo el contenido de `supabase/migraciones/0001_portal_accesos.sql` y apretá **Run**.
+2. Pegá todo el contenido de `supabase/migrations/0001_portal_accesos.sql` y apretá **Run**.
 
 ## 3. Configurar el login
 
@@ -134,7 +134,7 @@ Entrá a `firmasvc.com/portal`.
 | Closer | CRM y agenda, sin casos de conflicto. De documentos, solo protocolos y formación |
 | Setter | Solo protocolos y formación |
 
-Las cuentas viejas con rol Miembro del equipo funcionan como CSM. Para que rijan estos roles corré `supabase/migraciones/0012_roles_equipo.sql` en **SQL Editor**. Un documento cuenta como protocolo o formación cuando tiene marcada esa casilla en **Administración › Documentos**; la migración la marca sola en los protocolos que ya estaban.
+Las cuentas viejas con rol Miembro del equipo funcionan como CSM. Para que rijan estos roles corré `supabase/migrations/0012_roles_equipo.sql` en **SQL Editor**. Un documento cuenta como protocolo o formación cuando tiene marcada esa casilla en **Administración › Documentos**; la migración la marca sola en los protocolos que ya estaban.
 
 Los permisos los aplica la base de datos. Aunque alguien manipule la página, un cliente no puede leer datos de otro.
 
@@ -146,7 +146,7 @@ Puesta en marcha, en este orden:
 
 1. En Supabase, **Authentication › Multi-Factor** (o **Sign In / Providers › Multi-Factor**), revisá que **TOTP** esté habilitado. Viene habilitado de fábrica.
 2. Con el código desplegado, cada admin entra al portal y registra su app.
-3. Recién entonces corré `supabase/migraciones/0033_mfa_admin.sql` en **SQL Editor**. Hace que la base exija el segundo factor para los permisos de admin. Si la corrés antes de desplegar el código, los admins se quedan sin permisos en la base hasta que el portal tenga la pantalla del código.
+3. Recién entonces corré `supabase/migrations/0033_mfa_admin.sql` en **SQL Editor**. Hace que la base exija el segundo factor para los permisos de admin. Si la corrés antes de desplegar el código, los admins se quedan sin permisos en la base hasta que el portal tenga la pantalla del código.
 
 Si un admin pierde el celular: en Supabase, **Authentication › Users**, abrí su usuario y borrá el factor en **Multi-Factor**. Al volver a entrar le pide registrar la app de nuevo. Guardá la clave de texto que muestra el alta, debajo del QR, en un lugar seguro: con ella podés cargar la app en otro celular.
 
@@ -154,8 +154,8 @@ Si un admin pierde el celular: en Supabase, **Authentication › Users**, abrí 
 
 | Archivo | Para qué |
 |---|---|
-| `supabase/migraciones/0001_portal_accesos.sql` | Tablas, roles y permisos |
-| `supabase/migraciones/0033_mfa_admin.sql` | Los permisos de admin piden la verificación en dos pasos |
+| `supabase/migrations/0001_portal_accesos.sql` | Tablas, roles y permisos |
+| `supabase/migrations/0033_mfa_admin.sql` | Los permisos de admin piden la verificación en dos pasos |
 | `supabase/primer_admin.sql` | Alta de tu usuario admin |
 | `api/admin/usuarios.ts` | Invitar, editar, activar y desactivar (servidor) |
 | `components/portal/` | Pantallas del portal y del panel |
@@ -167,7 +167,7 @@ Contratos de servicio, contratos con el equipo y otros documentos, en `firmasvc.
 
 ### Puesta en marcha
 
-1. En Supabase abrí **SQL Editor › New query**, pegá todo `supabase/migraciones/0005_documentos.sql` y apretá **Run**. Crea la tabla, los permisos y el espacio privado para los archivos.
+1. En Supabase abrí **SQL Editor › New query**, pegá todo `supabase/migrations/0005_documentos.sql` y apretá **Run**. Crea la tabla, los permisos y el espacio privado para los archivos.
 2. En **Storage** fijate que aparezca el bucket `documentos` como privado. No lo hagas público.
 
 ### Uso
@@ -182,7 +182,7 @@ Cada descarga de un cliente queda en **Registro de accesos**. Formatos admitidos
 
 | Archivo | Para qué |
 |---|---|
-| `supabase/migraciones/0005_documentos.sql` | Tabla, permisos, bucket privado y registro de descargas |
+| `supabase/migrations/0005_documentos.sql` | Tabla, permisos, bucket privado y registro de descargas |
 | `components/portal/Documentos.tsx` | Vista del cliente con las tres secciones |
 | `components/portal/admin/Documentos.tsx` | Carga, reemplazo y visibilidad desde Administración |
 | `components/portal/descargas.ts` | Secciones, formatos y descargas |
@@ -224,7 +224,7 @@ Cada paso queda en `firma_eventos`: creación, mails, aperturas, códigos pedido
 
 ### Puesta en marcha
 
-1. En Supabase corré `supabase/migraciones/0010_firma_electronica.sql` en **SQL Editor**. Crea las tablas, el registro encadenado y el bucket privado `firmas`.
+1. En Supabase corré `supabase/migrations/0010_firma_electronica.sql` en **SQL Editor**. Crea las tablas, el registro encadenado y el bucket privado `firmas`.
 2. En Resend verificá el dominio `firmasvc.com` (si ya lo usás para los mails del portal, está hecho) y creá una API key con permiso de envío.
 3. En Vercel sumá estas variables y volvé a desplegar.
 
@@ -248,8 +248,8 @@ Cada paso queda en `firma_eventos`: creación, mails, aperturas, códigos pedido
 
 | Archivo | Para qué |
 |---|---|
-| `supabase/migraciones/0010_firma_electronica.sql` | Envíos, firmantes, registro encadenado, permisos y bucket |
-| `supabase/migraciones/0027_firma_por_enlace.sql` | Columna `entrega` (mail o enlace) de cada envío |
+| `supabase/migrations/0010_firma_electronica.sql` | Envíos, firmantes, registro encadenado, permisos y bucket |
+| `supabase/migrations/0027_firma_por_enlace.sql` | Columna `entrega` (mail o enlace) de cada envío |
 | `api/firma/sobres.ts` | Crear, enlaces, recordar, anular y descargar, con la sesión del portal |
 | `api/firma/firmar.ts` | Lado del firmante, armado del PDF, verificación pública y tarea diaria |
 | `components/portal/firmas/` | Sección Firma electrónica del portal |
@@ -262,7 +262,7 @@ Registro de reclamos y pedidos de reembolso de cada cliente final, en `firmasvc.
 
 ### Puesta en marcha
 
-1. En Supabase corré `supabase/migraciones/0007_crm_casos.sql` en **SQL Editor**. Crea la tabla `crm_casos` con sus reglas, su historial y sus permisos. Se puede correr más de una vez.
+1. En Supabase corré `supabase/migrations/0007_crm_casos.sql` en **SQL Editor**. Crea la tabla `crm_casos` con sus reglas, su historial y sus permisos. Se puede correr más de una vez.
 2. No hacen falta variables nuevas.
 
 ### Uso
@@ -295,7 +295,7 @@ Registro de reclamos y pedidos de reembolso de cada cliente final, en `firmasvc.
 
 | Archivo | Para qué |
 |---|---|
-| `supabase/migraciones/0007_crm_casos.sql` | Tabla de casos, reglas de coherencia, historial y permisos |
+| `supabase/migrations/0007_crm_casos.sql` | Tabla de casos, reglas de coherencia, historial y permisos |
 | `components/portal/crm/Casos.tsx` | Tablero, registro y formulario, más la sección de casos de la ficha |
 | `components/portal/crm/reglasCasos.ts` | Tipos, rótulos y cálculo de los indicadores |
 
@@ -316,7 +316,7 @@ Plantillas de trabajo para los clientes, públicas y sin indexar, con índice en
 
 ### Puesta en marcha
 
-1. En Supabase corré `supabase/migraciones/0008_protocolos.sql` en **SQL Editor**. Suma los siete protocolos nuevos a la biblioteca. Se puede correr más de una vez.
+1. En Supabase corré `supabase/migrations/0008_protocolos.sql` en **SQL Editor**. Suma los siete protocolos nuevos a la biblioteca. Se puede correr más de una vez.
 3. En el portal, los documentos con la casilla de protocolo o formación se ven en **Protocolos** (`/portal/protocolos`), no en las secciones de Documentos. La tarjeta Protocolos del inicio entra ahí. Closer y setter, que no ven documentos legales, solo tienen esa vista.
 2. No hacen falta variables nuevas.
 
@@ -332,7 +332,7 @@ Plantillas de trabajo para los clientes, públicas y sin indexar, con índice en
 | `components/protocolos/rutas.ts` | Catálogo y rutas que resuelve el motor |
 | `components/protocolos/PaginaProtocolo.tsx` | Página contenedora e índice de protocolos |
 | `components/protocolos/motor/*` | Tipos, ficha, renderizador, herramientas y estilos del motor |
-| `supabase/migraciones/0008_protocolos.sql` | Alta de los protocolos en Documentos |
+| `supabase/migrations/0008_protocolos.sql` | Alta de los protocolos en Documentos |
 
 ## Pagos con tarjeta
 
@@ -357,7 +357,7 @@ Hacé todo primero en el sandbox de dLocal Go. Recién cuando la prueba completa
 
 **1. Base de datos**
 
-En Supabase abrí **SQL Editor › New query**, pegá todo `supabase/migraciones/0009_abonos.sql` y apretá **Run**. Crea las tablas `abonos` y `abono_pagos` con sus reglas y permisos. Después hacé lo mismo con `supabase/migraciones/0016_abonos_periodo.sql`, que suma los abonos trimestrales y los planes en dólares sin país. Las dos se pueden correr más de una vez.
+En Supabase abrí **SQL Editor › New query**, pegá todo `supabase/migrations/0009_abonos.sql` y apretá **Run**. Crea las tablas `abonos` y `abono_pagos` con sus reglas y permisos. Después hacé lo mismo con `supabase/migrations/0016_abonos_periodo.sql`, que suma los abonos trimestrales y los planes en dólares sin país. Las dos se pueden correr más de una vez.
 
 **2. Credenciales de dLocal Go**
 
@@ -427,7 +427,7 @@ Este módulo cobra pero no emite facturas. La facturación electrónica de cada 
 
 | Archivo | Para qué |
 |---|---|
-| `supabase/migraciones/0009_abonos.sql` | Tablas de abonos y pagos con país, plan y suscripción de dLocal Go, reglas, registro del alta y permisos |
+| `supabase/migrations/0009_abonos.sql` | Tablas de abonos y pagos con país, plan y suscripción de dLocal Go, reglas, registro del alta y permisos |
 | `api/pagos/activar.ts` | Constancia de aceptación, plan del abono en dLocal Go y enlace de suscripción. También informa si dLocal Go está listo y en qué entorno |
 | `api/pagos/gestionar.ts` | Actualizar estado, baja y cambio de medio de pago |
 | `api/pagos/dlocalgo.ts` | Avisos de dLocal Go con clave por abono, que disparan la actualización del estado |
@@ -478,8 +478,8 @@ Para activarlo, corré `0034_pedidos_contrato.sql` y después `0035_esquemas_con
 
 | Archivo | Para qué |
 |---|---|
-| `supabase/migraciones/0034_pedidos_contrato.sql` | Tabla, permisos y bloqueo después de enviar |
-| `supabase/migraciones/0035_esquemas_contrato.sql` | Esquemas por empresa y datos del closer después de enviar |
+| `supabase/migrations/0034_pedidos_contrato.sql` | Tabla, permisos y bloqueo después de enviar |
+| `supabase/migrations/0035_esquemas_contrato.sql` | Esquemas por empresa y datos del closer después de enviar |
 | `components/portal/pedidos/formulario.ts` | Tipos de pregunta, avance, faltantes y resumen |
 | `components/portal/pedidos/closer.ts` | Preguntas del contrato de closer |
 | `components/portal/pedidos/Pedidos.tsx` | Formulario, tarjeta de Documentos y pestaña del asunto |
@@ -523,9 +523,9 @@ Cada aviso sale una sola vez y a cada persona por separado. Los documentos de la
 
 | Archivo | Para qué |
 |---|---|
-| `supabase/migraciones/0017_asuntos.sql` | Tablas de asuntos y novedades, reglas y permisos |
-| `supabase/migraciones/0018_asuntos_chat_archivos.sql` | Bitácora con notas internas, chat en vivo y documentos del asunto |
-| `supabase/migraciones/0019_asuntos_codigo.sql` | Código A-<prefijo>-<número> de cada asunto |
+| `supabase/migrations/0017_asuntos.sql` | Tablas de asuntos y novedades, reglas y permisos |
+| `supabase/migrations/0018_asuntos_chat_archivos.sql` | Bitácora con notas internas, chat en vivo y documentos del asunto |
+| `supabase/migrations/0019_asuntos_codigo.sql` | Código A-<prefijo>-<número> de cada asunto |
 | `components/portal/EstadoAsuntos.tsx` | Lista y detalle de asuntos |
 | `components/portal/asuntos.ts` | Tipos, rótulos y el pedido de avisos |
 | `api/portal/avisos.ts` | Avisos por mail de novedades y documentos |
@@ -575,7 +575,7 @@ curl -H "Authorization: Bearer $CRON_SECRET" "https://www.firmasvc.com/api/porta
 
 | Archivo | Para qué |
 |---|---|
-| `supabase/migraciones/0032_resumen_y_alertas.sql` | Preferencia del mail de los lunes, newsletters y registro de lo que ya salió |
+| `supabase/migrations/0032_resumen_y_alertas.sql` | Preferencia del mail de los lunes, newsletters y registro de lo que ya salió |
 | `api/portal/resumen.ts` | Tarea diaria, alertas, mail de los lunes, prueba y página de baja |
 | `components/portal/admin/Newsletter.tsx` | Administración › Newsletter |
 
@@ -585,7 +585,7 @@ Cada empresa puede tener su logo. Se ve en el header del portal al lado del de F
 
 ### Puesta en marcha
 
-En Supabase abrí **SQL Editor › New query**, pegá todo `supabase/migraciones/0011_logos_clientes.sql` y apretá **Run**. Suma la columna `logo_url` a `organizaciones` y crea el bucket público `logos`, donde solo los admin de FIRMA pueden subir. Se puede correr más de una vez.
+En Supabase abrí **SQL Editor › New query**, pegá todo `supabase/migrations/0011_logos_clientes.sql` y apretá **Run**. Suma la columna `logo_url` a `organizaciones` y crea el bucket público `logos`, donde solo los admin de FIRMA pueden subir. Se puede correr más de una vez.
 
 ### Uso
 
@@ -593,7 +593,7 @@ En **Administración › Clientes › Editar** (o **Nuevo cliente**) tocá **Ele
 
 | Archivo | Para qué |
 |---|---|
-| `supabase/migraciones/0011_logos_clientes.sql` | Columna del logo, bucket y permisos |
+| `supabase/migrations/0011_logos_clientes.sql` | Columna del logo, bucket y permisos |
 | `components/portal/logos.ts` | Subida, borrado y lectura del logo con caché |
 
 ## Servicios
@@ -631,10 +631,65 @@ Lo puede usar cualquier rol con acceso al CRM. Mientras hay un envío en curso n
 
 | Archivo | Para qué |
 |---|---|
-| `supabase/migraciones/0015_crm_firma_unida.sql` | Modelo por servicio desde la biblioteca, firmante de la empresa, vista previa y envío atado al cliente |
+| `supabase/migrations/0015_crm_firma_unida.sql` | Modelo por servicio desde la biblioteca, firmante de la empresa, vista previa y envío atado al cliente |
 | `api/_lib/variables.ts` | Lista de variables y cómo se calcula cada una. La usan el servidor y el portal |
 | `api/_lib/word.ts` | Completa las variables del Word y lo pasa a PDF con Drive |
 | `api/firma/sobres.ts` | Acciones `crm_vista`, `crm_pdf` y `crm_enviar` |
 | `api/firma/firmar.ts` | Al completarse la firma, pasa el cliente a Firmado |
 | `components/portal/crm/contratoFirma.tsx` | Contrato, vista previa, envío y seguimiento en la ficha |
 | `components/portal/crm/Servicios.tsx` | Modelo de cada servicio, quién firma por la empresa y lista de variables |
+
+## Migraciones, pruebas y marca
+
+### Migraciones con Supabase CLI
+
+Las migraciones viven en `supabase/migrations/` (antes `supabase/migraciones/`) con el mismo nombre de siempre, `NNNN_descripcion.sql`. Supabase CLI las lee de ahí y en ese orden. Una migración nueva lleva el número siguiente.
+
+Se pueden seguir corriendo a mano en **SQL Editor**, como hasta ahora. Para pasar a `supabase db push`, hay que hacer una vez la línea base, así la CLI sabe que las que ya están en producción no se vuelven a correr:
+
+```bash
+npx supabase login
+```
+
+```bash
+npx supabase link --project-ref <ref del proyecto, en Project Settings › General>
+```
+
+```bash
+npx supabase migration list
+```
+
+Después, por cada migración que ya corriste en el SQL Editor y la lista muestra solo en Local, marcala como aplicada (sin correrla). Por ejemplo, para todas hasta la 0035:
+
+```bash
+npx supabase migration repair --status applied 0001 0002 0003 0004 0005 0006 0007 0008 0009 0010 0011 0012 0013 0014 0015 0016 0017 0018 0019 0020 0021 0022 0023 0024 0025 0026 0027 0028 0029 0030 0031 0032 0033 0034 0035
+```
+
+Desde ahí, `npx supabase db push` corre solo las nuevas. `supabase/config.toml` describe el login del portal para la base local (sin registro abierto, contraseña de 10 con letras y números, TOTP). No cambia producción salvo que se use `supabase config push`.
+
+### Pruebas
+
+| Comando | Qué hace |
+|---|---|
+| `npm run typecheck` | Revisa los tipos de TypeScript de todo el proyecto |
+| `npm run marca:verificar` | Compara los colores de `api/_lib/marca.ts` con los de `index.css` |
+| `npm run db:probar` | Corre todas las migraciones sobre un Postgres vacío en memoria (PGlite) y después las pruebas de `supabase/pruebas/` |
+
+`db:probar` no necesita Docker ni toca producción. `supabase/pruebas/_supabase.sql` simula lo mínimo de Supabase (roles, `auth.uid()`, `auth.jwt()`, Storage). `aislamiento_negocios.sql` comprueba que un negocio no lee, carga, edita ni borra datos de otro, lo que ve cada rol, y que el admin sin segundo factor no ve nada. Cada prueba nueva va en un archivo `.sql` en esa carpeta y usa `pruebas.como(usuario, aal)` para actuar como un usuario y `pruebas.ok(condición, mensaje)` para comprobar.
+
+GitHub Actions (`.github/workflows/verificar.yml`) corre las tres en cada push y, además, aplica todas las migraciones sobre la imagen real de Supabase.
+
+### Tokens de diseño
+
+Colores, radios, sombras y tipografías están en `index.css`, dentro de `@theme`. Cada token se usa como clase de Tailwind: `text-peligro`, `bg-bosque-suave`, `shadow-hoja`, `rounded-tarjeta`. Para aplicar un manual de marca se cambian los valores ahí, sin tocar componentes.
+
+| Grupo | Tokens |
+|---|---|
+| Marca | `marfil`, `marfil-oscuro`, `marfil-claro`, `carbon`, `tinta`, `piedra`, `calido`, `bosque`, `bosque-dark`, `bosque-suave`, `bosque-claro` |
+| Líneas | `linea`, `linea-suave` |
+| Estados | `peligro`, `peligro-fuerte`, `peligro-suave`, `peligro-borde`, `peligro-claro`, `aviso`, `aviso-suave`, `aviso-claro`, `urgente` |
+| Radios | `control`, `tarjeta` (0, ángulo recto) y `pastilla` |
+| Sombras | `suave`, `hoja`, `flotante` |
+| Tipografía | `font-sans` (Archivo), `font-heading` (Bitter) |
+
+Los mails, el PDF firmado y los dibujos en canvas no leen CSS. Toman los colores de `api/_lib/marca.ts`, que tiene que coincidir con `index.css`; `npm run marca:verificar` lo controla. No escribas colores con `[#...]` en los componentes: si falta uno, sumalo como token.

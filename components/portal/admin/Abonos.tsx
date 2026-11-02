@@ -201,7 +201,7 @@ const Detalle: React.FC<{
           <Dato titulo="Vigente hasta">
             {vigencia === null ? (
               <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <span className={vigenciaVencida(abono) ? 'text-[#8a2b20]' : undefined}>
+                <span className={vigenciaVencida(abono) ? 'text-peligro' : undefined}>
                   {abono.vigente_hasta ? `${fechaDia(abono.vigente_hasta, true)}${vigenciaVencida(abono) ? ', vencida' : ''}` : 'Sin fecha de fin'}
                 </span>
                 {!editable && (
@@ -384,7 +384,7 @@ const Detalle: React.FC<{
             <p className="text-sm text-piedra">Dado de baja. Para retomarlo, armá un abono nuevo.</p>
             <button
               type="button"
-              className="self-start text-sm font-medium underline underline-offset-4 text-[#8a2b20] disabled:opacity-50"
+              className="self-start text-sm font-medium underline underline-offset-4 text-peligro disabled:opacity-50"
               onClick={borrarDeBaja}
               disabled={ocupado !== ''}
             >
@@ -697,7 +697,7 @@ export const Abonos: React.FC = () => {
                       <div className="font-medium">{empresa(a.organizacion_id)}</div>
                       <div className="text-xs text-piedra mt-1">{a.concepto}</div>
                       {a.vigente_hasta && (
-                        <div className={`text-xs mt-1 ${vigenciaVencida(a) ? 'text-[#8a2b20]' : 'text-piedra'}`}>
+                        <div className={`text-xs mt-1 ${vigenciaVencida(a) ? 'text-peligro' : 'text-piedra'}`}>
                           {vigenciaVencida(a) ? 'Vigencia vencida el' : 'Vigente hasta el'} {fechaDia(a.vigente_hasta)}
                         </div>
                       )}

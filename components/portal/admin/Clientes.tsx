@@ -249,7 +249,7 @@ export const Clientes: React.FC = () => {
               </p>
               <button
                 type="button"
-                className="self-start text-sm font-medium underline underline-offset-4 text-[#8a2b20] disabled:opacity-50"
+                className="self-start text-sm font-medium underline underline-offset-4 text-peligro disabled:opacity-50"
                 disabled={borrando}
                 onClick={() => borrarEmpresa(guardada)}
               >

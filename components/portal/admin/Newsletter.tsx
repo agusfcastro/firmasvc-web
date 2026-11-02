@@ -239,7 +239,7 @@ export const NewsletterAdmin: React.FC = () => {
                       >
                         Editar
                       </button>
-                      <button type="button" className="underline underline-offset-4 text-[#8a2b20]" onClick={() => borrar(n)}>
+                      <button type="button" className="underline underline-offset-4 text-peligro" onClick={() => borrar(n)}>
                         Eliminar
                       </button>
                     </>

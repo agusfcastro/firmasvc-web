@@ -211,11 +211,11 @@ export const ContratoFirma: React.FC<{
     <div className="flex flex-col gap-4">
       <div>
         {etiqueta('Contrato')}
-        <p className={`text-sm ${cerrado && !generando ? 'text-[#f0b4a8]' : 'text-calido'}`}>{texto}</p>
+        <p className={`text-sm ${cerrado && !generando ? 'text-peligro-claro' : 'text-calido'}`}>{texto}</p>
       </div>
 
       {!generando && avisos.length > 0 && !enCurso && !completado && (
-        <ul className="flex flex-col gap-1.5 text-xs text-[#f0d2a8] list-disc pl-4">
+        <ul className="flex flex-col gap-1.5 text-xs text-aviso-claro list-disc pl-4">
           {avisos.map((a, i) => (
             <li key={i}>{a}</li>
           ))}
@@ -303,8 +303,8 @@ export const ContratoFirma: React.FC<{
         </ul>
       )}
 
-      {falla && <p className="text-sm text-[#f0b4a8]">{falla}</p>}
-      {ok && <p className="text-sm text-[#b9d4c4]">{ok}</p>}
+      {falla && <p className="text-sm text-peligro-claro">{falla}</p>}
+      {ok && <p className="text-sm text-bosque-claro">{ok}</p>}
 
       {/* Confirmación antes de mandar */}
       {confirmando && (
@@ -317,7 +317,7 @@ export const ContratoFirma: React.FC<{
               ] as const
             ).map(([clave, rotulo, ayuda]) => (
               <label key={clave} className="flex items-start gap-3 cursor-pointer">
-                <input type="radio" name={`entrega-${clienteId}`} checked={entrega === clave} onChange={() => setEntrega(clave)} className="mt-1 w-4 h-4 accent-[#F5F3EC] shrink-0" />
+                <input type="radio" name={`entrega-${clienteId}`} checked={entrega === clave} onChange={() => setEntrega(clave)} className="mt-1 w-4 h-4 accent-marfil shrink-0" />
                 <span className="flex flex-col">
                   <span className="text-sm font-medium">{rotulo}</span>
                   <span className="text-xs text-calido leading-[1.5]">{ayuda}</span>
@@ -394,7 +394,7 @@ export const ContratoFirma: React.FC<{
                     </Enlace>
                     <Etiqueta tono={e.tono}>{e.texto}</Etiqueta>
                   </span>
-                  <span className={`text-xs ${fallido ? 'text-[#f0b4a8]' : 'text-calido'}`}>
+                  <span className={`text-xs ${fallido ? 'text-peligro-claro' : 'text-calido'}`}>
                     {cuando}.{fallido && o.motivo_cierre ? ` ${o.motivo_cierre}` : ''}
                     {fallido ? ' Hay que volver a mandarlo.' : ''}
                   </span>

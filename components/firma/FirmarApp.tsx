@@ -4,6 +4,7 @@ import { Button } from '../Button';
 import { Aviso, Campo, Etiqueta, claseInput } from '../portal/ui';
 import { ESTADO_FIRMANTE, MarcoPublico, fechaHora, llamarFirma, usePaginaPrivada } from './comun';
 import { Visor } from './Visor';
+import { COLOR } from '../../api/_lib/marca';
 
 /**
  * Página pública donde cada firmante lee y firma. /firmar/<enlace personal>
@@ -62,7 +63,7 @@ const Lienzo: React.FC<{ alCambiar: (png: string | null) => void }> = ({ alCambi
     ctx.scale(escala, escala);
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#1B1F1B';
+    ctx.strokeStyle = COLOR.tinta;
     ctx.lineWidth = 2.4;
   }, []);
 
@@ -83,7 +84,7 @@ const Lienzo: React.FC<{ alCambiar: (png: string | null) => void }> = ({ alCambi
     if (ctx && ultimo.current) {
       ctx.beginPath();
       ctx.arc(ultimo.current.x, ultimo.current.y, 1.2, 0, Math.PI * 2);
-      ctx.fillStyle = '#1B1F1B';
+      ctx.fillStyle = COLOR.tinta;
       ctx.fill();
     }
   };
@@ -189,7 +190,7 @@ function nombreComoImagen(nombre: string): string | null {
   c.width = Math.min(2400, ancho + 64);
   c.height = 150;
   ctx.font = fuente;
-  ctx.fillStyle = '#1B1F1B';
+  ctx.fillStyle = COLOR.tinta;
   ctx.textBaseline = 'middle';
   ctx.fillText(limpio, 32, 78, c.width - 64);
   return c.toDataURL('image/png');
@@ -202,7 +203,7 @@ const PantallaFinal: React.FC<{ datos: Datos; rechazo: boolean }> = ({ datos, re
   const { sobre, firmante } = datos;
   const completo = sobre.estado === 'completado';
   const Icono = rechazo ? ShieldX : ShieldCheck;
-  const tarjeta = 'w-full bg-white border border-[rgba(27,31,27,0.12)] shadow-[0_1px_3px_rgba(27,31,27,0.06)]';
+  const tarjeta = 'w-full bg-white border border-[rgba(27,31,27,0.12)] shadow-suave';
 
   return (
     <section className="bg-marfil min-h-[calc(100vh-170px)]">
@@ -560,7 +561,7 @@ export const FirmarApp: React.FC<{ token: string }> = ({ token }) => {
                   )}
 
                   <label className="flex items-start gap-3 text-sm leading-[1.55] cursor-pointer">
-                    <input type="checkbox" checked={acepto} onChange={(e) => setAcepto(e.target.checked)} className="mt-1 w-4 h-4 accent-[#173A2F] shrink-0" />
+                    <input type="checkbox" checked={acepto} onChange={(e) => setAcepto(e.target.checked)} className="mt-1 w-4 h-4 accent-bosque shrink-0" />
                     <span>{datos.consentimiento}</span>
                   </label>
 

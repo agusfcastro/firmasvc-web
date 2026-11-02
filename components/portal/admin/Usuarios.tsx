@@ -307,7 +307,7 @@ export const Usuarios: React.FC<{ yo: Perfil }> = ({ yo }) => {
                       <button
                         type="button"
                         disabled={ocupado === u.id}
-                        className={`underline underline-offset-4 ${u.activo ? 'text-[#8a2b20]' : 'hover:text-bosque'}`}
+                        className={`underline underline-offset-4 ${u.activo ? 'text-peligro' : 'hover:text-bosque'}`}
                         onClick={() => {
                           if (u.activo && !window.confirm(`¿Desactivar el acceso de ${u.email}? Deja de poder ingresar de inmediato.`)) return;
                           void accion(
