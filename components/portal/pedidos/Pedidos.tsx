@@ -93,13 +93,15 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
       });
   }, [parte, modeloNuevo]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const soloLectura = !puedeEditar || Boolean(pedido?.enviado_en);
+  // FIRMA y Ver como abren el formulario nuevo para ver cómo es, sin guardar nada.
+  const prueba = !puedeEditar && !pedido;
+  const soloLectura = Boolean(pedido?.enviado_en) || (!puedeEditar && Boolean(pedido));
 
   /** Guarda en orden: el primer guardado crea el borrador y los siguientes lo actualizan. */
   const guardar = useCallback(
     (r: Respuestas): Promise<void> => {
       const m = modelo;
-      if (!supabase || !m || !orgId || soloLectura) return Promise.resolve();
+      if (!supabase || !m || !orgId || !puedeEditar || soloLectura) return Promise.resolve();
       const sb = supabase;
       const titulo = texto(r, m.claveTitulo).trim() || null;
       enCurso.current = enCurso.current.then(async () => {
@@ -119,7 +121,7 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
       });
       return enCurso.current;
     },
-    [modelo, orgId, soloLectura],
+    [modelo, orgId, puedeEditar, soloLectura],
   );
 
   // Guardado automático un segundo después del último cambio.
@@ -229,9 +231,17 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
           <span className="text-bosque">{nombre || 'closer'}</span>
         </>
       }
-      bajada={soloLectura ? (pedido?.enviado_en ? `Enviado a FIRMA el ${fecha(pedido.enviado_en)}.` : 'Solo lectura.') : modelo.bajada}
+      bajada={
+        soloLectura
+          ? pedido?.enviado_en
+            ? `Enviado a FIRMA el ${fecha(pedido.enviado_en)}.`
+            : 'Solo lectura.'
+          : prueba
+            ? 'Vista previa: así lo completan el titular y el CSM. Podés recorrerlo, pero no se guarda ni se envía.'
+            : modelo.bajada
+      }
       acciones={
-        soloLectura ? undefined : (
+        soloLectura || prueba ? undefined : (
           <span className="text-sm text-piedra self-center" aria-live="polite">
             {guardado === 'guardando' ? 'Guardando…' : guardado === 'error' ? <span className="text-[#8a2b20]">No se pudo guardar</span> : guardado === 'listo' ? 'Borrador guardado' : ''}
           </span>
@@ -282,7 +292,7 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
               );
             })}
           </ol>
-          {pedido && (
+          {pedido && puedeEditar && (
             <button type="button" onClick={() => void descartar()} className="mt-6 self-start inline-flex items-center gap-2 h-10 px-3 -ml-3 text-sm font-medium text-[#8a2b20] transition-colors duration-150 hover:bg-[#f6e7e4]">
               <Trash2 size={15} aria-hidden="true" /> Descartar borrador
             </button>
@@ -316,7 +326,7 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
               )}
               <ListaRespuestas modelo={modelo} respuestas={respuestas} alEditar={(clave) => irA(secciones.findIndex((s) => s.clave === clave))} />
               <div className="flex flex-wrap gap-3 pt-2">
-                <Button type="button" onClick={() => void enviar()} disabled={enviando || pendientes.length > 0}>
+                <Button type="button" onClick={() => void enviar()} disabled={enviando || prueba || pendientes.length > 0}>
                   <Send size={16} aria-hidden="true" /> {enviando ? 'Enviando…' : 'Enviar a FIRMA'}
                 </Button>
                 <Button type="button" variant="ghost" onClick={() => irA(secciones.length - 1)}>
@@ -569,7 +579,8 @@ export const FormularioDelAsunto: React.FC<{ pedido: PedidoContrato; empresa: st
 const claseAccion =
   'inline-flex items-center justify-center gap-2 h-11 px-5 bg-marfil text-tinta text-sm font-medium whitespace-nowrap transition-colors duration-150 hover:bg-white';
 
-export const PedidosEquipo: React.FC<{ orgId: string | null; soloLectura: boolean }> = ({ orgId, soloLectura }) => {
+/** vistaPrevia: FIRMA o Ver como, que abren el formulario sin guardar. */
+export const PedidosEquipo: React.FC<{ orgId: string | null; vistaPrevia: boolean }> = ({ orgId, vistaPrevia }) => {
   const [borradores, setBorradores] = useState<PedidoContrato[]>([]);
 
   useEffect(() => {
@@ -619,13 +630,19 @@ export const PedidosEquipo: React.FC<{ orgId: string | null; soloLectura: boolea
           })}
         </ul>
       )}
-      {!soloLectura && (
-        <div className="relative mt-auto pt-4">
-          <Enlace a={`/portal/pedidos/${modelo.clave}`} className={claseAccion}>
-            <Plus size={16} aria-hidden="true" /> {borradores.length ? 'Empezar otro' : 'Completar el formulario'}
-          </Enlace>
-        </div>
-      )}
+      <div className="relative mt-auto pt-4">
+        <Enlace a={`/portal/pedidos/${modelo.clave}`} className={claseAccion}>
+          {vistaPrevia ? (
+            <>
+              <ArrowRight size={16} aria-hidden="true" /> Ver el formulario
+            </>
+          ) : (
+            <>
+              <Plus size={16} aria-hidden="true" /> {borradores.length ? 'Empezar otro' : 'Completar el formulario'}
+            </>
+          )}
+        </Enlace>
+      </div>
     </article>
   );
 };

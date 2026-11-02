@@ -174,8 +174,8 @@ export const Documentos: React.FC<{ perfil: Perfil; organizacion: Organizacion |
 
           {error && <Aviso tipo="error">{error}</Aviso>}
 
-          {/* El pedido de contrato abre un asunto, así que lo ven quienes ven los asuntos. */}
-          {!enProtocolos && seccion.clave === 'equipo' && !esAdmin && permisosDe(perfil.rol).casos && <PedidosEquipo orgId={orgId} soloLectura={Boolean(vista)} />}
+          {/* El pedido de contrato abre un asunto, así que lo completan quienes ven los asuntos. FIRMA lo ve en vista previa. */}
+          {!enProtocolos && seccion.clave === 'equipo' && permisosDe(perfil.rol).casos && <PedidosEquipo orgId={orgId} vistaPrevia={esAdmin || Boolean(vista)} />}
 
           {docs === null ? (
             <p className="eyebrow text-calido">Cargando</p>
