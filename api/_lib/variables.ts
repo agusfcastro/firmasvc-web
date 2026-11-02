@@ -232,3 +232,45 @@ export function valoresDelContrato(c: ClienteContrato, pagos: PagoContrato[], em
     FECHA: fechaLarga(hoy),
   };
 }
+
+/* ------------------------------------------------------------------ */
+/* Variables propias de cada negocio (org_variables_def)               */
+/* ------------------------------------------------------------------ */
+export type TipoVariable = 'texto' | 'numero' | 'monto' | 'fecha' | 'opcion' | 'booleano';
+
+export interface DefinicionVariable {
+  clave: string;
+  ambito: 'negocio' | 'cliente' | 'contrato';
+  tipo: TipoVariable;
+  obligatoria: boolean;
+  activa: boolean;
+}
+
+/** Un valor guardado, con el formato de los contratos. Vacío si no hay dato. */
+export function textoDeVariable(tipo: TipoVariable, valor: unknown): string {
+  if (valor === null || valor === undefined || valor === '') return '';
+  if (tipo === 'fecha' && typeof valor === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(valor)) return fechaLargaIso(valor);
+  if (tipo === 'monto' && typeof valor === 'number') return numero(valor);
+  if (tipo === 'booleano') return valor === true ? 'Sí' : 'No';
+  return String(valor).trim();
+}
+
+/**
+ * Valores de las variables propias para un contrato: las del negocio y las del cliente.
+ * opcionales son las que pueden quedar vacías sin frenar el envío (las no obligatorias).
+ */
+export function valoresPropios(
+  definiciones: DefinicionVariable[],
+  delNegocio: Record<string, unknown>,
+  delCliente: Record<string, unknown>,
+): { valores: Record<string, string>; opcionales: Set<string> } {
+  const valores: Record<string, string> = {};
+  const opcionales = new Set<string>();
+  for (const d of definiciones) {
+    if (!d.activa || d.ambito === 'contrato') continue;
+    const fuente = d.ambito === 'negocio' ? delNegocio : delCliente;
+    valores[d.clave] = textoDeVariable(d.tipo, fuente[d.clave]);
+    if (!d.obligatoria) opcionales.add(d.clave);
+  }
+  return { valores, opcionales };
+}

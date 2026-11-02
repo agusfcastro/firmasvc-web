@@ -16,6 +16,10 @@ create schema extensions;
 
 grant usage on schema public, auth, storage, extensions to anon, authenticated, service_role;
 
+-- Como en Supabase: pgcrypto en el esquema extensions, que está en el search_path.
+create extension if not exists pgcrypto schema extensions;
+set search_path to public, extensions;
+
 -- Privilegios por defecto de Supabase: las tablas nuevas de public
 -- arrancan con todo para los tres roles y las migraciones los recortan.
 alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
@@ -71,3 +75,18 @@ create function storage.foldername(name text) returns text[] language sql immuta
 $$;
 
 create publication supabase_realtime;
+
+-- Vault: en Supabase los secretos se guardan cifrados. Acá alcanza con la
+-- misma forma de lectura y alta.
+create schema vault;
+create table vault.secrets (
+  id          uuid primary key default gen_random_uuid(),
+  name        text unique,
+  description text,
+  secret      text not null
+);
+create view vault.decrypted_secrets as select id, name, description, secret as decrypted_secret from vault.secrets;
+create function vault.create_secret(new_secret text, new_name text default null, new_description text default '')
+returns uuid language sql as $$
+  insert into vault.secrets (secret, name, description) values (new_secret, new_name, new_description) returning id;
+$$;

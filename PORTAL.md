@@ -696,7 +696,7 @@ Los mails, el PDF firmado y los dibujos en canvas no leen CSS. Toman los colores
 
 ## Multitenant: membresías, equipo, variables, planes y bitácora
 
-Base de datos de la etapa 2, migraciones 0036 a 0041. Todavía sin pantallas: el portal se ve igual que antes.
+Etapa 2, migraciones 0036 a 0043.
 
 | Migración | Qué hace |
 |---|---|
@@ -707,4 +707,21 @@ Base de datos de la etapa 2, migraciones 0036 a 0041. Todavía sin pantallas: el
 | `0040_planes_producto.sql` | `plan_producto` (Radar, Escudo, Blindaje) convive con el plan de servicio (Gold, Black, Eminent). Solo habilita funcionalidades nuevas. La matriz está en `planes_funcionalidades` y las excepciones de un negocio en `org_funcionalidades`. Se consulta siempre con `tiene_funcionalidad(org, clave)` y `limite_funcionalidad(org, clave)` |
 | `0041_bitacora.sql` | `registro_accesos` pasa a ser la bitácora: cada registro con su negocio, marca de si lo hizo FIRMA, encadenado por hash e inmutable. El titular lee la de su negocio. `bitacora_verificar(org)` recalcula la cadena. Los registros anteriores quedan fuera de la cadena |
 
-Pendiente de la etapa 2: cifrado de DNI, teléfono y domicilio, funciones del servidor con la sesión del usuario, selector de negocio y pantallas de equipo, variables y bitácora.
+| `0042_cifrado_datos.sql` | DNI, teléfono y domicilio de los clientes del CRM se guardan cifrados (pgcrypto, AES) con la clave `crm_datos` de Supabase Vault. Quien guarda sigue escribiendo `dni`, `telefono` y `domicilio`: un trigger los cifra y deja la columna vacía. En un update, `null` deja el dato, `''` lo borra y un valor lo reemplaza. `crm_clientes_resumen` los devuelve descifrados solo a quien puede ver el negocio y a las funciones del servidor. `dni_indice` y `telefono_indice` (HMAC con la clave `crm_indices`) sirven para buscar por igualdad. El historial anota «(dato protegido)» en vez del valor, también en lo que ya tenía |
+| `0043_acceso_vigente.sql` | `acceso_vigente(usuario)` da el negocio activo solo si el perfil, el negocio y la membresía están activos. Las funciones del servidor que atienden a usuarios de clientes (firma, avisos y pagos) lo consultan antes de operar, así desactivar una membresía corta también la API |
+
+### Pantallas
+
+| Dónde | Qué |
+|---|---|
+| Encabezado del portal | Selector de negocio, solo para quien es miembro de más de uno. Al cambiar, el portal vuelve al inicio con el negocio nuevo |
+| CRM › Equipo (`/portal/crm/equipo`) | Alta, edición y baja (desactivar) del equipo comercial. Lo administra el titular |
+| CRM › Servicios › Variables de la empresa (`/portal/crm/variables`) | Variables propias y los valores de las de ámbito empresa. Las de ámbito cliente se cargan en la ficha |
+| Ficha del cliente | Closer, setter y responsable elegidos del equipo, y los datos propios de la empresa. El responsable anotado a mano se sigue viendo hasta que se elige a alguien |
+| Bitácora (`/portal/bitacora`) | Solo titular. Movimientos de su empresa, lo que hizo FIRMA marcado, y «Verificar» para recalcular la cadena |
+
+Los contratos del CRM completan también las variables propias: las de la empresa con su valor y las de cliente con la ficha. Una variable propia obligatoria sin valor frena el envío, como las del sistema.
+
+Los avisos por mail de asuntos y documentos, y el firmante por defecto de la empresa, salen de las membresías: alguien que pertenece a dos negocios los recibe de los dos. El mail de los lunes todavía se arma con el negocio activo de cada persona.
+
+Pendiente: que las funciones del servidor lean y escriban con el token del usuario en vez de la clave de servicio donde no necesitan saltear permisos (hoy validan el acceso con `acceso_vigente` y siguen usando la clave de servicio), y el mail de los lunes con varios negocios.

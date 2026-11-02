@@ -7,6 +7,8 @@ import { Ficha } from './Ficha';
 import { AltaCliente } from './AltaCliente';
 import { Casos } from './Casos';
 import { Servicios } from './Servicios';
+import { Equipo } from './Equipo';
+import { Variables } from './Variables';
 
 /**
  * CRM legal de cada cliente de FIRMA.
@@ -14,6 +16,8 @@ import { Servicios } from './Servicios';
  *   /portal/crm/nuevo          alta
  *   /portal/crm/casos          casos de conflicto e indicadores del protocolo
  *   /portal/crm/servicios      servicios que vende la empresa, con ticket opcional y modelo de contrato
+ *   /portal/crm/equipo         closers, setters, account managers y CSM de la empresa
+ *   /portal/crm/variables      variables propias de la empresa para los contratos modelo
  *   /portal/crm/<id>           ficha del cliente final
  */
 export const CrmApp: React.FC<{ perfil: Perfil; organizacion: Organizacion | null; ruta: string }> = ({ perfil, organizacion, ruta }) => {
@@ -112,6 +116,10 @@ export const CrmApp: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
         <AltaCliente orgId={orgId} esAdmin={esAdmin} orgNombre={orgActual?.nombre ?? ''} cobranza={cobranza} />
       ) : sub === 'servicios' ? (
         <Servicios orgId={orgId} orgNombre={orgActual?.nombre ?? ''} esAdmin={esAdmin} puedeGestionar={puedeGestionar} />
+      ) : sub === 'equipo' ? (
+        <Equipo orgId={orgId} orgNombre={orgActual?.nombre ?? ''} puedeGestionar={puedeGestionar} />
+      ) : sub === 'variables' ? (
+        <Variables orgId={orgId} orgNombre={orgActual?.nombre ?? ''} puedeGestionar={puedeGestionar} />
       ) : sub === 'casos' ? (
         <Casos orgId={orgId} orgNombre={orgActual?.nombre ?? ''} puedeGestionar={puedeGestionar} selector={selector} cambiarOrg={esAdmin ? setOrgId : undefined} />
       ) : sub ? (

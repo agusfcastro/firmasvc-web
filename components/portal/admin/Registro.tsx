@@ -2,42 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabase';
 import { Aviso } from '../ui';
 import { fechaCorta, type EntradaRegistro } from '../tipos';
+import { ACCIONES } from '../acciones';
 
-const ACCIONES: Record<string, string> = {
-  ingreso: 'Ingresó al portal',
-  invitacion: 'Invitación enviada',
-  actualizacion: 'Datos o permisos modificados',
-  activacion: 'Acceso activado',
-  desactivacion: 'Acceso desactivado',
-  envio_acceso: 'Enlace de acceso reenviado',
-  enlace_acceso: 'Enlace de acceso copiado',
-  pedido_clave: 'Pidió una contraseña nueva',
-  descarga_documento: 'Descargó un documento',
-  zapsign_conectado: 'ZapSign conectado',
-  zapsign_desconectado: 'ZapSign desconectado',
-  abono_alta: 'Abono creado',
-  abono_aceptado: 'Débito aceptado',
-  abono_activado: 'Abono activo',
-  abono_pago_aprobado: 'Pago de abono aprobado',
-  abono_pago_rechazado: 'Pago de abono rechazado',
-  abono_pago_reintegrado: 'Pago de abono reintegrado',
-  abono_con_error: 'Abono con problema de cobro',
-  abono_pausado: 'Abono en pausa',
-  abono_baja: 'Abono dado de baja',
-  abono_cancelado: 'Abono finalizado en dLocal Go',
-  abono_tarjeta: 'Cambio de medio de pago pedido',
-  abono_error: 'Error con dLocal Go en un abono',
-  abono_duplicado: 'Suscripción de más dada de baja, revisar cobros',
-  abono_pago_manual: 'Pago manual registrado',
-  abono_pago_manual_borrado: 'Pago manual borrado',
-  abono_vigencia: 'Vigencia del abono cambiada',
-  abono_borrado: 'Abono de prueba borrado',
-  empresa_borrada: 'Empresa de prueba borrada',
-  abono_sin_pagos: 'Abono sin pagos, vuelve a borrador',
-  aviso_documento: 'Aviso por mail de documento nuevo',
-  aviso_archivo: 'Aviso por mail de documento en un asunto',
-  dlocal_diagnostico: 'Prueba de conexión con dLocal Go',
-};
 
 /** Lo que llega de dLocal Go no tiene usuario. Se muestra quién informó. */
 const PROCESADORES: Record<string, string> = { dlocalgo: 'dLocal Go' };

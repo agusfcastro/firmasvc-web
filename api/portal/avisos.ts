@@ -17,6 +17,7 @@
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { FALTA_SEGUNDO_FACTOR, nivelDe } from '../_lib/nivel.js';
+import { SIN_ACCESO, accesoVigente, genteDe } from '../_lib/acceso.js';
 import { enviarMail, mailDisponible, plantillaMail } from '../_lib/mail.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -82,6 +83,7 @@ async function quienLlama(sb: SupabaseClient, request: Request): Promise<Quien |
   const { data: perfil } = await sb.from('perfiles').select('rol, activo, organizacion_id, email, nombre').eq('id', data.user.id).maybeSingle();
   if (!perfil || !perfil.activo) return error('Tu cuenta no está habilitada.', 403);
   if (perfil.rol === 'admin' && nivelDe(token) !== 'aal2') return error(FALTA_SEGUNDO_FACTOR, 403);
+  if (perfil.rol !== 'admin' && !(await accesoVigente(sb, data.user.id))) return error(SIN_ACCESO, 403);
   return { id: data.user.id, rol: perfil.rol, email: perfil.email, nombre: perfil.nombre ?? null, organizacion_id: perfil.organizacion_id };
 }
 
@@ -120,8 +122,7 @@ async function avisoNovedad(sb: SupabaseClient, quien: Quien, id: string, base: 
 
   let destinatarios: Destinatario[];
   if (deFirma) {
-    const { data } = await sb.from('perfiles').select('email, nombre').eq('organizacion_id', asunto.organizacion_id).eq('activo', true).in('rol', ['titular', 'csm', 'miembro']);
-    destinatarios = (data ?? []) as Destinatario[];
+    destinatarios = await genteDe(sb, [asunto.organizacion_id], ['titular', 'csm', 'miembro']);
   } else {
     const { data } = await sb.from('perfiles').select('email, nombre').eq('rol', 'admin').eq('activo', true);
     destinatarios = ((data ?? []) as Destinatario[]).length ? (data as Destinatario[]) : [{ email: FIRMA_MAIL, nombre: null }];
@@ -227,8 +228,7 @@ async function esDemo(sb: SupabaseClient, organizacionId: string): Promise<boole
 async function otraParte(sb: SupabaseClient, quien: Quien, organizacionId: string): Promise<Destinatario[]> {
   if (await esDemo(sb, organizacionId)) return [];
   if (quien.rol === 'admin') {
-    const { data } = await sb.from('perfiles').select('email, nombre').eq('organizacion_id', organizacionId).eq('activo', true).in('rol', ['titular', 'csm', 'miembro']);
-    return (data ?? []) as Destinatario[];
+    return await genteDe(sb, [organizacionId], ['titular', 'csm', 'miembro']);
   }
   const { data } = await sb.from('perfiles').select('email, nombre').eq('rol', 'admin').eq('activo', true);
   return ((data ?? []) as Destinatario[]).length ? (data as Destinatario[]) : [{ email: FIRMA_MAIL, nombre: null }];
@@ -327,9 +327,9 @@ async function avisoDocumento(sb: SupabaseClient, quien: Quien, id: string, base
 
   // Los mismos que lo ven en el portal: protocolos para todo el equipo, documentos legales para titular y CSM, y las áreas.
   const roles = doc.es_protocolo ? ['titular', 'csm', 'miembro', 'closer', 'setter'] : ['titular', 'csm', 'miembro'];
-  const { data } = await sb.from('perfiles').select('email, nombre, rol, areas').eq('organizacion_id', doc.organizacion_id).eq('activo', true).in('rol', roles);
+  const gente = await genteDe(sb, [doc.organizacion_id], roles);
   const areas: string[] = doc.areas ?? [];
-  const destinatarios = ((data ?? []) as (Destinatario & { rol: string; areas: string[] | null })[]).filter(
+  const destinatarios = gente.filter(
     (p) => areas.length === 0 || p.rol === 'titular' || (p.areas ?? []).some((a) => areas.includes(a)),
   );
 

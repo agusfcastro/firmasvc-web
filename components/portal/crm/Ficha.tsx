@@ -6,7 +6,8 @@ import { Aviso, Campo, Cifras, Encabezado, Enlace, Etiqueta, Monto, TituloSeccio
 import { useVistaPrevia } from '../vistaPrevia';
 import { navegar } from '../navegacion';
 import { BUCKET_ASUNTOS } from '../asuntos';
-import { TONO_FIRMA, dinero, hoyISO, type CambioHistorial, type ClienteCrm, type ContratoReservado, type EstadoFirma, type Pago, type Servicio } from './tipos';
+import { ROL_COMERCIAL, TONO_FIRMA, dinero, hoyISO, type CambioHistorial, type ClienteCrm, type ContratoReservado, type EstadoFirma, type IntegranteEquipo, type Pago, type Servicio, type VariablePropia } from './tipos';
+import { CampoVariable, sinVacios } from './variablesPropias';
 import { CAMPOS_CASO, VALORES_CASO } from './reglasCasos';
 import { CasosCliente } from './Casos';
 import { AsuntosCliente } from './AsuntosCliente';
@@ -16,7 +17,7 @@ import { DatosCliente, filaIdentidad, type Identidad } from './DatosCliente';
 const ROTULOS: Record<string, string> = {
   tipo: 'Tipo', nombre: 'Nombre', id_fiscal: 'Identificación fiscal', representante: 'Representante', cargo: 'Cargo', dni: 'DNI', email: 'Mail', telefono: 'Teléfono', domicilio: 'Domicilio', servicio: 'Servicio', monto_total: 'Monto total',
   modalidad: 'Modalidad', fecha_onboarding: 'Onboarding', estado_firma: 'Estado de la firma', link_contrato_servicio: 'Contrato de servicio',
-  responsable: 'Responsable', notas: 'Notas', condiciones: 'Condiciones acordadas', revisar_pagos: 'Revisar pagos', monto: 'Monto', vencimiento: 'Vencimiento', estado: 'Estado',
+  responsable: 'Responsable', closer_id: 'Closer', setter_id: 'Setter', responsable_id: 'Responsable del equipo', datos_extra: 'Datos propios de la empresa', notas: 'Notas', condiciones: 'Condiciones acordadas', revisar_pagos: 'Revisar pagos', monto: 'Monto', vencimiento: 'Vencimiento', estado: 'Estado',
   fecha_pago: 'Fecha de pago', nota: 'Nota', link_contrato_cliente: 'Contrato del cliente', link_documento: 'Documento generado',
   firma_url: 'Link de firma', contrato_estado: 'Contrato', contrato_error: 'Error del contrato',
   ...CAMPOS_CASO,
@@ -76,6 +77,8 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
   const [contrato, setContrato] = useState<ContratoReservado | null>(null);
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [historial, setHistorial] = useState<CambioHistorial[]>([]);
+  const [equipo, setEquipo] = useState<IntegranteEquipo[]>([]);
+  const [variables, setVariables] = useState<VariablePropia[]>([]);
   const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [nueva, setNueva] = useState<{ anticipo: boolean; monto: string; fecha: string; nota: string } | null>(null);
@@ -85,7 +88,8 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
 
   async function cargar() {
     if (!supabase) return;
-    const { data: c } = await supabase.from('crm_clientes').select('*').eq('id', id).maybeSingle();
+    // DNI, teléfono y domicilio se guardan cifrados: la vista los devuelve descifrados.
+    const { data: c } = await supabase.from('crm_clientes_resumen').select('*').eq('id', id).maybeSingle();
     if (!c) return setNoExiste(true);
     setCliente(c as ClienteCrm);
     setBorrador(c as ClienteCrm);
@@ -99,6 +103,12 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
     setServicios((s.data as Servicio[]) ?? []);
     setContrato((k.data as ContratoReservado) ?? { cliente_id: id, link_contrato_cliente: null, link_documento: null });
     setHistorial((h.data as CambioHistorial[]) ?? []);
+    const [eq, vs] = await Promise.all([
+      supabase.from('equipo_miembros').select('*').eq('organizacion_id', c.organizacion_id).order('nombre'),
+      supabase.from('org_variables_def').select('*').eq('organizacion_id', c.organizacion_id).eq('ambito', 'cliente').eq('activa', true).order('orden').order('etiqueta'),
+    ]);
+    setEquipo((eq.data as IntegranteEquipo[]) ?? []);
+    setVariables((vs.data as VariablePropia[]) ?? []);
   }
 
   useEffect(() => {
@@ -131,6 +141,11 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
       modalidad: borrador.modalidad,
       fecha_onboarding: borrador.fecha_onboarding || null,
       responsable: borrador.responsable?.trim() || null,
+      closer_id: borrador.closer_id || null,
+      setter_id: borrador.setter_id || null,
+      responsable_id: borrador.responsable_id || null,
+      // Se conservan los valores de variables que hoy están desactivadas.
+      datos_extra: sinVacios({ ...(cliente?.datos_extra ?? {}), ...(borrador.datos_extra ?? {}) }),
       notas: borrador.notas?.trim() || null,
       condiciones: borrador.condiciones?.trim() || null,
     };
@@ -500,10 +515,58 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                 <Campo etiqueta="Onboarding">
                   <input type="datetime-local" className={claseInput} value={aLocal(borrador.fecha_onboarding)} onChange={(e) => set('fecha_onboarding', e.target.value ? new Date(e.target.value).toISOString() : null)} />
                 </Campo>
-                <Campo etiqueta="Responsable (CSM o AM)">
-                  <input className={claseInput} value={borrador.responsable ?? ''} onChange={(e) => set('responsable', e.target.value)} />
-                </Campo>
+                {(
+                  [
+                    ['closer_id', 'Closer', ['closer']],
+                    ['setter_id', 'Setter', ['setter']],
+                    ['responsable_id', 'Responsable (CSM o AM)', ['csm', 'account_manager']],
+                  ] as const
+                ).map(([campo, etiqueta, roles]) => (
+                  <Campo key={campo} etiqueta={etiqueta}>
+                    <select className={claseInput} value={borrador[campo] ?? ''} onChange={(e) => set(campo, e.target.value || null)}>
+                      <option value="">Sin asignar</option>
+                      {equipo
+                        // Activos con ese rol primero; el asignado se muestra aunque hoy esté inactivo o tenga otro rol.
+                        .filter((m) => (m.activo && (roles as readonly string[]).includes(m.rol_comercial)) || m.id === borrador[campo])
+                        .map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.nombre}
+                            {!(roles as readonly string[]).includes(m.rol_comercial) ? ` · ${ROL_COMERCIAL[m.rol_comercial]}` : ''}
+                            {!m.activo ? ' · inactivo' : ''}
+                          </option>
+                        ))}
+                    </select>
+                  </Campo>
+                ))}
+                {borrador.responsable && !borrador.responsable_id && (
+                  <Campo etiqueta="Responsable anotado a mano" ayuda="De antes del equipo. Elegí a la persona arriba y borrá esto.">
+                    <input className={claseInput} value={borrador.responsable ?? ''} onChange={(e) => set('responsable', e.target.value)} />
+                  </Campo>
+                )}
               </div>
+              {equipo.length === 0 && (
+                <p className="text-sm text-piedra -mt-2">
+                  Para asignar closer, setter y responsable, cargá a las personas en{' '}
+                  <Enlace a="/portal/crm/equipo" className="underline underline-offset-4 hover:text-bosque">
+                    Equipo
+                  </Enlace>
+                  .
+                </p>
+              )}
+              {variables.length > 0 && (
+                <div className="grid gap-5 tab:grid-cols-2 pt-6" style={{ borderTop: '1px solid rgba(27,31,27,0.15)' }}>
+                  <p className="tab:col-span-2 eyebrow text-piedra">Datos propios de la empresa</p>
+                  {variables.map((v) => (
+                    <Campo key={v.id} etiqueta={`${v.etiqueta}${v.obligatoria ? ' *' : ''}`} ayuda={v.ayuda ?? undefined}>
+                      <CampoVariable
+                        v={v}
+                        valor={(borrador.datos_extra ?? {})[v.clave] ?? null}
+                        alCambiar={(x) => set('datos_extra', { ...(borrador.datos_extra ?? {}), [v.clave]: x })}
+                      />
+                    </Campo>
+                  ))}
+                </div>
+              )}
               <Campo etiqueta="Notas" ayuda="Cualquier información que pueda ser relevante.">
                 <textarea rows={4} className={`${claseInput} h-auto py-3`} value={borrador.notas ?? ''} onChange={(e) => set('notas', e.target.value)} />
               </Campo>

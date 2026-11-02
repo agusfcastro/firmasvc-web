@@ -27,9 +27,10 @@
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { FALTA_SEGUNDO_FACTOR, nivelDe } from '../_lib/nivel.js';
+import { SIN_ACCESO, accesoVigente, genteDe } from '../_lib/acceso.js';
 import { enviarMail, mailDisponible, plantillaMail } from '../_lib/mail.js';
 import { PDFDocument } from 'pdf-lib';
-import { OPCIONALES, valoresDelContrato, type ClienteContrato, type PagoContrato } from '../_lib/variables.js';
+import { OPCIONALES, valoresDelContrato, valoresPropios, type ClienteContrato, type DefinicionVariable, type PagoContrato } from '../_lib/variables.js';
 import { completarWord, wordAPdf } from '../_lib/word.js';
 
 /* ==================================================================== */
@@ -318,10 +319,7 @@ async function identificar(sb: SupabaseClient, request: Request): Promise<Quien 
   if (!p || !p.activo) return error('Tu cuenta no tiene acceso activo.', 403);
   if (!ROLES_CRM.includes(String(p.rol))) return error('Tu rol no tiene acceso a la firma electrónica.', 403);
   if (p.rol === 'admin' && nivelDe(token) !== 'aal2') return error(FALTA_SEGUNDO_FACTOR, 403);
-  if (p.rol !== 'admin') {
-    const { data: org } = await sb.from('organizaciones').select('activa').eq('id', p.organizacion_id).maybeSingle();
-    if (!org?.activa) return error('Tu empresa no tiene acceso activo.', 403);
-  }
+  if (p.rol !== 'admin' && !(await accesoVigente(sb, p.id))) return error(SIN_ACCESO, 403);
   return { id: p.id, email: p.email, rol: p.rol, organizacion_id: p.organizacion_id };
 }
 
@@ -398,7 +396,8 @@ interface ContratoCrm {
 async function clienteCrm(sb: SupabaseClient, q: Quien, valor: unknown): Promise<ClienteCrm | Response> {
   const id = String(valor || '');
   if (!UUID.test(id)) return error('Falta el cliente.');
-  const { data } = await sb.from('crm_clientes').select('*').eq('id', id).maybeSingle();
+  // La vista devuelve DNI, teléfono y domicilio descifrados.
+  const { data } = await sb.from('crm_clientes_resumen').select('*').eq('id', id).maybeSingle();
   if (!data) return error('No existe ese cliente.', 404);
   if (q.rol !== 'admin' && data.organizacion_id !== q.organizacion_id) return error('No tenés acceso a este cliente.', 403);
   if (data.estado_firma === 'Baja') return error('El cliente está dado de baja.', 409);
@@ -455,16 +454,26 @@ async function crmVista(sb: SupabaseClient, q: Quien, cuerpo: Record<string, unk
     if (errBajar || !blob) throw new Error('No se pudo leer el modelo.');
     const { data: org } = await sb.from('organizaciones').select('nombre, razon_social').eq('id', cliente.organizacion_id).maybeSingle();
     const { data: pagos } = await sb.from('crm_pagos').select('monto, vencimiento, estado, creado_en').eq('cliente_id', cliente.id);
-    const valores = valoresDelContrato(cliente, (pagos ?? []) as PagoContrato[], org?.razon_social || org?.nombre || '', servicio?.nombre ?? null);
+    // Variables propias del negocio: las del negocio y las de la ficha del cliente.
+    const [{ data: defs }, { data: delNegocio }] = await Promise.all([
+      sb.from('org_variables_def').select('clave, ambito, tipo, obligatoria, activa').eq('organizacion_id', cliente.organizacion_id),
+      sb.from('org_variables_valor').select('clave, valor').eq('organizacion_id', cliente.organizacion_id),
+    ]);
+    const propias = valoresPropios(
+      (defs ?? []) as DefinicionVariable[],
+      Object.fromEntries(((delNegocio ?? []) as { clave: string; valor: unknown }[]).map((v) => [v.clave, v.valor])),
+      ((cliente as { datos_extra?: Record<string, unknown> }).datos_extra ?? {}) as Record<string, unknown>,
+    );
+    const valores = { ...propias.valores, ...valoresDelContrato(cliente, (pagos ?? []) as PagoContrato[], org?.razon_social || org?.nombre || '', servicio?.nombre ?? null) };
     const word = completarWord(new Uint8Array(await blob.arrayBuffer()), valores);
 
     const avisos: string[] = [];
-    const vacias = word.usadas.filter((v) => !valores[v]?.trim() && !OPCIONALES.has(v));
+    const vacias = word.usadas.filter((v) => !valores[v]?.trim() && !OPCIONALES.has(v) && !propias.opcionales.has(v));
     for (const v of vacias) avisos.push(`Falta {{${v}}}. Completalo en la ficha y volvé a generar el contrato.`);
     const nombraEmpresa = ['CLIENTE', 'RAZON_SOCIAL_CLIENTE'].some((v) => word.usadas.includes(v) || word.condicionales.includes(v));
     if (cliente.tipo === 'empresa' && !nombraEmpresa)
       avisos.push('El cliente es una empresa y el modelo no nombra su razón social. Usá {{CLIENTE}} o {{RAZON_SOCIAL_CLIENTE}} para que figure como parte.');
-    for (const v of word.desconocidas) avisos.push(`El modelo usa {{${v}}}, que no es una variable del sistema. Quedó tal cual.`);
+    for (const v of word.desconocidas) avisos.push(`El modelo usa {{${v}}}, que no es una variable del sistema ni del negocio. Quedó tal cual.`);
     for (const v of word.sinCerrar) avisos.push(`El tramo {{#${v}}}…{{/${v}}} no abre y cierra en el mismo párrafo. Su marca quedó tal cual.`);
     if (word.usadas.length === 0 && word.condicionales.length === 0) avisos.push('El modelo no tiene variables {{...}}. Salió igual al original.');
 
@@ -507,15 +516,8 @@ function firmanteCliente(c: ClienteCrm): string {
 async function firmanteEmpresa(sb: SupabaseClient, orgId: string): Promise<{ nombre: string; email: string } | null> {
   const { data: org } = await sb.from('organizaciones').select('firmante_nombre, firmante_email').eq('id', orgId).maybeSingle();
   if (org?.firmante_email && org.firmante_nombre) return { nombre: org.firmante_nombre, email: org.firmante_email };
-  const { data: titular } = await sb
-    .from('perfiles')
-    .select('nombre, email')
-    .eq('organizacion_id', orgId)
-    .eq('rol', 'titular')
-    .eq('activo', true)
-    .order('creado_en')
-    .limit(1)
-    .maybeSingle();
+  // El titular más antiguo del negocio, aunque hoy esté trabajando en otro.
+  const [titular] = await genteDe(sb, [orgId], ['titular']);
   if (!titular?.email) return null;
   return { nombre: titular.nombre || titular.email, email: titular.email };
 }

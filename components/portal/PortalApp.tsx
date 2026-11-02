@@ -20,6 +20,7 @@ import { permisosDe, type Organizacion, type Perfil } from './tipos';
 const CrmApp = lazy(() => import('./crm/CrmApp'));
 const Firmas = lazy(() => import('./firmas/Firmas'));
 const Asuntos = lazy(() => import('./EstadoAsuntos'));
+const Bitacora = lazy(() => import('./Bitacora'));
 const PanelAdmin = lazy(() => import('./admin/PanelAdmin').then((m) => ({ default: m.PanelAdmin })));
 
 /**
@@ -32,6 +33,7 @@ const PanelAdmin = lazy(() => import('./admin/PanelAdmin').then((m) => ({ defaul
  *   /portal/firmas     firma electrónica propia (más /nuevo y /<id>)
  *   /portal/pedidos/closer formulario para pedir un contrato (más /<id>)
  *   /portal/pagos      abonos mensuales con tarjeta (solo titular y admin)
+ *   /portal/bitacora   bitácora de la empresa (solo titular; FIRMA usa Administración › Registro)
  *   /portal/admin/...  panel de administración (solo admin)
  */
 export const PortalApp: React.FC = () => {
@@ -179,6 +181,15 @@ export const PortalApp: React.FC = () => {
   if (ruta === '/portal/pagos') {
     if (!permisos.gestion) return <Inicio estado={estado} />;
     return <Pagos perfil={perfil} organizacion={estado.organizacion} />;
+  }
+
+  if (ruta === '/portal/bitacora') {
+    if (perfil.rol !== 'titular') return <Inicio estado={estado} />;
+    return (
+      <Suspense fallback={<Cargando />}>
+        <Bitacora perfil={perfil} organizacion={estado.organizacion} />
+      </Suspense>
+    );
   }
 
   if (ruta.startsWith('/portal/admin')) {

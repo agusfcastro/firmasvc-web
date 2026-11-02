@@ -42,6 +42,74 @@ async function salir() {
   navegar('/portal/ingresar');
 }
 
+/* ------------------------------------------------------------------ */
+/* Selector de negocio, para quien es miembro de más de uno            */
+/* ------------------------------------------------------------------ */
+interface Negocio {
+  id: string;
+  nombre: string;
+}
+
+/** Para un usuario del cliente, la política de organizaciones devuelve el negocio activo y los de sus membresías. */
+function useMisNegocios(perfil: Perfil | null | undefined): Negocio[] {
+  const [negocios, setNegocios] = useState<Negocio[]>([]);
+  useEffect(() => {
+    if (!supabase || !perfil || perfil.rol === 'admin') return;
+    let vigente = true;
+    void supabase
+      .from('organizaciones')
+      .select('id, nombre')
+      .order('nombre')
+      .then(({ data }) => {
+        if (vigente) setNegocios((data as Negocio[]) ?? []);
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [perfil?.id, perfil?.rol]); // eslint-disable-line react-hooks/exhaustive-deps
+  return negocios;
+}
+
+const SelectorNegocio: React.FC<{ perfil: Perfil }> = ({ perfil }) => {
+  const negocios = useMisNegocios(perfil);
+  const [cambiando, setCambiando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  if (negocios.length < 2) return null;
+
+  async function cambiar(org: string) {
+    if (!supabase || org === perfil.organizacion_id) return;
+    setCambiando(true);
+    setError(null);
+    const { error: e } = await supabase.rpc('cambiar_organizacion', { org });
+    if (e) {
+      setCambiando(false);
+      setError('No se pudo cambiar de negocio.');
+      return;
+    }
+    // Todo lo que está en pantalla es del negocio anterior: se vuelve a cargar desde el inicio.
+    window.location.assign('/portal');
+  }
+
+  return (
+    <label className="flex flex-col gap-1 text-sm">
+      <span className="text-[11px] uppercase tracking-[0.16em] text-piedra">Negocio</span>
+      <select
+        value={perfil.organizacion_id ?? ''}
+        disabled={cambiando}
+        onChange={(e) => void cambiar(e.target.value)}
+        className="h-10 px-3 bg-marfil border border-tinta rounded-control font-medium max-w-[220px]"
+      >
+        {negocios.map((n) => (
+          <option key={n.id} value={n.id}>
+            {n.nombre}
+          </option>
+        ))}
+      </select>
+      {error && <span className="text-peligro text-[12px]">{error}</span>}
+    </label>
+  );
+};
+
 /** compacto: en el celular el botón es solo un ícono, para que entren los dos logos. */
 const MenuSecciones: React.FC<{ links: Seccion[]; perfil: Perfil; compacto?: boolean }> = ({ links, perfil, compacto = false }) => {
   const [abierto, setAbierto] = useState(false);
@@ -105,6 +173,7 @@ const MenuSecciones: React.FC<{ links: Seccion[]; perfil: Perfil; compacto?: boo
               <span className="font-medium truncate">{perfil.nombre || perfil.email}</span>
               <span className="text-[11px] uppercase tracking-[0.16em] text-piedra">{cargoDe(perfil)}</span>
             </span>
+            <SelectorNegocio perfil={perfil} />
             <button type="button" role="menuitem" onClick={salir} className="inline-flex items-center gap-2 text-sm font-medium hover:text-bosque">
               <LogOut size={15} aria-hidden="true" /> Salir
             </button>
@@ -135,6 +204,7 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
         ...(permisos.agenda ? [{ a: '/portal/agenda', titulo: 'Agenda', activo: ruta === '/portal/agenda' }] : []),
         // Pagos solo para titulares y FIRMA. El resto del equipo no ve nada de pagos.
         ...(permisos.gestion ? [{ a: '/portal/pagos', titulo: 'Pagos', activo: ruta === '/portal/pagos' }] : []),
+        ...(perfil.rol === 'titular' ? [{ a: '/portal/bitacora', titulo: 'Bitácora', activo: ruta === '/portal/bitacora' }] : []),
         ...(perfil.rol === 'admin' ? [{ a: '/portal/admin', titulo: 'Administración', activo: ruta.startsWith('/portal/admin') }] : []),
       ]
     : [];
@@ -183,6 +253,7 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
           )}
           {perfil && (
             <div className="hidden tab:flex items-center gap-5 text-sm">
+              {!vista && <SelectorNegocio perfil={perfil} />}
               <span className="hidden desk:flex flex-col items-end leading-tight">
                 <span className="font-medium truncate max-w-[220px]">{perfil.nombre || perfil.email}</span>
                 <span className="text-[11px] uppercase tracking-[0.16em] text-piedra">{cargoDe(perfil)}</span>

@@ -76,6 +76,9 @@ export interface EntradaRegistro {
   accion: string;
   detalle: Record<string, unknown>;
   creado_en: string;
+  organizacion_id?: string | null;
+  /** Lo hizo alguien de FIRMA. */
+  actor_es_staff?: boolean;
 }
 
 export interface Agenda {

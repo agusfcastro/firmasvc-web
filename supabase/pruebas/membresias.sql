@@ -92,3 +92,24 @@ select pruebas.ok((select count(*) from public.membresias where organizacion_id 
 select pruebas.como_postgres();
 select pruebas.como('00000000-0000-0000-0000-0000000000a2');
 select pruebas.ok((select count(*) from public.membresias) = 1, 'el CSM ve solo la suya');
+
+-- ---------------------------------------------------------------------
+-- acceso_vigente(): la regla que usan las funciones del servidor
+-- ---------------------------------------------------------------------
+select pruebas.como_postgres();
+select pruebas.ok(public.acceso_vigente('00000000-0000-0000-0000-0000000000a1') = 'aaaaaaaa-0000-0000-0000-000000000000', 'el titular de A tiene acceso a A');
+update public.membresias set activa = false
+where usuario_id = '00000000-0000-0000-0000-0000000000a1' and organizacion_id = 'aaaaaaaa-0000-0000-0000-000000000000';
+select pruebas.ok(public.acceso_vigente('00000000-0000-0000-0000-0000000000a1') is null, 'sin membresía activa la API tampoco le da acceso');
+update public.membresias set activa = true
+where usuario_id = '00000000-0000-0000-0000-0000000000a1' and organizacion_id = 'aaaaaaaa-0000-0000-0000-000000000000';
+update public.organizaciones set activa = false where id = 'aaaaaaaa-0000-0000-0000-000000000000';
+select pruebas.ok(public.acceso_vigente('00000000-0000-0000-0000-0000000000a1') is null, 'con el negocio desactivado no hay acceso');
+update public.organizaciones set activa = true where id = 'aaaaaaaa-0000-0000-0000-000000000000';
+select pruebas.ok(public.acceso_vigente('00000000-0000-0000-0000-0000000000ad') is null, 'el admin no pasa por esta regla');
+select pruebas.como('00000000-0000-0000-0000-0000000000a1');
+do $$ begin
+  perform public.acceso_vigente('00000000-0000-0000-0000-0000000000a1');
+  raise exception 'FALLÓ: un usuario del portal llamó a acceso_vigente';
+exception when insufficient_privilege then null;
+end $$;

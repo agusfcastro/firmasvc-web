@@ -27,9 +27,61 @@ export interface ClienteCrm {
   condiciones?: string | null;
   plan_pagos_original: string | null;
   revisar_pagos: boolean;
+  /** Integrantes de equipo_miembros. */
+  closer_id?: string | null;
+  setter_id?: string | null;
+  responsable_id?: string | null;
+  /** Valores de las variables propias del negocio de ámbito cliente. */
+  datos_extra?: Record<string, unknown>;
   creado_en: string;
   actualizado_en: string;
 }
+
+export type RolComercial = 'closer' | 'setter' | 'account_manager' | 'csm' | 'otro';
+
+export const ROL_COMERCIAL: Record<RolComercial, string> = {
+  closer: 'Closer',
+  setter: 'Setter',
+  account_manager: 'Account manager',
+  csm: 'CSM',
+  otro: 'Otro',
+};
+
+export interface IntegranteEquipo {
+  id: string;
+  organizacion_id: string;
+  nombre: string;
+  rol_comercial: RolComercial;
+  email: string | null;
+  usuario_id: string | null;
+  activo: boolean;
+}
+
+export type TipoVariable = 'texto' | 'numero' | 'monto' | 'fecha' | 'opcion' | 'booleano';
+export type AmbitoVariable = 'negocio' | 'cliente' | 'contrato';
+
+export interface VariablePropia {
+  id: string;
+  organizacion_id: string;
+  ambito: AmbitoVariable;
+  clave: string;
+  etiqueta: string;
+  ayuda: string | null;
+  tipo: TipoVariable;
+  opciones: string[] | null;
+  obligatoria: boolean;
+  activa: boolean;
+  orden: number;
+}
+
+export const TIPO_VARIABLE: Record<TipoVariable, string> = {
+  texto: 'Texto',
+  numero: 'Número',
+  monto: 'Monto',
+  fecha: 'Fecha',
+  opcion: 'Opción de una lista',
+  booleano: 'Sí o no',
+};
 
 export interface ClienteResumen extends ClienteCrm {
   cobrado: number;

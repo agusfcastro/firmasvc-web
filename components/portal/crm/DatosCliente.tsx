@@ -25,20 +25,24 @@ const TIPOS = [
   ['empresa', 'Empresa', 'Contrata una sociedad, de cualquier país. Firma su representante.'],
 ] as const;
 
-/** Lo que se guarda en crm_clientes. Si es una persona, los datos de empresa quedan vacíos. */
+/**
+ * Lo que se guarda en crm_clientes. Si es una persona, los datos de empresa quedan vacíos.
+ * DNI, teléfono y domicilio se guardan cifrados: vacío ('') los borra y null los dejaría como estaban.
+ */
 export function filaIdentidad(d: Identidad) {
   const empresa = d.tipo === 'empresa';
   const limpio = (s: string) => s.trim() || null;
+  const protegido = (s: string) => s.trim();
   return {
     tipo: d.tipo,
     nombre: d.nombre.trim(),
     id_fiscal: empresa ? limpio(d.id_fiscal) : null,
     representante: empresa ? limpio(d.representante) : null,
     cargo: empresa ? limpio(d.cargo) : null,
-    dni: limpio(d.dni),
+    dni: protegido(d.dni),
     email: d.email.trim().toLowerCase() || null,
-    telefono: limpio(d.telefono),
-    domicilio: limpio(d.domicilio),
+    telefono: protegido(d.telefono),
+    domicilio: protegido(d.domicilio),
   };
 }
 
