@@ -46,7 +46,7 @@ export const Inicio: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
 
   return (
     <Marco perfil={perfil}>
-      <Encabezado
+      <Encabezado tutorial="inicio"
         grande
         eyebrow={`${esAdmin ? 'FIRMA' : organizacion?.nombre ?? ''} · ${cargoDe(perfil)}`}
         titulo={

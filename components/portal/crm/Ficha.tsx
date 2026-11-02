@@ -393,7 +393,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
 
   return (
     <>
-      <Encabezado
+      <Encabezado tutorial="crm-ficha"
         eyebrow={
           <>
             <Enlace a="/portal/crm" className="inline-flex items-center gap-1.5 hover:text-bosque">

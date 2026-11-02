@@ -170,7 +170,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
 
   return (
     <>
-    <Encabezado
+    <Encabezado tutorial="crm-alta"
       eyebrow={
         <Enlace a="/portal/crm" className="inline-flex items-center gap-1.5 hover:text-bosque">
           <ArrowLeft size={13} aria-hidden="true" /> {orgNombre || 'CRM'}

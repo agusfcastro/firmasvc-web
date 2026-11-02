@@ -132,7 +132,7 @@ const Listado: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> =
 
   return (
     <>
-      <Encabezado
+      <Encabezado tutorial="firmas"
         eyebrow={esAdmin ? 'Firma electrónica · FIRMA' : `Firma electrónica · ${vista?.orgNombre ?? organizacion?.nombre ?? ''}`}
         titulo={
           <>

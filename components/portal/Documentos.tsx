@@ -87,7 +87,7 @@ export const Documentos: React.FC<{ perfil: Perfil; organizacion: Organizacion |
   return (
     <Marco perfil={perfil}>
       {enProtocolos ? (
-        <Encabezado
+        <Encabezado tutorial="protocolos"
           eyebrow={esAdmin ? 'Protocolos · Biblioteca común' : 'Protocolos'}
           titulo={
             <>
@@ -108,7 +108,7 @@ export const Documentos: React.FC<{ perfil: Perfil; organizacion: Organizacion |
           }
         />
       ) : (
-        <Encabezado
+        <Encabezado tutorial="documentos"
           eyebrow={esAdmin ? 'Documentos · Biblioteca común' : 'Documentos'}
           titulo={
             esAdmin ? (

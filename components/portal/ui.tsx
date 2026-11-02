@@ -6,6 +6,7 @@ import { navegar } from './navegacion';
 import { salirVistaPrevia, useVistaPrevia } from './vistaPrevia';
 import { useLogoOrg } from './logos';
 import { ROTULO_ROL, cargoDe, permisosDe, type Perfil } from './tipos';
+import { BotonTutorial, type ClaveTutorial } from './tutoriales';
 
 import simboloClaro from '../../assets/brand/simbolo-claro.png';
 
@@ -222,7 +223,9 @@ export const Encabezado: React.FC<{
   bajada?: React.ReactNode;
   acciones?: React.ReactNode;
   grande?: boolean;
-}> = ({ eyebrow, titulo, bajada, acciones, grande }) => (
+  /** Muestra Ver tutorial si la sección tiene video grabado. */
+  tutorial?: ClaveTutorial;
+}> = ({ eyebrow, titulo, bajada, acciones, grande, tutorial }) => (
   <section className="relative overflow-hidden" style={{ borderBottom: '1px solid rgba(27,31,27,0.12)' }}>
     <img
       src={simboloClaro}
@@ -237,7 +240,12 @@ export const Encabezado: React.FC<{
         <h1 className={grande ? 'h1' : 'h2'}>{titulo}</h1>
         {bajada && <p className="text-piedra text-[17px] leading-[1.55] max-w-[52ch]">{bajada}</p>}
       </div>
-      {acciones && <div className="flex flex-wrap gap-3">{acciones}</div>}
+      {(acciones || tutorial) && (
+        <div className="flex flex-wrap gap-3">
+          {tutorial && <BotonTutorial clave={tutorial} />}
+          {acciones}
+        </div>
+      )}
     </div>
   </section>
 );
