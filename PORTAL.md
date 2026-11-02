@@ -467,16 +467,19 @@ Formulario para pedirle a FIRMA un contrato, por ahora el de closer. Se abre des
 - **Por pasos.** Son 10 secciones: closer, puesto, honorarios, bonos, objetivos, reembolsos, pago, plazo, protección y cierre. Cada pregunta aparece según las respuestas anteriores: sin bonos por hitos no se pide la escala. Lo habitual ya viene marcado y el cliente cambia solo lo que difiere.
 - **Avisos.** Las respuestas que acercan la relación a un empleo (horarios, exclusividad, descuentos por objetivos, no competencia) muestran una nota al lado. FIRMA las ve también en las respuestas.
 - **Borrador.** Se guarda solo un segundo después de cada cambio. Los borradores sin enviar aparecen en la misma tarjeta para seguirlos o descartarlos.
-- **Enviar.** Abre un asunto de tipo Contrato, «Contrato de closer · <nombre>», con un primer mensaje en el chat y el mail de asunto nuevo a FIRMA. Las respuestas quedan en la pestaña **Formulario** del asunto, con **Copiar respuestas** para pegarlas en el borrador. Una vez enviado, el cliente ya no lo edita: las correcciones van por el chat y el manual o los guiones se suben en Documentos.
+- **Enviar.** Abre un asunto de tipo Contrato, «Contrato de closer · <nombre>», con un primer mensaje en el chat y el mail de asunto nuevo a FIRMA. Las respuestas quedan en la pestaña **Formulario** del asunto, con **Copiar respuestas** para pegarlas en el borrador. Una vez enviado, las condiciones quedan fijas: los cambios van por el chat y el manual o los guiones se suben en Documentos.
+- **Datos del closer para después.** Ninguno es obligatorio, porque muchas veces el contrato se arma antes de elegir a la persona. Si faltan, el asunto se llama «Contrato de closer · datos del closer pendientes» y la pestaña Formulario lo avisa. El cliente los completa desde ahí (**Completalos acá**): se guardan, el asunto toma el nombre del closer y a FIRMA le llega un mensaje por el chat. Es lo único que se edita después de enviar, y la base lo controla.
+- **Esquema.** Al enviar, **Guardar estas condiciones como esquema** (prendido la primera vez) guarda todo menos los datos del closer. El próximo contrato de closer de la empresa arranca con esas condiciones y, después de los datos del closer, va directo a revisar. Cada sección se puede cambiar desde la revisión, y al enviar se elige si actualizar el esquema. Hay uno por empresa: la tarjeta de Documentos muestra la fecha y permite borrarlo.
 - Borrar el asunto borra también el formulario.
 
-Las preguntas están en `components/portal/pedidos/closer.ts`. Para sumar otro modelo, se arma su archivo con el mismo formato y se agrega a `MODELOS` y al `check` de la columna `modelo`.
+Las preguntas están en `components/portal/pedidos/closer.ts`. Para sumar otro modelo, se arma su archivo con el mismo formato y se agrega a `MODELOS` y al `check` de la columna `modelo` de las dos tablas. Las claves de la sección de la persona empiezan con `closer_`, que es como la base las reconoce en la 0035.
 
-Para activarlo, corré `0034_pedidos_contrato.sql`.
+Para activarlo, corré `0034_pedidos_contrato.sql` y después `0035_esquemas_contrato.sql`.
 
 | Archivo | Para qué |
 |---|---|
 | `supabase/migraciones/0034_pedidos_contrato.sql` | Tabla, permisos y bloqueo después de enviar |
+| `supabase/migraciones/0035_esquemas_contrato.sql` | Esquemas por empresa y datos del closer después de enviar |
 | `components/portal/pedidos/formulario.ts` | Tipos de pregunta, avance, faltantes y resumen |
 | `components/portal/pedidos/closer.ts` | Preguntas del contrato de closer |
 | `components/portal/pedidos/Pedidos.tsx` | Formulario, tarjeta de Documentos y pestaña del asunto |

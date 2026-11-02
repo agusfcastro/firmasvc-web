@@ -51,6 +51,8 @@ export interface Seccion {
   clave: string;
   titulo: string;
   bajada: string;
+  /** Datos de la persona: cambian en cada contrato, no van al esquema y se completan después de enviar. */
+  porContrato?: boolean;
   preguntas: Pregunta[];
 }
 
@@ -116,6 +118,19 @@ export function faltantes(m: Modelo, r: Respuestas): { seccion: Seccion; pregunt
   const out: { seccion: Seccion; pregunta: Pregunta }[] = [];
   for (const s of m.secciones) for (const p of s.preguntas) if (p.obligatoria && visible(p, r) && !respondida(p, r)) out.push({ seccion: s, pregunta: p });
   return out;
+}
+
+const clavesDe = (s: Seccion) => s.preguntas.flatMap((p) => [p.clave, `${p.clave}_otra`]);
+
+/** Las condiciones de un pedido, sin los datos de la persona, para guardar como esquema. */
+export function esquemaDe(m: Modelo, r: Respuestas): Respuestas {
+  const fuera = new Set(m.secciones.filter((s) => s.porContrato).flatMap(clavesDe));
+  return Object.fromEntries(Object.entries(r).filter(([k]) => !fuera.has(k)));
+}
+
+/** Pregunta de los datos de la persona sin responder. */
+export function datosPendientes(m: Modelo, r: Respuestas): boolean {
+  return m.secciones.some((s) => s.porContrato && s.preguntas.some((p) => visible(p, r) && !respondida(p, r)));
 }
 
 const textoOpcion = (p: Pregunta, v: string) => p.opciones?.find((o) => o.valor === v)?.texto ?? v;

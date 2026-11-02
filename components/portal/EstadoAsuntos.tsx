@@ -833,7 +833,7 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
           {pestana === 'documentos' && (
             <Documentos asunto={asunto} archivos={archivos} esFirma={esFirma} soloLectura={soloLectura} nombreDe={nombreDe} alCambiar={(t) => { setOk(t); void cargar(); }} alError={setError} />
           )}
-          {pestana === 'formulario' && pedido && <FormularioDelAsunto pedido={pedido} empresa={empresa} />}
+          {pestana === 'formulario' && pedido && <FormularioDelAsunto pedido={pedido} empresa={empresa} puedeCompletar={!esFirma && !soloLectura} />}
         </div>
 
         <aside className="order-1 desk:order-2 flex flex-col gap-5 bg-marfil-oscuro p-6 self-start">

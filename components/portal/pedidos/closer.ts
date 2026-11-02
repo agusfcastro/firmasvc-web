@@ -18,14 +18,17 @@ export const CLOSER: Modelo = {
   titulo: 'Contrato de closer',
   bajada: 'Contanos cómo trabajan con el closer y redactamos el contrato. Lo que ya viene marcado es lo habitual: cambiá solo lo que en tu caso sea distinto.',
   claveTitulo: 'closer_nombre',
-  tituloAsunto: (r) => `Contrato de closer · ${texto(r, 'closer_nombre').trim() || 'sin nombre'}`,
+  // El mismo texto arma la migración 0035 cuando el cliente completa el nombre después de enviar.
+  tituloAsunto: (r) => `Contrato de closer · ${texto(r, 'closer_nombre').trim() || 'datos del closer pendientes'}`,
   secciones: [
     {
       clave: 'closer',
       titulo: 'El closer',
-      bajada: 'Si te falta algún dato dejalo vacío: se lo pedimos al closer antes de la firma.',
+      bajada: 'Si todavía no sabés quién va a ser, dejá todo vacío. Lo completás después desde el asunto, cuando se sume.',
+      // Las claves empiezan con closer_: así las reconoce la migración 0035.
+      porContrato: true,
       preguntas: [
-        { clave: 'closer_nombre', tipo: 'texto', etiqueta: 'Nombre completo', obligatoria: true },
+        { clave: 'closer_nombre', tipo: 'texto', etiqueta: 'Nombre completo' },
         { clave: 'closer_documento', tipo: 'texto', etiqueta: 'Tipo y número de documento', ejemplo: 'Cédula de identidad 30.031.806' },
         {
           clave: 'closer_pais',

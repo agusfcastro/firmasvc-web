@@ -5,11 +5,13 @@ import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
 import { useVistaPrevia } from '../vistaPrevia';
 import { avisarPorMail } from '../asuntos';
-import { Aviso, Encabezado, Enlace, Marco, claseInput } from '../ui';
+import { Aviso, Encabezado, Enlace, Interruptor, Marco, claseInput } from '../ui';
 import { permisosDe, type Organizacion, type Perfil } from '../tipos';
 import { MODELOS } from './closer';
 import {
   avance,
+  datosPendientes,
+  esquemaDe,
   faltantes,
   filas,
   lista,
@@ -29,7 +31,10 @@ import {
  * Pedidos de contrato en /portal/pedidos/<modelo> (nuevo) y /portal/pedidos/<id>.
  * El titular o el CSM responden por pasos y el borrador se guarda solo.
  * Al enviarlo se abre un asunto de tipo Contrato con las respuestas en la
- * pestaña Formulario. Las reglas de la base están en la migración 0034.
+ * pestaña Formulario. Los datos del closer pueden quedar para después y
+ * completarse desde el asunto. Las condiciones se guardan como esquema de
+ * la empresa: el próximo pedido arranca con ellas y solo pide los datos
+ * del closer. Las reglas de la base están en las migraciones 0034 y 0035.
  */
 
 export interface PedidoContrato {
@@ -42,6 +47,27 @@ export interface PedidoContrato {
   enviado_en: string | null;
   creado_en: string;
   actualizado_en: string;
+}
+
+export interface EsquemaContrato {
+  id: string;
+  organizacion_id: string;
+  modelo: keyof typeof MODELOS;
+  respuestas: Respuestas;
+  actualizado_en: string;
+}
+
+/** Marca en las respuestas de un pedido que arrancó de un esquema, con su fecha. */
+const DESDE_ESQUEMA = '_esquema';
+
+/** Guarda las condiciones como esquema de la empresa: reemplaza el que hubiera. */
+async function guardarEsquemaDe(modelo: Modelo, orgId: string, r: Respuestas, existente: EsquemaContrato | null): Promise<string | null> {
+  if (!supabase) return 'Portal sin configurar.';
+  const { [DESDE_ESQUEMA]: _marca, ...resto } = esquemaDe(modelo, r);
+  const { error: e } = existente
+    ? await supabase.from('esquemas_contrato').update({ respuestas: resto }).eq('id', existente.id)
+    : await supabase.from('esquemas_contrato').insert({ organizacion_id: orgId, modelo: modelo.clave, respuestas: resto });
+  return e ? e.message : null;
 }
 
 const claseTextarea = `${claseInput.replace('h-12', 'min-h-[96px]')} py-3 leading-[1.5]`;
@@ -65,14 +91,38 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
   const idRef = useRef<string | null>(null);
   const enCurso = useRef<Promise<void>>(Promise.resolve());
   const asuntoCreado = useRef<string | null>(null);
+  const [esquema, setEsquema] = useState<EsquemaContrato | null>(null);
+  const [conEsquema, setConEsquema] = useState(true);
+  const [enviadoSinEsquema, setEnviadoSinEsquema] = useState<string | null>(null);
+  // Pedido enviado: el cliente completa los datos del closer.
+  const [editandoDatos, setEditandoDatos] = useState(() => new URLSearchParams(window.location.search).get('datos') === '1');
+  const [nota, setNota] = useState<string | null>(null);
 
   const modelo: Modelo | null = pedido ? MODELOS[pedido.modelo] : modeloNuevo ? MODELOS[modeloNuevo] : null;
 
   useEffect(() => {
     if (!supabase) return;
     if (modeloNuevo) {
-      setPedido(null);
-      setRespuestas(respuestasIniciales(MODELOS[modeloNuevo]));
+      const iniciales = respuestasIniciales(MODELOS[modeloNuevo]);
+      if (!orgId) {
+        setRespuestas(iniciales);
+        setPedido(null);
+        return;
+      }
+      // Sin la migración 0035 la consulta falla y se arranca de cero.
+      void supabase
+        .from('esquemas_contrato')
+        .select('*')
+        .eq('organizacion_id', orgId)
+        .eq('modelo', modeloNuevo)
+        .maybeSingle()
+        .then(({ data }) => {
+          const e = (data as EsquemaContrato | null) ?? null;
+          setEsquema(e);
+          setConEsquema(!e);
+          setRespuestas(e ? { ...iniciales, ...e.respuestas, [DESDE_ESQUEMA]: e.actualizado_en } : iniciales);
+          setPedido(null);
+        });
       return;
     }
     void supabase
@@ -90,6 +140,17 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
         idRef.current = p.id;
         setPedido(p);
         setRespuestas(p.respuestas ?? {});
+        if (!p.enviado_en && orgId)
+          void supabase!
+            .from('esquemas_contrato')
+            .select('*')
+            .eq('organizacion_id', p.organizacion_id)
+            .eq('modelo', p.modelo)
+            .maybeSingle()
+            .then(({ data: d }) => {
+              setEsquema((d as EsquemaContrato | null) ?? null);
+              setConEsquema(!d);
+            });
       });
   }, [parte, modeloNuevo]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -187,7 +248,38 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
       return setError(`El asunto se abrió, pero el formulario no quedó vinculado. Probá enviar de nuevo. ${e2.message}`);
     }
     await avisarPorMail('asunto', asuntoId);
+    if (conEsquema) {
+      const fallo = await guardarEsquemaDe(modelo, orgId, respuestas, esquema);
+      if (fallo) {
+        setEnviando(false);
+        return setEnviadoSinEsquema(asuntoId);
+      }
+    }
     navegar(`/portal/asuntos/${asuntoId}?pestana=formulario`);
+  }
+
+  /** Después de enviar: guarda los datos del closer y le avisa a FIRMA por el chat. */
+  async function guardarDatos() {
+    if (!supabase || !modelo || !pedido?.asunto_id) return;
+    const sb = supabase;
+    setEnviando(true);
+    setError(null);
+    const titulo = texto(respuestas, modelo.claveTitulo).trim() || null;
+    const { error: e } = await sb.from('pedidos_contrato').update({ titulo, respuestas }).eq('id', pedido.id);
+    if (e) {
+      setEnviando(false);
+      return setError(`No se pudieron guardar los datos. ${e.message}`);
+    }
+    const { data: msj } = await sb
+      .from('asunto_mensajes')
+      .insert({ asunto_id: pedido.asunto_id, texto: `Completé los datos del closer${titulo ? `: ${titulo}` : ''}. Están en la pestaña Formulario.` })
+      .select('id')
+      .single();
+    if (msj) await avisarPorMail('mensaje', msj.id as string);
+    setPedido({ ...pedido, titulo, respuestas });
+    setEnviando(false);
+    setEditandoDatos(false);
+    setNota('Guardamos los datos del closer y le avisamos a FIRMA por el chat del asunto.');
   }
 
   if (pedido === undefined) {
@@ -217,6 +309,11 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
   const { respondidas, total } = avance(modelo, respuestas);
   const pendientes = faltantes(modelo, respuestas);
   const nombre = texto(respuestas, modelo.claveTitulo).trim();
+  const desdeEsquema = texto(respuestas, DESDE_ESQUEMA);
+  const faltanDatos = datosPendientes(modelo, respuestas);
+  const seccionDatos = secciones.find((x) => x.porContrato) ?? null;
+  // Con esquema, de los datos del closer se pasa directo a revisar.
+  const siguiente = desdeEsquema && seccion.porContrato ? secciones.length : paso + 1;
 
   const encabezado = (
     <Encabezado
@@ -251,10 +348,48 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
   );
 
   if (soloLectura) {
+    const completaDatos = Boolean(pedido?.enviado_en) && puedeEditar && seccionDatos;
     return (
       <Marco perfil={perfil}>
         {encabezado}
-        <div className="wrap py-10 desk:py-14 max-w-[900px]">
+        <div className="wrap py-10 desk:py-14 max-w-[900px] flex flex-col gap-8">
+          {error && <Aviso tipo="error">{error}</Aviso>}
+          {nota && <Aviso tipo="ok">{nota}</Aviso>}
+          {completaDatos && editandoDatos ? (
+            <section className="flex flex-col gap-6 bg-marfil-oscuro p-6 desk:p-8">
+              <div className="flex flex-col gap-2">
+                <h2 className="h3">{seccionDatos.titulo}</h2>
+                <p className="text-piedra text-[15px] leading-[1.6]">Las condiciones ya están en manos de FIRMA. Acá solo se completan los datos del closer, y le avisamos por el chat del asunto.</p>
+              </div>
+              {seccionDatos.preguntas
+                .filter((p) => visible(p, respuestas))
+                .map((p) => (
+                  <CampoPregunta key={p.clave} pregunta={p} respuestas={respuestas} alCambiar={(clave, valor) => setRespuestas((r) => ({ ...r, [clave]: valor }))} />
+                ))}
+              <div className="flex flex-wrap gap-3">
+                <Button type="button" onClick={() => void guardarDatos()} disabled={enviando}>
+                  {enviando ? 'Guardando…' : 'Guardar datos del closer'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setRespuestas(pedido?.respuestas ?? {});
+                    setEditandoDatos(false);
+                  }}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </section>
+          ) : completaDatos ? (
+            <div className="flex flex-wrap items-center justify-between gap-4 bg-marfil-oscuro px-6 py-5">
+              <p className="text-[15px]">{faltanDatos ? 'Faltan datos del closer. Completalos cuando se sume.' : 'Si cambió algún dato del closer, lo podés corregir.'}</p>
+              <Button type="button" size="sm" onClick={() => setEditandoDatos(true)}>
+                {faltanDatos ? 'Completar datos del closer' : 'Editar datos del closer'}
+              </Button>
+            </div>
+          ) : null}
           <ListaRespuestas modelo={modelo} respuestas={respuestas} />
         </div>
       </Marco>
@@ -310,6 +445,17 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
                   Así nos llegan tus respuestas. Al enviar se abre un asunto de contrato, te avisamos por ahí cuando el borrador esté listo y podés subir el manual o los guiones en Documentos.
                 </p>
               </div>
+              {enviadoSinEsquema && (
+                <Aviso tipo="info">
+                  Le enviamos el formulario a FIRMA, pero el esquema no se pudo guardar.{' '}
+                  <Enlace a={`/portal/asuntos/${enviadoSinEsquema}?pestana=formulario`} className="underline underline-offset-2">
+                    Ir al asunto
+                  </Enlace>
+                </Aviso>
+              )}
+              {faltanDatos && seccionDatos && (
+                <Aviso tipo="info">Los datos del closer quedan pendientes. Los completás desde el asunto cuando se sume.</Aviso>
+              )}
               {pendientes.length > 0 && (
                 <Aviso tipo="error">
                   Faltan respuestas obligatorias:{' '}
@@ -325,8 +471,21 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
                 </Aviso>
               )}
               <ListaRespuestas modelo={modelo} respuestas={respuestas} alEditar={(clave) => irA(secciones.findIndex((s) => s.clave === clave))} />
+              <div className="bg-marfil-oscuro p-5">
+                <Interruptor
+                  activo={conEsquema}
+                  alCambiar={setConEsquema}
+                  deshabilitado={prueba}
+                  etiqueta={esquema ? 'Actualizar el esquema guardado con estas condiciones' : 'Guardar estas condiciones como esquema'}
+                  ayuda={
+                    esquema
+                      ? `El esquema actual es del ${fecha(esquema.actualizado_en)}. Si lo actualizás, los próximos contratos arrancan con lo de este.`
+                      : 'El próximo contrato de closer arranca con honorarios, bonos y demás condiciones cargados. Solo vas a completar los datos del closer.'
+                  }
+                />
+              </div>
               <div className="flex flex-wrap gap-3 pt-2">
-                <Button type="button" onClick={() => void enviar()} disabled={enviando || prueba || pendientes.length > 0}>
+                <Button type="button" onClick={() => void enviar()} disabled={enviando || prueba || Boolean(enviadoSinEsquema) || pendientes.length > 0}>
                   <Send size={16} aria-hidden="true" /> {enviando ? 'Enviando…' : 'Enviar a FIRMA'}
                 </Button>
                 <Button type="button" variant="ghost" onClick={() => irA(secciones.length - 1)}>
@@ -343,6 +502,11 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
                 <h2 className="h3">{seccion.titulo}</h2>
                 <p className="text-piedra text-[15px] leading-[1.6]">{seccion.bajada}</p>
               </div>
+              {desdeEsquema && seccion.porContrato && (
+                <Aviso tipo="info">
+                  Arrancamos con el esquema que guardaste el {fecha(desdeEsquema)}: honorarios, bonos, reembolsos y demás condiciones ya están cargados. Completá los datos del closer, o dejalos para después, y revisá antes de enviar.
+                </Aviso>
+              )}
               <div className="flex flex-col gap-8">
                 {seccion.preguntas
                   .filter((p) => visible(p, respuestas))
@@ -351,8 +515,8 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
                   ))}
               </div>
               <div className="flex flex-wrap gap-3 pt-4" style={{ borderTop: '1px solid rgba(27,31,27,0.12)' }}>
-                <Button type="button" onClick={() => irA(paso + 1)} className="mt-4">
-                  {paso + 1 === secciones.length ? 'Revisar' : 'Siguiente'} <ArrowRight size={16} aria-hidden="true" />
+                <Button type="button" onClick={() => irA(siguiente)} className="mt-4">
+                  {siguiente === secciones.length ? 'Revisar' : 'Siguiente'} <ArrowRight size={16} aria-hidden="true" />
                 </Button>
                 {paso > 0 && (
                   <Button type="button" variant="ghost" onClick={() => irA(paso - 1)} className="mt-4">
@@ -547,7 +711,7 @@ export const ListaRespuestas: React.FC<{ modelo: Modelo; respuestas: Respuestas;
 );
 
 /** Pestaña Formulario del asunto. */
-export const FormularioDelAsunto: React.FC<{ pedido: PedidoContrato; empresa: string }> = ({ pedido, empresa }) => {
+export const FormularioDelAsunto: React.FC<{ pedido: PedidoContrato; empresa: string; puedeCompletar: boolean }> = ({ pedido, empresa, puedeCompletar }) => {
   const [copiado, setCopiado] = useState(false);
   const modelo = MODELOS[pedido.modelo];
   async function copiar() {
@@ -563,11 +727,31 @@ export const FormularioDelAsunto: React.FC<{ pedido: PedidoContrato; empresa: st
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <p className="text-sm text-piedra">{pedido.enviado_en ? `Enviado el ${fecha(pedido.enviado_en)}.` : 'Borrador.'} Para corregir algo, escribilo en el chat.</p>
+        <p className="text-sm text-piedra">{pedido.enviado_en ? `Enviado el ${fecha(pedido.enviado_en)}.` : 'Borrador.'} Para cambiar las condiciones, escribilo en el chat.</p>
         <Button type="button" size="sm" variant="ghost" onClick={() => void copiar()}>
           {copiado ? <Check size={15} aria-hidden="true" /> : <Copy size={15} aria-hidden="true" />} {copiado ? 'Copiado' : 'Copiar respuestas'}
         </Button>
       </div>
+      {datosPendientes(modelo, pedido.respuestas) && (
+        <Aviso tipo="info">
+          {puedeCompletar ? (
+            <>
+              Faltan datos del closer.{' '}
+              <Enlace a={`/portal/pedidos/${pedido.id}?datos=1`} className="underline underline-offset-2 font-medium">
+                Completalos acá
+              </Enlace>{' '}
+              cuando se sume.
+            </>
+          ) : (
+            'Faltan datos del closer. El cliente los completa cuando se sume y te llega el aviso por el chat.'
+          )}
+        </Aviso>
+      )}
+      {puedeCompletar && !datosPendientes(modelo, pedido.respuestas) && (
+        <Enlace a={`/portal/pedidos/${pedido.id}?datos=1`} className="self-start text-sm text-bosque underline underline-offset-4">
+          Editar datos del closer
+        </Enlace>
+      )}
       <ListaRespuestas modelo={modelo} respuestas={pedido.respuestas} />
     </div>
   );
@@ -582,6 +766,7 @@ const claseAccion =
 /** vistaPrevia: FIRMA o Ver como, que abren el formulario sin guardar. */
 export const PedidosEquipo: React.FC<{ orgId: string | null; vistaPrevia: boolean }> = ({ orgId, vistaPrevia }) => {
   const [borradores, setBorradores] = useState<PedidoContrato[]>([]);
+  const [esquema, setEsquema] = useState<EsquemaContrato | null>(null);
 
   useEffect(() => {
     if (!supabase || !orgId) return;
@@ -595,12 +780,29 @@ export const PedidosEquipo: React.FC<{ orgId: string | null; vistaPrevia: boolea
       .then(({ data }) => {
         if (vivo) setBorradores((data as PedidoContrato[]) ?? []);
       });
+    void supabase
+      .from('esquemas_contrato')
+      .select('*')
+      .eq('organizacion_id', orgId)
+      .eq('modelo', 'closer')
+      .maybeSingle()
+      .then(({ data }) => {
+        if (vivo) setEsquema((data as EsquemaContrato | null) ?? null);
+      });
     return () => {
       vivo = false;
     };
   }, [orgId]);
 
   const modelo = MODELOS.closer;
+
+  async function borrarEsquema() {
+    if (!supabase || !esquema) return;
+    if (!window.confirm('¿Borrar el esquema? El próximo contrato arranca con las preguntas completas.')) return;
+    const { error: e } = await supabase.from('esquemas_contrato').delete().eq('id', esquema.id);
+    if (!e) setEsquema(null);
+  }
+
   return (
     <article className="card">
       <div className="relative flex items-center gap-4">
@@ -613,6 +815,19 @@ export const PedidosEquipo: React.FC<{ orgId: string | null; vistaPrevia: boolea
       <p className="relative text-[15px] leading-[1.6] text-calido max-w-[60ch]">
         Respondé cómo trabajan con el closer: honorarios, bonos, objetivos, reembolsos, plazo y pago. Con eso FIRMA redacta el contrato y lo seguís en Asuntos.
       </p>
+      {esquema && (
+        <p className="relative text-[15px] leading-[1.6] text-marfil">
+          Tenés un esquema guardado el {fecha(esquema.actualizado_en)}: el próximo contrato solo pide los datos del closer.
+          {!vistaPrevia && (
+            <>
+              {' '}
+              <button type="button" onClick={() => void borrarEsquema()} className="text-calido underline underline-offset-4 hover:text-marfil">
+                Borrar esquema
+              </button>
+            </>
+          )}
+        </p>
+      )}
       {borradores.length > 0 && (
         <ul className="relative flex flex-col gap-2 text-[15px]">
           {borradores.map((b) => {
