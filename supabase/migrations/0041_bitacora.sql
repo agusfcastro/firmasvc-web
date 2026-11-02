@@ -26,9 +26,18 @@ alter table public.registro_accesos drop constraint if exists registro_accesos_a
 
 create index if not exists registro_accesos_org_idx on public.registro_accesos (organizacion_id, id desc);
 
+-- Negocio mencionado en el detalle de un registro, si todavía existe.
+-- Los registros de negocios de prueba ya borrados quedan sin negocio.
+create or replace function public.bitacora_org_del_detalle(detalle jsonb)
+returns uuid language sql stable security definer set search_path = public as $$
+  select o.id from organizaciones o
+  where detalle ->> 'organizacion_id' ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    and o.id = (detalle ->> 'organizacion_id')::uuid;
+$$;
+
 -- Negocio de los registros viejos, cuando se puede saber.
 update public.registro_accesos r set organizacion_id = coalesce(
-  case when r.detalle ->> 'organizacion_id' ~ '^[0-9a-f-]{36}$' then (r.detalle ->> 'organizacion_id')::uuid end,
+  public.bitacora_org_del_detalle(r.detalle),
   (select p.organizacion_id from public.perfiles p where p.id = r.usuario_id))
 where r.organizacion_id is null and r.hash is null;
 
@@ -50,7 +59,7 @@ returns trigger language plpgsql security definer set search_path = public, exte
 begin
   if new.organizacion_id is null then
     new.organizacion_id := coalesce(
-      case when new.detalle ->> 'organizacion_id' ~ '^[0-9a-f-]{36}$' then (new.detalle ->> 'organizacion_id')::uuid end,
+      bitacora_org_del_detalle(new.detalle),
       (select p.organizacion_id from perfiles p where p.id = new.usuario_id),
       (select p.organizacion_id from perfiles p where p.id = new.actor_id and p.rol::text <> 'admin'));
   end if;
@@ -108,7 +117,7 @@ begin
 end;
 $$;
 
-revoke all on function public.bitacora_antes(), public.bitacora_inmutable() from public, anon, authenticated;
+revoke all on function public.bitacora_antes(), public.bitacora_inmutable(), public.bitacora_org_del_detalle(jsonb) from public, anon, authenticated;
 revoke all on function public.bitacora_verificar(uuid) from public, anon;
 grant execute on function public.bitacora_verificar(uuid) to authenticated;
 

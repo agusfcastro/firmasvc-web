@@ -17,6 +17,12 @@ select pruebas.ok((select organizacion_id from public.registro_accesos where usu
 create temp table cuenta_a on commit drop as
   select count(*) as n from public.registro_accesos where organizacion_id = 'aaaaaaaa-0000-0000-0000-000000000000';
 grant select on cuenta_a to authenticated;
+-- Un registro que nombra un negocio ya borrado se guarda igual, sin negocio.
+insert into public.registro_accesos (usuario_id, actor_id, accion, detalle) values
+  (null, '00000000-0000-0000-0000-0000000000ad', 'borrado_empresa', '{"organizacion_id": "dddddddd-0000-0000-0000-000000000000"}');
+select pruebas.ok((select organizacion_id from public.registro_accesos where accion = 'borrado_empresa') is null,
+  'un negocio que no existe no se asigna y el registro se guarda');
+
 select pruebas.ok((select actor_es_staff from public.registro_accesos where accion = 'aviso_documento'),
   'lo que hace un admin queda marcado como de FIRMA');
 select pruebas.ok((select count(*) from public.registro_accesos where hash is null) = 0, 'todos los registros nuevos tienen hash');
