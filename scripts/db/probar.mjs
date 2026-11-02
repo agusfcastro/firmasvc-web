@@ -73,13 +73,31 @@ for (const archivo of await archivosSql(MIGRACIONES)) {
 }
 console.log('✓ migraciones aplicadas sobre una base vacía');
 
+// Las variables fijas de los contratos están en api/_lib/variables.ts y,
+// para que ningún negocio las pise, en variable_de_sistema(). Tienen que coincidir.
+const variablesTs = [...(await readFile(path.join(raiz, 'api/_lib/variables.ts'), 'utf8')).matchAll(/^\s+\['([A-Z_]+)',/gm)].map((m) => m[1]);
+const { rows } = await db.query(`select unnest($1::text[]) as clave`, [variablesTs]);
+const sinReservar = [];
+for (const { clave } of rows) {
+  const r = await db.query('select public.variable_de_sistema($1) as ok', [clave]);
+  if (!r.rows[0].ok) sinReservar.push(clave);
+}
+if (sinReservar.length || variablesTs.length === 0) {
+  console.error(`✗ variable_de_sistema() no reserva: ${sinReservar.join(', ') || 'no se leyó variables.ts'}`);
+  process.exit(1);
+}
+console.log(`✓ las ${variablesTs.length} variables fijas están reservadas`);
+
 await db.exec(AYUDAS);
+
+// Negocios y usuarios comunes, cargados al principio de cada prueba.
+const datos = await readFile(path.join(PRUEBAS, '_datos.sql'), 'utf8');
 
 let fallidas = 0;
 for (const archivo of await archivosSql(PRUEBAS)) {
   const sql = await readFile(path.join(PRUEBAS, archivo), 'utf8');
   try {
-    await db.exec(`begin;\n${sql}\nrollback;`);
+    await db.exec(`begin;\n${datos}\n${sql}\nrollback;`);
     console.log(`✓ ${archivo}`);
   } catch (e) {
     await db.exec('rollback;').catch(() => undefined);

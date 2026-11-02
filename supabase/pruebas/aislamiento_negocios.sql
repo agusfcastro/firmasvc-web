@@ -1,48 +1,8 @@
 -- =====================================================================
 -- Aislamiento entre negocios y permisos por rol, con el modelo actual.
 -- Es la línea base: la etapa multitenant tiene que seguir pasándola.
--- Negocio A tiene titular, CSM, closer y setter. Negocio B, un titular.
+-- Usa los negocios y usuarios de _datos.sql.
 -- =====================================================================
-
-insert into auth.users (id, email) values
-  ('00000000-0000-0000-0000-0000000000ad', 'admin@firma.test'),
-  ('00000000-0000-0000-0000-0000000000a1', 'titular@a.test'),
-  ('00000000-0000-0000-0000-0000000000a2', 'csm@a.test'),
-  ('00000000-0000-0000-0000-0000000000a3', 'closer@a.test'),
-  ('00000000-0000-0000-0000-0000000000a4', 'setter@a.test'),
-  ('00000000-0000-0000-0000-0000000000b1', 'titular@b.test');
-
-insert into public.organizaciones (id, nombre, prefijo_crm) values
-  ('aaaaaaaa-0000-0000-0000-000000000000', 'Negocio A', 'NA'),
-  ('bbbbbbbb-0000-0000-0000-000000000000', 'Negocio B', 'NB');
-
-insert into public.perfiles (id, email, rol, organizacion_id) values
-  ('00000000-0000-0000-0000-0000000000ad', 'admin@firma.test', 'admin', null),
-  ('00000000-0000-0000-0000-0000000000a1', 'titular@a.test', 'titular', 'aaaaaaaa-0000-0000-0000-000000000000'),
-  ('00000000-0000-0000-0000-0000000000a2', 'csm@a.test', 'csm', 'aaaaaaaa-0000-0000-0000-000000000000'),
-  ('00000000-0000-0000-0000-0000000000a3', 'closer@a.test', 'closer', 'aaaaaaaa-0000-0000-0000-000000000000'),
-  ('00000000-0000-0000-0000-0000000000a4', 'setter@a.test', 'setter', 'aaaaaaaa-0000-0000-0000-000000000000'),
-  ('00000000-0000-0000-0000-0000000000b1', 'titular@b.test', 'titular', 'bbbbbbbb-0000-0000-0000-000000000000');
-
-insert into public.crm_clientes (id, organizacion_id, nombre) values
-  ('c0000000-0000-0000-0000-00000000000a', 'aaaaaaaa-0000-0000-0000-000000000000', 'Cliente de A'),
-  ('c0000000-0000-0000-0000-00000000000b', 'bbbbbbbb-0000-0000-0000-000000000000', 'Cliente de B');
-
-insert into public.crm_pagos (cliente_id, monto, vencimiento) values
-  ('c0000000-0000-0000-0000-00000000000a', 100, current_date + 30),
-  ('c0000000-0000-0000-0000-00000000000b', 100, current_date + 30);
-
-insert into public.crm_casos (organizacion_id, cliente_id, causa) values
-  ('aaaaaaaa-0000-0000-0000-000000000000', 'c0000000-0000-0000-0000-00000000000a', 'demora'),
-  ('bbbbbbbb-0000-0000-0000-000000000000', 'c0000000-0000-0000-0000-00000000000b', 'demora');
-
-insert into public.documentos (organizacion_id, seccion, titulo, url) values
-  ('aaaaaaaa-0000-0000-0000-000000000000', 'servicio', 'Documento de A', 'https://a.test/doc'),
-  ('bbbbbbbb-0000-0000-0000-000000000000', 'servicio', 'Documento de B', 'https://b.test/doc');
-
-insert into public.abonos (organizacion_id, concepto, monto, moneda, pais, email_pagador) values
-  ('aaaaaaaa-0000-0000-0000-000000000000', 'Abono de A', 100, 'ARS', 'AR', 'pagos@a.test'),
-  ('bbbbbbbb-0000-0000-0000-000000000000', 'Abono de B', 100, 'ARS', 'AR', 'pagos@b.test');
 
 -- ---------------------------------------------------------------------
 -- Titular de A: ve lo suyo y nada de B
@@ -59,7 +19,7 @@ select pruebas.ok(not exists (select 1 from public.asuntos where organizacion_id
 select pruebas.ok(not exists (select 1 from public.documentos where organizacion_id = 'bbbbbbbb-0000-0000-0000-000000000000'), 'el titular de A no ve documentos de B');
 select pruebas.ok(not exists (select 1 from public.abonos where organizacion_id = 'bbbbbbbb-0000-0000-0000-000000000000'), 'el titular de A no ve abonos de B');
 select pruebas.ok((select count(*) from public.abonos) = 1, 'el titular de A ve su abono');
-select pruebas.ok(not exists (select 1 from public.registro_accesos), 'el titular no lee el registro de accesos');
+select pruebas.ok(not exists (select 1 from public.registro_accesos where organizacion_id = 'bbbbbbbb-0000-0000-0000-000000000000'), 'el titular de A no lee la bitácora de B');
 
 do $$
 declare

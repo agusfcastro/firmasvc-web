@@ -693,3 +693,18 @@ Colores, radios, sombras y tipografías están en `index.css`, dentro de `@theme
 | Tipografía | `font-sans` (Archivo), `font-heading` (Bitter) |
 
 Los mails, el PDF firmado y los dibujos en canvas no leen CSS. Toman los colores de `api/_lib/marca.ts`, que tiene que coincidir con `index.css`; `npm run marca:verificar` lo controla. No escribas colores con `[#...]` en los componentes: si falta uno, sumalo como token.
+
+## Multitenant: membresías, equipo, variables, planes y bitácora
+
+Base de datos de la etapa 2, migraciones 0036 a 0041. Todavía sin pantallas: el portal se ve igual que antes.
+
+| Migración | Qué hace |
+|---|---|
+| `0036_membresias.sql` | Una persona puede pertenecer a varios negocios, con rol y áreas en cada uno. Trabaja en uno por vez: `perfiles.organizacion_id`, `rol` y `areas` reflejan la membresía activa, así lo que ya leía el perfil sigue igual. `cambiar_organizacion(org)` pasa a otro negocio. Desactivar una membresía corta el acceso a ese negocio en el acto. La API de Usuarios sigue escribiendo el perfil y la membresía se crea sola |
+| `0037_equipo.sql` | `equipo_miembros`: closers, setters, account managers y CSM de cada negocio, con o sin cuenta. Cada cliente del CRM puede llevar `closer_id`, `setter_id` y `responsable_id`. Lo ve todo el negocio y lo administra el titular. No se borran, se desactivan |
+| `0038_claves_por_negocio.sql` | Las tablas hijas apuntan al padre por `(organizacion_id, id)`. La base rechaza que un pago, caso, contrato, mensaje o pago de abono apunte a algo de otro negocio |
+| `0039_variables_negocio.sql` | Variables propias de cada negocio para los modelos de contrato, por negocio (`org_variables_valor`) o por cliente (`crm_clientes.datos_extra`). Se validan clave y tipo. Las 28 fijas de `api/_lib/variables.ts` están reservadas en `variable_de_sistema()`; si se suma una allá, va también ahí (`npm run db:probar` lo controla) |
+| `0040_planes_producto.sql` | `plan_producto` (Radar, Escudo, Blindaje) convive con el plan de servicio (Gold, Black, Eminent). Solo habilita funcionalidades nuevas. La matriz está en `planes_funcionalidades` y las excepciones de un negocio en `org_funcionalidades`. Se consulta siempre con `tiene_funcionalidad(org, clave)` y `limite_funcionalidad(org, clave)` |
+| `0041_bitacora.sql` | `registro_accesos` pasa a ser la bitácora: cada registro con su negocio, marca de si lo hizo FIRMA, encadenado por hash e inmutable. El titular lee la de su negocio. `bitacora_verificar(org)` recalcula la cadena. Los registros anteriores quedan fuera de la cadena |
+
+Pendiente de la etapa 2: cifrado de DNI, teléfono y domicilio, funciones del servidor con la sesión del usuario, selector de negocio y pantallas de equipo, variables y bitácora.
