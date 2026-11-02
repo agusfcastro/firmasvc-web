@@ -12,6 +12,8 @@ import { Inicio } from './Inicio';
 import { Agenda } from './Agenda';
 import { Documentos } from './Documentos';
 import { Pagos } from './Pagos';
+// Sin lazy: Documentos ya trae este módulo para la tarjeta del pedido.
+import { Pedido } from './pedidos/Pedidos';
 import { VistaPreviaContexto, leerVistaPrevia } from './vistaPrevia';
 import { permisosDe, type Organizacion, type Perfil } from './tipos';
 
@@ -28,6 +30,7 @@ const PanelAdmin = lazy(() => import('./admin/PanelAdmin').then((m) => ({ defaul
  *   /portal/documentos contratos de servicio, con el equipo y otros (más /equipo y /otros)
  *   /portal/protocolos protocolos y formación del equipo
  *   /portal/firmas     firma electrónica propia (más /nuevo y /<id>)
+ *   /portal/pedidos/closer formulario para pedir un contrato (más /<id>)
  *   /portal/pagos      abonos mensuales con tarjeta (solo titular y admin)
  *   /portal/admin/...  panel de administración (solo admin)
  */
@@ -106,9 +109,12 @@ export const PortalApp: React.FC = () => {
     const enDocumentos = ruta === '/portal/documentos' || ruta.startsWith('/portal/documentos/') || ruta === '/portal/protocolos';
     const enFirmas = (ruta === '/portal/firmas' || ruta.startsWith('/portal/firmas/')) && permisosVista.documentosLegales;
     const enAsuntos = (ruta === '/portal/asuntos' || ruta.startsWith('/portal/asuntos/')) && permisosVista.casos;
+    const enPedidos = ruta.startsWith('/portal/pedidos/') && permisosVista.casos;
     return (
       <VistaPreviaContexto.Provider value={vista}>
-        {enCrm ? (
+        {enPedidos ? (
+          <Pedido perfil={perfilVista} organizacion={orgVista} ruta={ruta} />
+        ) : enCrm ? (
           <Suspense fallback={<Cargando />}>
             <CrmApp perfil={perfilVista} organizacion={orgVista} ruta={ruta} />
           </Suspense>
@@ -163,6 +169,9 @@ export const PortalApp: React.FC = () => {
       </Suspense>
     );
   }
+
+  // FIRMA abre los pedidos enviados desde el asunto. Los crea el titular o el CSM.
+  if (ruta.startsWith('/portal/pedidos/') && permisos.casos) return <Pedido perfil={perfil} organizacion={estado.organizacion} ruta={ruta} />;
 
   if (ruta === '/portal/agenda' && permisos.agenda) return <Agenda perfil={perfil} organizacion={estado.organizacion} />;
 

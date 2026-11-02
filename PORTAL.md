@@ -458,6 +458,29 @@ Cada asunto tiene tres pestañas:
 
 Para activarlo, corré en Supabase › SQL Editor, en orden, `0017_asuntos.sql`, `0018_asuntos_chat_archivos.sql`, `0019_asuntos_codigo.sql`, `0024_asuntos_conflictos.sql` y `0026_borrar_caso_y_asunto.sql`. La 0024 le crea un asunto a cada caso de conflicto que ya existía, con su fecha y sus notas, sin tocar el caso ni su historial.
 
+## Pedidos de contrato
+
+Formulario para pedirle a FIRMA un contrato, por ahora el de closer. Se abre desde **Documentos › Contratos con tu equipo › Completar el formulario** (`/portal/pedidos/closer`).
+
+- **Quién lo completa:** el titular y el CSM, los mismos que ven los asuntos. Closers y setters no lo ven.
+- **Sin datos de la empresa.** Ya los tiene FIRMA, así que el formulario empieza por el closer.
+- **Por pasos.** Son 10 secciones: closer, puesto, honorarios, bonos, objetivos, reembolsos, pago, plazo, protección y cierre. Cada pregunta aparece según las respuestas anteriores: sin bonos por hitos no se pide la escala. Lo habitual ya viene marcado y el cliente cambia solo lo que difiere.
+- **Avisos.** Las respuestas que acercan la relación a un empleo (horarios, exclusividad, descuentos por objetivos, no competencia) muestran una nota al lado. FIRMA las ve también en las respuestas.
+- **Borrador.** Se guarda solo un segundo después de cada cambio. Los borradores sin enviar aparecen en la misma tarjeta para seguirlos o descartarlos.
+- **Enviar.** Abre un asunto de tipo Contrato, «Contrato de closer · <nombre>», con un primer mensaje en el chat y el mail de asunto nuevo a FIRMA. Las respuestas quedan en la pestaña **Formulario** del asunto, con **Copiar respuestas** para pegarlas en el borrador. Una vez enviado, el cliente ya no lo edita: las correcciones van por el chat y el manual o los guiones se suben en Documentos.
+- Borrar el asunto borra también el formulario.
+
+Las preguntas están en `components/portal/pedidos/closer.ts`. Para sumar otro modelo, se arma su archivo con el mismo formato y se agrega a `MODELOS` y al `check` de la columna `modelo`.
+
+Para activarlo, corré `0034_pedidos_contrato.sql`.
+
+| Archivo | Para qué |
+|---|---|
+| `supabase/migraciones/0034_pedidos_contrato.sql` | Tabla, permisos y bloqueo después de enviar |
+| `components/portal/pedidos/formulario.ts` | Tipos de pregunta, avance, faltantes y resumen |
+| `components/portal/pedidos/closer.ts` | Preguntas del contrato de closer |
+| `components/portal/pedidos/Pedidos.tsx` | Formulario, tarjeta de Documentos y pestaña del asunto |
+
 ## Planes, agenda y firmas
 
 El plan de cada empresa se elige en Administración › Clientes › Editar: Gold, Black, Eminent o A medida.

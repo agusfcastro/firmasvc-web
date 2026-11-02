@@ -19,6 +19,7 @@ import {
   type Causa,
 } from './crm/reglasCasos';
 import { dinero, hoyISO } from './crm/tipos';
+import { FormularioDelAsunto, type PedidoContrato } from './pedidos/Pedidos';
 import {
   BUCKET_ASUNTOS,
   ESTADOS,
@@ -550,7 +551,7 @@ const ListaGrupo: React.FC<{ titulo?: string; asuntos: Asunto[]; esFirma: boolea
 /* ------------------------------------------------------------------ */
 /* Detalle: chat, bitácora y documentos                                 */
 /* ------------------------------------------------------------------ */
-type PestanaAsunto = 'chat' | 'bitacora' | 'documentos';
+type PestanaAsunto = 'chat' | 'bitacora' | 'documentos' | 'formulario';
 type Lado = 'firma' | 'cliente';
 interface Autor {
   nombre: string | null;
@@ -567,7 +568,7 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
   const miLado: Lado = esFirma ? 'firma' : 'cliente';
   const [pestana, setPestana] = useState<PestanaAsunto>(() => {
     const p = new URLSearchParams(window.location.search).get('pestana');
-    return p === 'bitacora' || p === 'documentos' ? p : 'chat';
+    return p === 'bitacora' || p === 'documentos' || p === 'formulario' ? p : 'chat';
   });
   const [asunto, setAsunto] = useState<Asunto | null | undefined>(undefined);
   const [novedades, setNovedades] = useState<Novedad[]>([]);
@@ -577,6 +578,7 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
   const [empresa, setEmpresa] = useState('');
   const [cliente, setCliente] = useState<{ id: string; nombre: string; codigo: string | null; moneda: string } | null>(null);
   const [caso, setCaso] = useState<Caso | null>(null);
+  const [pedido, setPedido] = useState<PedidoContrato | null>(null);
   const [otroPresente, setOtroPresente] = useState(false);
   const veCrm = permisosDe(perfil.rol).crm;
   const [edicion, setEdicion] = useState<{ titulo: string; proximo_paso: string; vence_en: string; tipo: TipoAsunto; motivo: MotivoConflicto | ''; cliente_id: string; causa: Causa | '' } | null>(null);
@@ -612,15 +614,18 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
     void conocerAutores([...nov.map((x) => x.autor_id), ...msj.map((x) => x.autor_id), ...arc.map((x) => x.subido_por)]);
     if (a) {
       const asu = a as Asunto;
-      const [{ data: o }, { data: cl }, { data: k }] = await Promise.all([
+      const [{ data: o }, { data: cl }, { data: k }, { data: pc }] = await Promise.all([
         supabase.from('organizaciones').select('nombre').eq('id', asu.organizacion_id).maybeSingle(),
         asu.cliente_id ? supabase.from('crm_clientes').select('id, nombre, codigo, moneda').eq('id', asu.cliente_id).maybeSingle() : Promise.resolve({ data: null }),
         // Sin la migración 0024 la columna no existe y la consulta falla: queda sin caso.
         supabase.from('crm_casos').select('*').eq('asunto_id', id).maybeSingle(),
+        // Igual con la 0034: sin la tabla, el asunto no tiene formulario.
+        supabase.from('pedidos_contrato').select('*').eq('asunto_id', id).maybeSingle(),
       ]);
       setEmpresa((o?.nombre as string | undefined) ?? '');
       setCliente((cl as { id: string; nombre: string; codigo: string | null; moneda: string } | null) ?? null);
       setCaso((k as Caso | null) ?? null);
+      setPedido((pc as PedidoContrato | null) ?? null);
     }
   }, [id, conocerAutores]);
 
@@ -801,6 +806,7 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
               { clave: 'chat', titulo: 'Chat', cuenta: mensajes.length },
               { clave: 'bitacora', titulo: 'Bitácora', cuenta: novedades.length },
               { clave: 'documentos', titulo: 'Documentos', cuenta: archivos.length },
+              ...(pedido ? [{ clave: 'formulario' as const, titulo: 'Formulario' }] : []),
             ]}
             activa={pestana}
             alCambiar={cambiarPestana}
@@ -827,6 +833,7 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
           {pestana === 'documentos' && (
             <Documentos asunto={asunto} archivos={archivos} esFirma={esFirma} soloLectura={soloLectura} nombreDe={nombreDe} alCambiar={(t) => { setOk(t); void cargar(); }} alError={setError} />
           )}
+          {pestana === 'formulario' && pedido && <FormularioDelAsunto pedido={pedido} empresa={empresa} />}
         </div>
 
         <aside className="order-1 desk:order-2 flex flex-col gap-5 bg-marfil-oscuro p-6 self-start">

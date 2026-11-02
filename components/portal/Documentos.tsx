@@ -3,6 +3,8 @@ import { ArrowDown, ArrowUpRight, FileSpreadsheet, FileText, Globe, Link2, Prese
 import { supabase } from './supabase';
 import { Aviso, Encabezado, Enlace, Marco } from './ui';
 import { useVistaPrevia } from './vistaPrevia';
+import { PedidosEquipo } from './pedidos/Pedidos';
+import { permisosDe } from './tipos';
 import { SECCIONES, descargarArchivo, extension, fechaLarga, formatoDe, registrarDescarga, seccionDeRuta, tamano, visibleEnPantalla } from './descargas';
 import type { Documento, Organizacion, Perfil } from './tipos';
 
@@ -171,6 +173,9 @@ export const Documentos: React.FC<{ perfil: Perfil; organizacion: Organizacion |
           )}
 
           {error && <Aviso tipo="error">{error}</Aviso>}
+
+          {/* El pedido de contrato abre un asunto, así que lo ven quienes ven los asuntos. */}
+          {!enProtocolos && seccion.clave === 'equipo' && !esAdmin && permisosDe(perfil.rol).casos && <PedidosEquipo orgId={orgId} soloLectura={Boolean(vista)} />}
 
           {docs === null ? (
             <p className="eyebrow text-calido">Cargando</p>
