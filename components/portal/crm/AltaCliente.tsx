@@ -225,7 +225,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
         </Campo>
       </div>
 
-      <fieldset className="flex flex-col gap-6 pt-8 min-w-0" style={{ borderTop: '1px solid rgba(27,31,27,0.15)' }}>
+      <fieldset className="flex flex-col gap-6 pt-8 min-w-0 border-t border-tinta/15">
         <TituloSeccion eyebrow="Paso 2" titulo="Plan de pagos" />
         <div className="grid gap-5 tab:grid-cols-2 desk:grid-cols-4">
           <Campo etiqueta="Modalidad">

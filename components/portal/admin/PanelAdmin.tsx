@@ -31,7 +31,7 @@ export const PanelAdmin: React.FC<{ perfil: Perfil; ruta: string }> = ({ perfil,
       bajada="Empresas, usuarios y permisos de todos tus clientes. Desde acá también podés ver el portal como lo ve cada uno."
     />
     <div className="wrap py-10 desk:py-12 flex flex-col gap-8">
-      <nav className="flex gap-6 overflow-x-auto scrollbar-hide" style={{ borderBottom: '1px solid rgba(27,31,27,0.15)' }}>
+      <nav className="flex gap-6 overflow-x-auto scrollbar-hide border-b border-tinta/15">
         {PESTANAS.map((p) => {
           const activa = ruta === p.ruta;
           return (

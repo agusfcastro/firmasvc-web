@@ -16,7 +16,7 @@ const formatter = new Intl.NumberFormat('es-AR', {
   maximumFractionDigits: 2,
 });
 
-const RULE = '1px solid rgba(27,31,27,0.15)';
+const RULE = '1px solid color-mix(in srgb, var(--color-tinta) 15%, transparent)';
 
 function getValueNow(): number {
   const elapsedSeconds = Math.max(0, (Date.now() - ANCHOR_DATE_MS) / 1000);

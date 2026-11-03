@@ -213,7 +213,7 @@ export const Variables: React.FC<{ orgId: string; orgNombre: string; puedeGestio
         )}
 
         {delNegocio.length > 0 && (
-          <form onSubmit={guardarValores} className="bg-white border border-[rgba(27,31,27,0.14)] p-6 desk:p-8 space-y-5 max-w-[680px]">
+          <form onSubmit={guardarValores} className="bg-white border border-tinta/14 p-6 desk:p-8 space-y-5 max-w-[680px]">
             <div className="space-y-2">
               <h2 className="h3">Datos de la empresa</h2>
               <p className="text-sm text-piedra">Un valor para todos los contratos.</p>

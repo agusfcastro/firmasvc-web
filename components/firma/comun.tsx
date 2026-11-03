@@ -48,7 +48,7 @@ export function usePaginaPrivada(titulo: string) {
 /** conBarra deja lugar abajo para una barra fija, así no tapa el pie. */
 export const MarcoPublico: React.FC<{ children: React.ReactNode; eyebrow?: string; conBarra?: boolean }> = ({ children, eyebrow = 'Firma electrónica', conBarra = false }) => (
   <div className={`min-h-screen bg-marfil text-tinta flex flex-col ${conBarra ? 'pb-[76px] tab:pb-[84px]' : ''}`}>
-    <header className="bg-marfil" style={{ borderBottom: '1px solid rgba(27,31,27,0.12)' }}>
+    <header className="bg-marfil border-b border-tinta/12">
       <div className="wrap flex items-center justify-between gap-6 h-20">
         <a href="/" aria-label="Ir a firmasvc.com">
           <Logo className="h-[40px] desk:h-[48px] max-w-[52vw]" />

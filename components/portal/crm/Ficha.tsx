@@ -545,7 +545,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                 </p>
               )}
               {variables.length > 0 && (
-                <div className="grid gap-5 tab:grid-cols-2 pt-6" style={{ borderTop: '1px solid rgba(27,31,27,0.15)' }}>
+                <div className="grid gap-5 tab:grid-cols-2 pt-6 border-t border-tinta/15">
                   <p className="tab:col-span-2 eyebrow text-piedra">Datos propios de la empresa</p>
                   {variables.map((v) => (
                     <Campo key={v.id} etiqueta={`${v.etiqueta}${v.obligatoria ? ' *' : ''}`} ayuda={v.ayuda ?? undefined}>
@@ -566,7 +566,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
               </Campo>
 
               {esAdmin && (
-                <div className="grid gap-5 tab:grid-cols-2 pt-6" style={{ borderTop: '1px solid rgba(27,31,27,0.15)' }}>
+                <div className="grid gap-5 tab:grid-cols-2 pt-6 border-t border-tinta/15">
                   <p className="tab:col-span-2 eyebrow text-piedra">Solo FIRMA</p>
                   <label className="tab:col-span-2 flex items-center gap-2.5 text-sm">
                     <input
@@ -654,7 +654,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                 <TituloSeccion eyebrow="Trazabilidad" titulo="Historial" />
                 <ol className="flex flex-col">
                   {historial.map((h) => (
-                    <li key={h.id} className="py-3.5 text-sm" style={{ borderTop: '1px solid rgba(27,31,27,0.12)' }}>
+                    <li key={h.id} className="py-3.5 text-sm border-t border-tinta/12">
                       <div className="flex justify-between gap-3">
                         <span className="font-medium">{tituloCambio(h)}</span>
                         <span className="text-piedra text-xs whitespace-nowrap">{new Date(h.creado_en).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}</span>

@@ -36,7 +36,7 @@
 import { createHmac, randomUUID } from 'node:crypto';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { FALTA_SEGUNDO_FACTOR, nivelDe } from '../_lib/nivel.js';
-import { SIN_ACCESO, accesoVigente } from '../_lib/acceso.js';
+import { SIN_ACCESO, SIN_CLIENTE_USUARIO, accesoVigente, clienteDelUsuario } from '../_lib/acceso.js';
 
 /* ================================================================== */
 /* Bloque común de pagos con dLocal Go                                  */
@@ -752,7 +752,10 @@ export async function POST(request: Request): Promise<Response> {
   if (accion === 'vigencia' && !esAdmin) return error('Solo FIRMA cambia la vigencia del abono.', 403);
   if (accion === 'borrar' && !esAdmin) return error('Solo FIRMA borra abonos.', 403);
 
-  const { data: abono } = await sb.from('abonos').select('*').eq('id', abonoId).maybeSingle<Abono>();
+  // Se lee con su token: las políticas solo le muestran los abonos de su empresa.
+  const db = clienteDelUsuario(request);
+  if (!db) return error(SIN_CLIENTE_USUARIO, 500);
+  const { data: abono } = await db.from('abonos').select('*').eq('id', abonoId).maybeSingle<Abono>();
   if (!abono) return error('No existe ese abono.', 404);
   if (!esAdmin) {
     if (quien.organizacion_id !== abono.organizacion_id) return error('No tenés acceso a este abono.', 403);

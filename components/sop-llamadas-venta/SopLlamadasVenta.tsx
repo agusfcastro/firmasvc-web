@@ -1267,7 +1267,7 @@ function imprimirEnVentana(raiz: HTMLElement | null, modo: 'todo' | 'tarjeta', t
   clon.querySelectorAll('[hidden]').forEach((el) => el.removeAttribute('hidden'));
   const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapar(
     titulo,
-  )}</title><base href="${escapar(document.baseURI)}">${estilos}<style>html,body{margin:0;background:#fff}</style></head><body>${clon.outerHTML}</body></html>`;
+  )}</title><base href="${escapar(document.baseURI)}">${estilos}<style>html,body{margin:0;background:white}</style></head><body>${clon.outerHTML}</body></html>`;
   ventana.document.open();
   ventana.document.write(html);
   ventana.document.close();

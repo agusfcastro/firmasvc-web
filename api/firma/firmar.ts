@@ -442,7 +442,7 @@ const MARGEN = 56;
 const TINTA = rgb(...rgb01(COLOR.tinta));
 const PIEDRA = rgb(...rgb01(COLOR.piedra));
 const BOSQUE = rgb(...rgb01(COLOR.bosque));
-const LINEA = rgb(0.8, 0.79, 0.75);
+const LINEA = rgb(...rgb01(COLOR.linea));
 
 /** Escritura de arriba hacia abajo que agrega páginas solas cuando se llena la actual. */
 class Hoja {
@@ -1030,7 +1030,7 @@ export async function POST(request: Request): Promise<Response> {
           titulo: 'Tu código para firmar',
           parrafos: [
             `Hola ${escapar(f.nombre)}. Usá este código para firmar <strong>${escapar(sobre.titulo)}</strong>.`,
-            `<span style="font-family:Georgia,serif;font-size:34px;letter-spacing:.3em;color:#173A2F">${codigo}</span>`,
+            `<span style="font-family:Georgia,serif;font-size:34px;letter-spacing:.3em;color:${COLOR.bosque}">${codigo}</span>`,
             'Vence en 10 minutos y sirve una sola vez.',
           ],
           pie: 'Si no estás firmando un documento ahora, ignorá este mail. Nadie de FIRMA te va a pedir este código.',

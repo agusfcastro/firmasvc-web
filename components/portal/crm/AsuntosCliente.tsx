@@ -57,7 +57,7 @@ export const AsuntosCliente: React.FC<{ clienteId: string; soloLectura: boolean;
             <li key={a.id}>
               <Enlace
                 a={`/portal/asuntos/${a.id}`}
-                className="flex flex-col tab:flex-row tab:items-center gap-3 bg-white border border-[rgba(27,31,27,0.15)] p-4 transition-colors duration-150 hover:border-bosque"
+                className="flex flex-col tab:flex-row tab:items-center gap-3 bg-white border border-tinta/15 p-4 transition-colors duration-150 hover:border-bosque"
               >
                 <div className="flex flex-col gap-1.5 min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-3">

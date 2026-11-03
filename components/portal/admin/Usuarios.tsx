@@ -123,7 +123,7 @@ export const Usuarios: React.FC<{ yo: Perfil }> = ({ yo }) => {
           <p className="font-medium">Enlace de acceso de {enlace.email}</p>
           <p className="text-sm text-calido">{enlace.nota} Vence en 24 horas y se usa una sola vez.</p>
           <div className="flex flex-wrap items-center gap-3">
-            <code className="flex-1 min-w-0 truncate text-xs bg-[rgba(0,0,0,0.2)] px-3 py-2.5">{enlace.url}</code>
+            <code className="flex-1 min-w-0 truncate text-xs bg-tinta/20 px-3 py-2.5">{enlace.url}</code>
             <BotonCopiar texto={enlace.url} etiqueta="Copiar enlace" descripcion="Copiar el enlace de acceso" variante="claro" />
             <button type="button" className="text-sm underline underline-offset-4" onClick={() => setEnlace(null)}>
               Cerrar
@@ -185,7 +185,7 @@ export const Usuarios: React.FC<{ yo: Perfil }> = ({ yo }) => {
                       type="button"
                       key={a.clave}
                       onClick={() => alternarArea(a.clave)}
-                      className={`px-3 h-9 text-sm border ${marcada ? 'bg-bosque text-marfil border-bosque' : 'bg-white border-[rgba(27,31,27,0.25)] hover:border-bosque'}`}
+                      className={`px-3 h-9 text-sm border ${marcada ? 'bg-bosque text-marfil border-bosque' : 'bg-white border-tinta/25 hover:border-bosque'}`}
                       aria-pressed={marcada}
                     >
                       {a.nombre}

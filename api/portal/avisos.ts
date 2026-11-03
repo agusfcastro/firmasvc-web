@@ -17,7 +17,7 @@
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { FALTA_SEGUNDO_FACTOR, nivelDe } from '../_lib/nivel.js';
-import { SIN_ACCESO, accesoVigente, genteDe } from '../_lib/acceso.js';
+import { SIN_ACCESO, SIN_CLIENTE_USUARIO, accesoVigente, clienteDelUsuario, genteDe } from '../_lib/acceso.js';
 import { enviarMail, mailDisponible, plantillaMail } from '../_lib/mail.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -36,6 +36,8 @@ interface Quien {
   email: string;
   nombre: string | null;
   organizacion_id: string | null;
+  /** Con su token: lo que pide se lee a través de las políticas. */
+  db: SupabaseClient;
 }
 
 interface Destinatario {
@@ -84,7 +86,9 @@ async function quienLlama(sb: SupabaseClient, request: Request): Promise<Quien |
   if (!perfil || !perfil.activo) return error('Tu cuenta no está habilitada.', 403);
   if (perfil.rol === 'admin' && nivelDe(token) !== 'aal2') return error(FALTA_SEGUNDO_FACTOR, 403);
   if (perfil.rol !== 'admin' && !(await accesoVigente(sb, data.user.id))) return error(SIN_ACCESO, 403);
-  return { id: data.user.id, rol: perfil.rol, email: perfil.email, nombre: perfil.nombre ?? null, organizacion_id: perfil.organizacion_id };
+  const db = clienteDelUsuario(request);
+  if (!db) return error(SIN_CLIENTE_USUARIO, 500);
+  return { id: data.user.id, rol: perfil.rol, email: perfil.email, nombre: perfil.nombre ?? null, organizacion_id: perfil.organizacion_id, db };
 }
 
 /** Manda el mismo aviso a cada persona por separado, así nadie ve los mails de los demás. */
@@ -105,7 +109,7 @@ async function avisarA(destinatarios: Destinatario[], armar: (d: Destinatario) =
 const hola = (d: Destinatario) => (d.nombre ? `Hola ${escapar(d.nombre.split(' ')[0])}.` : 'Hola.');
 
 async function avisoNovedad(sb: SupabaseClient, quien: Quien, id: string, base: string): Promise<Response> {
-  const { data: nov } = await sb.from('asunto_novedades').select('*').eq('id', id).maybeSingle();
+  const { data: nov } = await quien.db.from('asunto_novedades').select('*').eq('id', id).maybeSingle();
   if (!nov) return error('No existe esa novedad.', 404);
   if (nov.autor_id !== quien.id) return error('Solo quien escribió la novedad puede avisar.', 403);
   if (nov.avisado_en) return json({ ok: true, avisados: nov.avisados, ya: true });
@@ -177,7 +181,7 @@ const MOTIVO_CONFLICTO: Record<string, string> = {
 
 async function avisoAsunto(sb: SupabaseClient, quien: Quien, id: string, base: string): Promise<Response> {
   if (quien.rol === 'admin') return error('Los asuntos que abre FIRMA se avisan con su primera novedad.', 409);
-  const { data: asunto } = await sb.from('asuntos').select('*').eq('id', id).maybeSingle();
+  const { data: asunto } = await quien.db.from('asuntos').select('*').eq('id', id).maybeSingle();
   if (!asunto) return error('No existe ese asunto.', 404);
   if (asunto.creado_por !== quien.id) return error('Solo quien abrió el asunto puede avisar.', 403);
   if (Date.now() - Date.parse(asunto.creado_en) > 3_600_000) return error('Ese asunto es viejo para avisar.', 409);
@@ -242,7 +246,7 @@ async function datosAsunto(sb: SupabaseClient, asuntoId: string) {
 }
 
 async function avisoMensaje(sb: SupabaseClient, quien: Quien, id: string, base: string): Promise<Response> {
-  const { data: msj } = await sb.from('asunto_mensajes').select('*').eq('id', id).maybeSingle();
+  const { data: msj } = await quien.db.from('asunto_mensajes').select('*').eq('id', id).maybeSingle();
   if (!msj) return error('No existe ese mensaje.', 404);
   if (msj.autor_id !== quien.id) return error('Solo quien escribió el mensaje puede avisar.', 403);
   if (Date.now() - Date.parse(msj.creado_en) > 3_600_000) return error('Ese mensaje es viejo para avisar.', 409);
@@ -285,7 +289,7 @@ async function avisoMensaje(sb: SupabaseClient, quien: Quien, id: string, base: 
 }
 
 async function avisoArchivo(sb: SupabaseClient, quien: Quien, id: string, base: string): Promise<Response> {
-  const { data: arch } = await sb.from('asunto_archivos').select('*').eq('id', id).maybeSingle();
+  const { data: arch } = await quien.db.from('asunto_archivos').select('*').eq('id', id).maybeSingle();
   if (!arch) return error('No existe ese archivo.', 404);
   if (arch.subido_por !== quien.id) return error('Solo quien subió el archivo puede avisar.', 403);
   const { count } = await sb.from('registro_accesos').select('id', { count: 'exact', head: true }).eq('accion', 'aviso_archivo').eq('detalle->>archivo_id', id);

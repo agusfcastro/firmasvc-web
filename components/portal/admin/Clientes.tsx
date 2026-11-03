@@ -163,7 +163,7 @@ export const Clientes: React.FC = () => {
           <Campo etiqueta="Logo" ayuda="PNG, JPG, WEBP o SVG de hasta 2 MB, mejor con fondo transparente. Se ve en el portal de la empresa, en el CRM y en los casos.">
             <div className="flex flex-wrap items-center gap-4">
               {(previa || (borrador.logoNuevo === undefined && borrador.logo_url)) && (
-                <div className="h-16 px-4 flex items-center bg-white border border-[rgba(27,31,27,0.15)]">
+                <div className="h-16 px-4 flex items-center bg-white border border-tinta/15">
                   <img src={previa ?? borrador.logo_url ?? ''} alt={`Logo de ${borrador.nombre || 'el cliente'}`} className="max-h-11 max-w-[180px] object-contain" />
                 </div>
               )}
@@ -242,7 +242,7 @@ export const Clientes: React.FC = () => {
             </Button>
           </div>
           {guardada && !guardada.activa && (
-            <div className="pt-5 flex flex-col gap-3" style={{ borderTop: '1px solid rgba(27,31,27,0.15)' }}>
+            <div className="pt-5 flex flex-col gap-3 border-t border-tinta/15">
               <p className="text-sm text-piedra">
                 Para empresas de prueba. Borra la empresa con sus usuarios, CRM, casos, asuntos, documentos, abonos y pagos. Si tiene envíos a firma electrónica no se puede borrar: esos registros son
                 evidencia y la empresa queda desactivada.
@@ -291,7 +291,7 @@ export const Clientes: React.FC = () => {
               <tr key={o.id}>
                 <td>
                   <div className="flex items-center gap-3">
-                    <div className="w-14 h-10 shrink-0 flex items-center justify-center bg-white border border-[rgba(27,31,27,0.1)]">
+                    <div className="w-14 h-10 shrink-0 flex items-center justify-center bg-white border border-tinta/10">
                       {o.logo_url ? <img src={o.logo_url} alt="" className="max-h-8 max-w-[48px] object-contain" /> : <span className="text-[10px] text-piedra">Sin logo</span>}
                     </div>
                     <div>
@@ -310,7 +310,7 @@ export const Clientes: React.FC = () => {
                 <td className="text-right whitespace-nowrap">
                   <select
                     aria-label={`Ver el portal de ${o.nombre} como`}
-                    className="h-9 px-2 mr-4 bg-white border border-[rgba(27,31,27,0.25)] text-sm"
+                    className="h-9 px-2 mr-4 bg-white border border-tinta/25 text-sm"
                     value=""
                     onChange={(e) => e.target.value && iniciarVistaPrevia({ orgId: o.id, orgNombre: o.nombre, rol: e.target.value as RolCliente, areas: [] })}
                   >

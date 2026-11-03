@@ -134,7 +134,7 @@ export const SegundoFactor: React.FC<{ estado: EstadoSesion }> = ({ estado }) =>
       </button>
 
       {registrada && (
-        <p className="mt-12 pt-6 text-xs text-piedra leading-relaxed" style={{ borderTop: '1px solid rgba(27,31,27,0.15)' }}>
+        <p className="mt-12 pt-6 text-xs text-piedra leading-relaxed border-t border-tinta/15">
           ¿Perdiste el celular? En Supabase, en Authentication › Users, abrí tu usuario y borrá el factor. Al volver a entrar te pide registrar la app de nuevo.
         </p>
       )}

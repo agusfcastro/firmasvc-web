@@ -690,10 +690,10 @@ Colores, radios, sombras y tipografías están en `index.css`, dentro de `@theme
 | Líneas | `linea`, `linea-suave` |
 | Estados | `peligro`, `peligro-fuerte`, `peligro-suave`, `peligro-borde`, `peligro-claro`, `aviso`, `aviso-suave`, `aviso-claro`, `urgente` |
 | Radios | `control`, `tarjeta` (0, ángulo recto) y `pastilla` |
-| Sombras | `suave`, `hoja`, `flotante` |
+| Sombras | `suave`, `hoja`, `flotante`, `relieve` (tarjetas de video de los protocolos) |
 | Tipografía | `font-sans` (Archivo), `font-heading` (Bitter), `font-portal` (Archivo variable, solo en el portal) |
 
-Los mails, el PDF firmado y los dibujos en canvas no leen CSS. Toman los colores de `api/_lib/marca.ts`, que tiene que coincidir con `index.css`; `npm run marca:verificar` lo controla. No escribas colores con `[#...]` en los componentes: si falta uno, sumalo como token.
+Los mails, el PDF firmado y los dibujos en canvas no leen CSS. Toman los colores de `api/_lib/marca.ts`, que tiene que coincidir con `index.css`; `npm run marca:verificar` lo controla. No escribas colores con `[#...]` ni `rgba(...)` en los componentes ni en los mails: si falta uno, sumalo como token. Las transparencias van con el modificador de Tailwind sobre un token (`border-tinta/15`, `bg-marfil/8`) y, en un `style` o una variable CSS, con `color-mix(in srgb, var(--color-tinta) 15%, transparent)`.
 
 `npm run marca:verificar` también controla el contraste WCAG 2.2 AA de los pares que usa el portal: 4,5 a 1 para texto y 3 a 1 para el contorno de un campo. Si cambiás un color y deja de pasar, el script dice qué par falla y con cuánto.
 
@@ -744,9 +744,13 @@ Etapa 2, migraciones 0036 a 0043.
 
 Los contratos del CRM completan también las variables propias: las de la empresa con su valor y las de cliente con la ficha. Una variable propia obligatoria sin valor frena el envío, como las del sistema.
 
-Los avisos por mail de asuntos y documentos, y el firmante por defecto de la empresa, salen de las membresías: alguien que pertenece a dos negocios los recibe de los dos. El mail de los lunes todavía se arma con el negocio activo de cada persona.
+Los avisos por mail de asuntos y documentos, las alertas de vencimientos y el firmante por defecto de la empresa salen de las membresías: alguien que pertenece a dos negocios los recibe de los dos. El mail de los lunes llega uno solo por persona, con la newsletter una vez y un bloque de vencimientos y resumen por cada negocio.
 
-Pendiente: que las funciones del servidor lean y escriban con el token del usuario en vez de la clave de servicio donde no necesitan saltear permisos (hoy validan el acceso con `acceso_vigente` y siguen usando la clave de servicio), y el mail de los lunes con varios negocios.
+### Funciones con el token del usuario
+
+Las funciones que atienden a usuarios (`api/portal/avisos.ts`, `api/firma/sobres.ts`, `api/pagos/activar.ts` y `api/pagos/gestionar.ts`) traen lo que pide la persona (la novedad, el mensaje, el archivo o el asunto que avisa, el envío a firma, el cliente del CRM, el abono) con `clienteDelUsuario(request)` de `api/_lib/acceso.ts`: un cliente de Supabase con su token y la clave pública. Esa lectura pasa por las mismas políticas que el portal, así lo que no se ve en pantalla tampoco se alcanza por la API, aunque el código de la función tenga un error. Los controles de la función (`puedeOperar`, rol, empresa) siguen, como segunda barrera.
+
+La clave de servicio queda para lo que sí saltea permisos: validar el token, buscar los mails de otras personas, escribir registros del sistema (eventos de firma, bitácora, turnos de aviso), los archivos de Storage, la tarea diaria, los avisos de dLocal Go y la administración de usuarios. Las funciones necesitan `SUPABASE_ANON_KEY` o, si no está, `VITE_SUPABASE_ANON_KEY`, que en Vercel ya existe.
 
 ## Perfil conductual del cliente
 

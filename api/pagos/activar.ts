@@ -27,7 +27,7 @@
 import { createHmac } from 'node:crypto';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { FALTA_SEGUNDO_FACTOR, nivelDe } from '../_lib/nivel.js';
-import { SIN_ACCESO, accesoVigente } from '../_lib/acceso.js';
+import { SIN_ACCESO, SIN_CLIENTE_USUARIO, accesoVigente, clienteDelUsuario } from '../_lib/acceso.js';
 
 /* ================================================================== */
 /* Bloque común de pagos con dLocal Go                                  */
@@ -740,7 +740,10 @@ export async function POST(request: Request): Promise<Response> {
   if (cuerpo.acepto !== true) return error('Para continuar tenés que aceptar el débito.');
 
   // 2. El abono tiene que ser de su empresa y estar sin activar.
-  const { data: abono } = await sb.from('abonos').select('*').eq('id', abonoId).maybeSingle<Abono>();
+  // Se lee con su token: las políticas solo le muestran los abonos de su empresa.
+  const db = clienteDelUsuario(request);
+  if (!db) return error(SIN_CLIENTE_USUARIO, 500);
+  const { data: abono } = await db.from('abonos').select('*').eq('id', abonoId).maybeSingle<Abono>();
   if (!abono) return error('No existe ese abono.', 404);
   if (!esAdmin && quien.organizacion_id !== abono.organizacion_id) return error('No tenés acceso a este abono.', 403);
   const { data: org } = await sb.from('organizaciones').select('id, nombre, activa').eq('id', abono.organizacion_id).maybeSingle();

@@ -43,7 +43,7 @@ import {
 const claseAccion =
   'inline-flex items-center justify-center gap-2 h-12 px-5 bg-marfil text-tinta text-sm font-medium whitespace-nowrap transition-colors duration-150 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed';
 const claseSecundaria =
-  'self-start inline-flex items-center gap-2 text-sm font-medium text-marfil underline underline-offset-4 decoration-[rgba(245,243,236,0.4)] transition-colors duration-150 hover:decoration-marfil disabled:opacity-50 disabled:cursor-not-allowed';
+  'self-start inline-flex items-center gap-2 text-sm font-medium text-marfil underline underline-offset-4 decoration-marfil/40 transition-colors duration-150 hover:decoration-marfil disabled:opacity-50 disabled:cursor-not-allowed';
 
 const MAX_INTENTOS = 12;
 
@@ -329,7 +329,7 @@ const TarjetaAbono: React.FC<{
   }
 
   return (
-    <article className="grid desk:grid-cols-[minmax(0,1fr)_380px] border border-[rgba(27,31,27,0.15)]" aria-label={abono.concepto}>
+    <article className="grid desk:grid-cols-[minmax(0,1fr)_380px] border border-tinta/15" aria-label={abono.concepto}>
       <div className="bg-white p-6 desk:p-8 flex flex-col gap-7 min-w-0">
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-3">
@@ -401,7 +401,7 @@ const Copiar: React.FC<{ texto: string; etiqueta: string }> = ({ texto, etiqueta
       type="button"
       onClick={copiar}
       aria-label={hecho ? `${etiqueta} copiado` : `Copiar ${etiqueta}`}
-      className="shrink-0 inline-flex items-center gap-1.5 h-8 px-2.5 text-[13px] font-medium text-bosque border border-[rgba(23,58,47,0.3)] transition-colors duration-150 hover:bg-bosque-suave"
+      className="shrink-0 inline-flex items-center gap-1.5 h-8 px-2.5 text-[13px] font-medium text-bosque border border-bosque/30 transition-colors duration-150 hover:bg-bosque-suave"
     >
       {hecho ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
       {hecho ? 'Copiado' : 'Copiar'}
@@ -420,7 +420,7 @@ const FilaDato: React.FC<{ dato: DatoPago }> = ({ dato }) => (
 );
 
 const TarjetaMedio: React.FC<{ medio: MedioAlternativo }> = ({ medio }) => (
-  <article className="bg-white border border-[rgba(27,31,27,0.15)] p-6 flex flex-col gap-5 min-w-0" aria-label={medio.titulo}>
+  <article className="bg-white border border-tinta/15 p-6 flex flex-col gap-5 min-w-0" aria-label={medio.titulo}>
     <div className="flex flex-col gap-1.5">
       <p className="eyebrow text-[11px] text-piedra">{medio.moneda}</p>
       <h3 className="font-heading font-bold text-[19px] leading-[1.25]">{medio.titulo}</h3>

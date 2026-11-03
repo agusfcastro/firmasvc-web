@@ -71,7 +71,7 @@ const PUNTO_SEMAFORO: Record<Semaforo, string> = {
 
 const claseEtiqueta = 'block text-[12.5px] font-medium text-piedra mb-2';
 const claseSelectorEncabezado = 'h-12 pl-3.5 pr-10 bg-white border border-tinta font-medium text-[15px] focus:outline-none focus:ring-1 focus:ring-bosque';
-const filete = { borderTop: '1px solid rgba(27,31,27,0.15)' };
+const filete = { borderTop: '1px solid color-mix(in srgb, var(--color-tinta) 15%, transparent)' };
 
 type Filtro = 'abiertos' | 'cerrados' | 'todos';
 
@@ -617,7 +617,7 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
                           aria-pressed={activo}
                           onClick={() => cambiar({ semaforo: s })}
                           className={`flex-1 h-12 px-3 -ml-px first:ml-0 inline-flex items-center justify-center gap-2 text-sm font-medium border transition-colors duration-150 ${
-                            activo ? `${ESTILO_SEMAFORO[s]} border-current relative z-10` : 'bg-white text-piedra border-[rgba(27,31,27,0.22)] hover:text-tinta'
+                            activo ? `${ESTILO_SEMAFORO[s]} border-current relative z-10` : 'bg-white text-piedra border-tinta/22 hover:text-tinta'
                           }`}
                         >
                           <span aria-hidden="true" className={`w-2 h-2 rounded-full ${PUNTO_SEMAFORO[s]}`} />
@@ -787,7 +787,7 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
               <label className="flex items-center gap-2 text-sm text-piedra">
                 Mostrar
                 <select
-                  className="h-9 px-2 bg-white border border-[rgba(27,31,27,0.25)] text-sm text-tinta"
+                  className="h-9 px-2 bg-white border border-tinta/25 text-sm text-tinta"
                   value={limite}
                   onChange={(e) => {
                     setLimite(Number(e.target.value));

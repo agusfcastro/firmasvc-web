@@ -70,7 +70,7 @@ export const DatosCliente: React.FC<{ d: Identidad; alCambiar: (k: keyof Identid
         {TIPOS.map(([clave, rotulo, ayuda]) => (
           <label
             key={clave}
-            className={`flex items-start gap-3 p-4 border cursor-pointer ${d.tipo === clave ? 'border-tinta bg-white' : 'border-[rgba(27,31,27,0.18)] hover:border-tinta'}`}
+            className={`flex items-start gap-3 p-4 border cursor-pointer ${d.tipo === clave ? 'border-tinta bg-white' : 'border-tinta/18 hover:border-tinta'}`}
           >
             <input type="radio" name={nombreGrupo} checked={d.tipo === clave} onChange={() => alCambiar('tipo', clave)} className="mt-1 w-4 h-4 accent-bosque shrink-0" />
             <span className="flex flex-col gap-0.5">
@@ -96,7 +96,7 @@ export const DatosCliente: React.FC<{ d: Identidad; alCambiar: (k: keyof Identid
               </Campo>
             </div>
           </div>
-          <div className="pt-5 flex flex-col gap-5" style={{ borderTop: '1px solid rgba(27,31,27,0.15)' }}>
+          <div className="pt-5 flex flex-col gap-5 border-t border-tinta/15">
             <p className="eyebrow text-piedra">Representante · firma el contrato</p>
             <div className="grid gap-5 tab:grid-cols-2">
               <Campo etiqueta="Nombre completo">

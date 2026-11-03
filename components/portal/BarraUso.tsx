@@ -32,7 +32,7 @@ export const BarraUso: React.FC<{
         aria-valuemin={0}
         aria-valuemax={incluido}
         aria-valuenow={Math.min(usado, incluido)}
-        className={`h-1.5 w-full overflow-hidden ${oscuro ? 'bg-[rgba(244,242,237,0.14)]' : 'bg-separador'}`}
+        className={`h-1.5 w-full overflow-hidden ${oscuro ? 'bg-marfil/14' : 'bg-separador'}`}
       >
         <div className={`h-full ${agotado ? (oscuro ? 'bg-marfil' : 'bg-tinta') : oscuro ? 'bg-calido' : 'bg-bosque'}`} style={{ width: `${pct}%` }} />
       </div>

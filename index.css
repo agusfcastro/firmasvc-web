@@ -55,6 +55,7 @@
   --shadow-suave: 0 1px 3px rgba(27, 31, 27, 0.06);
   --shadow-hoja: 0 1px 4px rgba(27, 31, 27, 0.15);
   --shadow-flotante: 0 12px 32px rgba(27, 31, 27, 0.18);
+  --shadow-relieve: 0 18px 40px -18px rgba(27, 31, 27, 0.55);
 
   /* Si cambiás un valor de esta sección, cambialo igual en api/_lib/marca.ts
      (mails, PDF firmado y QR). npm run marca:verificar compara los dos. */

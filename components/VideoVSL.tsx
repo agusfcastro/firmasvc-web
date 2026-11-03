@@ -51,7 +51,7 @@ export const VideoVSL: React.FC = () => {
           className={`absolute inset-0 flex flex-col items-center justify-center gap-5 text-marfil transition-opacity duration-500 group focus:outline-none ${
             muted ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}
-          style={{ background: 'rgba(27,31,27,0.45)', backdropFilter: 'blur(2px)' }}
+          style={{ background: 'color-mix(in srgb, var(--color-tinta) 45%, transparent)', backdropFilter: 'blur(2px)' }}
         >
           <span
             className="flex items-center justify-center rounded-full bg-bosque text-marfil shadow-xl transition-transform duration-200 group-hover:scale-110 group-focus-visible:scale-110"
@@ -61,7 +61,7 @@ export const VideoVSL: React.FC = () => {
           </span>
           <span
             className="font-heading font-bold text-center px-6"
-            style={{ fontSize: 'clamp(18px, 2.4vw, 24px)', textShadow: '0 1px 10px rgba(0,0,0,0.4)' }}
+            style={{ fontSize: 'clamp(18px, 2.4vw, 24px)', textShadow: '0 1px 10px color-mix(in srgb, var(--color-tinta) 40%, transparent)' }}
           >
             Hacé click para activar el sonido
           </span>

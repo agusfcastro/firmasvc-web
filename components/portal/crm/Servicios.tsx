@@ -189,7 +189,7 @@ export const Servicios: React.FC<{ orgId: string; orgNombre: string; esAdmin: bo
             <Campo etiqueta="Ticket (USD, opcional)" ayuda="Precio de lista. Al cargar una venta aparece como monto sugerido y se puede cambiar.">
               <input type="number" step="0.01" min="0" className={claseInput} value={borrador.precio} onChange={(e) => setBorrador({ ...borrador, precio: e.target.value })} />
             </Campo>
-            <fieldset className="space-y-4 pt-5" style={{ borderTop: '1px solid rgba(27,31,27,0.15)' }}>
+            <fieldset className="space-y-4 pt-5 border-t border-tinta/15">
               <legend className="eyebrow text-piedra pb-2">Contrato modelo</legend>
               <p className="text-xs text-piedra">
                 Elegí un Word de la biblioteca de Documentos, sección Contratos de servicio. En cada venta sus variables, como {'{{NOMBRE}}'} o {'{{DETALLE_CUOTAS}}'}, se completan con la ficha.
@@ -300,7 +300,7 @@ export const Servicios: React.FC<{ orgId: string; orgNombre: string; esAdmin: bo
             )}
           </form>
 
-          <details className="bg-white border border-[rgba(27,31,27,0.14)] p-6 desk:p-8 group">
+          <details className="bg-white border border-tinta/14 p-6 desk:p-8 group">
             <summary className="cursor-pointer list-none flex items-center justify-between gap-4">
               <span className="h3">Variables de los modelos</span>
               <span className="text-sm text-piedra group-open:hidden">Ver lista</span>
@@ -326,7 +326,7 @@ export const Servicios: React.FC<{ orgId: string; orgNombre: string; esAdmin: bo
             </p>
             <ul className="flex flex-col">
               {VARIABLES.map(([clave, texto]) => (
-                <li key={clave} className="flex items-center justify-between gap-4 py-2.5" style={{ borderTop: '1px solid rgba(27,31,27,0.08)' }}>
+                <li key={clave} className="flex items-center justify-between gap-4 py-2.5 border-t border-tinta/8">
                   <span className="flex flex-col min-w-0">
                     <code className="text-sm font-medium">{`{{${clave}}}`}</code>
                     <span className="text-xs text-piedra">{texto}</span>

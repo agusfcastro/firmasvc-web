@@ -27,7 +27,7 @@
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { FALTA_SEGUNDO_FACTOR, nivelDe } from '../_lib/nivel.js';
-import { SIN_ACCESO, accesoVigente, genteDe } from '../_lib/acceso.js';
+import { SIN_ACCESO, SIN_CLIENTE_USUARIO, accesoVigente, clienteDelUsuario, genteDe } from '../_lib/acceso.js';
 import { enviarMail, mailDisponible, plantillaMail } from '../_lib/mail.js';
 import { PDFDocument } from 'pdf-lib';
 import { OPCIONALES, valoresDelContrato, valoresPropios, type ClienteContrato, type DefinicionVariable, type PagoContrato } from '../_lib/variables.js';
@@ -303,6 +303,8 @@ interface Quien {
   email: string;
   rol: string;
   organizacion_id: string | null;
+  /** Con su token: el envío o el cliente que pide se lee a través de las políticas. */
+  db: SupabaseClient;
 }
 
 /** Los mismos roles que ven contratos y documentos legales en el portal. Closer y setter no envían a firmar desde Firma electrónica. */
@@ -320,7 +322,9 @@ async function identificar(sb: SupabaseClient, request: Request): Promise<Quien 
   if (!ROLES_CRM.includes(String(p.rol))) return error('Tu rol no tiene acceso a la firma electrónica.', 403);
   if (p.rol === 'admin' && nivelDe(token) !== 'aal2') return error(FALTA_SEGUNDO_FACTOR, 403);
   if (p.rol !== 'admin' && !(await accesoVigente(sb, p.id))) return error(SIN_ACCESO, 403);
-  return { id: p.id, email: p.email, rol: p.rol, organizacion_id: p.organizacion_id };
+  const db = clienteDelUsuario(request);
+  if (!db) return error(SIN_CLIENTE_USUARIO, 500);
+  return { id: p.id, email: p.email, rol: p.rol, organizacion_id: p.organizacion_id, db };
 }
 
 function puedeOperar(q: Quien, s: Sobre): boolean {
@@ -333,7 +337,8 @@ function puedeOperar(q: Quien, s: Sobre): boolean {
 async function cargarSobre(sb: SupabaseClient, q: Quien, id: unknown): Promise<Sobre | Response> {
   const sobreId = String(id || '');
   if (!UUID.test(sobreId)) return error('Envío inválido.');
-  const { data } = await sb.from('firma_sobres').select('*').eq('id', sobreId).maybeSingle();
+  // Lo filtran las políticas (firma_sobre_visible) y, además, puedeOperar.
+  const { data } = await q.db.from('firma_sobres').select('*').eq('id', sobreId).maybeSingle();
   if (!data || !puedeOperar(q, data as Sobre)) return error('No existe ese envío o no tenés acceso.', 404);
   return alDia(sb, data as Sobre);
 }
@@ -396,8 +401,8 @@ interface ContratoCrm {
 async function clienteCrm(sb: SupabaseClient, q: Quien, valor: unknown): Promise<ClienteCrm | Response> {
   const id = String(valor || '');
   if (!UUID.test(id)) return error('Falta el cliente.');
-  // La vista devuelve DNI, teléfono y domicilio descifrados.
-  const { data } = await sb.from('crm_clientes_resumen').select('*').eq('id', id).maybeSingle();
+  // La vista devuelve DNI, teléfono y domicilio descifrados a quien puede ver el cliente.
+  const { data } = await q.db.from('crm_clientes_resumen').select('*').eq('id', id).maybeSingle();
   if (!data) return error('No existe ese cliente.', 404);
   if (q.rol !== 'admin' && data.organizacion_id !== q.organizacion_id) return error('No tenés acceso a este cliente.', 403);
   if (data.estado_firma === 'Baja') return error('El cliente está dado de baja.', 409);

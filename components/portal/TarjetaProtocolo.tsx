@@ -127,7 +127,7 @@ export const TarjetaProtocolo: React.FC<{
     </>
   );
 
-  const clase = 'group relative w-full flex-1 min-h-[240px] flex items-stretch overflow-hidden rounded-[24px] bg-tinta text-marfil shadow-[0_18px_40px_-18px_rgba(27,31,27,0.55)] transition-transform duration-200 hover:-translate-y-0.5 disabled:opacity-70';
+  const clase = 'group relative w-full flex-1 min-h-[240px] flex items-stretch overflow-hidden rounded-[24px] bg-tinta text-marfil shadow-relieve transition-transform duration-200 hover:-translate-y-0.5 disabled:opacity-70';
 
   return (
     <article className="flex flex-col gap-3 h-full">

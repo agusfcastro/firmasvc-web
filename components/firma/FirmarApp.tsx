@@ -119,7 +119,7 @@ const Lienzo: React.FC<{ alCambiar: (png: string | null) => void }> = ({ alCambi
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="relative bg-white border border-[rgba(27,31,27,0.22)]">
+      <div className="relative bg-white border border-tinta/22">
         <canvas
           ref={ref}
           aria-label="Espacio para dibujar tu firma"
@@ -131,7 +131,7 @@ const Lienzo: React.FC<{ alCambiar: (png: string | null) => void }> = ({ alCambi
           onPointerLeave={terminar}
           onPointerCancel={terminar}
         />
-        <span aria-hidden="true" className="absolute left-6 right-6 bottom-[22%] border-b border-dashed border-[rgba(27,31,27,0.25)] pointer-events-none" />
+        <span aria-hidden="true" className="absolute left-6 right-6 bottom-[22%] border-b border-dashed border-tinta/25 pointer-events-none" />
       </div>
       <div className="flex items-center justify-between text-xs text-piedra">
         <span>Dibujá con el dedo o el mouse.</span>
@@ -203,7 +203,7 @@ const PantallaFinal: React.FC<{ datos: Datos; rechazo: boolean }> = ({ datos, re
   const { sobre, firmante } = datos;
   const completo = sobre.estado === 'completado';
   const Icono = rechazo ? ShieldX : ShieldCheck;
-  const tarjeta = 'w-full bg-white border border-[rgba(27,31,27,0.12)] shadow-suave';
+  const tarjeta = 'w-full bg-white border border-tinta/12 shadow-suave';
 
   return (
     <section className="bg-marfil min-h-[calc(100vh-170px)]">
@@ -404,7 +404,7 @@ export const FirmarApp: React.FC<{ token: string }> = ({ token }) => {
 
   return (
     <MarcoPublico conBarra={puedeFirmar}>
-      <section style={{ borderBottom: '1px solid rgba(27,31,27,0.12)' }}>
+      <section style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-tinta) 12%, transparent)' }}>
         <div className="wrap pt-8 pb-7 desk:pt-12 desk:pb-9 flex flex-col gap-3 max-w-[900px] mx-auto">
           <p className="eyebrow text-piedra">{sobre.emisor} te envió para firmar</p>
           <h1 className="h2">{sobre.titulo}</h1>
@@ -428,7 +428,7 @@ export const FirmarApp: React.FC<{ token: string }> = ({ token }) => {
                 {datos.otros.map((o) => {
                   const e = ESTADO_FIRMANTE[o.estado] ?? ESTADO_FIRMANTE.pendiente;
                   return (
-                    <li key={`${o.orden}-${o.nombre}`} className="flex items-center justify-between gap-3 py-2.5 text-sm" style={{ borderBottom: '1px solid rgba(27,31,27,0.1)' }}>
+                    <li key={`${o.orden}-${o.nombre}`} className="flex items-center justify-between gap-3 py-2.5 text-sm border-b border-tinta/10">
                       <span>
                         {sobre.secuencial && <span className="tabular-nums text-piedra mr-2">{o.orden}.</span>}
                         {o.nombre}
@@ -449,7 +449,7 @@ export const FirmarApp: React.FC<{ token: string }> = ({ token }) => {
 
       {/* Barra fija para firmar, siempre a mano mientras se lee */}
       {puedeFirmar && !panel && (
-        <div className="fixed inset-x-0 bottom-0 z-40 bg-marfil" style={{ borderTop: '1px solid rgba(27,31,27,0.15)', boxShadow: '0 -8px 24px rgba(27,31,27,0.08)' }}>
+        <div className="fixed inset-x-0 bottom-0 z-40 bg-marfil" style={{ borderTop: '1px solid color-mix(in srgb, var(--color-tinta) 15%, transparent)', boxShadow: '0 -8px 24px color-mix(in srgb, var(--color-tinta) 8%, transparent)' }}>
           <div className="wrap max-w-[900px] mx-auto py-3 tab:py-4 flex items-center gap-4">
             <p className="hidden tab:block flex-1 text-sm text-piedra">Cuando termines de leer, firmá desde acá.</p>
             <button type="button" onClick={() => abrir(true)} className="text-sm text-piedra underline underline-offset-4 hover:text-tinta whitespace-nowrap">
@@ -464,9 +464,9 @@ export const FirmarApp: React.FC<{ token: string }> = ({ token }) => {
 
       {/* Ventana para firmar o rechazar. En el celular ocupa toda la pantalla. */}
       {puedeFirmar && panel && (
-        <div className="fixed inset-0 z-50 flex tab:items-center tab:justify-center bg-[rgba(27,31,27,0.55)] tab:p-6" role="dialog" aria-modal="true" aria-label={rechazando ? 'Rechazar el documento' : 'Firmar el documento'} onMouseDown={(e) => e.target === e.currentTarget && setPanel(false)}>
+        <div className="fixed inset-0 z-50 flex tab:items-center tab:justify-center bg-tinta/55 tab:p-6" role="dialog" aria-modal="true" aria-label={rechazando ? 'Rechazar el documento' : 'Firmar el documento'} onMouseDown={(e) => e.target === e.currentTarget && setPanel(false)}>
           <div className="relative w-full tab:max-w-[520px] h-full tab:h-auto tab:max-h-[92vh] overflow-y-auto bg-marfil flex flex-col">
-            <div className="sticky top-0 z-10 bg-marfil flex items-center justify-between gap-4 px-6 py-4" style={{ borderBottom: '1px solid rgba(27,31,27,0.12)' }}>
+            <div className="sticky top-0 z-10 bg-marfil flex items-center justify-between gap-4 px-6 py-4 border-b border-tinta/12">
               <span className="eyebrow text-[11px] text-piedra">{rechazando ? 'Rechazar' : 'Firmar'} · {sobre.titulo}</span>
               <button type="button" onClick={() => setPanel(false)} aria-label="Volver al documento" className="w-9 h-9 inline-flex items-center justify-center hover:bg-marfil-oscuro shrink-0">
                 <X size={18} aria-hidden="true" />
@@ -546,7 +546,7 @@ export const FirmarApp: React.FC<{ token: string }> = ({ token }) => {
                       <Campo etiqueta="Tu nombre completo">
                         <input value={escrito} onChange={(e) => setEscrito(e.target.value.slice(0, 80))} className={claseInput} autoComplete="name" />
                       </Campo>
-                      <div className="bg-white border border-[rgba(27,31,27,0.22)] h-24 flex items-center px-6 overflow-hidden">
+                      <div className="bg-white border border-tinta/22 h-24 flex items-center px-6 overflow-hidden">
                         <span className="text-[40px] leading-none truncate" style={{ fontFamily: '"Snell Roundhand", "Segoe Script", "Brush Script MT", "Apple Chancery", Georgia, serif', fontStyle: 'italic' }}>
                           {escrito || ' '}
                         </span>

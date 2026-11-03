@@ -42,7 +42,7 @@ export async function generarContratoFirma(clienteId: string): Promise<{ ok: boo
 
 const claseBoton =
   'inline-flex items-center justify-center gap-2 h-11 px-5 bg-marfil text-tinta text-sm font-medium transition-colors duration-150 hover:bg-white disabled:opacity-60';
-const claseSecundario = 'inline-flex items-center gap-1.5 text-sm font-medium text-marfil underline underline-offset-4 decoration-[rgba(245,243,236,0.4)] hover:decoration-marfil disabled:opacity-60';
+const claseSecundario = 'inline-flex items-center gap-1.5 text-sm font-medium text-marfil underline underline-offset-4 decoration-marfil/40 hover:decoration-marfil disabled:opacity-60';
 
 export const ContratoFirma: React.FC<{
   clienteId: string;
@@ -236,7 +236,7 @@ export const ContratoFirma: React.FC<{
             const e = ESTADO_FIRMANTE[f.estado];
             const pendiente = enCurso && f.estado !== 'firmado' && f.estado !== 'rechazado';
             return (
-              <li key={f.id} className="py-3 flex flex-wrap items-center justify-between gap-3" style={{ borderTop: '1px solid rgba(245,243,236,0.12)' }}>
+              <li key={f.id} className="py-3 flex flex-wrap items-center justify-between gap-3 border-t border-marfil/12">
                 <span className="flex flex-col min-w-0">
                   <span className="text-sm font-medium truncate">{f.nombre}</span>
                   <span className="text-xs text-calido truncate">{f.firmado_en ? `Firmó el ${fechaHora(f.firmado_en)}` : f.email}</span>
@@ -255,7 +255,7 @@ export const ContratoFirma: React.FC<{
                         setEditando(editando === f.id ? null : f.id);
                         setNuevoEmail(f.email);
                       }}
-                      className="inline-flex items-center justify-center w-9 h-9 border border-[rgba(245,243,236,0.3)] text-marfil hover:border-marfil"
+                      className="inline-flex items-center justify-center w-9 h-9 border border-marfil/30 text-marfil hover:border-marfil"
                     >
                       <Pencil size={15} aria-hidden="true" />
                     </button>
@@ -267,7 +267,7 @@ export const ContratoFirma: React.FC<{
                       aria-label={`${f.notificado_en ? 'Reenviar el mail' : 'Mandarle el enlace por mail'} a ${f.nombre}`}
                       disabled={ocupado === f.id}
                       onClick={() => void recordar(f)}
-                      className="inline-flex items-center justify-center w-9 h-9 border border-[rgba(245,243,236,0.3)] text-marfil hover:border-marfil disabled:opacity-50"
+                      className="inline-flex items-center justify-center w-9 h-9 border border-marfil/30 text-marfil hover:border-marfil disabled:opacity-50"
                     >
                       <RefreshCw size={15} aria-hidden="true" className={ocupado === f.id ? 'animate-spin' : ''} />
                     </button>
@@ -279,7 +279,7 @@ export const ContratoFirma: React.FC<{
                       ev.preventDefault();
                       void corregirEmail(f);
                     }}
-                    className="w-full bg-[rgba(245,243,236,0.08)] p-4 flex flex-col gap-3"
+                    className="w-full bg-marfil/8 p-4 flex flex-col gap-3"
                   >
                     <label className="flex flex-col gap-1.5">
                       <span className="text-sm font-medium">Mail de {f.nombre}</span>
@@ -288,7 +288,7 @@ export const ContratoFirma: React.FC<{
                         autoFocus
                         value={nuevoEmail}
                         onChange={(ev) => setNuevoEmail(ev.target.value.slice(0, 200))}
-                        className="h-11 px-3 bg-transparent border border-[rgba(245,243,236,0.3)] text-marfil text-sm focus:outline-none focus:border-marfil"
+                        className="h-11 px-3 bg-transparent border border-marfil/30 text-marfil text-sm focus:outline-none focus:border-marfil"
                       />
                       <span className="text-xs text-calido leading-[1.5]">
                         El enlace anterior deja de funcionar. {sobre.entrega === 'enlace' ? 'Copiá el nuevo y pasáselo.' : 'Le mandamos la invitación al mail nuevo.'} La ficha del cliente no cambia.
@@ -315,7 +315,7 @@ export const ContratoFirma: React.FC<{
 
       {/* Confirmación antes de mandar */}
       {confirmando && (
-        <div className="bg-[rgba(245,243,236,0.08)] p-4 flex flex-col gap-3">
+        <div className="bg-marfil/8 p-4 flex flex-col gap-3">
           <div className="flex flex-col gap-2" role="radiogroup" aria-label="Cómo les llega">
             {(
               [
@@ -394,9 +394,9 @@ export const ContratoFirma: React.FC<{
               const cuando =
                 o.estado === 'completado' ? `Firmado el ${fecha(o.completado_en)}` : o.estado === 'en_curso' ? `Vence el ${fecha(o.vence_en)}` : `${e.texto} el ${fecha(o.cerrado_en)}`;
               return (
-                <li key={o.id} className="py-3 flex flex-col gap-1.5" style={{ borderTop: '1px solid rgba(245,243,236,0.12)' }}>
+                <li key={o.id} className="py-3 flex flex-col gap-1.5 border-t border-marfil/12">
                   <span className="flex flex-wrap items-center justify-between gap-3">
-                    <Enlace a={`/portal/firmas/${o.id}`} className="text-sm font-medium underline underline-offset-4 decoration-[rgba(245,243,236,0.4)] hover:decoration-marfil min-w-0 truncate">
+                    <Enlace a={`/portal/firmas/${o.id}`} className="text-sm font-medium underline underline-offset-4 decoration-marfil/40 hover:decoration-marfil min-w-0 truncate">
                       {o.titulo}
                     </Enlace>
                     <Etiqueta tono={e.tono}>{e.texto}</Etiqueta>
@@ -413,9 +413,9 @@ export const ContratoFirma: React.FC<{
       )}
 
       {vista && (
-        <div className="fixed inset-0 z-50 flex tab:items-center tab:justify-center bg-[rgba(27,31,27,0.6)] tab:p-6" role="dialog" aria-modal="true" aria-label="Contrato" onMouseDown={(e) => e.target === e.currentTarget && setVista(null)}>
+        <div className="fixed inset-0 z-50 flex tab:items-center tab:justify-center bg-tinta/60 tab:p-6" role="dialog" aria-modal="true" aria-label="Contrato" onMouseDown={(e) => e.target === e.currentTarget && setVista(null)}>
           <div className="relative w-full tab:max-w-[900px] h-full tab:h-[92vh] overflow-y-auto bg-marfil text-tinta flex flex-col">
-            <div className="sticky top-0 z-20 bg-marfil flex items-center justify-between gap-4 px-5 py-3" style={{ borderBottom: '1px solid rgba(27,31,27,0.12)' }}>
+            <div className="sticky top-0 z-20 bg-marfil flex items-center justify-between gap-4 px-5 py-3 border-b border-tinta/12">
               <span className="eyebrow text-[11px] text-piedra">{completado ? 'Contrato firmado' : 'Vista previa del contrato'}</span>
               <button type="button" onClick={() => setVista(null)} aria-label="Cerrar" className="w-9 h-9 inline-flex items-center justify-center hover:bg-marfil-oscuro">
                 <X size={18} aria-hidden="true" />

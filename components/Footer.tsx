@@ -51,7 +51,7 @@ export const Footer: React.FC = () => {
 
         <div
           className="flex flex-wrap justify-between gap-4 pt-6 text-xs"
-          style={{ borderTop: '1px solid rgba(245,243,236,0.14)' }}
+          style={{ borderTop: '1px solid color-mix(in srgb, var(--color-marfil) 14%, transparent)' }}
         >
           <span>© {new Date().getFullYear()} Firma. Todos los derechos reservados.</span>
           <div className="flex flex-wrap gap-x-6 gap-y-2">

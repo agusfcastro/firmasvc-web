@@ -80,14 +80,14 @@ const VisorTutorial: React.FC<{ clave: ClaveTutorial; tutorial: Tutorial; alCerr
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(27,31,27,0.72)] p-3 tab:p-8"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-tinta/72 p-3 tab:p-8"
       role="dialog"
       aria-modal="true"
       aria-label={`Tutorial: ${tutorial.titulo}`}
       onMouseDown={(e) => e.target === e.currentTarget && alCerrar()}
     >
       <div className="w-full max-w-[1100px] bg-marfil">
-        <div className="flex items-center justify-between gap-4 px-5 py-3" style={{ borderBottom: '1px solid rgba(27,31,27,0.12)' }}>
+        <div className="flex items-center justify-between gap-4 px-5 py-3 border-b border-tinta/12">
           <div className="flex flex-col">
             <span className="eyebrow text-piedra">Tutorial</span>
             <span className="font-medium">{tutorial.titulo}</span>

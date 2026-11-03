@@ -76,7 +76,7 @@ export const Verificar: React.FC<{ codigoInicial?: string }> = ({ codigoInicial 
 
   return (
     <MarcoPublico eyebrow="Verificación de documentos">
-      <section style={{ borderBottom: '1px solid rgba(27,31,27,0.12)' }}>
+      <section style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-tinta) 12%, transparent)' }}>
         <div className="wrap pt-10 pb-9 desk:pt-14 desk:pb-11 flex flex-col gap-4 max-w-[860px] ml-0">
           <p className="eyebrow text-piedra">Verificación</p>
           <h1 className="h2">
@@ -101,7 +101,7 @@ export const Verificar: React.FC<{ codigoInicial?: string }> = ({ codigoInicial 
               setArrastrando(false);
               elegir(e.dataTransfer.files?.[0]);
             }}
-            className={`flex flex-col items-center justify-center gap-3 p-10 text-center border-2 border-dashed cursor-pointer transition-colors duration-150 ${arrastrando ? 'border-bosque bg-bosque-suave' : 'border-[rgba(27,31,27,0.25)] bg-white hover:border-tinta'}`}
+            className={`flex flex-col items-center justify-center gap-3 p-10 text-center border-2 border-dashed cursor-pointer transition-colors duration-150 ${arrastrando ? 'border-bosque bg-bosque-suave' : 'border-tinta/25 bg-white hover:border-tinta'}`}
           >
             <FileUp size={28} aria-hidden="true" className="text-bosque" />
             <span className="font-medium">{archivo ? archivo.name : 'Arrastrá el PDF o tocá para elegirlo'}</span>
@@ -169,7 +169,7 @@ export const Verificar: React.FC<{ codigoInicial?: string }> = ({ codigoInicial 
               )}
               {resultado?.cadena_integra === false && <Aviso tipo="error">El registro de eventos de este envío no cierra. Avisanos a agustin@firmasvc.com.</Aviso>}
 
-              <div className="bg-white border border-[rgba(27,31,27,0.14)] p-6 desk:p-8 flex flex-col gap-5">
+              <div className="bg-white border border-tinta/14 p-6 desk:p-8 flex flex-col gap-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="flex flex-col gap-1.5 min-w-0">
                     <span className="eyebrow text-[11px] text-piedra">Código {s.codigo}</span>
@@ -214,7 +214,7 @@ export const Verificar: React.FC<{ codigoInicial?: string }> = ({ codigoInicial 
                   {(resultado?.firmantes ?? []).map((f) => {
                     const e = ESTADO_FIRMANTE[f.estado] ?? ESTADO_FIRMANTE.pendiente;
                     return (
-                      <li key={f.email + f.nombre} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm" style={{ borderTop: '1px solid rgba(27,31,27,0.1)' }}>
+                      <li key={f.email + f.nombre} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm border-t border-tinta/10">
                         <span className="flex flex-col">
                           <span className="font-medium">{f.nombre}</span>
                           <span className="text-xs text-piedra">

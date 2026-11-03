@@ -11,7 +11,9 @@
  *   Los lunes, además, el mail de la semana: la newsletter (video y artículo
  *   que carga FIRMA en Administración › Newsletter) a todos los usuarios, y al
  *   titular y al CSM también los vencimientos de la semana y un resumen de su
- *   empresa. Sale solo si FIRMA activó la newsletter de ese lunes; si no, no
+ *   empresa. Quien es miembro de varios negocios recibe un solo mail, con
+ *   la newsletter una vez y un bloque por negocio; las alertas salen por
+ *   negocio. Sale solo si FIRMA activó la newsletter de ese lunes; si no, no
  *   sale nada. Si el lunes no alcanzó el tiempo, el martes y el miércoles
  *   manda lo que faltó.
  *   ?resumen=1 lo manda aunque no sea lunes, para probar. Una vez por semana.
@@ -26,7 +28,9 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { FALTA_SEGUNDO_FACTOR, nivelDe } from '../_lib/nivel.js';
+import { genteDe } from '../_lib/acceso.js';
 import { enviarMail, mailDisponible, plantillaMail } from '../_lib/mail.js';
+import { COLOR } from '../_lib/marca.js';
 
 const ZONA = 'America/Argentina/Buenos_Aires';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -39,7 +43,7 @@ const ROLES_EMPRESA = [...ROLES_ASUNTOS, 'closer', 'setter'];
 const TIEMPO_MS = 48_000;
 /** Resend acepta dos mails por segundo en el plan gratuito. */
 const PAUSA_MS = 550;
-const ENLACE = 'color:#173A2F;font-weight:600;text-decoration:underline';
+const ENLACE = `color:${COLOR.bosque};font-weight:600;text-decoration:underline`;
 
 const ESTADO_ASUNTO: Record<string, string> = {
   en_curso: 'En curso',
@@ -187,16 +191,16 @@ function pagina(titulo: string, texto: string, formulario?: { accion: 'baja' | '
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
 <title>${escapar(titulo)} · FIRMA</title>
 <style>
-body{margin:0;background:#F5F3EC;color:#1B1F1B;font:15px/1.65 Archivo,Arial,Helvetica,sans-serif}
-main{max-width:520px;margin:64px auto;padding:36px 32px;background:#fff;border:1px solid #DEDBD0;border-top:3px solid #173A2F}
-p.seccion{margin:0 0 14px;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:#6B6553}
+body{margin:0;background:${COLOR.marfil};color:${COLOR.tinta};font:15px/1.65 Archivo,Arial,Helvetica,sans-serif}
+main{max-width:520px;margin:64px auto;padding:36px 32px;background:${COLOR.blanco};border:1px solid ${COLOR.linea};border-top:3px solid ${COLOR.bosque}}
+p.seccion{margin:0 0 14px;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:${COLOR.piedra}}
 h1{margin:0 0 18px;font:900 26px/1.2 Bitter,Georgia,serif}
-button{margin-top:12px;padding:14px 26px;border:0;background:#173A2F;color:#F5F3EC;font:600 15px Archivo,Arial,sans-serif;cursor:pointer}
-a{color:#173A2F}
+button{margin-top:12px;padding:14px 26px;border:0;background:${COLOR.bosque};color:${COLOR.marfil};font:600 15px Archivo,Arial,sans-serif;cursor:pointer}
+a{color:${COLOR.bosque}}
 @media (max-width:560px){main{margin:16px;padding:28px 20px}}
 </style></head>
 <body><main><p class="seccion">Mail de los lunes</p><h1>${escapar(titulo)}</h1><p>${texto}</p>${form}
-<p style="margin-top:28px;font-size:13px;color:#6B6553"><a href="${basePortal()}/portal">Ir al portal</a></p></main></body></html>`;
+<p style="margin-top:28px;font-size:13px;color:${COLOR.piedra}"><a href="${basePortal()}/portal">Ir al portal</a></p></main></body></html>`;
   return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } });
 }
 
@@ -364,7 +368,7 @@ function idYoutube(url: string): string | null {
   return url.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})/)?.[1] ?? null;
 }
 
-const ROTULO = 'color:#6B6553;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase';
+const ROTULO = `color:${COLOR.piedra};font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase`;
 
 function bloqueNewsletter(n: Newsletter): { titulo: string; items: string[] } {
   const items: string[] = [];
@@ -378,36 +382,47 @@ function bloqueNewsletter(n: Newsletter): { titulo: string; items: string[] } {
   }
   if (n.articulo_url && n.articulo_titulo) {
     const url = escapar(n.articulo_url);
-    const bajada = n.articulo_bajada ? `<br><span style="color:#6B6553">${escapar(n.articulo_bajada)}</span>` : '';
-    items.push(`<span style="${ROTULO}">Artículo</span><br><a href="${url}" style="${ENLACE}">${escapar(n.articulo_titulo)}</a>${bajada}<br><a href="${url}" style="color:#173A2F;font-size:13px">Leer el artículo &rarr;</a>`);
+    const bajada = n.articulo_bajada ? `<br><span style="color:${COLOR.piedra}">${escapar(n.articulo_bajada)}</span>` : '';
+    items.push(`<span style="${ROTULO}">Artículo</span><br><a href="${url}" style="${ENLACE}">${escapar(n.articulo_titulo)}</a>${bajada}<br><a href="${url}" style="color:${COLOR.bosque};font-size:13px">Leer el artículo &rarr;</a>`);
   }
   return { titulo: 'Novedades', items };
 }
 
+/** Un negocio del que la persona es miembro, con su rol ahí y los datos de la semana si ve asuntos. */
+interface NegocioLunes {
+  empresa: string;
+  rol: string;
+  areas: string[] | null;
+  datos: DatosSemana | null;
+}
+
 /**
- * El mail de los lunes de una persona: la newsletter para todos y, para quien
- * ve asuntos (con `d`), los vencimientos de la semana y un resumen corto. Null
- * si no hay nada que contarle.
+ * El mail de los lunes de una persona: la newsletter una sola vez y, por cada
+ * negocio en el que ve asuntos, los vencimientos de la semana y un resumen
+ * corto. Quien está en dos negocios recibe un mail con los dos. Null si no
+ * hay nada que contarle.
  */
 function mailLunes(
-  p: Pick<Persona, 'nombre' | 'rol' | 'areas'>,
-  empresa: string,
+  p: Pick<Persona, 'nombre'>,
+  negocios: NegocioLunes[],
   n: Newsletter | null,
-  d: DatosSemana | null,
   hoy: string,
   lunes: string,
   base: string,
   baja: string,
 ): { asunto: string; html: string } | null {
-  const completo = d !== null && ROLES_ASUNTOS.includes(p.rol);
   const domingo = sumarDias(lunes, 6);
   const enlaceAsunto = (a: DatosSemana['asuntos'][number]) =>
     `<a href="${base}/portal/asuntos/${a.id}" style="${ENLACE}">${escapar(`${a.codigo ? `${a.codigo} · ` : ''}${a.titulo}`)}</a>`;
+  const completos = negocios.filter((g) => g.datos !== null && ROLES_ASUNTOS.includes(g.rol));
+  const varios = completos.length > 1;
 
-  const vencimientos: string[] = [];
-  const resumen: string[] = [];
+  const bloques: { titulo: string; items: string[] }[] = [];
   let esperan = 0;
-  if (completo && d) {
+  for (const g of completos) {
+    const d = g.datos as DatosSemana;
+    const vencimientos: string[] = [];
+    const resumen: string[] = [];
     const abiertos = d.asuntos.filter((a) => a.estado !== 'finalizado');
     for (const a of abiertos.filter((x) => x.vence_en && x.vence_en >= hoy && x.vence_en <= domingo).sort((x, y) => (x.vence_en as string).localeCompare(y.vence_en as string)))
       vencimientos.push(`${enlaceAsunto(a)} vence ${cuando(a.vence_en as string, hoy)}.`);
@@ -415,12 +430,12 @@ function mailLunes(
       const dia = diaDe(new Date(s.vence_en));
       if (dia >= hoy && dia <= domingo) vencimientos.push(`<a href="${base}/portal/firmas/${s.id}" style="${ENLACE}">${escapar(`${s.codigo} · ${s.titulo}`)}</a>: el envío a firma vence ${cuando(dia, hoy)}.`);
     }
-    if (p.rol === 'titular') for (const a of d.abonos) vencimientos.push(`El abono <strong>${escapar(a.concepto)}</strong> termina ${cuando(a.vigente_hasta, hoy)}.`);
+    if (g.rol === 'titular') for (const a of d.abonos) vencimientos.push(`El abono <strong>${escapar(a.concepto)}</strong> termina ${cuando(a.vigente_hasta, hoy)}.`);
 
     const enEspera = abiertos.filter((a) => a.estado === 'espera_cliente');
-    esperan = enEspera.length;
+    esperan += enEspera.length;
     if (abiertos.length)
-      resumen.push(`${plural(abiertos.length, 'asunto abierto', 'asuntos abiertos')}.${esperan ? ` ${esperan === 1 ? 'Uno espera' : `${esperan} esperan`} tu respuesta: ${enEspera.map(enlaceAsunto).join(', ')}.` : ''}`);
+      resumen.push(`${plural(abiertos.length, 'asunto abierto', 'asuntos abiertos')}.${enEspera.length ? ` ${enEspera.length === 1 ? 'Uno espera' : `${enEspera.length} esperan`} tu respuesta: ${enEspera.map(enlaceAsunto).join(', ')}.` : ''}`);
     const conNovedades = abiertos.filter((a) => d.novedades.get(a.id)).length;
     if (conNovedades) resumen.push(`${plural(conNovedades, 'asunto tuvo', 'asuntos tuvieron')} novedades esta semana.`);
     const finalizados = d.asuntos.length - abiertos.length;
@@ -429,31 +444,32 @@ function mailLunes(
     const completados = d.sobres.filter((s) => s.estado === 'completado').length;
     if (enCurso || completados) resumen.push(`Firmas: ${[enCurso && `${enCurso} en curso`, completados && plural(completados, 'completada', 'completadas')].filter(Boolean).join(' y ')}.`);
     // Los mismos documentos que la persona ve en el portal, como en el aviso de documento nuevo.
-    const documentos = d.documentos.filter((doc) => !doc.areas?.length || p.rol === 'titular' || (p.areas ?? []).some((a) => (doc.areas ?? []).includes(a))).length;
+    const documentos = d.documentos.filter((doc) => !doc.areas?.length || g.rol === 'titular' || (g.areas ?? []).some((a) => (doc.areas ?? []).includes(a))).length;
     if (documentos) resumen.push(`${plural(documentos, 'documento nuevo', 'documentos nuevos')} en el portal.`);
+
+    const de = varios ? ` · ${g.empresa}` : '';
+    bloques.push({ titulo: `Vencimientos de esta semana${de}`, items: vencimientos }, { titulo: `Tu semana en resumen${de}`, items: resumen });
   }
 
-  if (!n && !vencimientos.length && !resumen.length) return null;
+  if (!n && !bloques.some((b) => b.items.length)) return null;
   const destacado = n?.video_titulo ?? n?.articulo_titulo;
+  const nombres = (lista: NegocioLunes[]) => lista.map((g) => `<strong>${escapar(g.empresa)}</strong>`).join(lista.length === 2 ? ' y ' : ', ');
+  const todas = negocios.map((g) => escapar(g.empresa)).join(negocios.length === 2 ? ' y ' : ', ');
 
   return {
     asunto: esperan
       ? `${esperan === 1 ? 'Un asunto espera' : `${esperan} asuntos esperan`} tu respuesta · Tu semana en FIRMA`
       : destacado
         ? `${destacado} · Novedades de FIRMA`
-        : `Tu semana en FIRMA · ${empresa}`,
+        : `Tu semana en FIRMA · ${completos.map((g) => g.empresa).join(', ')}`,
     html: plantillaMail({
       seccion: n ? 'Newsletter' : 'Resumen semanal',
-      titulo: completo ? 'Tu semana en FIRMA' : 'Novedades de FIRMA',
+      titulo: completos.length ? 'Tu semana en FIRMA' : 'Novedades de FIRMA',
       anticipo: destacado ?? 'Vencimientos y resumen de la semana.',
-      parrafos: [hola(p), completo ? `Lo nuevo de FIRMA y cómo viene la semana de <strong>${escapar(empresa)}</strong> en el portal.` : 'Esto es lo que preparamos para vos esta semana.'],
-      bloques: [
-        ...(n ? [bloqueNewsletter(n)] : []),
-        { titulo: 'Vencimientos de esta semana', items: vencimientos },
-        { titulo: 'Tu semana en resumen', items: resumen },
-      ],
-      boton: completo ? { texto: esperan ? 'Responder en el portal' : 'Ir al portal', url: `${base}/portal/asuntos` } : undefined,
-      pie: `Te llega los lunes porque tenés acceso al portal de ${escapar(empresa)}. <a href="${escapar(baja)}" style="color:#6B6553">Dejar de recibir este mail</a>.`,
+      parrafos: [hola(p), completos.length ? `Lo nuevo de FIRMA y cómo viene la semana de ${nombres(completos)} en el portal.` : 'Esto es lo que preparamos para vos esta semana.'],
+      bloques: [...(n ? [bloqueNewsletter(n)] : []), ...bloques],
+      boton: completos.length ? { texto: esperan ? 'Responder en el portal' : 'Ir al portal', url: `${base}/portal/asuntos` } : undefined,
+      pie: `Te llega los lunes porque tenés acceso al portal de ${todas}. <a href="${escapar(baja)}" style="color:${COLOR.piedra}">Dejar de recibir este mail</a>.`,
     }),
   };
 }
@@ -474,7 +490,7 @@ async function mandarPrueba(sb: SupabaseClient, request: Request): Promise<Respo
   if (!UUID.test(id)) return error('Falta la newsletter.');
   const { data: n } = await sb.from('newsletters').select('*').eq('id', id).maybeSingle();
   if (!n) return error('No existe esa newsletter.', 404);
-  const mail = mailLunes({ nombre: yo.nombre, rol: 'closer', areas: [] }, 'tu empresa', n as Newsletter, null, diaDe(new Date()), n.semana, basePortal(), baja) as { asunto: string; html: string };
+  const mail = mailLunes({ nombre: yo.nombre }, [{ empresa: 'tu empresa', rol: 'closer', areas: [], datos: null }], n as Newsletter, diaDe(new Date()), n.semana, basePortal(), baja) as { asunto: string; html: string };
   const fallo = await mandar(yo.email, `[Prueba] ${mail.asunto}`, mail.html);
   return fallo ? error(fallo, 502) : json({ ok: true });
 }
@@ -495,13 +511,12 @@ async function tareaDiaria(sb: SupabaseClient, forzarResumen: boolean): Promise<
   const orgIds = [...empresas.keys()];
   if (!orgIds.length) return json({ ok: true, ...resultado });
 
-  const { data: gente } = await sb
-    .from('perfiles')
-    .select('id, email, nombre, rol, organizacion_id, areas, resumen_semanal')
-    .eq('activo', true)
-    .in('rol', ROLES_EMPRESA)
-    .in('organizacion_id', orgIds);
-  const personas = (gente ?? []) as Persona[];
+  // Una fila por persona y negocio, por sus membresías activas: quien está en dos negocios recibe lo de los dos.
+  const miembros = await genteDe(sb, orgIds, ROLES_EMPRESA);
+  const ids = [...new Set(miembros.map((m) => m.id))];
+  const { data: preferencias } = ids.length ? await sb.from('perfiles').select('id, resumen_semanal').in('id', ids) : { data: [] };
+  const suscripto = new Map(((preferencias ?? []) as { id: string; resumen_semanal: boolean }[]).map((x) => [x.id, x.resumen_semanal]));
+  const personas: Persona[] = miembros.map((m) => ({ ...m, resumen_semanal: suscripto.get(m.id) ?? false }));
 
   // Alertas: se reservan por empresa justo antes de mandar, así lo que no entra hoy sale mañana.
   const alertas = await juntarAlertas(sb, orgIds, hoy, base);
@@ -553,27 +568,35 @@ async function tareaDiaria(sb: SupabaseClient, forzarResumen: boolean): Promise<
   if (newsletter) {
     const domingo = sumarDias(lunes, 6);
     const desde = new Date(Date.now() - 7 * 86_400_000).toISOString();
-    for (const orgId of orgIds) {
-      const suscriptos = personas.filter((p) => p.organizacion_id === orgId && p.resumen_semanal);
-      if (!suscriptos.length) continue;
+    // Los datos de cada negocio se leen una vez, la primera vez que hacen falta.
+    const semanas = new Map<string, Promise<DatosSemana>>();
+    const datosDe = (orgId: string) => {
+      if (!semanas.has(orgId)) semanas.set(orgId, datosSemana(sb, orgId, hoy, domingo, desde));
+      return semanas.get(orgId) as Promise<DatosSemana>;
+    };
+    const porPersona = new Map<string, Persona[]>();
+    for (const p of personas.filter((x) => x.resumen_semanal)) porPersona.set(p.id, [...(porPersona.get(p.id) ?? []), p]);
+    for (const filas of porPersona.values()) {
       if (sinTiempo()) {
-        resultado.pendientes += suscriptos.length;
+        resultado.pendientes++;
         continue;
       }
-      const datos = suscriptos.some((p) => ROLES_ASUNTOS.includes(p.rol)) ? await datosSemana(sb, orgId, hoy, domingo, desde) : null;
-      for (const p of suscriptos) {
-        if (sinTiempo()) {
-          resultado.pendientes++;
-          continue;
-        }
-        const baja = enlaceBaja(p.id) as string;
-        const mail = mailLunes(p, empresas.get(orgId) ?? 'Tu empresa', newsletter, datos, hoy, lunes, base, baja);
-        if (!mail) continue;
-        if (!(await reservar(sb, [`resumen:${p.id}:${lunes}`])).size) continue;
-        const fallo = await mandar(p.email, mail.asunto, mail.html, { 'List-Unsubscribe': `<${baja}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' });
-        if (fallo) resultado.errores.push(`Lunes a ${p.email}: ${fallo}`);
-        else resultado.lunes++;
-      }
+      const p = filas[0];
+      const negocios: NegocioLunes[] = [];
+      for (const f of filas)
+        negocios.push({
+          empresa: empresas.get(f.organizacion_id) ?? 'Tu empresa',
+          rol: f.rol,
+          areas: f.areas,
+          datos: ROLES_ASUNTOS.includes(f.rol) ? await datosDe(f.organizacion_id) : null,
+        });
+      const baja = enlaceBaja(p.id) as string;
+      const mail = mailLunes(p, negocios, newsletter, hoy, lunes, base, baja);
+      if (!mail) continue;
+      if (!(await reservar(sb, [`resumen:${p.id}:${lunes}`])).size) continue;
+      const fallo = await mandar(p.email, mail.asunto, mail.html, { 'List-Unsubscribe': `<${baja}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' });
+      if (fallo) resultado.errores.push(`Lunes a ${p.email}: ${fallo}`);
+      else resultado.lunes++;
     }
     if (!newsletter.enviada_en && resultado.lunes) await sb.from('newsletters').update({ enviada_en: new Date().toISOString() }).eq('id', newsletter.id);
   }

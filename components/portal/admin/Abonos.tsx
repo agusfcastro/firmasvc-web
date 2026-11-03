@@ -303,7 +303,7 @@ const Detalle: React.FC<{
           </div>
         )}
         {abono.estado !== 'cancelado' && (
-          <div className="flex flex-col gap-3 pt-2" style={{ borderTop: '1px solid rgba(27,31,27,0.12)' }}>
+          <div className="flex flex-col gap-3 pt-2 border-t border-tinta/12">
             {manual ? (
               <form onSubmit={registrarPago} className="flex flex-col gap-4">
                 <p className="text-sm font-medium">Registrar pago manual</p>
@@ -359,7 +359,7 @@ const Detalle: React.FC<{
         )}
         {gestionable && <p className="text-sm text-piedra">{SIN_MONTO}</p>}
         {gestionable && (
-          <div className="flex flex-col gap-3 pt-2" style={{ borderTop: '1px solid rgba(27,31,27,0.12)' }}>
+          <div className="flex flex-col gap-3 pt-2 border-t border-tinta/12">
             {confirmandoBaja ? (
               <>
                 <p className="text-sm">¿Dar de baja {abono.concepto}? dLocal Go deja de debitar desde ahora y se desactiva el plan del abono.</p>
@@ -560,7 +560,7 @@ export const Abonos: React.FC = () => {
         </Aviso>
       )}
       {diagnostico && (
-        <div className="bg-white border border-[rgba(27,31,27,0.15)] p-5 flex flex-col gap-3 text-sm">
+        <div className="bg-white border border-tinta/15 p-5 flex flex-col gap-3 text-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="font-medium">
               Prueba de conexión · {diagnostico.entorno === 'produccion' ? 'producción' : 'sandbox'} · <span className="font-mono text-xs text-piedra">{diagnostico.api}</span>

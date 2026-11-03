@@ -414,7 +414,7 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
                 e.preventDefault();
                 elegir(e.dataTransfer.files?.[0]);
               }}
-              className="flex flex-col items-center justify-center gap-3 p-10 text-center border-2 border-dashed border-[rgba(27,31,27,0.25)] bg-white cursor-pointer hover:border-tinta transition-colors duration-150"
+              className="flex flex-col items-center justify-center gap-3 p-10 text-center border-2 border-dashed border-tinta/25 bg-white cursor-pointer hover:border-tinta transition-colors duration-150"
             >
               <FileUp size={28} aria-hidden="true" className="text-bosque" />
               <span className="font-medium break-all">{archivo ? archivo.name : 'Arrastrá el PDF o tocá para elegirlo'}</span>
@@ -480,7 +480,7 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
 
             <ol className="flex flex-col gap-4">
               {filas.map((f, i) => (
-                <li key={f.clave} className="bg-white border border-[rgba(27,31,27,0.14)] p-5 flex flex-col gap-4">
+                <li key={f.clave} className="bg-white border border-tinta/14 p-5 flex flex-col gap-4">
                   <div className="flex items-center justify-between gap-3">
                     <span className="eyebrow text-[11px] text-piedra">Firmante {i + 1}</span>
                     <div className="flex items-center gap-1">
@@ -529,7 +529,7 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
               ).map(([clave, rotulo, ayuda]) => (
                 <label
                   key={clave}
-                  className={`flex items-start gap-3 p-4 border cursor-pointer ${entrega === clave ? 'border-tinta bg-white' : 'border-[rgba(27,31,27,0.18)] hover:border-tinta'}`}
+                  className={`flex items-start gap-3 p-4 border cursor-pointer ${entrega === clave ? 'border-tinta bg-white' : 'border-tinta/18 hover:border-tinta'}`}
                 >
                   <input type="radio" name="entrega" checked={entrega === clave} onChange={() => setEntrega(clave)} className="mt-1 w-4 h-4 accent-bosque shrink-0" />
                   <span className="flex flex-col gap-0.5">
@@ -759,7 +759,7 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
                 const e = ESTADO_FIRMANTE[f.estado];
                 const pendiente = enCurso && f.estado !== 'firmado' && f.estado !== 'rechazado';
                 return (
-                  <li key={f.id} className="py-4 flex flex-wrap items-start justify-between gap-4" style={{ borderTop: '1px solid rgba(27,31,27,0.12)' }}>
+                  <li key={f.id} className="py-4 flex flex-wrap items-start justify-between gap-4 border-t border-tinta/12">
                     <div className="flex flex-col gap-1 min-w-0">
                       <span className="font-medium">
                         {sobre.secuencial && <span className="tabular-nums text-piedra mr-2">{f.orden}.</span>}
@@ -793,7 +793,7 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
                             setEditando(editando === f.id ? null : f.id);
                             setNuevoEmail(f.email);
                           }}
-                          className="inline-flex items-center justify-center w-9 h-9 border border-[rgba(27,31,27,0.22)] bg-white hover:border-tinta"
+                          className="inline-flex items-center justify-center w-9 h-9 border border-tinta/22 bg-white hover:border-tinta"
                         >
                           <Pencil size={15} aria-hidden="true" />
                         </button>
@@ -805,7 +805,7 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
                           aria-label={`${f.notificado_en ? 'Reenviar el mail' : 'Mandarle el enlace por mail'} a ${f.nombre}`}
                           disabled={ocupado === f.id}
                           onClick={() => accion(f.id, { accion: 'recordar', firmante_id: f.id }, `Le mandamos el mail a ${f.nombre}.`)}
-                          className="inline-flex items-center justify-center w-9 h-9 border border-[rgba(27,31,27,0.22)] bg-white hover:border-tinta disabled:opacity-50"
+                          className="inline-flex items-center justify-center w-9 h-9 border border-tinta/22 bg-white hover:border-tinta disabled:opacity-50"
                         >
                           <RefreshCw size={15} aria-hidden="true" className={ocupado === f.id ? 'animate-spin' : ''} />
                         </button>
@@ -853,7 +853,7 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
             </div>
             <ol className="flex flex-col text-sm">
               {eventos.map((ev) => (
-                <li key={ev.id} className="py-2.5 grid grid-cols-[minmax(130px,auto)_1fr] gap-x-4" style={{ borderTop: '1px solid rgba(27,31,27,0.08)' }}>
+                <li key={ev.id} className="py-2.5 grid grid-cols-[minmax(130px,auto)_1fr] gap-x-4 border-t border-tinta/8">
                   <span className="text-piedra tabular-nums text-xs pt-0.5">{new Date(ev.creado_en).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'medium' })}</span>
                   <span>
                     {ROTULO_EVENTO[ev.tipo] ?? ev.tipo}
@@ -868,7 +868,7 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
         </div>
 
         <aside className="flex flex-col gap-6 desk:sticky desk:top-28">
-          <div className="bg-white border border-[rgba(27,31,27,0.14)] p-6 flex flex-col gap-3 text-sm">
+          <div className="bg-white border border-tinta/14 p-6 flex flex-col gap-3 text-sm">
             <span className="eyebrow text-[11px] text-piedra">Documento</span>
             <span className="font-medium break-all">{sobre.original_nombre}</span>
             <span className="text-piedra">

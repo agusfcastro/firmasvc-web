@@ -23,7 +23,7 @@ export const Header: React.FC = () => {
   return (
     <header
       className="sticky top-0 z-50 bg-marfil"
-      style={{ borderBottom: '1px solid rgba(27,31,27,0.12)' }}
+      style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-tinta) 12%, transparent)' }}
     >
       <PromoBanner />
       <div className="wrap flex items-center justify-between gap-4 h-28">

@@ -352,7 +352,7 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
             <label className="flex items-center gap-2.5 text-piedra">
               Mostrar
               <select
-                className="h-10 pl-3 pr-8 bg-white border border-[rgba(27,31,27,0.22)] text-tinta font-medium focus:outline-none focus:border-bosque focus:ring-1 focus:ring-bosque"
+                className="h-10 pl-3 pr-8 bg-white border border-tinta/22 text-tinta font-medium focus:outline-none focus:border-bosque focus:ring-1 focus:ring-bosque"
                 value={porPagina}
                 onChange={(e) => cambiarPorPagina(Number(e.target.value))}
               >
@@ -374,7 +374,7 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
                 aria-label="Página anterior"
                 disabled={paginaActual === 0}
                 onClick={() => setPagina(paginaActual - 1)}
-                className="w-10 h-10 inline-flex items-center justify-center border border-[rgba(27,31,27,0.22)] bg-white transition-colors duration-150 hover:border-tinta disabled:opacity-40 disabled:hover:border-[rgba(27,31,27,0.22)]"
+                className="w-10 h-10 inline-flex items-center justify-center border border-tinta/22 bg-white transition-colors duration-150 hover:border-tinta disabled:opacity-40 disabled:hover:border-tinta/22"
               >
                 <ChevronLeft size={16} aria-hidden="true" />
               </button>
@@ -386,7 +386,7 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
                 aria-label="Página siguiente"
                 disabled={paginaActual >= paginas - 1}
                 onClick={() => setPagina(paginaActual + 1)}
-                className="w-10 h-10 inline-flex items-center justify-center border border-[rgba(27,31,27,0.22)] bg-white transition-colors duration-150 hover:border-tinta disabled:opacity-40 disabled:hover:border-[rgba(27,31,27,0.22)]"
+                className="w-10 h-10 inline-flex items-center justify-center border border-tinta/22 bg-white transition-colors duration-150 hover:border-tinta disabled:opacity-40 disabled:hover:border-tinta/22"
               >
                 <ChevronRight size={16} aria-hidden="true" />
               </button>

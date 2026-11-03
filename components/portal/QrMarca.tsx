@@ -55,7 +55,7 @@ export const QrMarca: React.FC<{ texto: string; etiqueta: string; className?: st
 
   return (
     <svg viewBox={`${-MARGEN} ${-MARGEN} ${lado} ${lado}`} role="img" aria-label={etiqueta} className={className} shapeRendering="geometricPrecision">
-      <rect x={-MARGEN} y={-MARGEN} width={lado} height={lado} rx={2.5} fill="#FFFFFF" />
+      <rect x={-MARGEN} y={-MARGEN} width={lado} height={lado} rx={2.5} fill="white" />
       <g fill={BOSQUE}>{puntos}</g>
       {ojos}
       <rect x={centro - logo / 2} y={centro - logo / 2} width={logo} height={logo} rx={logo * 0.22} fill={BOSQUE} />

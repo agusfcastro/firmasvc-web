@@ -514,7 +514,7 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
                     <CampoPregunta key={p.clave} pregunta={p} respuestas={respuestas} alCambiar={cambiar} />
                   ))}
               </div>
-              <div className="flex flex-wrap gap-3 pt-4" style={{ borderTop: '1px solid rgba(27,31,27,0.12)' }}>
+              <div className="flex flex-wrap gap-3 pt-4 border-t border-tinta/12">
                 <Button type="button" onClick={() => irA(siguiente)} className="mt-4">
                   {siguiente === secciones.length ? 'Revisar' : 'Siguiente'} <ArrowRight size={16} aria-hidden="true" />
                 </Button>
@@ -545,10 +545,10 @@ const Nota: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 );
 
 const claseOpcion = (activa: boolean) =>
-  `flex items-start gap-3 px-4 py-3 text-left text-[15px] border transition-colors duration-150 ${activa ? 'border-bosque bg-bosque-suave' : 'border-[rgba(27,31,27,0.22)] bg-white hover:border-[rgba(27,31,27,0.45)]'}`;
+  `flex items-start gap-3 px-4 py-3 text-left text-[15px] border transition-colors duration-150 ${activa ? 'border-bosque bg-bosque-suave' : 'border-tinta/22 bg-white hover:border-tinta/45'}`;
 
 const Marca: React.FC<{ activa: boolean; redonda?: boolean }> = ({ activa, redonda }) => (
-  <span aria-hidden="true" className={`shrink-0 mt-0.5 w-[18px] h-[18px] border flex items-center justify-center ${redonda ? 'rounded-full' : ''} ${activa ? 'bg-bosque border-bosque text-marfil' : 'border-[rgba(27,31,27,0.45)] bg-white'}`}>
+  <span aria-hidden="true" className={`shrink-0 mt-0.5 w-[18px] h-[18px] border flex items-center justify-center ${redonda ? 'rounded-full' : ''} ${activa ? 'bg-bosque border-bosque text-marfil' : 'border-tinta/45 bg-white'}`}>
     {activa && (redonda ? <span className="w-1.5 h-1.5 rounded-full bg-marfil" /> : <Check size={12} strokeWidth={3} />)}
   </span>
 );
@@ -683,7 +683,7 @@ export const ListaRespuestas: React.FC<{ modelo: Modelo; respuestas: Respuestas;
   <div className="flex flex-col gap-8">
     {resumen(modelo, respuestas).map(({ seccion, lineas }, i) => (
       <section key={seccion.clave} className="flex flex-col gap-4">
-        <div className="flex items-baseline justify-between gap-4" style={{ borderBottom: '1px solid rgba(27,31,27,0.12)' }}>
+        <div className="flex items-baseline justify-between gap-4 border-b border-tinta/12">
           <h3 className="text-[17px] font-medium pb-2">
             <span className="tabular-nums text-piedra text-sm mr-2">{String(i + 1).padStart(2, '0')}</span>
             {seccion.titulo}
@@ -847,7 +847,7 @@ export const PedidosEquipo: React.FC<{ orgId: string | null; vistaPrevia: boolea
             const { respondidas, total } = avance(MODELOS[b.modelo], b.respuestas ?? {});
             return (
               <li key={b.id} className="flex flex-wrap items-baseline gap-x-3">
-                <Enlace a={`/portal/pedidos/${b.id}`} className="font-medium text-marfil underline underline-offset-4 decoration-[rgba(245,243,236,0.4)] hover:decoration-marfil">
+                <Enlace a={`/portal/pedidos/${b.id}`} className="font-medium text-marfil underline underline-offset-4 decoration-marfil/40 hover:decoration-marfil">
                   {b.titulo || 'Borrador sin nombre'}
                 </Enlace>
                 <span className="text-[13px] text-calido">

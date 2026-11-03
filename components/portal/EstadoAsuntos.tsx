@@ -311,7 +311,7 @@ const Lista: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
         {ok && <Aviso tipo="ok">{ok}</Aviso>}
 
         {borrador && (
-          <form onSubmit={crear} className="bg-white border border-[rgba(27,31,27,0.15)] p-6 desk:p-8 flex flex-col gap-5 max-w-[820px]">
+          <form onSubmit={crear} className="bg-white border border-tinta/15 p-6 desk:p-8 flex flex-col gap-5 max-w-[820px]">
             <p className="h3">Nuevo asunto</p>
             <div className="grid gap-5 tab:grid-cols-2">
               {esFirma && (
@@ -515,7 +515,7 @@ const ListaGrupo: React.FC<{ titulo?: string; asuntos: Asunto[]; esFirma: boolea
       <ul className="grid gap-3">
         {asuntos.map((a) => (
           <li key={a.id}>
-            <Enlace a={`/portal/asuntos/${a.id}`} className="group flex flex-col tab:flex-row tab:items-center gap-4 bg-white border border-[rgba(27,31,27,0.15)] p-5 desk:p-6 transition-colors duration-150 hover:border-bosque">
+            <Enlace a={`/portal/asuntos/${a.id}`} className="group flex flex-col tab:flex-row tab:items-center gap-4 bg-white border border-tinta/15 p-5 desk:p-6 transition-colors duration-150 hover:border-bosque">
               <div className="flex flex-col gap-2 min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-3">
                   {a.codigo && <span className="font-mono text-[12px] font-medium text-bosque bg-bosque-suave px-2 py-0.5">{a.codigo}</span>}
@@ -980,7 +980,7 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
 /* Caso de conflicto del asunto                                         */
 /* ------------------------------------------------------------------ */
 const BloqueCaso: React.FC<{ caso: Caso; moneda: string; puedeSeguir: boolean }> = ({ caso, moneda, puedeSeguir }) => (
-  <section className="flex flex-col gap-4 pt-5" style={{ borderTop: '1px solid rgba(27,31,27,0.15)' }}>
+  <section className="flex flex-col gap-4 pt-5 border-t border-tinta/15">
     <p className="eyebrow text-piedra">Caso de conflicto</p>
     <div className="flex flex-wrap gap-2">
       <Etiqueta tono={TONO_ETAPA[caso.etapa]}>{ROTULO_ETAPA[caso.etapa]}</Etiqueta>
@@ -1061,8 +1061,8 @@ const Chat: React.FC<{
   }
 
   return (
-    <section className="flex flex-col bg-white border border-[rgba(27,31,27,0.15)]" aria-label="Chat del asunto">
-      <div className="flex items-center justify-between gap-3 px-5 py-3 text-[13px] text-piedra" style={{ borderBottom: '1px solid rgba(27,31,27,0.1)' }}>
+    <section className="flex flex-col bg-white border border-tinta/15" aria-label="Chat del asunto">
+      <div className="flex items-center justify-between gap-3 px-5 py-3 text-[13px] text-piedra border-b border-tinta/10">
         <span>Mensajes con {otro}</span>
         <span className="inline-flex items-center gap-2">
           <span aria-hidden="true" className={`w-2 h-2 rounded-full ${otroPresente ? 'bg-bosque' : 'bg-calido'}`} />
@@ -1080,7 +1080,7 @@ const Chat: React.FC<{
                 <span className="text-[12px] text-piedra mb-1">
                   {nombreDe(m.autor_id)} · {fechaHoraAsunto(m.creado_en)}
                 </span>
-                <p className={`px-4 py-2.5 text-[15px] leading-[1.5] whitespace-pre-line break-words ${mio ? 'bg-bosque text-marfil' : 'bg-white border border-[rgba(27,31,27,0.15)]'}`}>{m.texto}</p>
+                <p className={`px-4 py-2.5 text-[15px] leading-[1.5] whitespace-pre-line break-words ${mio ? 'bg-bosque text-marfil' : 'bg-white border border-tinta/15'}`}>{m.texto}</p>
               </div>
             );
           })
@@ -1089,7 +1089,7 @@ const Chat: React.FC<{
       {!soloLectura && (
         <form
           className="flex items-end gap-3 p-4"
-          style={{ borderTop: '1px solid rgba(27,31,27,0.1)' }}
+          style={{ borderTop: '1px solid color-mix(in srgb, var(--color-tinta) 10%, transparent)' }}
           onSubmit={(e) => {
             e.preventDefault();
             void enviar();
@@ -1181,7 +1181,7 @@ const Bitacora: React.FC<{
   return (
     <section className="flex flex-col gap-6">
       {esFirma && !soloLectura ? (
-        <form onSubmit={guardar} className="bg-white border border-[rgba(27,31,27,0.15)] p-6 flex flex-col gap-4">
+        <form onSubmit={guardar} className="bg-white border border-tinta/15 p-6 flex flex-col gap-4">
           <Campo etiqueta="Nota">
             <textarea maxLength={4000} className={claseTextarea} value={texto} onChange={(e) => setTexto(e.target.value)} />
           </Campo>
@@ -1224,7 +1224,7 @@ const Bitacora: React.FC<{
           {novedades.map((n) => {
             const Icono = ICONO_NOVEDAD[n.tipo] ?? StickyNote;
             return (
-              <li key={n.id} className="relative pl-8 pb-7 last:pb-0 border-l border-[rgba(27,31,27,0.15)] last:border-transparent ml-2">
+              <li key={n.id} className="relative pl-8 pb-7 last:pb-0 border-l border-tinta/15 last:border-transparent ml-2">
                 <span aria-hidden="true" className={`absolute -left-[13px] top-0 w-[26px] h-[26px] flex items-center justify-center rounded-full ${n.interna ? 'bg-peligro-suave text-peligro' : 'bg-marfil-oscuro text-bosque'}`}>
                   <Icono size={13} />
                 </span>
@@ -1312,7 +1312,7 @@ const Documentos: React.FC<{
   return (
     <section className="flex flex-col gap-6">
       {!soloLectura && (
-        <div className="bg-white border border-[rgba(27,31,27,0.15)] p-6 flex flex-col tab:flex-row tab:items-center gap-4 justify-between">
+        <div className="bg-white border border-tinta/15 p-6 flex flex-col tab:flex-row tab:items-center gap-4 justify-between">
           <p className="text-[15px] leading-[1.5] text-piedra max-w-[46ch]">
             Subí documentos del asunto: PDF, Word, Excel o imágenes, hasta 20 MB. {esFirma ? 'La empresa' : 'FIRMA'} recibe un aviso por mail.
           </p>
@@ -1336,9 +1336,9 @@ const Documentos: React.FC<{
       {archivos.length === 0 ? (
         <p className="text-sm text-piedra">Todavía no hay documentos en este asunto.</p>
       ) : (
-        <ul className="flex flex-col bg-white border border-[rgba(27,31,27,0.15)]">
+        <ul className="flex flex-col bg-white border border-tinta/15">
           {archivos.map((a) => (
-            <li key={a.id} className="flex flex-col tab:flex-row tab:items-center gap-3 px-5 py-4" style={{ borderTop: '1px solid rgba(27,31,27,0.08)' }}>
+            <li key={a.id} className="flex flex-col tab:flex-row tab:items-center gap-3 px-5 py-4 border-t border-tinta/8">
               <FileText size={20} className="hidden tab:block shrink-0 text-bosque" aria-hidden="true" />
               <div className="flex flex-col min-w-0 flex-1">
                 <span className="font-medium break-words">{a.nombre}</span>

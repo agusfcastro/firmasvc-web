@@ -361,7 +361,7 @@ export const Documentos: React.FC = () => {
                     type="button"
                     aria-pressed={marcada}
                     onClick={() => alternarArea(a.clave)}
-                    className={`h-10 px-4 text-sm border transition-colors duration-150 ${marcada ? 'bg-bosque border-bosque text-marfil' : 'bg-white border-[rgba(27,31,27,0.22)] hover:border-[rgba(27,31,27,0.45)]'}`}
+                    className={`h-10 px-4 text-sm border transition-colors duration-150 ${marcada ? 'bg-bosque border-bosque text-marfil' : 'bg-white border-tinta/22 hover:border-tinta/45'}`}
                   >
                     {a.nombre}
                   </button>
