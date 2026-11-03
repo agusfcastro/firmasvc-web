@@ -9,6 +9,7 @@ import { Casos } from './Casos';
 import { Servicios } from './Servicios';
 import { Equipo } from './Equipo';
 import { Variables } from './Variables';
+import { Llamadas } from './Llamadas';
 import { registrarLectura } from '../lecturas';
 
 /**
@@ -19,6 +20,7 @@ import { registrarLectura } from '../lecturas';
  *   /portal/crm/servicios      servicios que vende la empresa, con ticket opcional y modelo de contrato
  *   /portal/crm/equipo         closers, setters, account managers y CSM de la empresa
  *   /portal/crm/variables      variables propias de la empresa para los contratos modelo
+ *   /portal/crm/llamadas       Fathom de cada integrante y llamadas recibidas (un closer ve solo las suyas)
  *   /portal/crm/<id>           ficha del cliente final
  */
 export const CrmApp: React.FC<{ perfil: Perfil; organizacion: Organizacion | null; ruta: string }> = ({ perfil, organizacion, ruta }) => {
@@ -123,6 +125,8 @@ export const CrmApp: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
         <Equipo orgId={orgId} orgNombre={orgActual?.nombre ?? ''} puedeGestionar={puedeGestionar} />
       ) : sub === 'variables' ? (
         <Variables orgId={orgId} orgNombre={orgActual?.nombre ?? ''} puedeGestionar={puedeGestionar} />
+      ) : sub === 'llamadas' ? (
+        <Llamadas orgId={orgId} orgNombre={orgActual?.nombre ?? ''} puedeGestionar={puedeGestionar} verTodo={verCasos} />
       ) : sub === 'casos' ? (
         <Casos orgId={orgId} orgNombre={orgActual?.nombre ?? ''} puedeGestionar={puedeGestionar} selector={selector} cambiarOrg={esAdmin ? setOrgId : undefined} />
       ) : sub ? (

@@ -32,6 +32,7 @@ const PortalApp = lazy(() => import('./components/portal/PortalApp'));
 // Firma electrónica pública: quien firma y quien verifica no necesitan cuenta.
 const FirmarApp = lazy(() => import('./components/firma/FirmarApp'));
 const Verificar = lazy(() => import('./components/firma/Verificar'));
+const ConectarFathom = lazy(() => import('./components/portal/crm/ConectarFathom'));
 
 /** ruta viene solo del prerender del build (entry-server.tsx). En el navegador sale de la dirección. */
 function App({ ruta }: { ruta?: string }) {
@@ -53,6 +54,13 @@ function App({ ruta }: { ruta?: string }) {
     return (
       <Suspense fallback={<div className="min-h-screen bg-marfil" />}>
         <FirmarApp token={decodeURIComponent(path.slice('/firmar/'.length))} />
+      </Suspense>
+    );
+  }
+  if (path.startsWith('/conectar-fathom/')) {
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-marfil" />}>
+        <ConectarFathom enlace={decodeURIComponent(path.slice('/conectar-fathom/'.length))} />
       </Suspense>
     );
   }

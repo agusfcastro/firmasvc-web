@@ -5,6 +5,10 @@
       "destination": "/api/pagos/dlocalgo?abono=:abono&clave=:clave"
     },
     {
+      "source": "/api/webhooks/fathom/:token",
+      "destination": "/api/webhooks/fathom?token=:token"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/app.html"
     }
@@ -67,6 +71,19 @@
         {
           "key": "X-Frame-Options",
           "value": "DENY"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        }
+      ]
+    },
+    {
+      "source": "/conectar-fathom/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
         },
         {
           "key": "Referrer-Policy",
@@ -185,6 +202,12 @@
       "maxDuration": 60
     },
     "api/portal/resumen.ts": {
+      "maxDuration": 60
+    },
+    "api/cola/procesar.ts": {
+      "maxDuration": 60
+    },
+    "api/webhooks/fathom.ts": {
       "maxDuration": 60
     }
   },

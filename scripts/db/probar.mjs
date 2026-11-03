@@ -45,6 +45,14 @@ begin
 end;
 $$;
 
+-- Actúa como una función del servidor (clave de servicio).
+create function pruebas.como_servicio() returns void language plpgsql as $$
+begin
+  perform set_config('request.jwt.claims', json_build_object('role', 'service_role')::text, true);
+  execute 'set local role service_role';
+end;
+$$;
+
 -- Vuelve a postgres para preparar datos entre una comprobación y otra.
 create function pruebas.como_postgres() returns void language plpgsql as $$
 begin

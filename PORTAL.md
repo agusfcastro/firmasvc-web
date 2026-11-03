@@ -807,3 +807,66 @@ Migración `0045_perfiles_conductuales.sql`. Es la versión 0: trabaja con lo qu
 **Pantalla.** Ficha del cliente › Perfil conductual: los perfiles abiertos con las señales que los sostienen y los botones Confirmar y Rechazar, el formulario para registrar una señal (qué hizo o dijo el cliente, no opiniones) y las listas de todas las señales y de los perfiles anteriores. Sin la funcionalidad, el titular ve una línea con lo que ofrece Blindaje.
 
 Para cambiar el catálogo (un arquetipo, un peso o un umbral) se agrega una migración con el `insert ... on conflict do update`, como en la 0045.
+
+## Llamadas de Fathom y cola de trabajos
+
+Fase 4, migraciones 0048 a 0050. Las llamadas que el equipo graba con Fathom llegan por webhook, se guardan cifradas y quedan a nombre del cliente por su mail. El análisis con Claude (fase 5) va a trabajar sobre esto sin cambiarlo.
+
+| Migración | Qué hace |
+|---|---|
+| `0048_cola_trabajos.sql` | `cola_trabajos` y sus funciones, solo para el servidor: `cola_encolar` (con clave de idempotencia), `cola_tomar` (con `for update skip locked` y reserva que vence), `cola_terminar` y `cola_fallar`. Un fallo espera 1, 4, 16, 64 minutos y así hasta 6 horas; después de 6 intentos queda `fallido`. El payload lleva solo ids. FIRMA lee la cola |
+| `0049_integraciones_fathom.sql` | `integraciones`: una URL de Fathom por integrante del equipo, porque en Fathom los webhooks son de cada usuario y el aviso no dice de quién es. Cada uno usa su propia cuenta de Fathom, también la gratuita. El token de la URL lo genera la base y se ve una sola vez; queda solo su hash. El secreto de firma (`whsec_…`) va a Vault. Estados `pendiente` (falta el secreto), `activa` y `pausada`. Conecta el titular, cada integrante con cuenta en el portal la suya (`equipo_vincular_mi_cuenta` une su cuenta con su ficha por el mail) y quien no tiene cuenta, con el enlace de conexión. `webhook_recepciones` guarda el id de cada aviso, sin el cuerpo. Exige la funcionalidad `fathom` |
+| `0050_interacciones.sql` | `interacciones`: cada llamada con su metadata (título, horario, duración, quién grabó, participantes sin mails) y el contenido (transcripción, invitados y enlace a Fathom) cifrado con la clave `interacciones_contenido` de Vault, por 90 días. `interaccion_registrar` la da de alta desde el webhook en un solo paso; `interaccion_vincular` cruza los mails con el equipo y los clientes; `interaccion_asignar` asigna el cliente a mano. También el barrido de la cola con pg_cron |
+
+### Cómo llega una llamada
+
+1. Fathom manda el aviso a `/api/webhooks/fathom/<token>` (`api/webhooks/fathom.ts`; `vercel.json` pasa el token como parámetro).
+2. La función busca la integración por el hash del token y verifica la firma con el secreto: headers `webhook-id`, `webhook-timestamp` y `webhook-signature` (Standard Webhooks, HMAC SHA256), con 5 minutos de tolerancia. Si no coincide, responde 401 y no toca nada.
+3. `interaccion_registrar` anota la recepción, guarda la llamada cifrada y encola `interaccion_vincular`. Si el aviso o la grabación ya habían llegado, no duplica. Si la integración está pausada o el plan ya no incluye Fathom, el aviso se anota como ignorado.
+4. La función responde 200 y procesa el trabajo después de responder (`waitUntil` de `@vercel/functions`). Lo que no termine lo retoma el barrido.
+5. `interaccion_vincular` marca la llamada como `vinculada`. Si un solo cliente del CRM tiene el mail de algún invitado, la llamada queda a su nombre. Si no hay ninguno o hay más de uno, queda sin cliente para asignarla a mano. Una asignación hecha a mano no la pisa un nuevo vínculo.
+
+Del aviso se guarda solo lo necesario. El resumen y las tareas que arma Fathom se descartan. Fuera del contenido cifrado no queda ningún mail.
+
+### Quién ve qué
+
+| | Titular | CSM | Closer y setter | FIRMA |
+|---|---|---|---|---|
+| Conexiones de Fathom | Ve y administra | Ve | La suya, si tiene cuenta en el portal | Ve y administra |
+| Llamadas (metadata) | Todas | Todas | Las que grabó o en las que participó (por su cuenta vinculada en Equipo) | Todas |
+| Asignar el cliente | Sí | Sí | No | Sí |
+| Contenido | Nadie desde el portal. Lo lee el servidor; la lectura para personas llega con la fase 5 y queda en la bitácora | | | |
+
+Conectar, generar una URL nueva, guardar el secreto, pausar, desconectar y asignar quedan en la bitácora del negocio.
+
+### Pantalla
+
+CRM › Llamadas (`/portal/crm/llamadas`):
+
+- **Resumen.** Llamadas, tiempo grabado, duración promedio y porcentaje sin cliente de las últimas 12 semanas, las llamadas por semana, el detalle por integrante y las conexiones para revisar: falta el secreto, enlace sin usar o vencido, pausada, o sin llamadas hace más de 7 días.
+- **Conexiones** (titular, CSM y FIRMA). El estado de cada integrante. El titular tiene «Conectar»: genera la URL, que se ve una sola vez, con los pasos para cargarla en Fathom y el campo del secreto. También tiene «Enviar enlace», «URL nueva» (invalida la anterior), Pausar, Reanudar y Desconectar. Las llamadas que ya llegaron quedan.
+- **Llamadas.** Las recibidas, con el filtro «Solo las que no tienen cliente» para asignarlas a mano.
+- **Mi Fathom** (closer, setter o CSM que está en Equipo con el mail de su cuenta del portal). Conecta su propia cuenta, sin pasar por el titular, y ve solo sus llamadas.
+
+Los pasos llevan el enlace directo a la sección de Fathom donde se crea el webhook: [Settings › API Access](https://fathom.video/customize#api-access-header). Ahí se elige «tus grabaciones» y que el aviso incluya la transcripción.
+
+**Enlace de conexión.** Para quien graba con su Fathom personal y no tiene cuenta en el portal. El titular lo genera en Conexiones y lo manda por WhatsApp o mail. La página `/conectar-fathom/<enlace>` es pública. Muestra a quién conecta y de qué negocio, la URL del webhook y los pasos, y recibe el secreto. Nada más del CRM. Vale 7 días, se usa una vez y generar otro anula el anterior. La URL se deriva del enlace (HMAC), así abrirlo dos veces muestra la misma sin guardarla.
+
+Sin la funcionalidad `fathom` en el plan, la pantalla lo avisa.
+
+### Puesta en marcha
+
+1. Correr las migraciones 0048 a 0050.
+2. La 0050 activa **pg_cron** y **pg_net** y agenda `cola_barrer` cada minuto, si el proyecto tiene las dos extensiones disponibles (en Supabase están). Para comprobarlo: `select jobname, schedule from cron.job;`. Si no quedó agendado: `select cron.schedule('cola_barrer', '* * * * *', 'select public.cola_barrer()');`.
+3. Generar una clave (`openssl rand -hex 32`) y cargarla en Vercel como `COLA_SECRETO`.
+4. En Supabase › SQL Editor, cargar los dos secretos del barrido:
+   ```sql
+   select vault.create_secret('https://www.firmasvc.com', 'cola_url', 'Base del portal para el barrido de la cola');
+   select vault.create_secret('<el mismo valor de COLA_SECRETO>', 'cola_secreto', 'Clave del barrido de la cola');
+   ```
+   Sin estos secretos las llamadas se procesan igual en caliente desde el webhook. Solo falta el reintento automático.
+5. Probar grabando una llamada corta de un par de minutos (Fathom documenta «Send test payload» como próximo) y mirar la cola: `select tipo, estado, intentos, error from cola_trabajos order by id desc limit 20;`.
+
+La firma sigue lo que documenta Fathom: la clave es lo que sigue a `whsec_` decodificado de base64. Falta confirmar con una cuenta real los nombres de los campos del aviso: `recording_id`, `title`, `recording_start_time`, `recording_end_time`, `calendar_invitees`, `recorded_by` y `transcript` con `speaker`, `text` y `timestamp`. Está marcado «verificar con una cuenta real» en `api/webhooks/fathom.ts`.
+
+Para sumar un tipo de trabajo a la cola: un procesador en `api/_lib/cola.ts` y `cola_encolar('tipo', negocio, '{"id": …}', 'tipo:' || id)` desde la base o la API.

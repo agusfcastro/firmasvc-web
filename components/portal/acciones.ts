@@ -45,4 +45,13 @@ export const ACCIONES: Record<string, string> = {
   lectura_firma: 'Abrió un envío a firma',
   perfil_confirmado: 'Confirmó un perfil conductual',
   perfil_rechazado: 'Rechazó un perfil conductual',
+  integracion_creada: 'Conectó Fathom de un integrante',
+  integracion_url_nueva: 'Generó una URL nueva de Fathom',
+  integracion_secreto: 'Guardó el secreto de Fathom',
+  integracion_invitacion: 'Generó un enlace de conexión de Fathom',
+  integracion_secreto_por_enlace: 'Conectó Fathom con el enlace de conexión',
+  integracion_pausada: 'Pausó Fathom de un integrante',
+  integracion_reanudada: 'Reanudó Fathom de un integrante',
+  integracion_quitada: 'Desconectó Fathom de un integrante',
+  interaccion_asignada: 'Asignó el cliente de una llamada',
 };

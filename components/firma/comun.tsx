@@ -46,7 +46,12 @@ export function usePaginaPrivada(titulo: string) {
 }
 
 /** conBarra deja lugar abajo para una barra fija, así no tapa el pie. */
-export const MarcoPublico: React.FC<{ children: React.ReactNode; eyebrow?: string; conBarra?: boolean }> = ({ children, eyebrow = 'Firma electrónica', conBarra = false }) => (
+export const MarcoPublico: React.FC<{ children: React.ReactNode; eyebrow?: string; conBarra?: boolean; pie?: string }> = ({
+  children,
+  eyebrow = 'Firma electrónica',
+  conBarra = false,
+  pie = 'Firma electrónica de FIRMA · Castro & Partners',
+}) => (
   <div className={`min-h-screen bg-marfil text-tinta flex flex-col ${conBarra ? 'pb-[76px] tab:pb-[84px]' : ''}`}>
     <header className="bg-marfil border-b border-tinta/12">
       <div className="wrap flex items-center justify-between gap-6 h-20">
@@ -60,7 +65,7 @@ export const MarcoPublico: React.FC<{ children: React.ReactNode; eyebrow?: strin
     <footer className="bg-carbon text-calido">
       <div className="wrap py-7 flex flex-wrap items-center justify-between gap-4 text-sm">
         <Logo variant="oscuro" className="h-8" />
-        <span>Firma electrónica de FIRMA · Castro &amp; Partners</span>
+        <span>{pie}</span>
         <a href="/verificar" className="hover:text-marfil transition-colors duration-150">
           Verificar un documento
         </a>
