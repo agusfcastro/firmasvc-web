@@ -810,7 +810,7 @@ Para cambiar el catálogo (un arquetipo, un peso o un umbral) se agrega una migr
 
 ## Llamadas de Fathom y cola de trabajos
 
-Fase 4, migraciones 0048 a 0050. Las llamadas que el equipo graba con Fathom llegan por webhook, se guardan cifradas y quedan a nombre del cliente por su mail. El análisis con Claude (fase 5) va a trabajar sobre esto sin cambiarlo.
+Fase 4, migraciones 0048 a 0051. Las llamadas que el equipo graba con Fathom llegan por webhook, se guardan cifradas y quedan a nombre del cliente por su mail. El análisis con Claude (fase 5) va a trabajar sobre esto sin cambiarlo.
 
 | Migración | Qué hace |
 |---|---|
@@ -858,13 +858,13 @@ Sin la funcionalidad `fathom` en el plan, la pantalla lo avisa.
 
 1. Correr las migraciones 0048 a 0050.
 2. La 0050 activa **pg_cron** y **pg_net** y agenda `cola_barrer` cada minuto, si el proyecto tiene las dos extensiones disponibles (en Supabase están). Para comprobarlo: `select jobname, schedule from cron.job;`. Si no quedó agendado: `select cron.schedule('cola_barrer', '* * * * *', 'select public.cola_barrer()');`.
-3. Generar una clave (`openssl rand -hex 32`) y cargarla en Vercel como `COLA_SECRETO`.
-4. En Supabase › SQL Editor, cargar los dos secretos del barrido:
+3. En Supabase › SQL Editor, cargar los dos secretos del barrido (ya cargados en producción el 3 de noviembre de 2026):
    ```sql
    select vault.create_secret('https://www.firmasvc.com', 'cola_url', 'Base del portal para el barrido de la cola');
-   select vault.create_secret('<el mismo valor de COLA_SECRETO>', 'cola_secreto', 'Clave del barrido de la cola');
+   select vault.create_secret(encode(gen_random_bytes(32), 'hex'), 'cola_secreto', 'Clave del barrido de la cola');
    ```
-   Sin estos secretos las llamadas se procesan igual en caliente desde el webhook. Solo falta el reintento automático.
+   La clave vive solo en Vault: `/api/cola/procesar` la valida contra la base con `cola_clave_valida()` (migración `0051_cola_clave.sql`). `COLA_SECRETO` en Vercel es opcional; si se carga, tiene que ser el mismo valor. Sin estos secretos las llamadas se procesan igual en caliente desde el webhook. Solo falta el reintento automático.
+4. Nada más en Vercel: el webhook y el barrido usan las variables de Supabase que ya están.
 5. Probar grabando una llamada corta de un par de minutos (Fathom documenta «Send test payload» como próximo) y mirar la cola: `select tipo, estado, intentos, error from cola_trabajos order by id desc limit 20;`.
 
 La firma sigue lo que documenta Fathom: la clave es lo que sigue a `whsec_` decodificado de base64. Falta confirmar con una cuenta real los nombres de los campos del aviso: `recording_id`, `title`, `recording_start_time`, `recording_end_time`, `calendar_invitees`, `recorded_by` y `transcript` con `speaker`, `text` y `timestamp`. Está marcado «verificar con una cuenta real» en `api/webhooks/fathom.ts`.

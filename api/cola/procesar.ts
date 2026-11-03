@@ -3,8 +3,10 @@
  *
  * POST /api/cola/procesar
  *   Lo llama pg_cron cada minuto, por pg_net, cuando hay trabajos esperando
- *   (cola_barrer(), migración 0050). Exige Authorization: Bearer COLA_SECRETO,
- *   el mismo valor que el secreto cola_secreto de Vault.
+ *   (cola_barrer(), migración 0050). Exige Authorization: Bearer <clave>,
+ *   donde la clave es el secreto cola_secreto de Vault. Se valida contra la
+ *   base (cola_clave_valida(), migración 0051); si en Vercel está cargada
+ *   COLA_SECRETO, alcanza con que coincida con esa.
  *   Toma y procesa trabajos durante unos 40 segundos y responde cuántos
  *   terminó y cuántos volvieron a la cola.
  */
@@ -25,13 +27,19 @@ function mismaClave(a: string, b: string): boolean {
 }
 
 export async function POST(request: Request): Promise<Response> {
-  const secreto = process.env.COLA_SECRETO || '';
-  if (secreto.length < 32) return json({ error: 'Servidor sin configurar.' }, 503);
   const recibido = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
-  if (!mismaClave(recibido, secreto)) return json({ error: 'No autorizado.' }, 401);
-
+  if (recibido.length < 32) return json({ error: 'No autorizado.' }, 401);
   const sb = clienteServicio();
   if (!sb) return json({ error: 'Servidor sin configurar.' }, 503);
+
+  const local = process.env.COLA_SECRETO || '';
+  let valida = local.length >= 32 && mismaClave(recibido, local);
+  if (!valida) {
+    const { data } = await sb.rpc('cola_clave_valida', { p_clave: recibido });
+    valida = data === true;
+  }
+  if (!valida) return json({ error: 'No autorizado.' }, 401);
+
   try {
     return json({ ok: true, ...(await procesarCola(sb)) });
   } catch {

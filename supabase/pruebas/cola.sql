@@ -79,3 +79,19 @@ select pruebas.como('00000000-0000-0000-0000-0000000000ad', 'aal2');
 select pruebas.ok((select count(*) from public.cola_trabajos) = 5, 'FIRMA lee la cola');
 select pruebas.como('00000000-0000-0000-0000-0000000000a1');
 select pruebas.ok((select count(*) from public.cola_trabajos) = 0, 'un titular no ve la cola');
+
+-- La clave del barrido se valida contra Vault, solo desde el servidor.
+select pruebas.como_postgres();
+select vault.create_secret(repeat('k', 64), 'cola_secreto', 'prueba');
+select pruebas.como('00000000-0000-0000-0000-0000000000a1');
+do $$
+begin
+  perform public.cola_clave_valida(repeat('k', 64));
+  raise exception 'FALLÓ: un titular validó la clave de la cola';
+exception when insufficient_privilege then null;
+end $$;
+select pruebas.como_servicio();
+select pruebas.ok(public.cola_clave_valida(repeat('k', 64)), 'la clave de Vault vale');
+select pruebas.ok(not public.cola_clave_valida(repeat('k', 63) || 'x'), 'otra clave no');
+select pruebas.ok(not public.cola_clave_valida('corta'), 'una clave corta no');
+select pruebas.ok(not public.cola_clave_valida(null), 'sin clave no');
