@@ -7,12 +7,13 @@ import { Aviso, Cifras, Encabezado, Etiqueta, Monto, Pestanas, claseInput } from
 import { useVistaPrevia } from '../vistaPrevia';
 import { TONO_FIRMA, dinero, fecha, hoyISO, type ClienteResumen } from './tipos';
 
-type Filtro = 'todos' | 'vencidas' | 'revisar' | 'Pendiente' | 'Firmado' | 'Baja';
+type Filtro = 'todos' | 'vencidas' | 'revisar' | 'Pendiente' | 'En firma' | 'Firmado' | 'Baja';
 
 const FILTROS: { clave: Filtro; titulo: string }[] = [
   { clave: 'todos', titulo: 'Todos' },
   { clave: 'vencidas', titulo: 'Vencidas' },
   { clave: 'Pendiente', titulo: 'Firma pendiente' },
+  { clave: 'En firma', titulo: 'En firma' },
   { clave: 'Firmado', titulo: 'Firmados' },
   { clave: 'Baja', titulo: 'Bajas' },
   { clave: 'revisar', titulo: 'A revisar' },
@@ -136,7 +137,7 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
   const conVencidas = activos.filter((f) => f.cuotas_vencidas > 0);
   const resumen = {
     firmados: filas.filter((f) => f.estado_firma === 'Firmado').length,
-    pendientes: filas.filter((f) => f.estado_firma === 'Pendiente').length,
+    pendientes: filas.filter((f) => f.estado_firma === 'Pendiente' || f.estado_firma === 'En firma').length,
     acordado: activos.reduce((a, f) => a + (f.monto_total ?? 0), 0),
     cobrado: activos.reduce((a, f) => a + f.cobrado, 0),
     porCobrar: activos.reduce((a, f) => a + f.pendiente, 0),
@@ -150,7 +151,7 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
     return filas.filter((f) => {
       if (filtro === 'vencidas' && !(f.cuotas_vencidas > 0 && f.estado_firma !== 'Baja')) return false;
       if (filtro === 'revisar' && !f.revisar_pagos) return false;
-      if ((filtro === 'Pendiente' || filtro === 'Firmado' || filtro === 'Baja') && f.estado_firma !== filtro) return false;
+      if ((filtro === 'Pendiente' || filtro === 'En firma' || filtro === 'Firmado' || filtro === 'Baja') && f.estado_firma !== filtro) return false;
       if (!q) return true;
       return [f.codigo, f.nombre, f.representante, f.id_fiscal, f.email, f.dni, f.responsable].some((v) => (v ?? '').toLowerCase().includes(q));
     });

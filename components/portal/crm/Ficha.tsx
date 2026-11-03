@@ -6,7 +6,7 @@ import { Aviso, Campo, Cifras, Encabezado, Enlace, Etiqueta, Monto, TituloSeccio
 import { useVistaPrevia } from '../vistaPrevia';
 import { navegar } from '../navegacion';
 import { BUCKET_ASUNTOS } from '../asuntos';
-import { ROL_COMERCIAL, TONO_FIRMA, dinero, hoyISO, type CambioHistorial, type ClienteCrm, type ContratoReservado, type EstadoFirma, type IntegranteEquipo, type Pago, type Servicio, type VariablePropia } from './tipos';
+import { ROL_COMERCIAL, TONO_FIRMA, dinero, hoyISO, type CambioHistorial, type ClienteCrm, type ContratoReservado, type IntegranteEquipo, type Pago, type Servicio, type VariablePropia } from './tipos';
 import { CampoVariable, sinVacios } from './variablesPropias';
 import { CAMPOS_CASO, VALORES_CASO } from './reglasCasos';
 import { CasosCliente } from './Casos';
@@ -150,23 +150,12 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
       condiciones: borrador.condiciones?.trim() || null,
     };
     if (esAdmin) {
-      cambios.estado_firma = borrador.estado_firma;
-      cambios.link_contrato_servicio = borrador.link_contrato_servicio?.trim() || null;
+      // El estado de la firma lo llevan los envíos (migración 0044). A mano solo se da de baja o se reactiva.
+      const deBaja = borrador.estado_firma === 'Baja';
+      if (deBaja !== (cliente!.estado_firma === 'Baja')) cambios.estado_firma = deBaja ? 'Baja' : cliente!.link_contrato_servicio ? 'Firmado' : 'Pendiente';
       cambios.revisar_pagos = borrador.revisar_pagos;
     }
     const { error } = await supabase.from('crm_clientes').update(cambios).eq('id', id);
-    if (!error && esAdmin && contrato) {
-      const { error: e2 } = await supabase.from('crm_contratos').upsert({
-        cliente_id: id,
-        organizacion_id: cliente!.organizacion_id,
-        link_contrato_cliente: contrato.link_contrato_cliente?.trim() || null,
-        link_documento: contrato.link_documento?.trim() || null,
-      });
-      if (e2) {
-        setGuardando(false);
-        return setMensaje({ tipo: 'error', texto: e2.message });
-      }
-    }
     setGuardando(false);
     setMensaje(error ? { tipo: 'error', texto: error.message } : { tipo: 'ok', texto: 'Cambios guardados.' });
     if (!error) void cargar();
@@ -423,7 +412,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
         acciones={
           <>
             {casosAbiertos > 0 && <Etiqueta tono="alerta">{casosAbiertos === 1 ? 'Caso abierto' : `${casosAbiertos} casos abiertos`}</Etiqueta>}
-            <Etiqueta tono={TONO_FIRMA[cliente.estado_firma]}>{`Firma ${cliente.estado_firma.toLowerCase()}`}</Etiqueta>
+            <Etiqueta tono={TONO_FIRMA[cliente.estado_firma]}>{cliente.estado_firma === 'En firma' ? 'En firma' : `Firma ${cliente.estado_firma.toLowerCase()}`}</Etiqueta>
           </>
         }
       />
@@ -577,26 +566,15 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
               {esAdmin && (
                 <div className="grid gap-5 tab:grid-cols-2 pt-6" style={{ borderTop: '1px solid rgba(27,31,27,0.15)' }}>
                   <p className="tab:col-span-2 eyebrow text-piedra">Solo FIRMA</p>
-                  <Campo etiqueta="Estado de la firma">
-                    <select className={claseInput} value={borrador.estado_firma} onChange={(e) => set('estado_firma', e.target.value as EstadoFirma)}>
-                      <option>Pendiente</option>
-                      <option>Firmado</option>
-                      <option>Baja</option>
-                    </select>
-                  </Campo>
-                  <Campo etiqueta="Link contrato de servicio">
-                    <input className={claseInput} value={borrador.link_contrato_servicio ?? ''} onChange={(e) => set('link_contrato_servicio', e.target.value)} />
-                  </Campo>
-                  {contrato && (
-                    <>
-                      <Campo etiqueta="Link contrato del cliente">
-                        <input className={claseInput} value={contrato.link_contrato_cliente ?? ''} onChange={(e) => setContrato({ ...contrato, link_contrato_cliente: e.target.value })} />
-                      </Campo>
-                      <Campo etiqueta="Link documento generado">
-                        <input className={claseInput} value={contrato.link_documento ?? ''} onChange={(e) => setContrato({ ...contrato, link_documento: e.target.value })} />
-                      </Campo>
-                    </>
-                  )}
+                  <label className="tab:col-span-2 flex items-center gap-2.5 text-sm">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 accent-bosque"
+                      checked={borrador.estado_firma === 'Baja'}
+                      onChange={(e) => set('estado_firma', e.target.checked ? 'Baja' : cliente.estado_firma === 'Baja' ? 'Pendiente' : cliente.estado_firma)}
+                    />
+                    Dar de baja al cliente
+                  </label>
                   <label className="tab:col-span-2 flex items-center gap-2.5 text-sm">
                     <input type="checkbox" className="w-4 h-4 accent-bosque" checked={borrador.revisar_pagos} onChange={(e) => set('revisar_pagos', e.target.checked)} />
                     Marcar el plan de pagos para revisar

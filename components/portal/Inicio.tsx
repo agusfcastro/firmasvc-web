@@ -120,7 +120,7 @@ async function cargarResumen(orgId: string, p: Permisos): Promise<Resumen> {
     p.gestion ? sb.from('abonos').select('*').eq('organizacion_id', orgId).in('estado', ['activo', 'pendiente', 'pausado', 'con_error']).order('creado_en', { ascending: false }).limit(1) : null,
     p.documentosLegales ? usoFirmas(orgId) : null,
     p.agenda ? usoAgenda(orgId) : null,
-    p.crm && !p.casos ? sb.from('crm_clientes').select('id', { count: 'exact', head: true }).eq('organizacion_id', orgId).eq('estado_firma', 'Pendiente') : null,
+    p.crm && !p.casos ? sb.from('crm_clientes').select('id', { count: 'exact', head: true }).eq('organizacion_id', orgId).in('estado_firma', ['Pendiente', 'En firma']) : null,
   ]);
 
   const listaSobres = ((sobres?.data ?? []) as Sobre[]).filter((s) => s.estado === 'en_curso' || (s.completado_en && s.completado_en >= hace30));

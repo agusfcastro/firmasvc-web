@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useCallback, useEffect, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowUpRight, Eye, Pencil, RefreshCw, RotateCcw, Send, X } from 'lucide-react';
 import { supabase } from '../supabase';
 import { Enlace, Etiqueta } from '../ui';
@@ -12,7 +12,8 @@ const Visor = lazy(() => import('../../firma/Visor').then((m) => ({ default: m.V
  * Contrato del cliente con la firma electrónica propia, en el panel oscuro de
  * la ficha. El servidor completa las variables del modelo del servicio, deja
  * una vista previa en PDF y desde acá se manda a firmar. Firman a la vez el
- * cliente y la empresa. Al completarse, el cliente pasa solo a Firmado.
+ * cliente y la empresa. Al mandarlo, el cliente pasa solo a En firma y, al
+ * completarse, a Firmado.
  */
 
 type EstadoContrato = 'generando' | 'listo' | 'faltan_datos' | 'error' | 'sin_modelo';
@@ -65,6 +66,14 @@ export const ContratoFirma: React.FC<{
   const [editando, setEditando] = useState<string | null>(null);
   const [nuevoEmail, setNuevoEmail] = useState('');
 
+  // El estado de la firma del cliente sigue al envío (migración 0044): cuando el
+  // envío cambia, la ficha se recarga para mostrar En firma, Firmado o Pendiente.
+  const estadoSobre = useRef<string | null | undefined>(undefined);
+  const avisarCambio = (actual: string | null) => {
+    if (estadoSobre.current !== undefined && estadoSobre.current !== actual) alCambiar?.();
+    estadoSobre.current = actual;
+  };
+
   const cargar = useCallback(async () => {
     if (!supabase) return;
     const [{ data }, { data: vinculados }] = await Promise.all([
@@ -76,6 +85,7 @@ export const ContratoFirma: React.FC<{
     setC(fila);
     setOtros(((vinculados ?? []) as Sobre[]).filter((x) => x.id !== fila?.sobre_id));
     if (!fila?.sobre_id) {
+      avisarCambio(null);
       setSobre(null);
       setFirmantes([]);
       return;
@@ -84,13 +94,14 @@ export const ContratoFirma: React.FC<{
       supabase.from('firma_sobres').select('*').eq('id', fila.sobre_id).maybeSingle(),
       supabase.from('firma_firmantes').select(COLUMNAS_FIRMANTE).eq('sobre_id', fila.sobre_id).order('orden').order('nombre'),
     ]);
+    avisarCambio((s?.estado as string | undefined) ?? null);
     setSobre((s as Sobre) ?? null);
     setFirmantes((f ?? []) as unknown as Firmante[]);
     if (s?.estado === 'en_curso' && !soloLectura) {
       const r = await llamarSobres<{ enlaces: { firmante_id: string; url: string }[] }>({ accion: 'enlaces', sobre_id: fila.sobre_id });
       if (r.ok) setEnlaces(Object.fromEntries(r.datos.enlaces.map((x) => [x.firmante_id, x.url])));
     }
-  }, [clienteId, soloLectura]);
+  }, [clienteId, soloLectura]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     void cargar();
@@ -109,11 +120,7 @@ export const ContratoFirma: React.FC<{
     return () => window.clearInterval(t);
   }, [generando, enCurso, cargar]);
 
-  // Cuando se completa la firma, la ficha se recarga para mostrar el estado Firmado.
   const completado = sobre?.estado === 'completado';
-  useEffect(() => {
-    if (completado) alCambiar?.();
-  }, [completado]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function generar() {
     setOcupado('generar');

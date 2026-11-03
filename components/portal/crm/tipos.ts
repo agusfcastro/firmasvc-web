@@ -1,4 +1,4 @@
-export type EstadoFirma = 'Pendiente' | 'Firmado' | 'Baja';
+export type EstadoFirma = 'Pendiente' | 'En firma' | 'Firmado' | 'Baja';
 export type TipoCliente = 'persona' | 'empresa';
 
 export interface ClienteCrm {
@@ -145,8 +145,9 @@ export function hoyISO(): string {
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 }
 
-export const TONO_FIRMA: Record<EstadoFirma, 'bosque' | 'piedra' | 'alerta'> = {
+export const TONO_FIRMA: Record<EstadoFirma, 'bosque' | 'piedra' | 'alerta' | 'tinta'> = {
   Firmado: 'bosque',
   Pendiente: 'piedra',
+  'En firma': 'tinta',
   Baja: 'alerta',
 };
