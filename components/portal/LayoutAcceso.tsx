@@ -4,8 +4,10 @@ import simboloOscuro from '../../assets/brand/simbolo-oscuro.png';
 
 /** Pantallas de ingreso: panel tinta con la marca (el mismo tono que la barra lateral del portal) y formulario sobre marfil. */
 export const LayoutAcceso: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="portal min-h-screen bg-marfil text-tinta grid desk:grid-cols-[5fr_6fr]">
-    <aside className="bg-tinta text-marfil relative overflow-hidden flex flex-col justify-between gap-10 px-6 py-5 tab:px-12 desk:px-14 desk:py-14">
+  // En el celular la franja tinta va a su altura y el formulario toma el resto. Sin grid-rows, la grilla
+  // repartía el alto de la pantalla entre las dos filas y la franja ocupaba casi un cuarto.
+  <div className="portal min-h-screen bg-marfil text-tinta grid grid-rows-[auto_1fr] desk:grid-rows-none desk:grid-cols-[5fr_6fr]">
+    <aside className="bg-tinta text-marfil relative overflow-hidden flex flex-col justify-between gap-10 px-6 py-2 tab:px-12 desk:px-14 desk:py-14">
       <img
         src={simboloOscuro}
         alt=""
@@ -35,7 +37,7 @@ export const LayoutAcceso: React.FC<{ children: React.ReactNode }> = ({ children
       </div>
       <p className="relative hidden desk:block text-[13px] text-lateral-tenue">Acceso restringido · Agustín Castro, Abogado (UBA)</p>
     </aside>
-    <main className="flex items-start desk:items-center px-6 pt-10 pb-12 tab:px-12 desk:px-20">
+    <main className="flex items-start desk:items-center px-6 pt-8 pb-12 tab:px-12 desk:px-20">
       <div className="w-full max-w-[440px]">{children}</div>
     </main>
   </div>

@@ -516,7 +516,7 @@ export const Encabezado: React.FC<{
       </div>
       {(acciones || tutorial) && (
         // En el celular las acciones van en una fila que se desliza, así no empujan el contenido hacia abajo.
-        <div className="flex flex-nowrap tab:flex-wrap items-center gap-2.5 max-w-full overflow-x-auto scrollbar-hide -mx-4 px-4 tab:mx-0 tab:px-0 [&>*]:shrink-0 max-tab:[&>.bg-bosque]:-order-1">
+        <div className="relative flex flex-nowrap tab:flex-wrap items-center gap-2.5 max-w-full overflow-x-auto scrollbar-hide -mx-4 px-4 tab:mx-0 tab:px-0 [&>*]:shrink-0 max-tab:[&>.bg-bosque]:-order-1">
           {tutorial && <BotonTutorial clave={tutorial} />}
           {acciones}
         </div>
