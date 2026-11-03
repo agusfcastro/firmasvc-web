@@ -23,6 +23,15 @@
   --color-bosque-suave: #E4E9E3;
   --color-bosque-claro: #B9D4C4;
 
+  /* Portal. Papel para tarjetas, borde de campo con 3,6 a 1 sobre blanco y textos de la barra lateral verde bosque.
+     marca:verificar controla el contraste de estos pares. */
+  --color-papel: #FFFEFB;
+  --color-borde: #8A867A;
+  --color-borde-suave: #E4E1D7;
+  --color-separador: #EEECE5;
+  --color-lateral-texto: #C3CEC7;
+  --color-lateral-tenue: #95A89D;
+
   /* Estados. Los -claro van como texto sobre fondo oscuro */
   --color-peligro: #8A2B20;
   --color-peligro-fuerte: #5C1D15;
@@ -338,3 +347,69 @@ a.card { color: inherit; text-decoration: none; }
 
 /* Panel oscuro (como la tarjeta de agenda de Contacto) */
 .panel-carbon { background: var(--color-carbon); color: var(--color-marfil); }
+
+/* =================================================================== */
+/* Portal: escala de aplicación                                         */
+/* El Marco del portal lleva la clase .portal. Adentro, las primitivas  */
+/* de la landing (.section, .wrap, .h1…) se achican a escala de app.   */
+/* =================================================================== */
+
+/* Foco visible en todo el sitio: 2 px con separación, se ve sin buscarlo. */
+:where(a, button, summary, select, textarea, input[type='checkbox'], input[type='radio'], [role='button'], [role='tab'], [role='switch'], [tabindex]):focus-visible {
+  outline: 2px solid var(--color-bosque);
+  outline-offset: 2px;
+}
+.lateral :where(a, button, select, [tabindex]):focus-visible { outline-color: var(--color-bosque-claro); }
+
+.portal { font-size: 15px; }
+.portal .wrap { max-width: 1240px; padding-inline: 16px; }
+@media (min-width: 900px) { .portal .wrap { padding-inline: 40px; } }
+.portal .section { padding: 24px 0; }
+@media (min-width: 900px) { .portal .section { padding: 32px 0; } }
+
+.portal .h1 { font-size: clamp(28px, 3vw, 34px); line-height: 1.12; letter-spacing: -0.015em; font-weight: 700; }
+.portal .h2 { font-size: clamp(24px, 2.4vw, 28px); line-height: 1.15; letter-spacing: -0.01em; font-weight: 700; }
+.portal .h3 { font-size: 18px; line-height: 1.3; font-weight: 600; letter-spacing: -0.005em; }
+.portal .eyebrow { font-size: 13px; letter-spacing: 0; text-transform: none; font-weight: 500; }
+.portal .stat-label { font-size: 13px; letter-spacing: 0; }
+
+/* Títulos de página */
+.p-titulo { font-family: var(--font-heading); font-weight: 700; font-size: clamp(26px, 2.6vw, 32px); line-height: 1.12; letter-spacing: -0.015em; }
+.p-titulo-grande { font-family: var(--font-heading); font-weight: 700; font-size: clamp(28px, 3vw, 36px); line-height: 1.1; letter-spacing: -0.015em; }
+
+/* Tarjeta de aplicación: papel con filete suave */
+.p-tarjeta { background: var(--color-papel); border: 1px solid var(--color-borde-suave); }
+.p-tarjeta-cabeza { display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid var(--color-separador); }
+@media (min-width: 900px) { .p-tarjeta-cabeza { padding: 18px 24px; } }
+.p-tarjeta-cabeza h2 { font-family: var(--font-heading); font-weight: 600; font-size: 18px; line-height: 1.25; }
+
+/* Cifras: tira de tarjetas */
+.portal .cifras { background: var(--color-papel); border: 1px solid var(--color-borde-suave); }
+.portal .cifra, .portal .cifra + .cifra { padding: 18px 20px; }
+.portal .cifra + .cifra { border-left-color: var(--color-separador); }
+@media (max-width: 719px) { .portal .cifra:nth-child(n+3) { border-top-color: var(--color-separador); } }
+@media (min-width: 720px) and (max-width: 999px) { .portal .cifra:nth-child(n+4) { border-top-color: var(--color-separador); } }
+.portal .cifra-valor { font-weight: 700; font-size: clamp(24px, 2vw, 30px); letter-spacing: -0.01em; }
+
+/* Tablas: encabezados legibles, sin versalitas */
+.portal .tabla thead th { font-size: 12.5px; letter-spacing: 0; text-transform: none; padding: 0 16px 10px; border-bottom: 1px solid var(--color-borde-suave); }
+.portal .tabla tbody td { padding: 14px 16px; border-bottom-color: var(--color-separador); }
+.portal .tabla tbody tr.fila-link:hover { background: var(--color-papel); }
+
+/* Tarjetas de módulo en claro: el oscuro queda para la barra lateral */
+.portal .card { background: var(--color-papel); border-color: var(--color-borde-suave); color: var(--color-tinta); padding: 24px; gap: 10px; }
+.portal .card:hover { transform: none; border-color: var(--color-bosque); }
+.portal .card .wm { display: none; }
+.portal .card .icon-box { width: 44px; height: 44px; background: var(--color-bosque-suave); color: var(--color-bosque); }
+.portal .card:hover .icon-box { background: var(--color-bosque); color: var(--color-marfil); }
+.portal .card .text-calido { color: var(--color-piedra); }
+.portal .card .text-marfil { color: var(--color-tinta); }
+.portal .card .ir { color: var(--color-bosque); }
+.portal .card.card-apagada:hover { border-color: var(--color-borde-suave); }
+.portal .card.card-apagada:hover .icon-box { background: var(--color-bosque-suave); color: var(--color-bosque); }
+
+/* Paneles de acento en verde bosque, el mismo tono que la barra lateral */
+.portal .panel-carbon { background: var(--color-bosque-dark); }
+
+/* Barra inferior del celular: deja lugar al final de la página */
+@media (max-width: 899px) { .portal-cuerpo { padding-bottom: calc(76px + env(safe-area-inset-bottom)); } }

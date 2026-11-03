@@ -54,7 +54,7 @@ export const BotonTutorial: React.FC<{ clave: ClaveTutorial }> = ({ clave }) => 
       <button
         type="button"
         onClick={() => setAbierto(true)}
-        className="inline-flex items-center gap-2 h-10 px-[18px] text-sm font-medium border border-tinta text-tinta transition-colors duration-150 hover:bg-tinta hover:text-marfil"
+        className="inline-flex items-center gap-2 h-11 px-4 text-[14px] font-medium border border-borde-suave bg-papel text-tinta transition-colors duration-150 hover:border-tinta"
       >
         <CirclePlay size={16} aria-hidden="true" />
         Ver tutorial{tutorial.duracion ? ` · ${tutorial.duracion}` : ''}

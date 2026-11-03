@@ -1,14 +1,35 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Eye, LogOut, Menu } from 'lucide-react';
+import {
+  BookOpen,
+  BriefcaseBusiness,
+  CalendarDays,
+  ChevronRight,
+  ChevronsUpDown,
+  Eye,
+  FileSignature,
+  FileText,
+  House,
+  Kanban,
+  LogOut,
+  Menu,
+  ScrollText,
+  ShieldCheck,
+  Wallet,
+  X,
+  type LucideIcon,
+} from 'lucide-react';
 import { Logo } from '../Logo';
+import { DensidadBotones } from '../Button';
 import { supabase } from './supabase';
 import { navegar } from './navegacion';
 import { salirVistaPrevia, useVistaPrevia } from './vistaPrevia';
 import { useLogoOrg } from './logos';
-import { ROTULO_ROL, cargoDe, permisosDe, type Perfil } from './tipos';
+import { ROTULO_ROL, cargoDe, permisosDe, type Perfil, type Permisos } from './tipos';
+import { ROTULO_PLAN, type Plan } from './planes';
 import { BotonTutorial, type ClaveTutorial } from './tutoriales';
 
 import simboloClaro from '../../assets/brand/simbolo-claro.png';
+import simboloOscuro from '../../assets/brand/simbolo-oscuro.png';
 
 /* ------------------------------------------------------------------ */
 /* Enlace interno sin recargar la página                              */
@@ -28,18 +49,116 @@ export const Enlace: React.FC<React.AnchorHTMLAttributes<HTMLAnchorElement> & { 
   </a>
 );
 
-/* ------------------------------------------------------------------ */
-/* Menú desplegable con las secciones del portal                       */
-/* ------------------------------------------------------------------ */
-interface Seccion {
-  a: string;
-  titulo: string;
-  activo: boolean;
-}
-
 async function salir() {
   await supabase?.auth.signOut();
   navegar('/portal/ingresar');
+}
+
+/* ------------------------------------------------------------------ */
+/* Secciones del portal según el rol                                   */
+/* ------------------------------------------------------------------ */
+type ClaveSeccion = 'inicio' | 'asuntos' | 'firmas' | 'documentos' | 'protocolos' | 'crm' | 'agenda' | 'pagos' | 'bitacora' | 'admin';
+
+interface Seccion {
+  clave: ClaveSeccion;
+  a: string;
+  titulo: string;
+  /** Rótulo corto para la barra inferior del celular. */
+  corto: string;
+  icono: LucideIcon;
+  grupo: 'expediente' | 'negocio' | 'firma';
+  activo: boolean;
+}
+
+function seccionesDe(perfil: Perfil, permisos: Permisos, ruta: string): Seccion[] {
+  const s = (clave: ClaveSeccion, a: string, titulo: string, corto: string, icono: LucideIcon, grupo: Seccion['grupo'], activo: boolean): Seccion => ({ clave, a, titulo, corto, icono, grupo, activo });
+  return [
+    s('inicio', '/portal', 'Inicio', 'Inicio', House, 'expediente', ruta === '/portal'),
+    ...(permisos.casos ? [s('asuntos', '/portal/asuntos', 'Asuntos', 'Asuntos', BriefcaseBusiness, 'expediente', ruta.startsWith('/portal/asuntos'))] : []),
+    ...(permisos.documentosLegales ? [s('firmas', '/portal/firmas', 'Firma electrónica', 'Firmas', FileSignature, 'expediente', ruta.startsWith('/portal/firmas'))] : []),
+    ...(permisos.documentosLegales
+      ? [s('documentos', '/portal/documentos', 'Documentos', 'Documentos', FileText, 'expediente', ruta.startsWith('/portal/documentos') || ruta.startsWith('/portal/pedidos'))]
+      : []),
+    s('protocolos', '/portal/protocolos', 'Protocolos', 'Protocolos', BookOpen, 'expediente', ruta === '/portal/protocolos'),
+    ...(permisos.crm ? [s('crm', '/portal/crm', 'CRM legal', 'CRM', Kanban, 'negocio', ruta.startsWith('/portal/crm'))] : []),
+    ...(permisos.agenda ? [s('agenda', '/portal/agenda', 'Agenda', 'Agenda', CalendarDays, 'negocio', ruta === '/portal/agenda')] : []),
+    // Pagos solo para titulares y FIRMA. El resto del equipo no ve nada de pagos.
+    ...(permisos.gestion ? [s('pagos', '/portal/pagos', 'Pagos', 'Pagos', Wallet, 'negocio', ruta === '/portal/pagos')] : []),
+    ...(perfil.rol === 'titular' ? [s('bitacora', '/portal/bitacora', 'Bitácora', 'Bitácora', ScrollText, 'negocio', ruta === '/portal/bitacora')] : []),
+    ...(perfil.rol === 'admin' ? [s('admin', '/portal/admin', 'Administración', 'Admin', ShieldCheck, 'firma', ruta.startsWith('/portal/admin'))] : []),
+  ];
+}
+
+const TITULO_GRUPO: Record<Seccion['grupo'], string> = { expediente: 'Expediente', negocio: 'Tu negocio', firma: 'FIRMA' };
+
+/* ------------------------------------------------------------------ */
+/* Datos chicos que muestra el marco, con caché por sesión             */
+/* ------------------------------------------------------------------ */
+interface OrgInfo {
+  nombre: string;
+  plan: Plan | null;
+}
+const cacheOrg = new Map<string, OrgInfo | null>();
+
+function useOrgInfo(orgId: string | null | undefined): OrgInfo | null {
+  const [info, setInfo] = useState<OrgInfo | null>(() => (orgId ? cacheOrg.get(orgId) ?? null : null));
+  useEffect(() => {
+    if (!supabase || !orgId) return setInfo(null);
+    if (cacheOrg.has(orgId)) return setInfo(cacheOrg.get(orgId) ?? null);
+    let vigente = true;
+    void supabase
+      .from('organizaciones')
+      .select('nombre, plan')
+      .eq('id', orgId)
+      .maybeSingle()
+      .then(({ data }) => {
+        const v = data ? { nombre: (data as OrgInfo).nombre, plan: ((data as OrgInfo).plan ?? null) as Plan | null } : null;
+        cacheOrg.set(orgId, v);
+        if (vigente) setInfo(v);
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [orgId]);
+  return info;
+}
+
+/** Cuántas cosas esperan en Asuntos y en Firmas. Se refresca como mucho una vez por minuto. */
+interface Contadores {
+  asuntos?: number;
+  firmas?: number;
+}
+const cacheContadores = new Map<string, { t: number; v: Contadores }>();
+
+function useContadores(permisos: Permisos | null, orgId: string | null | undefined, esAdmin: boolean): Contadores {
+  const clave = `${orgId ?? 'todas'}:${esAdmin ? 'firma' : 'cliente'}:${permisos?.casos ? 1 : 0}${permisos?.documentosLegales ? 1 : 0}`;
+  const [v, setV] = useState<Contadores>(() => cacheContadores.get(clave)?.v ?? {});
+  useEffect(() => {
+    if (!supabase || !permisos) return;
+    const previo = cacheContadores.get(clave);
+    if (previo && Date.now() - previo.t < 60_000) return setV(previo.v);
+    let vigente = true;
+    void (async () => {
+      const contar = async (tabla: string, estado: string) => {
+        let q = supabase!.from(tabla).select('id', { count: 'exact', head: true }).eq('estado', estado);
+        if (orgId) q = q.eq('organizacion_id', orgId);
+        const { count } = await q;
+        return count ?? 0;
+      };
+      const [asuntos, firmas] = await Promise.all([
+        // Al cliente le cuenta lo que espera su respuesta. A FIRMA, lo que está en curso de su lado.
+        permisos.casos ? contar('asuntos', esAdmin ? 'en_curso' : 'espera_cliente') : Promise.resolve(undefined),
+        permisos.documentosLegales ? contar('firma_sobres', 'en_curso') : Promise.resolve(undefined),
+      ]);
+      const nuevo = { asuntos, firmas };
+      cacheContadores.set(clave, { t: Date.now(), v: nuevo });
+      if (vigente) setV(nuevo);
+    })();
+    return () => {
+      vigente = false;
+    };
+  }, [clave]); // eslint-disable-line react-hooks/exhaustive-deps
+  return v;
 }
 
 /* ------------------------------------------------------------------ */
@@ -70,11 +189,10 @@ function useMisNegocios(perfil: Perfil | null | undefined): Negocio[] {
   return negocios;
 }
 
-const SelectorNegocio: React.FC<{ perfil: Perfil }> = ({ perfil }) => {
-  const negocios = useMisNegocios(perfil);
+/** Select nativo invisible sobre el bloque de la empresa: se toca el bloque y se elige el negocio. */
+const SelectorNegocio: React.FC<{ perfil: Perfil; negocios: Negocio[] }> = ({ perfil, negocios }) => {
   const [cambiando, setCambiando] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  if (negocios.length < 2) return null;
 
   async function cambiar(org: string) {
     if (!supabase || org === perfil.organizacion_id) return;
@@ -91,13 +209,13 @@ const SelectorNegocio: React.FC<{ perfil: Perfil }> = ({ perfil }) => {
   }
 
   return (
-    <label className="flex flex-col gap-1 text-sm">
-      <span className="text-[11px] uppercase tracking-[0.16em] text-piedra">Negocio</span>
+    <>
       <select
+        aria-label="Cambiar de negocio"
         value={perfil.organizacion_id ?? ''}
         disabled={cambiando}
         onChange={(e) => void cambiar(e.target.value)}
-        className="h-10 px-3 bg-marfil border border-tinta rounded-control font-medium max-w-[220px]"
+        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
       >
         {negocios.map((n) => (
           <option key={n.id} value={n.id}>
@@ -105,188 +223,281 @@ const SelectorNegocio: React.FC<{ perfil: Perfil }> = ({ perfil }) => {
           </option>
         ))}
       </select>
-      {error && <span className="text-peligro text-[12px]">{error}</span>}
-    </label>
+      {error && (
+        <span role="alert" className="absolute left-0 right-0 top-full mt-1 text-peligro-claro text-[12px]">
+          {error}
+        </span>
+      )}
+    </>
   );
 };
 
-/** compacto: en el celular el botón es solo un ícono, para que entren los dos logos. */
-const MenuSecciones: React.FC<{ links: Seccion[]; perfil: Perfil; compacto?: boolean }> = ({ links, perfil, compacto = false }) => {
-  const [abierto, setAbierto] = useState(false);
-  const raiz = useRef<HTMLDivElement>(null);
-  const actual = links.find((l) => l.activo)?.titulo ?? 'Menú';
+const iniciales = (texto: string): string =>
+  texto
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? '')
+    .join('');
 
-  // Se cierra con Escape o tocando afuera.
-  useEffect(() => {
-    if (!abierto) return;
-    const fuera = (e: MouseEvent) => {
-      if (!raiz.current?.contains(e.target as Node)) setAbierto(false);
-    };
-    const tecla = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setAbierto(false);
-    };
-    document.addEventListener('mousedown', fuera);
-    document.addEventListener('keydown', tecla);
-    return () => {
-      document.removeEventListener('mousedown', fuera);
-      document.removeEventListener('keydown', tecla);
-    };
-  }, [abierto]);
+/* ------------------------------------------------------------------ */
+/* Barra lateral (computadora) y panel del menú (celular)              */
+/* ------------------------------------------------------------------ */
+const Lateral: React.FC<{
+  perfil: Perfil;
+  secciones: Seccion[];
+  contadores: Contadores;
+  orgNombre: string | null;
+  orgPlan: Plan | null;
+  logoCliente: string | null;
+  vista: boolean;
+  alElegir?: () => void;
+}> = ({ perfil, secciones, contadores, orgNombre, orgPlan, logoCliente, vista, alElegir }) => {
+  const esAdmin = perfil.rol === 'admin' && !vista;
+  const grupos = (['expediente', 'negocio', 'firma'] as const).map((g) => ({ g, items: secciones.filter((x) => x.grupo === g) })).filter((x) => x.items.length);
+  const cuenta = (c: ClaveSeccion) => (c === 'asuntos' ? contadores.asuntos : c === 'firmas' ? contadores.firmas : undefined);
+  const nombre = perfil.nombre || perfil.email;
+  const tieneAgenda = secciones.some((x) => x.clave === 'agenda');
+  const negocios = useMisNegocios(!vista && perfil.rol !== 'admin' ? perfil : null);
+  const varios = negocios.length > 1;
+  const titulos = esAdmin ? { expediente: 'Clientes', negocio: 'Gestión', firma: 'FIRMA' } : TITULO_GRUPO;
 
   return (
-    <div ref={raiz} className="relative">
-      <button
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={abierto}
-        onClick={() => setAbierto((v) => !v)}
-        aria-label={compacto ? `Menú. Estás en ${actual}` : undefined}
-        className={`inline-flex items-center justify-center gap-2 h-10 ${compacto ? 'w-10' : 'px-4'} border text-sm font-medium whitespace-nowrap transition-colors duration-150 ${abierto ? 'bg-tinta text-marfil border-tinta' : 'border-tinta hover:bg-tinta hover:text-marfil'}`}
-      >
-        {compacto ? (
-          <Menu size={18} aria-hidden="true" />
+    <div className="lateral relative flex flex-col gap-5 min-h-full px-4 pt-6 pb-4 bg-bosque-dark text-lateral-texto overflow-hidden">
+      <img src={simboloOscuro} alt="" aria-hidden="true" className="absolute -right-20 bottom-28 w-[300px] max-w-none opacity-[0.05] pointer-events-none select-none" />
+
+      <Enlace a="/portal" onClick={alElegir} className="relative self-start px-2" aria-label="Inicio del portal">
+        <Logo variant="oscuro" className="h-7" />
+      </Enlace>
+
+      <div className={`relative flex items-center gap-3 p-3 border border-marfil/10 bg-marfil/[0.04] ${varios ? 'hover:bg-marfil/[0.08] focus-within:outline focus-within:outline-2 focus-within:outline-bosque-claro' : ''}`}>
+        {logoCliente && !esAdmin ? (
+          <span className="w-9 h-9 shrink-0 bg-white grid place-items-center overflow-hidden">
+            <img src={logoCliente} alt="" className="max-w-[30px] max-h-[30px] object-contain" />
+          </span>
         ) : (
+          <span aria-hidden="true" className="w-9 h-9 shrink-0 grid place-items-center bg-bosque-claro text-bosque-dark text-[13px] font-semibold">
+            {esAdmin ? 'F' : iniciales(orgNombre ?? '·')}
+          </span>
+        )}
+        <span className="flex flex-col min-w-0 leading-tight">
+          <span className="text-marfil text-[14px] font-medium truncate">{esAdmin ? 'FIRMA' : orgNombre ?? '·'}</span>
+          <span className="text-[12.5px] text-lateral-tenue truncate mt-0.5">{esAdmin ? 'Administración' : [cargoDe(perfil), orgPlan ? `Plan ${ROTULO_PLAN[orgPlan]}` : null].filter(Boolean).join(' · ')}</span>
+        </span>
+        {varios && (
           <>
-            {actual}
-            <ChevronDown size={15} aria-hidden="true" className={`transition-transform duration-150 ${abierto ? 'rotate-180' : ''}`} />
+            <ChevronsUpDown size={16} aria-hidden="true" className="ml-auto shrink-0 text-lateral-tenue" />
+            <SelectorNegocio perfil={perfil} negocios={negocios} />
           </>
         )}
-      </button>
-      {abierto && (
-        <div role="menu" className="absolute right-0 tab:left-0 tab:right-auto top-[calc(100%+8px)] z-50 min-w-[240px] bg-marfil border border-tinta rounded-tarjeta shadow-flotante py-2">
-          {links.map((l) => (
-            <Enlace
-              key={l.a}
-              a={l.a}
-              role="menuitem"
-              aria-current={l.activo ? 'page' : undefined}
-              onClick={() => setAbierto(false)}
-              className={`flex items-center justify-between gap-6 px-5 py-3 text-[15px] transition-colors duration-150 ${l.activo ? 'text-bosque font-medium' : 'hover:bg-marfil-oscuro'}`}
-            >
-              {l.titulo}
-              {l.activo && <span aria-hidden="true" className="w-1.5 h-1.5 bg-bosque" />}
-            </Enlace>
-          ))}
-          {/* En el celular el usuario y el botón de salir viven acá. */}
-          <div className="tab:hidden mt-2 pt-3 px-5 pb-2 flex flex-col gap-3" style={{ borderTop: '1px solid rgba(27,31,27,0.12)' }}>
-            <span className="flex flex-col leading-tight text-sm">
-              <span className="font-medium truncate">{perfil.nombre || perfil.email}</span>
-              <span className="text-[11px] uppercase tracking-[0.16em] text-piedra">{cargoDe(perfil)}</span>
-            </span>
-            <SelectorNegocio perfil={perfil} />
-            <button type="button" role="menuitem" onClick={salir} className="inline-flex items-center gap-2 text-sm font-medium hover:text-bosque">
-              <LogOut size={15} aria-hidden="true" /> Salir
-            </button>
+      </div>
+
+      <nav aria-label="Secciones del portal" className="relative flex flex-col gap-5">
+        {grupos.map(({ g, items }) => (
+          <div key={g} className="flex flex-col gap-0.5">
+            <p className="px-3 pb-1.5 text-[12px] text-lateral-tenue">{titulos[g]}</p>
+            {items.map((x) => {
+              const Icono = x.icono;
+              const n = cuenta(x.clave);
+              return (
+                <Enlace
+                  key={x.clave}
+                  a={x.a}
+                  onClick={alElegir}
+                  aria-current={x.activo ? 'page' : undefined}
+                  className={`relative flex items-center gap-3 min-h-[38px] px-3 text-[14px] transition-colors duration-150 ${x.activo ? 'bg-marfil/[0.08] text-marfil font-medium' : 'hover:bg-marfil/[0.05] hover:text-marfil'}`}
+                >
+                  {x.activo && <span aria-hidden="true" className="absolute left-0 top-2 bottom-2 w-[2px] bg-bosque-claro" />}
+                  <Icono size={18} strokeWidth={1.75} aria-hidden="true" className="shrink-0" />
+                  <span className="flex-1 truncate">{x.titulo}</span>
+                  {n ? (
+                    <span className="min-w-[22px] h-[22px] px-1.5 grid place-items-center rounded-pastilla bg-bosque-claro/15 text-bosque-claro text-[12px] font-semibold tabular-nums" aria-label={`${n} pendientes`}>
+                      {n}
+                    </span>
+                  ) : null}
+                </Enlace>
+              );
+            })}
           </div>
+        ))}
+      </nav>
+
+      <div className="relative mt-auto flex flex-col gap-4">
+        {tieneAgenda && !esAdmin && (
+          <div className="p-4 border border-marfil/10 bg-marfil/[0.05] [@media(max-height:880px)]:hidden">
+            <p className="font-heading font-semibold text-marfil text-[15px]">¿Una duda legal?</p>
+            <p className="text-[13px] leading-[1.45] mt-1 mb-3">Agendá una reunión con Agustín Castro, en el horario que elijas.</p>
+            <Enlace a="/portal/agenda" onClick={alElegir} className="inline-flex items-center gap-1.5 text-[13.5px] font-medium text-bosque-claro hover:text-marfil">
+              Agendar reunión <ChevronRight size={15} aria-hidden="true" />
+            </Enlace>
+          </div>
+        )}
+        <div className="flex items-center gap-3 pt-4 px-1 border-t border-marfil/10">
+          <span aria-hidden="true" className="w-8 h-8 shrink-0 grid place-items-center bg-bosque text-marfil text-[12px] font-semibold">
+            {iniciales(nombre)}
+          </span>
+          <span className="flex flex-col min-w-0 flex-1 leading-tight">
+            <span className="text-marfil text-[13.5px] font-medium truncate">{nombre}</span>
+            <span className="text-[12px] text-lateral-tenue truncate">{perfil.nombre ? perfil.email : ROTULO_ROL[perfil.rol]}</span>
+          </span>
+          <button type="button" onClick={salir} aria-label="Salir del portal" title="Salir" className="w-10 h-10 grid place-items-center shrink-0 text-lateral-tenue hover:text-marfil hover:bg-marfil/[0.06]">
+            <LogOut size={17} aria-hidden="true" />
+          </button>
         </div>
-      )}
+      </div>
+    </div>
+  );
+};
+
+/** Panel del menú en el celular, con la misma barra lateral. */
+const PanelMenu: React.FC<{ abierto: boolean; alCerrar: () => void; children: React.ReactNode }> = ({ abierto, alCerrar, children }) => {
+  const cerrarRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!abierto) return;
+    cerrarRef.current?.focus();
+    const tecla = (e: KeyboardEvent) => e.key === 'Escape' && alCerrar();
+    const desborde = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', tecla);
+    return () => {
+      document.body.style.overflow = desborde;
+      document.removeEventListener('keydown', tecla);
+    };
+  }, [abierto, alCerrar]);
+  if (!abierto) return null;
+  return (
+    <div className="desk:hidden fixed inset-0 z-50 flex" role="dialog" aria-modal="true" aria-label="Menú del portal">
+      <button type="button" aria-label="Cerrar el menú" tabIndex={-1} onClick={alCerrar} className="absolute inset-0 bg-tinta/55" />
+      <div className="relative ml-auto h-full w-[min(320px,88vw)] overflow-y-auto bg-bosque-dark">
+        <button ref={cerrarRef} type="button" onClick={alCerrar} aria-label="Cerrar el menú" className="absolute right-3 top-5 z-10 w-10 h-10 grid place-items-center text-lateral-texto hover:text-marfil">
+          <X size={20} aria-hidden="true" />
+        </button>
+        {children}
+      </div>
     </div>
   );
 };
 
 /* ------------------------------------------------------------------ */
-/* Marco general: header como la landing, pie carbón                   */
+/* Marco general del portal                                            */
 /* ------------------------------------------------------------------ */
-/** orgId fija de qué cliente es el logo del header. Sin él, el de la empresa del usuario (o la de la vista previa). */
+/** orgId fija de qué cliente es el logo y el nombre del lateral. Sin él, el de la empresa del usuario (o la de la vista previa). */
 export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; children: React.ReactNode; ancho?: 'angosto' | 'normal' }> = ({ perfil, orgId, children, ancho = 'normal' }) => {
   const vista = useVistaPrevia();
-  const logoCliente = useLogoOrg(orgId ?? vista?.orgId ?? perfil?.organizacion_id);
+  const orgDelMarco = orgId ?? vista?.orgId ?? perfil?.organizacion_id ?? null;
+  const logoCliente = useLogoOrg(orgDelMarco);
+  const org = useOrgInfo(orgDelMarco);
   const ruta = window.location.pathname.replace(/\/$/, '');
   const permisos = perfil ? permisosDe(perfil.rol) : null;
-  const links = perfil && permisos
-    ? [
-        { a: '/portal', titulo: 'Inicio', activo: ruta === '/portal' },
-        ...(permisos.crm ? [{ a: '/portal/crm', titulo: 'CRM legal', activo: ruta.startsWith('/portal/crm') }] : []),
-        ...(permisos.documentosLegales ? [{ a: '/portal/documentos', titulo: 'Documentos', activo: ruta.startsWith('/portal/documentos') }] : []),
-        { a: '/portal/protocolos', titulo: 'Protocolos', activo: ruta === '/portal/protocolos' },
-        ...(permisos.documentosLegales ? [{ a: '/portal/firmas', titulo: 'Firma electrónica', activo: ruta.startsWith('/portal/firmas') }] : []),
-        ...(permisos.casos ? [{ a: '/portal/asuntos', titulo: 'Asuntos', activo: ruta.startsWith('/portal/asuntos') }] : []),
-        ...(permisos.agenda ? [{ a: '/portal/agenda', titulo: 'Agenda', activo: ruta === '/portal/agenda' }] : []),
-        // Pagos solo para titulares y FIRMA. El resto del equipo no ve nada de pagos.
-        ...(permisos.gestion ? [{ a: '/portal/pagos', titulo: 'Pagos', activo: ruta === '/portal/pagos' }] : []),
-        ...(perfil.rol === 'titular' ? [{ a: '/portal/bitacora', titulo: 'Bitácora', activo: ruta === '/portal/bitacora' }] : []),
-        ...(perfil.rol === 'admin' ? [{ a: '/portal/admin', titulo: 'Administración', activo: ruta.startsWith('/portal/admin') }] : []),
-      ]
-    : [];
+  const esAdmin = perfil?.rol === 'admin' && !vista;
+  const secciones = perfil && permisos ? seccionesDe(perfil, permisos, ruta) : [];
+  const contadores = useContadores(permisos, esAdmin ? null : orgDelMarco, esAdmin);
+  const [menu, setMenu] = useState(false);
+
+  // La barra inferior muestra las cuatro secciones que más se usan. El resto vive en Más.
+  const ORDEN_INFERIOR: ClaveSeccion[] = ['inicio', 'asuntos', 'firmas', 'documentos', 'crm', 'protocolos', 'agenda', 'pagos', 'admin'];
+  const inferiores = ORDEN_INFERIOR.map((c) => secciones.find((x) => x.clave === c)).filter((x): x is Seccion => Boolean(x)).slice(0, 4);
+  const lateral = perfil ? (
+    <Lateral perfil={perfil} secciones={secciones} contadores={contadores} orgNombre={vista?.orgNombre ?? org?.nombre ?? null} orgPlan={org?.plan ?? null} logoCliente={logoCliente} vista={Boolean(vista)} alElegir={() => setMenu(false)} />
+  ) : null;
 
   return (
-    <div className="min-h-screen bg-marfil text-tinta flex flex-col">
-      {vista && (
-        <div className="bg-bosque text-marfil text-sm">
-          <div className="wrap flex flex-wrap items-center gap-x-4 gap-y-1 py-2.5">
-            <Eye size={16} aria-hidden="true" />
-            <span className="flex-1 min-w-[200px]">
-              Viendo como <strong>{vista.nombre ?? ROTULO_ROL[vista.rol]}</strong>, {ROTULO_ROL[vista.rol].toLowerCase()} de {vista.orgNombre}
-              {vista.rol !== 'titular' && vista.areas.length > 0 ? ` (${vista.areas.join(', ')})` : ''}. Solo lectura.
-            </span>
-            <button type="button" onClick={salirVistaPrevia} className="font-medium underline underline-offset-4 hover:no-underline">
-              Salir de la vista
-            </button>
+    <DensidadBotones.Provider value="compacta">
+      <div className="portal min-h-screen bg-marfil text-tinta desk:grid desk:grid-cols-[264px_minmax(0,1fr)]">
+        {lateral && (
+          <div className="hidden desk:block bg-bosque-dark">
+            <aside className="sticky top-0 h-screen overflow-y-auto scrollbar-hide" aria-label="Barra lateral">
+              {lateral}
+            </aside>
           </div>
-        </div>
-      )}
+        )}
 
-      <header className="sticky top-0 z-40 bg-marfil" style={{ borderBottom: '1px solid rgba(27,31,27,0.12)' }}>
-        <div className="wrap flex items-center gap-6 h-20 desk:h-24">
-          <Enlace a="/portal" className="flex items-center gap-3 desk:gap-4 min-w-0" aria-label="Inicio del portal">
-            <Logo className={`h-[44px] desk:h-[60px] ${logoCliente ? 'max-w-[34vw] tab:max-w-[260px]' : 'max-w-[52vw]'}`} />
-            {logoCliente && (
-              <>
-                {/* × y no una barra: el lockup de FIRMA ya usa una barra entre firma y Castro & Partners. */}
-                <span aria-hidden="true" className="font-heading font-light text-[22px] desk:text-[28px] leading-none text-piedra select-none">
-                  ×
-                </span>
-                <img src={logoCliente} alt="" className="h-8 desk:h-11 w-auto max-w-[26vw] tab:max-w-[180px] object-contain" />
-              </>
+        <div className="portal-cuerpo flex flex-col min-w-0 min-h-screen">
+          {/* Barra superior del celular */}
+          <header className="desk:hidden sticky top-0 z-40 h-14 px-4 flex items-center gap-3 bg-bosque-dark text-marfil">
+            <Enlace a="/portal" aria-label="Inicio del portal" className="shrink-0">
+              <Logo variant="oscuro" className="h-6" />
+            </Enlace>
+            <span className="flex-1 min-w-0 text-right text-[13px] text-lateral-texto truncate">{esAdmin ? 'Administración' : vista?.orgNombre ?? org?.nombre ?? ''}</span>
+            {perfil && (
+              <button type="button" onClick={() => setMenu(true)} aria-label="Abrir el menú" aria-expanded={menu} className="w-10 h-10 -mr-2 grid place-items-center shrink-0 hover:bg-marfil/[0.06]">
+                <Menu size={20} aria-hidden="true" />
+              </button>
             )}
-          </Enlace>
-          {perfil && links.length > 0 && (
-            <div className="hidden tab:block ml-2 desk:ml-4">
-              <MenuSecciones links={links} perfil={perfil} />
+          </header>
+
+          {vista && (
+            <div className="bg-bosque text-marfil text-sm">
+              <div className="wrap flex flex-wrap items-center gap-x-4 gap-y-1 py-2.5">
+                <Eye size={16} aria-hidden="true" />
+                <span className="flex-1 min-w-[200px]">
+                  Viendo como <strong>{vista.nombre ?? ROTULO_ROL[vista.rol]}</strong>, {ROTULO_ROL[vista.rol].toLowerCase()} de {vista.orgNombre}
+                  {vista.rol !== 'titular' && vista.areas.length > 0 ? ` (${vista.areas.join(', ')})` : ''}. Solo lectura.
+                </span>
+                <button type="button" onClick={salirVistaPrevia} className="font-medium underline underline-offset-4 hover:no-underline min-h-[40px]">
+                  Salir de la vista
+                </button>
+              </div>
             </div>
           )}
-          <div className="flex-1" />
-          {perfil && links.length > 0 && (
-            <div className="tab:hidden shrink-0">
-              <MenuSecciones links={links} perfil={perfil} compacto />
-            </div>
-          )}
-          {perfil && (
-            <div className="hidden tab:flex items-center gap-5 text-sm">
-              {!vista && <SelectorNegocio perfil={perfil} />}
-              <span className="hidden desk:flex flex-col items-end leading-tight">
-                <span className="font-medium truncate max-w-[220px]">{perfil.nombre || perfil.email}</span>
-                <span className="text-[11px] uppercase tracking-[0.16em] text-piedra">{cargoDe(perfil)}</span>
-              </span>
-              <button
-                type="button"
-                onClick={salir}
-                className="inline-flex items-center gap-2 h-10 px-4 border border-tinta rounded-control font-medium transition-colors duration-150 hover:bg-tinta hover:text-marfil"
-              >
-                <LogOut size={15} aria-hidden="true" /> Salir
+
+          <main className={`flex-1 ${ancho === 'angosto' ? 'wrap max-w-[560px] py-10' : ''}`}>{children}</main>
+
+          <footer className="wrap w-full">
+            <p className="py-6 border-t border-separador text-[12.5px] text-piedra leading-relaxed">
+              Portal de clientes de FIRMA · Información confidencial, alcanzada por el secreto profesional ·{' '}
+              <a href="mailto:agustin@firmasvc.com" className="underline underline-offset-2 hover:text-bosque">
+                agustin@firmasvc.com
+              </a>
+            </p>
+          </footer>
+        </div>
+
+        {/* Barra inferior del celular */}
+        {perfil && inferiores.length > 0 && (
+          <nav aria-label="Secciones principales" className="desk:hidden fixed inset-x-0 bottom-0 z-40 bg-papel border-t border-borde-suave pb-[env(safe-area-inset-bottom)]">
+            <div className="grid" style={{ gridTemplateColumns: `repeat(${inferiores.length + 1}, minmax(0, 1fr))` }}>
+              {inferiores.map((x) => {
+                const Icono = x.icono;
+                const n = x.clave === 'asuntos' ? contadores.asuntos : x.clave === 'firmas' ? contadores.firmas : undefined;
+                return (
+                  <Enlace
+                    key={x.clave}
+                    a={x.a}
+                    aria-current={x.activo ? 'page' : undefined}
+                    className={`relative flex flex-col items-center justify-center gap-1 h-16 text-[11.5px] ${x.activo ? 'text-bosque font-semibold' : 'text-piedra'}`}
+                  >
+                    {x.activo && <span aria-hidden="true" className="absolute top-0 inset-x-[28%] h-[2px] bg-bosque" />}
+                    <span className="relative">
+                      <Icono size={21} strokeWidth={1.75} aria-hidden="true" />
+                      {n ? (
+                        <span className="absolute -top-1.5 -right-2.5 min-w-[17px] h-[17px] px-1 grid place-items-center rounded-pastilla bg-bosque text-marfil text-[10.5px] font-semibold tabular-nums" aria-label={`${n} pendientes`}>
+                          {n}
+                        </span>
+                      ) : null}
+                    </span>
+                    {x.corto}
+                  </Enlace>
+                );
+              })}
+              <button type="button" onClick={() => setMenu(true)} className="flex flex-col items-center justify-center gap-1 h-16 text-[11.5px] text-piedra">
+                <Menu size={21} strokeWidth={1.75} aria-hidden="true" />
+                Más
               </button>
             </div>
-          )}
-        </div>
-      </header>
+          </nav>
+        )}
 
-      <main className={`flex-1 ${ancho === 'angosto' ? 'wrap max-w-[520px] py-14' : ''}`}>{children}</main>
-
-      <footer className="bg-carbon text-calido">
-        <div className="wrap py-8 flex flex-wrap items-center justify-between gap-4 text-sm">
-          <Logo variant="oscuro" className="h-9" />
-          <span>Portal de clientes · Información confidencial, alcanzada por el secreto profesional.</span>
-          <a href="mailto:agustin@firmasvc.com" className="hover:text-marfil transition-colors duration-150">
-            agustin@firmasvc.com
-          </a>
-        </div>
-      </footer>
-    </div>
+        <PanelMenu abierto={menu} alCerrar={() => setMenu(false)}>
+          {lateral}
+        </PanelMenu>
+      </div>
+    </DensidadBotones.Provider>
   );
 };
 
 /* ------------------------------------------------------------------ */
-/* Encabezado de página con el símbolo como marca de agua              */
+/* Encabezado de página, a escala de aplicación                        */
 /* ------------------------------------------------------------------ */
 export const Encabezado: React.FC<{
   eyebrow?: React.ReactNode;
@@ -297,22 +508,15 @@ export const Encabezado: React.FC<{
   /** Muestra Ver tutorial si la sección tiene video grabado. */
   tutorial?: ClaveTutorial;
 }> = ({ eyebrow, titulo, bajada, acciones, grande, tutorial }) => (
-  <section className="relative overflow-hidden" style={{ borderBottom: '1px solid rgba(27,31,27,0.12)' }}>
-    <img
-      src={simboloClaro}
-      alt=""
-      aria-hidden="true"
-      className="absolute right-[-6%] top-1/2 -translate-y-1/2 pointer-events-none select-none w-[min(70vw,640px)]"
-      style={{ opacity: 0.05, maxWidth: 'none' }}
-    />
-    <div className={`wrap relative flex flex-wrap items-end justify-between gap-6 ${grande ? 'pt-14 pb-12 desk:pt-20 desk:pb-16' : 'pt-10 pb-9 desk:pt-14 desk:pb-11'}`}>
-      <div className="flex flex-col gap-4 max-w-[760px]">
-        {eyebrow && <p className="eyebrow text-piedra">{eyebrow}</p>}
-        <h1 className={grande ? 'h1' : 'h2'}>{titulo}</h1>
-        {bajada && <p className="text-piedra text-[17px] leading-[1.55] max-w-[52ch]">{bajada}</p>}
+  <section className="wrap pt-7 pb-2 desk:pt-10">
+    <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
+      <div className="flex flex-col gap-2 min-w-0 max-w-[760px]">
+        {eyebrow && <p className="text-[13px] font-medium text-piedra">{eyebrow}</p>}
+        <h1 className={grande ? 'p-titulo-grande' : 'p-titulo'}>{titulo}</h1>
+        {bajada && <p className="text-piedra text-[15px] leading-[1.55] max-w-[64ch]">{bajada}</p>}
       </div>
       {(acciones || tutorial) && (
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
           {tutorial && <BotonTutorial clave={tutorial} />}
           {acciones}
         </div>
@@ -369,7 +573,7 @@ export const TituloSeccion: React.FC<{ eyebrow?: string; titulo: React.ReactNode
 /* ------------------------------------------------------------------ */
 export function Pestanas<T extends string>({ items, activa, alCambiar }: { items: { clave: T; titulo: string; cuenta?: number }[]; activa: T; alCambiar: (c: T) => void }) {
   return (
-    <div className="flex gap-6 overflow-x-auto scrollbar-hide" style={{ borderBottom: '1px solid rgba(27,31,27,0.15)' }} role="tablist">
+    <div className="flex gap-6 overflow-x-auto scrollbar-hide border-b border-borde-suave" role="tablist">
       {items.map((i) => (
         <button
           key={i.clave}
@@ -377,10 +581,12 @@ export function Pestanas<T extends string>({ items, activa, alCambiar }: { items
           role="tab"
           aria-selected={activa === i.clave}
           onClick={() => alCambiar(i.clave)}
-          className={`pb-3 -mb-px text-sm font-medium whitespace-nowrap border-b-2 transition-colors duration-150 ${activa === i.clave ? 'border-bosque text-bosque' : 'border-transparent text-piedra hover:text-tinta'}`}
+          className={`inline-flex items-center gap-1.5 min-h-[44px] -mb-px text-[14px] font-medium whitespace-nowrap border-b-2 transition-colors duration-150 ${activa === i.clave ? 'border-bosque text-bosque' : 'border-transparent text-piedra hover:text-tinta'}`}
         >
           {i.titulo}
-          {i.cuenta !== undefined && <span className="ml-1.5 tabular-nums text-xs opacity-70">{i.cuenta}</span>}
+          {i.cuenta !== undefined && (
+            <span className={`min-w-[20px] h-[20px] px-1.5 grid place-items-center rounded-pastilla tabular-nums text-[11.5px] ${activa === i.clave ? 'bg-bosque-suave text-bosque' : 'bg-separador text-piedra'}`}>{i.cuenta}</span>
+          )}
         </button>
       ))}
     </div>
@@ -398,7 +604,7 @@ export const Interruptor: React.FC<{ activo: boolean; alCambiar?: (v: boolean) =
       aria-checked={activo}
       disabled={deshabilitado}
       onClick={() => alCambiar?.(!activo)}
-      className={`relative shrink-0 w-11 h-6 mt-0.5 border rounded-control transition-colors duration-150 ${activo ? 'bg-bosque border-bosque' : 'bg-white border-[rgba(27,31,27,0.35)]'}`}
+      className={`relative shrink-0 w-11 h-6 mt-0.5 border rounded-control transition-colors duration-150 ${activo ? 'bg-bosque border-bosque' : 'bg-white border-borde'}`}
     >
       <span className={`absolute top-[3px] w-4 h-4 transition-all duration-150 ${activo ? 'left-[23px] bg-marfil' : 'left-[3px] bg-tinta'}`} />
     </button>
@@ -414,20 +620,21 @@ export const Interruptor: React.FC<{ activo: boolean; alCambiar?: (v: boolean) =
 /* ------------------------------------------------------------------ */
 export const Campo: React.FC<{ etiqueta: string; ayuda?: string; children: React.ReactNode }> = ({ etiqueta, ayuda, children }) => (
   <label className="block">
-    <span className="block text-[11px] font-medium uppercase tracking-[0.16em] text-piedra mb-2">{etiqueta}</span>
+    <span className="block text-[13px] font-medium text-tinta mb-1.5">{etiqueta}</span>
     {children}
-    {ayuda && <span className="block text-xs text-piedra mt-1.5">{ayuda}</span>}
+    {ayuda && <span className="block text-[12.5px] leading-[1.45] text-piedra mt-1.5">{ayuda}</span>}
   </label>
 );
 
+/** Borde con 3,6 a 1 sobre blanco (WCAG pide 3 a 1) y foco de 2 px en verde bosque. */
 export const claseInput =
-  'w-full h-12 px-3.5 bg-white border border-[rgba(27,31,27,0.22)] rounded-control text-[15px] transition-colors duration-150 hover:border-[rgba(27,31,27,0.45)] focus:outline-none focus:border-bosque focus:ring-1 focus:ring-bosque disabled:bg-marfil-oscuro disabled:text-piedra disabled:hover:border-[rgba(27,31,27,0.22)]';
+  'w-full h-11 px-3.5 bg-white border border-borde rounded-control text-[15px] placeholder:text-piedra/70 transition-[border-color,box-shadow] duration-150 hover:border-tinta focus:outline-none focus:border-bosque focus:ring-2 focus:ring-bosque/25 disabled:bg-marfil-oscuro disabled:text-piedra disabled:hover:border-borde';
 
 export const Aviso: React.FC<{ tipo?: 'error' | 'ok' | 'info'; children: React.ReactNode }> = ({ tipo = 'info', children }) => {
   const estilos = {
     error: 'border-peligro bg-peligro-suave text-peligro-fuerte',
     ok: 'border-bosque bg-bosque-suave text-bosque',
-    info: 'border-tinta bg-marfil-oscuro text-tinta',
+    info: 'border-borde bg-papel text-tinta',
   }[tipo];
   return (
     <div role={tipo === 'error' ? 'alert' : 'status'} className={`border-l-[3px] rounded-control px-4 py-3 text-sm leading-[1.5] ${estilos}`}>
@@ -447,12 +654,12 @@ export const Cargando: React.FC = () => (
 export const Etiqueta: React.FC<{ children: React.ReactNode; tono?: 'bosque' | 'piedra' | 'alerta' | 'tinta' }> = ({ children, tono = 'piedra' }) => {
   const c = {
     bosque: 'text-bosque bg-bosque-suave',
-    piedra: 'text-piedra bg-marfil-oscuro',
+    piedra: 'text-piedra bg-separador',
     alerta: 'text-peligro bg-peligro-suave',
-    tinta: 'text-marfil bg-tinta',
+    tinta: 'text-tinta bg-borde-suave',
   }[tono];
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-control text-[11px] font-medium uppercase tracking-[0.12em] whitespace-nowrap ${c}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-[3px] rounded-pastilla text-[12px] font-medium whitespace-nowrap ${c}`}>
       <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-current" />
       {children}
     </span>
