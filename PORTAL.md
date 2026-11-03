@@ -686,6 +686,7 @@ Colores, radios, sombras y tipografías están en `index.css`, dentro de `@theme
 | Grupo | Tokens |
 |---|---|
 | Marca | `marfil`, `marfil-oscuro`, `marfil-claro`, `carbon`, `tinta`, `piedra`, `calido`, `bosque`, `bosque-dark`, `bosque-suave`, `bosque-claro` |
+| Portal | `papel` (tarjetas), `borde` (campos, 3,6 a 1 sobre blanco), `borde-suave` (tarjetas), `separador` (filas), `lateral-texto` y `lateral-tenue` (barra lateral) |
 | Líneas | `linea`, `linea-suave` |
 | Estados | `peligro`, `peligro-fuerte`, `peligro-suave`, `peligro-borde`, `peligro-claro`, `aviso`, `aviso-suave`, `aviso-claro`, `urgente` |
 | Radios | `control`, `tarjeta` (0, ángulo recto) y `pastilla` |
@@ -693,6 +694,25 @@ Colores, radios, sombras y tipografías están en `index.css`, dentro de `@theme
 | Tipografía | `font-sans` (Archivo), `font-heading` (Bitter) |
 
 Los mails, el PDF firmado y los dibujos en canvas no leen CSS. Toman los colores de `api/_lib/marca.ts`, que tiene que coincidir con `index.css`; `npm run marca:verificar` lo controla. No escribas colores con `[#...]` en los componentes: si falta uno, sumalo como token.
+
+`npm run marca:verificar` también controla el contraste WCAG 2.2 AA de los pares que usa el portal: 4,5 a 1 para texto y 3 a 1 para el contorno de un campo. Si cambiás un color y deja de pasar, el script dice qué par falla y con cuánto.
+
+### Diseño del portal
+
+El portal usa una escala de aplicación, distinta de la de la landing. Todo vive dentro de `Marco` (`components/portal/ui.tsx`), que lleva la clase `.portal`.
+
+| Pieza | Cómo es |
+|---|---|
+| Barra lateral | Verde bosque (`bosque-dark`), 264 px, fija en computadora. Bloque de la empresa con su logo, rol y plan; si la persona es miembro de varios negocios, ese bloque es el selector. Secciones agrupadas en Expediente y Tu negocio (para FIRMA, Clientes, Gestión y FIRMA), con contadores de lo que espera en Asuntos y en Firmas. Abajo, el acceso a la agenda y la cuenta con Salir |
+| Celular | Barra superior verde bosque con el logo y el menú, y barra inferior con las cuatro secciones más usadas según el rol y Más, que abre el mismo lateral |
+| Encabezado | `Encabezado` es compacto: línea de contexto en 13 px, título en Bitter 700 de 26 a 36 px (`p-titulo`, `p-titulo-grande`), bajada en 15 px y acciones a la derecha |
+| Tarjetas | `p-tarjeta` (papel con filete `borde-suave`) y `p-tarjeta-cabeza` para el título de la tarjeta en Bitter 600. El oscuro queda para el lateral y los paneles de acento (`panel-carbon`, que en el portal se ve verde bosque) |
+| Escala | Dentro de `.portal`, `.section` mide 24 a 32 px de alto, `.wrap` llega a 1240 px, `.h1` a `.h3` y `.eyebrow` bajan a escala de app y sin versalitas. Las tablas (`.tabla`) y las cifras (`.cifras`) se ven en papel |
+| Botones | `Marco` envuelve todo en `DensidadBotones` compacta: botones de 36 a 48 px y el secundario sobre papel. La landing sigue igual |
+| Campos | `claseInput` con borde `borde`, foco de 2 px en verde bosque, etiquetas de 13 px (`Campo`). El foco visible de teclado vale para todo el sitio |
+| Estados | `Etiqueta` es una pastilla de 12 px con mayúscula inicial |
+
+El inicio (`Inicio.tsx`) muestra lo que la persona tiene que resolver, con datos reales: firmas que le faltan firmar o vencen en tres días, asuntos que esperan su respuesta o vencen en una semana, pedidos de contrato sin enviar, problemas con el débito y, para el closer, clientes del CRM con la firma pendiente. Arriba van las cifras y al costado el plan, la agenda y los accesos. FIRMA ve un inicio propio con los problemas de cobro, los errores de sellado, los pedidos nuevos y los asuntos que vencen en la semana.
 
 ## Multitenant: membresías, equipo, variables, planes y bitácora
 
@@ -714,7 +734,7 @@ Etapa 2, migraciones 0036 a 0043.
 
 | Dónde | Qué |
 |---|---|
-| Encabezado del portal | Selector de negocio, solo para quien es miembro de más de uno. Al cambiar, el portal vuelve al inicio con el negocio nuevo |
+| Barra lateral del portal | Selector de negocio en el bloque de la empresa, solo para quien es miembro de más de uno. Al cambiar, el portal vuelve al inicio con el negocio nuevo |
 | CRM › Equipo (`/portal/crm/equipo`) | Alta, edición y baja (desactivar) del equipo comercial. Lo administra el titular |
 | CRM › Servicios › Variables de la empresa (`/portal/crm/variables`) | Variables propias y los valores de las de ámbito empresa. Las de ámbito cliente se cargan en la ficha |
 | Ficha del cliente | Closer, setter y responsable elegidos del equipo, y los datos propios de la empresa. El responsable anotado a mano se sigue viendo hasta que se elige a alguien |
