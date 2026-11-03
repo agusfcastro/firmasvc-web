@@ -50,7 +50,8 @@ export const Enlace: React.FC<React.AnchorHTMLAttributes<HTMLAnchorElement> & { 
 );
 
 async function salir() {
-  await supabase?.auth.signOut();
+  // Solo esta sesión: sin scope, Supabase cierra la cuenta en todos los dispositivos.
+  await supabase?.auth.signOut({ scope: 'local' });
   navegar('/portal/ingresar');
 }
 

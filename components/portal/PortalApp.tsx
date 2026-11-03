@@ -93,7 +93,7 @@ export const PortalApp: React.FC = () => {
         <Button
           variant="ghost"
           onClick={async () => {
-            await supabase?.auth.signOut();
+            await supabase?.auth.signOut({ scope: 'local' });
             navegar('/portal/ingresar');
           }}
         >

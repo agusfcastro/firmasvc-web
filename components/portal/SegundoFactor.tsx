@@ -126,7 +126,7 @@ export const SegundoFactor: React.FC<{ estado: EstadoSesion }> = ({ estado }) =>
         type="button"
         className="mt-6 text-sm underline underline-offset-4 hover:text-bosque"
         onClick={async () => {
-          await supabase?.auth.signOut();
+          await supabase?.auth.signOut({ scope: 'local' });
           navegar('/portal/ingresar');
         }}
       >
