@@ -11,6 +11,7 @@ import { CampoVariable, sinVacios } from './variablesPropias';
 import { CAMPOS_CASO, VALORES_CASO } from './reglasCasos';
 import { CasosCliente } from './Casos';
 import { AsuntosCliente } from './AsuntosCliente';
+import { PerfilCliente } from './PerfilCliente';
 import { ContratoFirma } from './contratoFirma';
 import { DatosCliente, filaIdentidad, type Identidad } from './DatosCliente';
 
@@ -472,6 +473,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
 
         {verCasos && <CasosCliente clienteId={id} moneda={moneda} soloLectura={soloLectura} alContar={setCasosAbiertos} />}
         {verCasos && <AsuntosCliente clienteId={id} soloLectura={soloLectura} esFirma={esAdmin && !soloLectura} />}
+        {verCasos && <PerfilCliente clienteId={id} soloLectura={soloLectura} mostrarPlan={puedeGestionar} />}
 
         <div className="grid gap-12 desk:grid-cols-[7fr_5fr] desk:gap-14 items-start">
           {/* Datos */}

@@ -747,3 +747,24 @@ Los contratos del CRM completan también las variables propias: las de la empres
 Los avisos por mail de asuntos y documentos, y el firmante por defecto de la empresa, salen de las membresías: alguien que pertenece a dos negocios los recibe de los dos. El mail de los lunes todavía se arma con el negocio activo de cada persona.
 
 Pendiente: que las funciones del servidor lean y escriban con el token del usuario en vez de la clave de servicio donde no necesitan saltear permisos (hoy validan el acceso con `acceso_vigente` y siguen usando la clave de servicio), y el mail de los lunes con varios negocios.
+
+## Perfil conductual del cliente
+
+Migración `0045_perfiles_conductuales.sql`. Es la versión 0: trabaja con lo que el CRM ya tiene y con lo que registra el equipo. Cuando entre Fathom, los hallazgos de las llamadas se suman como señales de origen `llamada`, sin cambiar el modelo. Solo en negocios con la funcionalidad `perfiles_conductuales` (plan Blindaje o excepción en `org_funcionalidades`). Lo ven y lo deciden FIRMA, el titular y el CSM, como los casos de conflicto.
+
+| Pieza | Qué es |
+|---|---|
+| `arquetipos` | Catálogo cerrado de FIRMA: Expectativa de resultado garantizado, Sensibilidad al precio, Baja adopción y Escalada temprana. Cada uno con umbral de puntos, ventana (180 días) y vigencia (90 días) |
+| `senal_tipos` | Lo que suma a cada arquetipo y cuántos puntos. Las de origen `crm` salen solas; las `manual` las carga el equipo |
+| `perfil_senales` | La evidencia de cada cliente. Una señal no se edita: se descarta con un motivo |
+| `perfiles_conductuales` | La propuesta (`propuesto`) y la decisión de una persona (`confirmado` o `rechazado`, con quién y cuándo). Todo perfil vence solo (`vencido`) |
+
+**Señales automáticas.** Cuota pendiente con más de 7 días de atraso (solo si el negocio sigue la cobranza), caso de conflicto por promesa o expectativa, caso por cobro, contracargo, caso en legales o difusión y caso abierto dentro de los 60 días del onboarding.
+
+**Cómo se propone.** `perfil_sincronizar(cliente)` trae las señales del CRM, pasa a vencido lo que cumplió su fecha y propone cada arquetipo que suma el umbral con señales no descartadas dentro de la ventana. No propone si ya hay uno abierto, ni repite un perfil rechazado si no hay evidencia nueva. La ficha lo llama al abrirse.
+
+**Decisión.** `perfil_decidir(perfil, confirmar, motivo)`. Rechazar exige motivo. Confirmar renueva la vigencia. Las dos quedan en la bitácora del negocio. Los perfiles no se cambian por fuera de estas funciones.
+
+**Pantalla.** Ficha del cliente › Perfil conductual: los perfiles abiertos con las señales que los sostienen y los botones Confirmar y Rechazar, el formulario para registrar una señal (qué hizo o dijo el cliente, no opiniones) y las listas de todas las señales y de los perfiles anteriores. Sin la funcionalidad, el titular ve una línea con lo que ofrece Blindaje.
+
+Para cambiar el catálogo (un arquetipo, un peso o un umbral) se agrega una migración con el `insert ... on conflict do update`, como en la 0045.
