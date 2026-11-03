@@ -134,26 +134,28 @@ async function avisoNovedad(sb: SupabaseClient, quien: Quien, id: string, base: 
 
   const avisados = await avisarA(
     destinatarios,
-    (d) => {
-      const parrafos = deFirma
-        ? [hola(d), `Hay una novedad en <strong>${escapar(asunto.titulo)}</strong>:`, `<em>${conSaltos(nov.texto)}</em>`]
-        : [hola(d), `${escapar(quien.nombre || quien.email)}, de <strong>${escapar(empresa)}</strong>, escribió en <strong>${escapar(asunto.titulo)}</strong>:`, `<em>${conSaltos(nov.texto)}</em>`];
-      if (deFirma) {
-        parrafos.push(`Estado: <strong>${escapar(ESTADO_ASUNTO[asunto.estado] ?? asunto.estado)}</strong>.`);
-        if (asunto.proximo_paso) parrafos.push(`Próximo paso: ${escapar(asunto.proximo_paso)}`);
-      }
-      return {
-        asunto: `${prefijoCodigo(asunto.codigo)}${deFirma ? `Novedad en ${asunto.titulo}` : `${empresa} escribió en ${asunto.titulo}`}`,
-        html: plantillaMail({
-          seccion: 'Estado de asuntos',
-          titulo: deFirma ? 'Hay una novedad en tu asunto' : 'Te escribieron en un asunto',
-          anticipo: nov.texto.slice(0, 120),
-          parrafos,
-          boton: { texto: deFirma ? 'Ver el asunto' : 'Responder en el portal', url },
-          pie: deFirma ? 'Podés responder desde el portal. Si no esperabas este mail, avisanos.' : undefined,
-        }),
-      };
-    },
+    (d) => ({
+      asunto: `${prefijoCodigo(asunto.codigo)}${deFirma ? `Novedad en ${asunto.titulo}` : `${empresa} escribió en ${asunto.titulo}`}`,
+      html: plantillaMail({
+        seccion: 'Estado de asuntos',
+        titulo: deFirma ? 'Hay una novedad en tu asunto.' : 'Te escribieron en un asunto.',
+        resalte: deFirma ? 'novedad' : 'Te escribieron',
+        anticipo: nov.texto.slice(0, 120),
+        parrafos: deFirma
+          ? [hola(d), `FIRMA actualizó <strong>${escapar(asunto.titulo)}</strong>.`]
+          : [hola(d), `${escapar(quien.nombre || quien.email)}, de <strong>${escapar(empresa)}</strong>, escribió en <strong>${escapar(asunto.titulo)}</strong>.`],
+        cita: conSaltos(nov.texto),
+        datos: deFirma
+          ? [
+              { rotulo: 'Estado', valor: escapar(ESTADO_ASUNTO[asunto.estado] ?? asunto.estado) },
+              { rotulo: 'Próximo paso', valor: asunto.proximo_paso ? escapar(asunto.proximo_paso) : '' },
+            ]
+          : undefined,
+        boton: { texto: deFirma ? 'Ver el asunto' : 'Responder en el portal', url },
+        pie: deFirma ? 'Si tenés una duda, escribinos en el chat del asunto y te respondemos ahí.' : undefined,
+        firma: deFirma,
+      }),
+    }),
     deFirma ? FIRMA_MAIL : quien.email,
   );
 
@@ -202,21 +204,22 @@ async function avisoAsunto(sb: SupabaseClient, quien: Quien, id: string, base: s
 
   const avisados = await avisarA(
     await otraParte(sb, quien, asunto.organizacion_id),
-    (d) => {
-      const parrafos = [hola(d), `${escapar(quien.nombre || quien.email)}, de <strong>${escapar(empresa)}</strong>, abrió un asunto en el portal: <strong>${escapar(asunto.titulo)}</strong>.`];
-      parrafos.push(`Tipo: <strong>${escapar(tipo)}</strong>.${cliente ? ` Cliente: <strong>${escapar(`${cliente.nombre}${cliente.codigo ? ` (${cliente.codigo})` : ''}`)}</strong>.` : ''}`);
-      if (texto) parrafos.push(`<em>${conSaltos(texto.length > 1200 ? `${texto.slice(0, 1200)}…` : texto)}</em>`);
-      return {
-        asunto: `${prefijoCodigo(asunto.codigo)}Nuevo asunto de ${empresa}: ${asunto.titulo}`,
-        html: plantillaMail({
-          seccion: 'Estado de asuntos',
-          titulo: 'Nuevo asunto en el portal',
-          anticipo: (texto || asunto.titulo).slice(0, 120),
-          parrafos,
-          boton: { texto: 'Ver el asunto', url },
-        }),
-      };
-    },
+    (d) => ({
+      asunto: `${prefijoCodigo(asunto.codigo)}Nuevo asunto de ${empresa}. ${asunto.titulo}`,
+      html: plantillaMail({
+        seccion: 'Estado de asuntos',
+        titulo: 'Abrieron un asunto nuevo.',
+        resalte: 'asunto nuevo.',
+        anticipo: (texto || asunto.titulo).slice(0, 120),
+        parrafos: [hola(d), `${escapar(quien.nombre || quien.email)}, de <strong>${escapar(empresa)}</strong>, abrió <strong>${escapar(asunto.titulo)}</strong> en el portal.`],
+        cita: texto ? conSaltos(texto.length > 1200 ? `${texto.slice(0, 1200)}…` : texto) : undefined,
+        datos: [
+          { rotulo: 'Tipo', valor: escapar(tipo) },
+          { rotulo: 'Cliente', valor: cliente ? escapar(`${cliente.nombre}${cliente.codigo ? ` (${cliente.codigo})` : ''}`) : '' },
+        ],
+        boton: { texto: 'Ver el asunto', url },
+      }),
+    }),
     quien.email,
   );
   return json({ ok: true, avisados });
@@ -272,15 +275,17 @@ async function avisoMensaje(sb: SupabaseClient, quien: Quien, id: string, base: 
       asunto: `${prefijoCodigo(asunto.codigo)}${deFirma ? `FIRMA te escribió sobre ${asunto.titulo}` : `${asunto.empresa} te escribió sobre ${asunto.titulo}`}`,
       html: plantillaMail({
         seccion: 'Estado de asuntos',
-        titulo: 'Tenés mensajes nuevos',
+        titulo: 'Tenés mensajes nuevos.',
+        resalte: 'mensajes nuevos.',
         anticipo: msj.texto.slice(0, 120),
         parrafos: [
           hola(d),
-          `${deFirma ? 'FIRMA' : `${escapar(quien.nombre || quien.email)}, de <strong>${escapar(asunto.empresa)}</strong>,`} te escribió en el chat de <strong>${escapar(asunto.titulo)}</strong>:`,
-          `<em>${conSaltos(msj.texto.length > 600 ? `${msj.texto.slice(0, 600)}…` : msj.texto)}</em>`,
-          'Si llegan más mensajes en los próximos 15 minutos, los vas a ver en el portal sin otro mail.',
+          `${deFirma ? 'FIRMA' : `${escapar(quien.nombre || quien.email)}, de <strong>${escapar(asunto.empresa)}</strong>,`} te escribió en el chat de <strong>${escapar(asunto.titulo)}</strong>.`,
         ],
+        cita: conSaltos(msj.texto.length > 600 ? `${msj.texto.slice(0, 600)}…` : msj.texto),
+        nota: 'Si llegan más mensajes en los próximos 15 minutos, los ves en el portal sin otro mail.',
         boton: { texto: 'Responder en el portal', url },
+        firma: deFirma,
       }),
     }),
     deFirma ? FIRMA_MAIL : quien.email,
@@ -304,13 +309,15 @@ async function avisoArchivo(sb: SupabaseClient, quien: Quien, id: string, base: 
       asunto: `${prefijoCodigo(asunto.codigo)}Nuevo documento en ${asunto.titulo}`,
       html: plantillaMail({
         seccion: 'Estado de asuntos',
-        titulo: 'Se subió un documento',
+        titulo: 'Hay un documento nuevo.',
+        resalte: 'documento nuevo.',
         anticipo: arch.nombre,
         parrafos: [
           hola(d),
           `${deFirma ? 'FIRMA' : `${escapar(quien.nombre || quien.email)}, de <strong>${escapar(asunto.empresa)}</strong>,`} subió <strong>${escapar(arch.nombre)}</strong> a <strong>${escapar(asunto.titulo)}</strong>.`,
         ],
         boton: { texto: 'Ver el documento', url: `${base}/portal/asuntos/${asunto.id}?pestana=documentos` },
+        firma: deFirma,
       }),
     }),
     deFirma ? FIRMA_MAIL : quien.email,
@@ -340,17 +347,22 @@ async function avisoDocumento(sb: SupabaseClient, quien: Quien, id: string, base
   const avisados = await avisarA(
     destinatarios,
     (d) => ({
-      asunto: `Nuevo documento: ${doc.titulo}`,
+      asunto: doc.es_protocolo ? `Protocolo nuevo para tu equipo. ${doc.titulo}` : `Documento nuevo en tu portal. ${doc.titulo}`,
       html: plantillaMail({
-        seccion: 'Documentos',
-        titulo: 'Tenés un documento nuevo',
+        seccion: doc.es_protocolo ? 'Protocolos' : 'Documentos',
+        titulo: doc.es_protocolo ? 'Hay un protocolo nuevo.' : 'Tenés un documento nuevo.',
+        resalte: doc.es_protocolo ? 'protocolo nuevo.' : 'documento nuevo.',
         anticipo: doc.titulo,
         parrafos: [
           hola(d),
-          `FIRMA sumó <strong>${escapar(doc.titulo)}</strong>${doc.version ? ` (versión ${escapar(doc.version)})` : ''} a la documentación de tu empresa.`,
+          doc.es_protocolo
+            ? `FIRMA sumó <strong>${escapar(doc.titulo)}</strong> a los protocolos de tu equipo. Miralo antes de la próxima llamada, cobro o reclamo en el que aplique.`
+            : `FIRMA sumó <strong>${escapar(doc.titulo)}</strong> a la documentación de tu empresa.`,
           ...(doc.descripcion ? [conSaltos(doc.descripcion)] : []),
         ],
-        boton: { texto: 'Ver documentos', url: `${base}/portal/documentos` },
+        datos: [{ rotulo: 'Versión', valor: doc.version ? escapar(doc.version) : '' }],
+        boton: doc.es_protocolo ? { texto: 'Ver el protocolo', url: `${base}/portal/protocolos` } : { texto: 'Ver documentos', url: `${base}/portal/documentos` },
+        firma: true,
       }),
     }),
     FIRMA_MAIL,

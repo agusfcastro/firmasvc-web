@@ -18,13 +18,19 @@ export const COLOR = {
   bosque: '#173A2F',
   bosqueSuave: '#E4E9E3',
   linea: '#DEDBD0',
+  /** Tonos del portal en negro, que también usan los mails. */
+  niebla: '#ECE9E1',
+  grafito: '#33362F',
+  separador: '#EEECE5',
   blanco: '#FFFFFF',
 } as const;
 
-/** Pilas tipográficas con respaldo para clientes de correo que no cargan fuentes web. */
+/**
+ * Pila tipográfica de los mails, en Archivo como el portal. Apple Mail y Outlook para Mac
+ * la toman de firmasvc.com/mail y el resto de los clientes cae en Helvetica o Arial.
+ */
 export const FUENTE = {
-  titulo: "'Bitter', Georgia, 'Times New Roman', serif",
-  texto: "'Archivo', Arial, Helvetica, sans-serif",
+  texto: "'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif",
 } as const;
 
 /** #RRGGBB a componentes entre 0 y 1, como los pide pdf-lib. */

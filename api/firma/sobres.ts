@@ -194,6 +194,14 @@ function fechaHora(iso: string | null): string {
   return `${f} (hora de Buenos Aires)`;
 }
 
+/** Fecha de vencimiento para leer en un mail. Por ejemplo, viernes 6 de noviembre a las 18:00 (hora de Buenos Aires). */
+function venceElDia(iso: string): string {
+  const d = new Date(iso);
+  const dia = new Intl.DateTimeFormat('es-AR', { timeZone: ZONA, weekday: 'long', day: 'numeric', month: 'long' }).format(d).replace(',', '');
+  const hora = new Intl.DateTimeFormat('es-AR', { timeZone: ZONA, hour: '2-digit', minute: '2-digit', hour12: false }).format(d);
+  return `${dia} a las ${hora} (hora de Buenos Aires)`;
+}
+
 function enmascarar(email: string): string {
   const [usuario, dominio] = email.split('@');
   if (!dominio) return email;
@@ -256,24 +264,29 @@ async function notificarFirmante(
 ): Promise<string | null> {
   const emisor = await nombreEmisor(sb, sobre);
   const responderA = await mailDelCreador(sb, sobre);
-  const parrafos = [
-    `Hola ${escapar(f.nombre)}.`,
-    `${escapar(emisor)} te envió <strong>${escapar(sobre.titulo)}</strong> para que lo leas y lo firmes de forma electrónica.`,
-  ];
-  if (sobre.mensaje) parrafos.push(`<em>${escapar(sobre.mensaje).replace(/\n/g, '<br>')}</em>`);
-  parrafos.push(
-    `Tenés tiempo hasta el ${escapar(fechaHora(sobre.vence_en))}.${sobre.entrega === 'enlace' ? '' : ' Para firmar te vamos a mandar un código a este mismo mail.'}`,
-  );
   const fallo = await enviarMail({
     nombreRemitente: emisor === 'FIRMA' ? 'FIRMA' : `${emisor} vía FIRMA`,
     para: [f.email],
     asunto: `${recordatorio ? 'Recordatorio. ' : ''}Firmá ${sobre.titulo}`,
     html: plantillaMail({
       seccion: 'Firma electrónica',
-      titulo: recordatorio ? 'Tenés un documento pendiente de firma' : 'Tenés un documento para firmar',
-      parrafos,
+      titulo: recordatorio ? 'Todavía falta tu firma.' : 'Tenés un documento para firmar.',
+      resalte: recordatorio ? 'tu firma.' : 'para firmar.',
+      anticipo: `${emisor} te mandó ${sobre.titulo} para firmar.`,
+      parrafos: [
+        `Hola ${escapar(f.nombre)}.`,
+        recordatorio
+          ? `${escapar(emisor)} te mandó <strong>${escapar(sobre.titulo)}</strong> y todavía no lo firmaste. Te lleva unos minutos desde el celular o la computadora.`
+          : `${escapar(emisor)} te mandó <strong>${escapar(sobre.titulo)}</strong> para que lo leas y lo firmes desde el celular o la computadora, sin imprimir ni instalar nada.`,
+      ],
+      cita: sobre.mensaje ? escapar(sobre.mensaje).replace(/\n/g, '<br>') : undefined,
+      datos: [
+        { rotulo: 'Lo envía', valor: escapar(emisor) },
+        { rotulo: 'Vence', valor: escapar(venceElDia(sobre.vence_en)) },
+      ],
+      nota: sobre.entrega === 'enlace' ? undefined : 'Antes de firmar te mandamos un código a este mail, para confirmar que sos vos.',
       boton: { texto: 'Revisar y firmar', url: enlaceFirmante(f) },
-      pie: 'El enlace es personal. No lo reenvíes. Si no esperabas este mail, ignoralo.',
+      pie: 'El enlace es personal, no lo reenvíes. Si no esperabas este mail, ignoralo.',
     }),
     responderA,
   });
@@ -883,11 +896,13 @@ export async function POST(request: Request): Promise<Response> {
         await enviarMail({
           nombreRemitente: emisor === 'FIRMA' ? 'FIRMA' : `${emisor} vía FIRMA`,
           para: [f.email],
-          asunto: `Se anuló ${s.titulo}`,
+          asunto: `Anulado. ${s.titulo}`,
           html: plantillaMail({
             seccion: 'Firma electrónica',
-            titulo: 'El envío a firma se anuló',
-            parrafos: [`Hola ${escapar(f.nombre)}.`, `${escapar(emisor)} anuló <strong>${escapar(s.titulo)}</strong>. Ya no hace falta que lo firmes y el enlace que recibiste dejó de funcionar.`],
+            titulo: 'Ya no hace falta que firmes.',
+            resalte: 'que firmes.',
+            anticipo: `${emisor} anuló ${s.titulo}.`,
+            parrafos: [`Hola ${escapar(f.nombre)}.`, `${escapar(emisor)} anuló <strong>${escapar(s.titulo)}</strong>. El enlace que recibiste dejó de funcionar y no tenés que hacer nada más.`],
           }),
           responderA: q.email,
         });

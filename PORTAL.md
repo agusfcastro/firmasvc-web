@@ -27,7 +27,11 @@ En **Authentication › URL Configuration**
 
 ## 4. Mails con la marca de FIRMA
 
-Los mails del portal y de la firma electrónica salen por Resend con una sola plantilla, la de `api/_lib/mail.ts`. Lleva el logo, los colores de la marca, el botón en verde bosque y el pie con tu firma. El logo se carga desde `https://www.firmasvc.com/mail/firma-lockup.png`.
+Los mails del portal y de la firma electrónica salen por Resend con una sola plantilla, la de `api/_lib/mail.ts`. Van en negro, como el portal y los posteos de @agustin.legales. Cabecera tinta con el logo claro, la sección en pastilla y el título en Archivo pesada con la frase clave resaltada. Abajo el cuerpo blanco con bordes redondeados, el botón tinta y, en los mails que FIRMA le manda a sus clientes, tu foto y tu firma.
+
+La plantilla arma cada mail con piezas fijas, así todos se leen igual. `parrafos` para el texto, `cita` para lo que escribió otra persona, `datos` para filas como Vence o Estado, `codigo` para el código de firma, `bloques` para listas y `boton` para la acción. `resalte` dice qué parte del título va en el bloque claro y `firma` suma tu foto. Los de firma electrónica no la llevan, porque muchas veces los manda otra empresa.
+
+El logo, la foto y la fuente se cargan desde `https://www.firmasvc.com/mail/` (`firma-lockup-claro.png`, `agustin.jpg` y `archivo.woff2`). Apple Mail y Outlook para Mac muestran Archivo; Gmail y el resto usan Helvetica o Arial, con el mismo diseño. `firma-lockup.png` queda para los mails viejos que ya están en las bandejas.
 
 **Qué sale por dónde**
 
@@ -35,9 +39,10 @@ Los mails del portal y de la firma electrónica salen por Resend con una sola pl
 |---|---|---|
 | Invitación al portal | Resend, desde `api/admin/usuarios.ts` | La de FIRMA, automática |
 | Reenviar acceso, desde Usuarios | Resend, desde `api/admin/usuarios.ts` | La de FIRMA, automática |
-| Firma electrónica: invitación, código, recordatorio, firmado y anulado | Resend, desde `api/firma` | La de FIRMA, automática |
+| Firma electrónica: invitación, código, recordatorio, firmado, rechazado y anulado | Resend, desde `api/firma` | La de FIRMA, automática |
 | «Olvidé mi contraseña», desde la pantalla de ingreso | Resend, desde `api/portal/recuperar.ts` | La de FIRMA, automática |
 | Avisos de asuntos y documentos nuevos | Resend, desde `api/portal/avisos.ts` | La de FIRMA, automática |
+| Alertas de vencimientos y mail de los lunes | Resend, desde `api/portal/resumen.ts` | La de FIRMA, automática |
 
 **1. Resend**
 
@@ -59,32 +64,39 @@ Con `RESEND_API_KEY` cargada, Supabase no manda ningún mail del portal. Solo lo
 | Sender email | `portal@firmasvc.com` |
 | Sender name | `FIRMA` |
 
-Después, en **Authentication › Emails › Templates › Reset password**, poné el asunto `Definí tu contraseña del portal de FIRMA` y pegá este HTML:
+Después, en **Authentication › Emails › Templates › Reset password**, poné el asunto `Elegí tu contraseña nueva del portal de FIRMA` y pegá este HTML.
 
 ```html
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light">
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600&family=Bitter:wght@700;900&display=swap" rel="stylesheet">
-<title>Definí tu contraseña</title></head>
+<title>Elegí tu contraseña nueva.</title>
+<style>
+@font-face{font-family:'Archivo';font-style:normal;font-weight:100 900;font-stretch:62% 125%;font-display:swap;src:url(https://www.firmasvc.com/mail/archivo.woff2) format('woff2')}
+@media (max-width:620px){.m-afuera{padding:16px 8px 28px!important}.m-caja{padding-left:24px!important;padding-right:24px!important}.m-titulo{font-size:28px!important}}
+</style></head>
 <body style="margin:0;padding:0;background:#F5F3EC">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent">Enlace para definir tu contraseña.</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F5F3EC"><tr><td align="center" style="padding:36px 16px">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:580px">
-<tr><td style="padding:0 4px 24px">
-<img src="https://www.firmasvc.com/mail/firma-lockup.png" width="200" height="45" alt="firma · Castro &amp; Partners Legal Consulting" style="display:block;border:0;width:200px;height:auto;font-family:'Bitter', Georgia, 'Times New Roman', serif;font-size:24px;font-weight:900;color:#1B1F1B">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent">Tu enlace para elegir una contraseña nueva.&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#F5F3EC" style="background:#F5F3EC"><tr><td class="m-afuera" align="center" style="padding:36px 16px 40px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px">
+<tr><td class="m-caja" bgcolor="#1B1F1B" style="background:#1B1F1B;border-radius:24px 24px 0 0;padding:32px 40px 40px">
+<img src="https://www.firmasvc.com/mail/firma-lockup-claro.png" width="188" height="43" alt="firma · Castro &amp; Partners Legal Consulting" style="display:block;border:0;width:188px;height:auto;font-family:'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;font-size:24px;font-weight:800;color:#F5F3EC">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:32px 0 0"><tr><td bgcolor="#F5F3EC" style="background:#F5F3EC;border-radius:999px;padding:7px 13px 6px;font-family:'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;font-size:11px;line-height:1;font-weight:600;letter-spacing:.16em;text-transform:uppercase;font-stretch:125%;color:#1B1F1B;white-space:nowrap">Portal de clientes</td></tr></table>
+<h1 class="m-titulo" style="margin:18px 0 0;font-family:'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;font-size:34px;line-height:1.14;font-weight:800;letter-spacing:-.02em;color:#F5F3EC">Elegí tu <span style="background:#F5F3EC;color:#1B1F1B;padding:0 6px 2px;white-space:nowrap">contraseña nueva.</span></h1>
 </td></tr>
-<tr><td style="background:#FFFFFF;border:1px solid #DEDBD0;border-top:3px solid #173A2F;padding:36px 32px">
-<p style="margin:0 0 14px;font-family:'Archivo', Arial, Helvetica, sans-serif;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:#6B6553">Portal de clientes</p>
-<h1 style="margin:0 0 22px;font-family:'Bitter', Georgia, 'Times New Roman', serif;font-size:26px;font-weight:900;line-height:1.2;letter-spacing:-.01em;color:#1B1F1B">Definí tu contraseña</h1>
-<p style="margin:0 0 16px;font-family:'Archivo', Arial, Helvetica, sans-serif;font-size:15px;line-height:1.65;color:#1B1F1B">Hola.</p><p style="margin:0 0 16px;font-family:'Archivo', Arial, Helvetica, sans-serif;font-size:15px;line-height:1.65;color:#1B1F1B">Recibimos un pedido para definir la contraseña de tu cuenta en el portal de clientes de FIRMA.</p><table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0 12px"><tr><td style="background:#173A2F">
-<a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:15px 28px;font-family:'Archivo', Arial, Helvetica, sans-serif;font-size:15px;font-weight:600;color:#F5F3EC;text-decoration:none">Definir mi contraseña &rarr;</a>
+<tr><td class="m-caja" bgcolor="#FFFFFF" style="background:#FFFFFF;border-radius:0 0 24px 24px;padding:36px 40px 40px">
+<p style="margin:0 0 16px;font-family:'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;font-size:16px;line-height:1.6;color:#1B1F1B">Hola.</p><p style="margin:0 0 16px;font-family:'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;font-size:16px;line-height:1.6;color:#1B1F1B">Te mandamos un enlace para elegir una contraseña nueva en el portal de clientes de FIRMA. Tocá el botón, elegila y entrás.</p><table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0 0"><tr><td bgcolor="#1B1F1B" style="background:#1B1F1B;border-radius:12px">
+<a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:16px 24px;border-radius:12px;font-family:'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;font-size:15px;line-height:1;font-weight:600;color:#F5F3EC;text-decoration:none">Elegir contraseña nueva&nbsp;&rarr;</a>
 </td></tr></table>
-<p style="margin:0 0 8px;font-family:'Archivo', Arial, Helvetica, sans-serif;font-size:12px;line-height:1.5;color:#6B6553">Si el botón no funciona, copiá este enlace en el navegador:<br><a href="{{ .ConfirmationURL }}" style="color:#173A2F;word-break:break-all">{{ .ConfirmationURL }}</a></p><p style="margin:24px 0 0;padding-top:18px;border-top:1px solid #DEDBD0;font-family:'Archivo', Arial, Helvetica, sans-serif;font-size:12px;line-height:1.55;color:#6B6553">Si no lo pediste vos, ignorá este mail. Tu contraseña actual sigue igual.</p>
+<p style="margin:14px 0 0;font-family:'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;font-size:12px;line-height:1.5;color:#6B6553">Si el botón no funciona, copiá este enlace en el navegador.<br><a href="{{ .ConfirmationURL }}" style="color:#1B1F1B;word-break:break-all">{{ .ConfirmationURL }}</a></p><p style="margin:24px 0 0;font-family:'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;font-size:13px;line-height:1.55;color:#6B6553">El enlace es personal, vence en 24 horas y se usa una sola vez. Si no lo esperabas, ignorá este mail y tu contraseña sigue igual.</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:32px 0 0"><tr><td style="padding-top:24px;border-top:1px solid #EEECE5">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+<td width="48" valign="middle"><img src="https://www.firmasvc.com/mail/agustin.jpg" width="48" height="48" alt="" style="display:block;width:48px;height:48px;border:0;border-radius:24px"></td>
+<td valign="middle" style="padding-left:14px"><p style="margin:0;font-family:'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;font-size:15px;line-height:1.3;font-weight:700;color:#1B1F1B">Agustín Castro</p><p style="margin:2px 0 0;font-family:'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;font-size:13px;line-height:1.3;color:#6B6553">Abogado (UBA) · FIRMA</p></td>
+</tr></table>
+</td></tr></table>
 </td></tr>
-<tr><td style="background:#2B2B2B;padding:22px 32px">
-<p style="margin:0 0 4px;font-family:'Archivo', Arial, Helvetica, sans-serif;font-size:13px;font-weight:600;color:#F5F3EC">Agustín Castro · Abogado (UBA)</p>
-<p style="margin:0;font-family:'Archivo', Arial, Helvetica, sans-serif;font-size:12px;line-height:1.6;color:#A9A79E">FIRMA · Castro &amp; Partners Legal Consulting · <a href="https://www.firmasvc.com" style="color:#A9A79E;text-decoration:underline">firmasvc.com</a><br>Información confidencial, alcanzada por el secreto profesional.</p>
+<tr><td class="m-caja" style="padding:24px 40px 0">
+<p style="margin:0;font-family:'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;font-size:12px;line-height:1.6;color:#6B6553">FIRMA · Castro &amp; Partners Legal Consulting · <a href="https://www.firmasvc.com" style="color:#6B6553;text-decoration:underline">firmasvc.com</a><br>Información confidencial, alcanzada por el secreto profesional.</p>
 </td></tr>
 </table>
 </td></tr></table>
@@ -702,7 +714,7 @@ Lo nuevo conviene escribirlo con los semánticos (`bg-superficie-alta`, `text-te
 
 ### Diseño del portal
 
-El portal va en negro, como los posteos de @agustin.legales, con una escala de aplicación distinta de la de la landing. Todo vive dentro de `Marco` (`components/portal/ui.tsx`), que lleva la clase `.portal`. Adentro de `.portal` el verde de la marca se redefine a tinta, así cada `bg-bosque`, `text-bosque` o `border-bosque` pasa a negro sin tocar componentes. La web pública, los mails y el PDF firmado siguen en verde bosque.
+El portal va en negro, como los posteos de @agustin.legales, con una escala de aplicación distinta de la de la landing. Todo vive dentro de `Marco` (`components/portal/ui.tsx`), que lleva la clase `.portal`. Adentro de `.portal` el verde de la marca se redefine a tinta, así cada `bg-bosque`, `text-bosque` o `border-bosque` pasa a negro sin tocar componentes. Los mails van en negro como el portal (ver la sección 4). La web pública y el PDF firmado siguen en verde bosque.
 
 | Pieza | Cómo es |
 |---|---|

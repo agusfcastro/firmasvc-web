@@ -43,7 +43,7 @@ const ROLES_EMPRESA = [...ROLES_ASUNTOS, 'closer', 'setter'];
 const TIEMPO_MS = 48_000;
 /** Resend acepta dos mails por segundo en el plan gratuito. */
 const PAUSA_MS = 550;
-const ENLACE = `color:${COLOR.bosque};font-weight:600;text-decoration:underline`;
+const ENLACE = `color:${COLOR.tinta};font-weight:600;text-decoration:underline`;
 
 const ESTADO_ASUNTO: Record<string, string> = {
   en_curso: 'En curso',
@@ -191,16 +191,22 @@ function pagina(titulo: string, texto: string, formulario?: { accion: 'baja' | '
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
 <title>${escapar(titulo)} · FIRMA</title>
 <style>
-body{margin:0;background:${COLOR.marfil};color:${COLOR.tinta};font:15px/1.65 Archivo,Arial,Helvetica,sans-serif}
-main{max-width:520px;margin:64px auto;padding:36px 32px;background:${COLOR.blanco};border:1px solid ${COLOR.linea};border-top:3px solid ${COLOR.bosque}}
-p.seccion{margin:0 0 14px;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:${COLOR.piedra}}
-h1{margin:0 0 18px;font:900 26px/1.2 Bitter,Georgia,serif}
-button{margin-top:12px;padding:14px 26px;border:0;background:${COLOR.bosque};color:${COLOR.marfil};font:600 15px Archivo,Arial,sans-serif;cursor:pointer}
-a{color:${COLOR.bosque}}
-@media (max-width:560px){main{margin:16px;padding:28px 20px}}
+@font-face{font-family:'Archivo';font-style:normal;font-weight:100 900;font-stretch:62% 125%;font-display:swap;src:url(/mail/archivo.woff2) format('woff2')}
+body{margin:0;background:${COLOR.marfil};color:${COLOR.tinta};font:16px/1.6 Archivo,'Helvetica Neue',Arial,sans-serif}
+main{max-width:560px;margin:64px auto;border-radius:24px;overflow:hidden;background:#fff}
+header{background:${COLOR.tinta};padding:28px 32px 34px}
+header img{display:block;width:168px;height:auto}
+p.seccion{display:inline-block;margin:28px 0 0;padding:7px 13px 6px;border-radius:999px;background:${COLOR.marfil};color:${COLOR.tinta};font-size:11px;line-height:1;font-weight:600;letter-spacing:.16em;text-transform:uppercase;font-stretch:125%}
+h1{margin:16px 0 0;color:${COLOR.marfil};font-weight:800;font-size:30px;line-height:1.14;letter-spacing:-.02em}
+section{padding:28px 32px 32px}
+button{margin-top:8px;padding:15px 24px;border:0;border-radius:12px;background:${COLOR.tinta};color:${COLOR.marfil};font:600 15px Archivo,'Helvetica Neue',Arial,sans-serif;cursor:pointer}
+button:focus-visible{outline:2px solid ${COLOR.tinta};outline-offset:2px}
+a{color:${COLOR.tinta}}
+@media (max-width:600px){main{margin:16px}header,section{padding-left:22px;padding-right:22px}h1{font-size:26px}}
 </style></head>
-<body><main><p class="seccion">Mail de los lunes</p><h1>${escapar(titulo)}</h1><p>${texto}</p>${form}
-<p style="margin-top:28px;font-size:13px;color:${COLOR.piedra}"><a href="${basePortal()}/portal">Ir al portal</a></p></main></body></html>`;
+<body><main><header><img src="/mail/firma-lockup-claro.png" width="168" alt="firma · Castro &amp; Partners Legal Consulting"><p class="seccion">Mail de los lunes</p><h1>${escapar(titulo)}</h1></header>
+<section><p style="margin:0">${texto}</p>${form}
+<p style="margin:28px 0 0;font-size:13px;color:${COLOR.piedra}"><a href="${basePortal()}/portal">Ir al portal</a></p></section></main></body></html>`;
   return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } });
 }
 
@@ -286,7 +292,7 @@ async function juntarAlertas(sb: SupabaseClient, orgIds: string[], hoy: string, 
       alertas.push({
         organizacion_id: s.organizacion_id,
         clave: `alerta:firma:${s.id}:${dia}`,
-        texto: `<a href="${base}/portal/firmas/${s.id}" style="${ENLACE}">${escapar(`${s.codigo} · ${s.titulo}`)}</a>: el envío a firma vence ${cuando(dia, hoy)} y ${faltan === 1 ? 'falta 1 firma' : `faltan ${faltan} firmas`}.`,
+        texto: `El envío a firma <a href="${base}/portal/firmas/${s.id}" style="${ENLACE}">${escapar(`${s.codigo} · ${s.titulo}`)}</a> vence ${cuando(dia, hoy)} y ${faltan === 1 ? 'falta 1 firma' : `faltan ${faltan} firmas`}.`,
         soloTitular: false,
       });
     }
@@ -316,12 +322,14 @@ function mailAlertas(p: Persona, empresa: string, items: string[], base: string)
     asunto: `${items.length === 1 ? 'Un vencimiento' : `${items.length} vencimientos`} en los próximos días · ${empresa}`,
     html: plantillaMail({
       seccion: 'Alertas',
-      titulo: 'Hay vencimientos cerca',
+      titulo: 'Hay vencimientos cerca.',
+      resalte: 'vencimientos cerca.',
       anticipo: 'Lo que vence en los próximos días en el portal de FIRMA.',
-      parrafos: [hola(p), `Esto vence pronto en <strong>${escapar(empresa)}</strong>:`],
+      parrafos: [hola(p), `Esto vence pronto en <strong>${escapar(empresa)}</strong>. Si algo ya está resuelto, contanos por el chat del asunto y lo cerramos.`],
       bloques: [{ titulo: 'Vencimientos', items }],
       boton: { texto: 'Ir al portal', url: `${base}/portal` },
-      pie: 'Te avisamos una semana antes y el día anterior. Si algo ya está resuelto, contanos por el chat del asunto.',
+      pie: 'Te avisamos una semana antes y el día anterior.',
+      firma: true,
     }),
   };
 }
@@ -368,7 +376,7 @@ function idYoutube(url: string): string | null {
   return url.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})/)?.[1] ?? null;
 }
 
-const ROTULO = `color:${COLOR.piedra};font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase`;
+const ROTULO = `color:${COLOR.piedra};font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;font-stretch:125%`;
 
 function bloqueNewsletter(n: Newsletter): { titulo: string; items: string[] } {
   const items: string[] = [];
@@ -376,14 +384,14 @@ function bloqueNewsletter(n: Newsletter): { titulo: string; items: string[] } {
     const url = escapar(n.video_url);
     const id = idYoutube(n.video_url);
     const miniatura = id
-      ? `<a href="${url}"><img src="https://i.ytimg.com/vi/${id}/hqdefault.jpg" width="516" alt="${escapar(n.video_titulo)}" style="display:block;width:100%;max-width:516px;height:auto;border:0;margin:4px 0 12px"></a>`
+      ? `<a href="${url}"><img src="https://i.ytimg.com/vi/${id}/hqdefault.jpg" width="520" alt="${escapar(n.video_titulo)}" style="display:block;width:100%;max-width:520px;height:auto;border:0;border-radius:14px;margin:6px 0 12px"></a>`
       : '';
     items.push(`<span style="${ROTULO}">Video</span><br>${miniatura}<a href="${url}" style="${ENLACE}">&#9654; ${escapar(n.video_titulo)}</a>`);
   }
   if (n.articulo_url && n.articulo_titulo) {
     const url = escapar(n.articulo_url);
     const bajada = n.articulo_bajada ? `<br><span style="color:${COLOR.piedra}">${escapar(n.articulo_bajada)}</span>` : '';
-    items.push(`<span style="${ROTULO}">Artículo</span><br><a href="${url}" style="${ENLACE}">${escapar(n.articulo_titulo)}</a>${bajada}<br><a href="${url}" style="color:${COLOR.bosque};font-size:13px">Leer el artículo &rarr;</a>`);
+    items.push(`<span style="${ROTULO}">Artículo</span><br><a href="${url}" style="${ENLACE}">${escapar(n.articulo_titulo)}</a>${bajada}<br><a href="${url}" style="color:${COLOR.tinta};font-size:13px;font-weight:600">Leer el artículo &rarr;</a>`);
   }
   return { titulo: 'Novedades', items };
 }
@@ -428,21 +436,22 @@ function mailLunes(
       vencimientos.push(`${enlaceAsunto(a)} vence ${cuando(a.vence_en as string, hoy)}.`);
     for (const s of d.sobres.filter((x) => x.estado === 'en_curso')) {
       const dia = diaDe(new Date(s.vence_en));
-      if (dia >= hoy && dia <= domingo) vencimientos.push(`<a href="${base}/portal/firmas/${s.id}" style="${ENLACE}">${escapar(`${s.codigo} · ${s.titulo}`)}</a>: el envío a firma vence ${cuando(dia, hoy)}.`);
+      if (dia >= hoy && dia <= domingo) vencimientos.push(`El envío a firma <a href="${base}/portal/firmas/${s.id}" style="${ENLACE}">${escapar(`${s.codigo} · ${s.titulo}`)}</a> vence ${cuando(dia, hoy)}.`);
     }
     if (g.rol === 'titular') for (const a of d.abonos) vencimientos.push(`El abono <strong>${escapar(a.concepto)}</strong> termina ${cuando(a.vigente_hasta, hoy)}.`);
 
     const enEspera = abiertos.filter((a) => a.estado === 'espera_cliente');
     esperan += enEspera.length;
     if (abiertos.length)
-      resumen.push(`${plural(abiertos.length, 'asunto abierto', 'asuntos abiertos')}.${enEspera.length ? ` ${enEspera.length === 1 ? 'Uno espera' : `${enEspera.length} esperan`} tu respuesta: ${enEspera.map(enlaceAsunto).join(', ')}.` : ''}`);
+      resumen.push(`${plural(abiertos.length, 'asunto abierto', 'asuntos abiertos')}.${enEspera.length ? ` ${enEspera.length === 1 ? 'Uno espera' : `${enEspera.length} esperan`} tu respuesta, ${enEspera.map(enlaceAsunto).join(', ')}.` : ''}`);
     const conNovedades = abiertos.filter((a) => d.novedades.get(a.id)).length;
     if (conNovedades) resumen.push(`${plural(conNovedades, 'asunto tuvo', 'asuntos tuvieron')} novedades esta semana.`);
     const finalizados = d.asuntos.length - abiertos.length;
     if (finalizados) resumen.push(`${plural(finalizados, 'asunto quedó finalizado', 'asuntos quedaron finalizados')}.`);
     const enCurso = d.sobres.filter((s) => s.estado === 'en_curso').length;
     const completados = d.sobres.filter((s) => s.estado === 'completado').length;
-    if (enCurso || completados) resumen.push(`Firmas: ${[enCurso && `${enCurso} en curso`, completados && plural(completados, 'completada', 'completadas')].filter(Boolean).join(' y ')}.`);
+    if (enCurso || completados)
+      resumen.push(`${[enCurso && plural(enCurso, 'firma en curso', 'firmas en curso'), completados && plural(completados, 'firma completada', 'firmas completadas')].filter(Boolean).join(' y ')}.`);
     // Los mismos documentos que la persona ve en el portal, como en el aviso de documento nuevo.
     const documentos = d.documentos.filter((doc) => !doc.areas?.length || g.rol === 'titular' || (g.areas ?? []).some((a) => (doc.areas ?? []).includes(a))).length;
     if (documentos) resumen.push(`${plural(documentos, 'documento nuevo', 'documentos nuevos')} en el portal.`);
@@ -464,12 +473,14 @@ function mailLunes(
         : `Tu semana en FIRMA · ${completos.map((g) => g.empresa).join(', ')}`,
     html: plantillaMail({
       seccion: n ? 'Newsletter' : 'Resumen semanal',
-      titulo: completos.length ? 'Tu semana en FIRMA' : 'Novedades de FIRMA',
+      titulo: completos.length ? 'Tu semana en FIRMA.' : 'Novedades de FIRMA.',
+      resalte: completos.length ? 'Tu semana' : 'Novedades',
       anticipo: destacado ?? 'Vencimientos y resumen de la semana.',
       parrafos: [hola(p), completos.length ? `Lo nuevo de FIRMA y cómo viene la semana de ${nombres(completos)} en el portal.` : 'Esto es lo que preparamos para vos esta semana.'],
       bloques: [...(n ? [bloqueNewsletter(n)] : []), ...bloques],
       boton: completos.length ? { texto: esperan ? 'Responder en el portal' : 'Ir al portal', url: `${base}/portal/asuntos` } : undefined,
       pie: `Te llega los lunes porque tenés acceso al portal de ${todas}. <a href="${escapar(baja)}" style="color:${COLOR.piedra}">Dejar de recibir este mail</a>.`,
+      firma: true,
     }),
   };
 }
@@ -549,9 +560,10 @@ async function tareaDiaria(sb: SupabaseClient, forzarResumen: boolean): Promise<
         `${plural(total, 'vencimiento', 'vencimientos')} de clientes en los próximos días`,
         plantillaMail({
           seccion: 'Alertas',
-          titulo: 'Vencimientos de clientes',
+          titulo: 'Vencimientos de clientes.',
+          resalte: 'de clientes.',
           anticipo: [...paraFirma.keys()].join(', '),
-          parrafos: [hola(d), 'Estos son los vencimientos que hoy se avisaron a cada empresa:'],
+          parrafos: [hola(d), 'Estos son los vencimientos que hoy se avisaron a cada empresa.'],
           bloques: [...paraFirma].map(([empresa, items]) => ({ titulo: empresa, items })),
           boton: { texto: 'Ver asuntos', url: `${base}/portal/asuntos` },
         }),

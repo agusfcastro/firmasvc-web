@@ -191,6 +191,14 @@ function fechaHora(iso: string | null): string {
   return `${f} (hora de Buenos Aires)`;
 }
 
+/** Fecha de vencimiento para leer en un mail. Por ejemplo, viernes 6 de noviembre a las 18:00 (hora de Buenos Aires). */
+function venceElDia(iso: string): string {
+  const d = new Date(iso);
+  const dia = new Intl.DateTimeFormat('es-AR', { timeZone: ZONA, weekday: 'long', day: 'numeric', month: 'long' }).format(d).replace(',', '');
+  const hora = new Intl.DateTimeFormat('es-AR', { timeZone: ZONA, hour: '2-digit', minute: '2-digit', hour12: false }).format(d);
+  return `${dia} a las ${hora} (hora de Buenos Aires)`;
+}
+
 function enmascarar(email: string): string {
   const [usuario, dominio] = email.split('@');
   if (!dominio) return email;
@@ -253,24 +261,29 @@ async function notificarFirmante(
 ): Promise<string | null> {
   const emisor = await nombreEmisor(sb, sobre);
   const responderA = await mailDelCreador(sb, sobre);
-  const parrafos = [
-    `Hola ${escapar(f.nombre)}.`,
-    `${escapar(emisor)} te envió <strong>${escapar(sobre.titulo)}</strong> para que lo leas y lo firmes de forma electrónica.`,
-  ];
-  if (sobre.mensaje) parrafos.push(`<em>${escapar(sobre.mensaje).replace(/\n/g, '<br>')}</em>`);
-  parrafos.push(
-    `Tenés tiempo hasta el ${escapar(fechaHora(sobre.vence_en))}.${sobre.entrega === 'enlace' ? '' : ' Para firmar te vamos a mandar un código a este mismo mail.'}`,
-  );
   const fallo = await enviarMail({
     nombreRemitente: emisor === 'FIRMA' ? 'FIRMA' : `${emisor} vía FIRMA`,
     para: [f.email],
     asunto: `${recordatorio ? 'Recordatorio. ' : ''}Firmá ${sobre.titulo}`,
     html: plantillaMail({
       seccion: 'Firma electrónica',
-      titulo: recordatorio ? 'Tenés un documento pendiente de firma' : 'Tenés un documento para firmar',
-      parrafos,
+      titulo: recordatorio ? 'Todavía falta tu firma.' : 'Tenés un documento para firmar.',
+      resalte: recordatorio ? 'tu firma.' : 'para firmar.',
+      anticipo: `${emisor} te mandó ${sobre.titulo} para firmar.`,
+      parrafos: [
+        `Hola ${escapar(f.nombre)}.`,
+        recordatorio
+          ? `${escapar(emisor)} te mandó <strong>${escapar(sobre.titulo)}</strong> y todavía no lo firmaste. Te lleva unos minutos desde el celular o la computadora.`
+          : `${escapar(emisor)} te mandó <strong>${escapar(sobre.titulo)}</strong> para que lo leas y lo firmes desde el celular o la computadora, sin imprimir ni instalar nada.`,
+      ],
+      cita: sobre.mensaje ? escapar(sobre.mensaje).replace(/\n/g, '<br>') : undefined,
+      datos: [
+        { rotulo: 'Lo envía', valor: escapar(emisor) },
+        { rotulo: 'Vence', valor: escapar(venceElDia(sobre.vence_en)) },
+      ],
+      nota: sobre.entrega === 'enlace' ? undefined : 'Antes de firmar te mandamos un código a este mail, para confirmar que sos vos.',
       boton: { texto: 'Revisar y firmar', url: enlaceFirmante(f) },
-      pie: 'El enlace es personal. No lo reenvíes. Si no esperabas este mail, ignoralo.',
+      pie: 'El enlace es personal, no lo reenvíes. Si no esperabas este mail, ignoralo.',
     }),
     responderA,
   });
@@ -705,14 +718,17 @@ async function sellar(sb: SupabaseClient, sobreId: string): Promise<string | nul
       asunto: `Firmado. ${sobre.titulo}`,
       html: plantillaMail({
         seccion: 'Firma electrónica',
-        titulo: 'El documento quedó firmado por todos',
+        titulo: 'El documento quedó firmado.',
+        resalte: 'firmado.',
+        anticipo: `${sobre.titulo} ya tiene todas las firmas.`,
         parrafos: [
           `<strong>${escapar(sobre.titulo)}</strong> ya tiene todas las firmas.`,
           adjunta
-            ? 'Te adjuntamos el PDF firmado, con la constancia de firma al final. Guardalo junto con tus documentos.'
-            : 'El PDF firmado es muy pesado para mandarlo por mail. Pedíselo a quien te lo envió.',
-          `Código de verificación <strong>${escapar(sobre.codigo)}</strong>.`,
+            ? 'Te adjuntamos el PDF firmado, con la constancia de firma en la última página. Guardalo junto con tus documentos.'
+            : 'El PDF firmado pesa demasiado para mandarlo por mail. Pedíselo a quien te lo envió.',
         ],
+        datos: [{ rotulo: 'Código de verificación', valor: escapar(sobre.codigo) }],
+        nota: 'Con ese código cualquiera puede comprobar en firmasvc.com que el documento no cambió después de firmarse.',
         boton: { texto: 'Verificar el documento', url: `${basePortal()}/verificar/${sobre.codigo}` },
       }),
       responderA: creador,
@@ -788,14 +804,19 @@ async function confirmarBfa(sb: SupabaseClient, sobre: Sobre, espera = 10_000): 
 }
 
 /** Avisa a quien mandó el envío. Para rechazos. */
-async function avisarCreador(sb: SupabaseClient, sobre: Sobre, asunto: string, titulo: string, parrafos: string[]): Promise<void> {
+async function avisarCreador(
+  sb: SupabaseClient,
+  sobre: Sobre,
+  asunto: string,
+  contenido: { titulo: string; resalte?: string; parrafos: string[]; cita?: string; nota?: string },
+): Promise<void> {
   const creador = await mailDelCreador(sb, sobre);
   if (!creador) return;
   await enviarMail({
     nombreRemitente: 'FIRMA',
     para: [creador],
     asunto,
-    html: plantillaMail({ seccion: 'Firma electrónica', titulo, parrafos, boton: { texto: 'Ver el envío', url: `${basePortal()}/portal/firmas/${sobre.id}` } }),
+    html: plantillaMail({ seccion: 'Firma electrónica', ...contenido, boton: { texto: 'Ver el envío', url: `${basePortal()}/portal/firmas/${sobre.id}` } }),
   });
 }
 
@@ -1027,12 +1048,12 @@ export async function POST(request: Request): Promise<Response> {
         asunto: `${codigo} es tu código para firmar`,
         html: plantillaMail({
           seccion: 'Firma electrónica',
-          titulo: 'Tu código para firmar',
-          parrafos: [
-            `Hola ${escapar(f.nombre)}. Usá este código para firmar <strong>${escapar(sobre.titulo)}</strong>.`,
-            `<span style="font-family:Georgia,serif;font-size:34px;letter-spacing:.3em;color:${COLOR.bosque}">${codigo}</span>`,
-            'Vence en 10 minutos y sirve una sola vez.',
-          ],
+          titulo: 'Tu código para firmar.',
+          resalte: 'código',
+          anticipo: `Vence en 10 minutos. Sirve para firmar ${sobre.titulo}.`,
+          parrafos: [`Hola ${escapar(f.nombre)}. Escribí este código en la pantalla de firma de <strong>${escapar(sobre.titulo)}</strong>.`],
+          codigo,
+          nota: 'Vence en 10 minutos y sirve una sola vez.',
           pie: 'Si no estás firmando un documento ahora, ignorá este mail. Nadie de FIRMA te va a pedir este código.',
         }),
       });
@@ -1148,11 +1169,15 @@ export async function POST(request: Request): Promise<Response> {
         .maybeSingle();
       if (cerrado) {
         await evento(sb, sobre.id, null, null, 'sobre_rechazado', null, { por: f.nombre });
-        await avisarCreador(sb, sobre, `Rechazado. ${sobre.titulo}`, 'Una persona rechazó el documento', [
-          `<strong>${escapar(f.nombre)}</strong> (${escapar(f.email)}) rechazó <strong>${escapar(sobre.titulo)}</strong> y el envío se cerró.`,
-          `Motivo. <em>${escapar(motivoRechazo)}</em>`,
-          'Si hace falta, corregí el documento y mandalo de nuevo.',
-        ]);
+        await avisarCreador(sb, sobre, `Rechazado. ${sobre.titulo}`, {
+          titulo: 'Rechazaron el documento.',
+          resalte: 'Rechazaron',
+          parrafos: [
+            `<strong>${escapar(f.nombre)}</strong> (${escapar(f.email)}) rechazó <strong>${escapar(sobre.titulo)}</strong> y el envío se cerró. Este es el motivo que dejó.`,
+          ],
+          cita: escapar(motivoRechazo),
+          nota: 'Si hace falta, corregí el documento y mandalo de nuevo desde Firmas.',
+        });
       }
       return json({ ok: true });
     }
