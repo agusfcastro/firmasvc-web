@@ -4,6 +4,7 @@ import { supabase } from './supabase';
 import { Aviso, Encabezado, Enlace, Marco } from './ui';
 import { useVistaPrevia } from './vistaPrevia';
 import { PedidosEquipo } from './pedidos/Pedidos';
+import { TarjetaProtocolo } from './TarjetaProtocolo';
 import { permisosDe } from './tipos';
 import { SECCIONES, descargarArchivo, extension, fechaLarga, formatoDe, registrarDescarga, seccionDeRuta, tamano, visibleEnPantalla } from './descargas';
 import type { Documento, Organizacion, Perfil } from './tipos';
@@ -30,16 +31,17 @@ function iconoDe(d: Documento): React.ElementType {
 }
 
 const claseAccion =
-  'inline-flex items-center justify-center gap-2 h-10 px-4 bg-bosque text-marfil text-[14px] font-medium whitespace-nowrap transition-colors duration-150 hover:bg-bosque-dark disabled:opacity-60 disabled:cursor-wait';
+  'inline-flex items-center justify-center gap-2 h-10 px-4 rounded-[10px] bg-bosque text-marfil text-[14px] font-medium whitespace-nowrap transition-colors duration-150 hover:bg-bosque-dark disabled:opacity-60 disabled:cursor-wait';
 const claseSecundaria =
   'inline-flex items-center min-h-[40px] text-[14px] font-medium text-bosque underline underline-offset-4 decoration-bosque/30 transition-colors duration-150 hover:decoration-bosque';
-const claseAdministrar = 'inline-flex items-center h-11 px-5 text-[14.5px] font-medium bg-bosque text-marfil transition-colors duration-150 hover:bg-bosque-dark';
+const claseAdministrar = 'inline-flex items-center h-11 px-5 rounded-control text-[14.5px] font-medium bg-bosque text-marfil transition-colors duration-150 hover:bg-bosque-dark';
 
 export const Documentos: React.FC<{ perfil: Perfil; organizacion: Organizacion | null; ruta: string }> = ({ perfil, organizacion, ruta }) => {
   const vista = useVistaPrevia();
   const [docs, setDocs] = useState<Documento[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [bajando, setBajando] = useState<string | null>(null);
+  const [nombresArea, setNombresArea] = useState<Record<string, string>>({});
   // En Ver como el perfil llega con el rol del cliente, así que esto es el admin mirando la biblioteca común.
   const esAdmin = perfil.rol === 'admin';
   const enProtocolos = ruta === '/portal/protocolos';
@@ -59,6 +61,12 @@ export const Documentos: React.FC<{ perfil: Perfil; organizacion: Organizacion |
         if (!vivo) return;
         if (e) setError(esAdmin ? `${e.message}. Revisá que la migración 0005_documentos.sql esté corrida en Supabase.` : 'No pudimos cargar los documentos. Probá recargar la página.');
         setDocs((data as Documento[]) ?? []);
+      });
+    void supabase
+      .from('areas')
+      .select('clave, nombre')
+      .then(({ data }) => {
+        if (vivo && data) setNombresArea(Object.fromEntries((data as { clave: string; nombre: string }[]).map((a) => [a.clave, a.nombre])));
       });
     return () => {
       vivo = false;
@@ -89,16 +97,17 @@ export const Documentos: React.FC<{ perfil: Perfil; organizacion: Organizacion |
     <Marco perfil={perfil}>
       {enProtocolos ? (
         <Encabezado tutorial="protocolos"
-          eyebrow={esAdmin ? 'Protocolos · Biblioteca común' : 'Protocolos'}
+          grande
+          eyebrow={esAdmin ? 'Protocolos · Biblioteca común' : 'Protocolos de tu equipo'}
           titulo={
             <>
-              Protocolos de <span className="text-bosque">{esAdmin ? 'trabajo' : 'tu equipo'}</span>
+              Un contrato no es desconfianza. <span className="text-bosque whitespace-nowrap">Es claridad.</span>
             </>
           }
           bajada={
             esAdmin
-              ? 'Así ven tus clientes los protocolos y la formación. Cada persona ve los de sus áreas.'
-              : 'Cómo trabaja cada área de tu equipo, por escrito y con respaldo legal, junto con la formación.'
+              ? 'Así ven tus clientes los protocolos y la formación. Cada persona ve solo los de sus áreas.'
+              : 'Cómo trabaja cada área de tu equipo, en video y por escrito. Miralo antes de una llamada, un cobro o un reclamo.'
           }
           acciones={
             esAdmin ? (
@@ -118,14 +127,14 @@ export const Documentos: React.FC<{ perfil: Perfil; organizacion: Organizacion |
               </>
             ) : (
               <>
-                Documentación de <span className="text-bosque">tu empresa</span>
+                Tus contratos, <span className="text-bosque whitespace-nowrap">siempre a mano.</span>
               </>
             )
           }
           bajada={
             esAdmin
               ? 'Así ven tus clientes la biblioteca común. Los documentos exclusivos de cada empresa se ven con Ver como.'
-              : 'Modelos redactados para tu negocio y documentación vigente. Cuando FIRMA actualiza un documento, acá ya está la versión nueva.'
+              : 'Los modelos que redactamos para tu negocio, siempre en su última versión. Cuando FIRMA actualiza uno, acá ya está el nuevo.'
           }
           acciones={
             esAdmin ? (
@@ -192,6 +201,21 @@ export const Documentos: React.FC<{ perfil: Perfil; organizacion: Organizacion |
                 {esAdmin ? 'Cargar documentos' : 'Agendar una reunión'}
               </Enlace>
             </div>
+          ) : enProtocolos ? (
+            <div className="grid grid-cols-1 wide:grid-cols-2 gap-x-6 gap-y-8">
+              {lista.map((d) => (
+                <TarjetaProtocolo
+                  key={d.id}
+                  doc={d}
+                  areas={nombresArea}
+                  bajando={bajando === d.id}
+                  alDescargar={(x) => void descargar(x)}
+                  alAbrir={(x) => {
+                    if (!vista) registrarDescarga(x);
+                  }}
+                />
+              ))}
+            </div>
           ) : (
             <div className="grid grid-cols-1 tab:grid-cols-2 gap-4 desk:gap-5">
               {lista.map((d) => {
@@ -201,14 +225,14 @@ export const Documentos: React.FC<{ perfil: Perfil; organizacion: Organizacion |
                 return (
                   <article key={d.id} className="p-tarjeta flex flex-col gap-2.5 p-5 desk:p-6 transition-colors duration-150 hover:border-borde">
                     <div className="flex items-center gap-3 mb-1">
-                      <span className="w-10 h-10 grid place-items-center bg-bosque-suave text-bosque shrink-0">
+                      <span className="w-10 h-10 rounded-[12px] grid place-items-center bg-niebla text-tinta shrink-0">
                         <Icono size={20} strokeWidth={1.75} aria-hidden="true" />
                       </span>
                       <span className="text-[12.5px] text-piedra">
                         {formatoDe(d)}
                         {peso ? ` · ${peso}` : ''}
                       </span>
-                      {d.organizacion_id && <span className="ml-auto px-2.5 py-[3px] rounded-pastilla bg-bosque-suave text-bosque text-[12px] font-medium whitespace-nowrap">Exclusivo para tu empresa</span>}
+                      {d.organizacion_id && <span className="ml-auto px-2.5 py-[3px] rounded-pastilla bg-tinta text-marfil text-[12px] font-semibold whitespace-nowrap">Exclusivo para tu empresa</span>}
                     </div>
                     <h3 className="font-heading font-semibold text-[18px] leading-snug">{d.titulo}</h3>
                     {d.descripcion && <p className="text-[14px] leading-[1.55] text-piedra">{d.descripcion}</p>}
