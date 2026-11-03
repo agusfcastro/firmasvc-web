@@ -55,7 +55,8 @@ import {
  *   /portal/crm/casos?caso=<id>    abre ese caso para editarlo
  */
 
-const SELECT_CASO = '*, cliente:crm_clientes(id, nombre, codigo, moneda)';
+// Desde la 0038 el caso apunta dos veces al cliente (cliente_id y la clave con el negocio): se nombra cuál usar.
+const SELECT_CASO = '*, cliente:crm_clientes!crm_casos_cliente_org_fk(id, nombre, codigo, moneda)';
 
 const ESTILO_SEMAFORO: Record<Semaforo, string> = {
   verde: 'text-bosque bg-bosque-suave',
