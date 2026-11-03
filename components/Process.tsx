@@ -44,7 +44,9 @@ export const Process: React.FC = () => {
       <div className="wrap flex flex-col gap-14">
         <div className="flex flex-col items-center gap-4 max-w-[60ch] mx-auto text-center">
           <p className="eyebrow text-piedra">Cómo trabajamos</p>
-          <h2 className="h2">¿Cómo ayudamos a nuestros clientes?</h2>
+          <h2 className="h2">
+            ¿Cómo ayudamos a <span className="resalte">nuestros clientes?</span>
+          </h2>
           <p className="text-[17px] leading-[1.55] text-piedra">
             Cuatro etapas diseñadas para darte resultados desde la primera conversación.
           </p>

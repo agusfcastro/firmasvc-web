@@ -32,7 +32,7 @@ const Column: React.FC<{ title: string; items: typeof contacto }> = ({ title, it
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="bg-carbon text-calido">
+    <footer className="bg-tinta text-calido">
       {/* Pie compacto: la navegación ya vive en el header, acá sólo membrete y contacto */}
       <div className="wrap pt-12 pb-10 flex flex-col gap-14">
         <div className="grid grid-cols-1 tab:grid-cols-[2fr_1fr_1fr] gap-8">

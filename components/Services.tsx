@@ -28,11 +28,13 @@ const services: ServiceItem[] = [
 
 export const Services: React.FC = () => {
   return (
-    <section id="services" className="section bg-carbon text-marfil">
+    <section id="services" className="section bg-tinta text-marfil">
       <div className="wrap flex flex-col gap-14">
         <div className="flex flex-col items-center gap-4 max-w-[60ch] mx-auto text-center">
           <p className="eyebrow text-calido">Nuestros servicios</p>
-          <h2 className="h2">Soluciones de alto valor</h2>
+          <h2 className="h2">
+            Soluciones de <span className="resalte-claro">alto valor.</span>
+          </h2>
           <p className="text-[17px] leading-[1.55] text-calido">
             No vendemos papeles, vendemos la infraestructura legal para que tu negocio escale sin techos de cristal.
           </p>

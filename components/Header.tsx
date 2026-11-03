@@ -13,7 +13,7 @@ const navLinks = [
 
 // Acceso de clientes: mismo alto que el botón de Agenda, con borde para no competir con él.
 const clasePortal =
-  'inline-flex items-center justify-center gap-2 h-10 border border-tinta text-sm font-medium whitespace-nowrap transition-colors duration-150 hover:bg-tinta hover:text-marfil';
+  'inline-flex items-center justify-center gap-2 h-10 rounded-control border border-tinta text-sm font-medium whitespace-nowrap transition-colors duration-150 hover:bg-tinta hover:text-marfil';
 
 const getLinkAttributes = (href: string) =>
   href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {};
@@ -26,7 +26,7 @@ export const Header: React.FC = () => {
     >
       <div className="wrap flex items-center justify-between gap-4 h-28">
         <a href="#top" className="flex items-center min-w-0">
-          <Logo className="h-[72px] max-w-[62vw] desk:h-[60px] desk:max-w-full min-[1200px]:h-[72px]" />
+          <Logo className="h-[72px] max-w-[48vw] tab:max-w-[62vw] desk:h-[60px] desk:max-w-full min-[1200px]:h-[72px]" />
         </a>
 
         {/* Nav desktop (≥900px) */}
@@ -35,7 +35,7 @@ export const Header: React.FC = () => {
             <a
               key={link.name}
               href={link.href}
-              className="transition-colors duration-150 hover:text-bosque"
+              className="underline-offset-[6px] decoration-2 hover:underline"
               {...getLinkAttributes(link.href)}
             >
               {link.name}

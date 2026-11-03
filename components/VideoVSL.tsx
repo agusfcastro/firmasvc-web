@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Volume2 } from 'lucide-react';
+import retrato from '../assets/brand/retrato.jpg';
 
 const VIDEO_ID = '1236858475';
 
@@ -27,9 +28,9 @@ export const VideoVSL: React.FC = () => {
 
   return (
     // El ancho sale del alto de la pantalla: titular, video y botón de agendar tienen que entrar sin scroll.
-    // 490px es lo que ocupan header, titular, pie del video y botón; 480px es el piso para que no quede chico.
-    <div className="w-full mx-auto" style={{ maxWidth: 'max(480px, min(960px, calc((100svh - 490px) * 16 / 9)))' }}>
-      <div className="relative aspect-video bg-carbon overflow-hidden">
+    // 600px es lo que ocupan header, banner, titular, firma y botones; 480px es el piso para que no quede chico.
+    <div className="w-full mx-auto" style={{ maxWidth: 'max(480px, min(960px, calc((100svh - 600px) * 16 / 9)))' }}>
+      <div className="relative aspect-video bg-carbon overflow-hidden rounded-[24px] shadow-relieve">
         {/* En el HTML del prerender va solo el recuadro: el reproductor carga una vez, en el navegador. */}
         {typeof window !== 'undefined' && (
           <iframe
@@ -54,13 +55,13 @@ export const VideoVSL: React.FC = () => {
           style={{ background: 'color-mix(in srgb, var(--color-tinta) 45%, transparent)', backdropFilter: 'blur(2px)' }}
         >
           <span
-            className="flex items-center justify-center rounded-full bg-bosque text-marfil shadow-xl transition-transform duration-200 group-hover:scale-110 group-focus-visible:scale-110"
-            style={{ width: 76, height: 76 }}
+            className="flex items-center justify-center rounded-full bg-marfil text-tinta shadow-xl transition-transform duration-200 group-hover:scale-105 group-focus-visible:scale-105"
+            style={{ width: 'clamp(72px, 8vw, 104px)', height: 'clamp(72px, 8vw, 104px)' }}
           >
-            <Volume2 size={34} />
+            <Volume2 size={36} aria-hidden="true" />
           </span>
           <span
-            className="font-heading font-bold text-center px-6"
+            className="font-heading font-extrabold tracking-[-0.02em] text-center px-6"
             style={{ fontSize: 'clamp(18px, 2.4vw, 24px)', textShadow: '0 1px 10px color-mix(in srgb, var(--color-tinta) 40%, transparent)' }}
           >
             Hacé click para activar el sonido
@@ -68,9 +69,15 @@ export const VideoVSL: React.FC = () => {
         </button>
       </div>
 
-      <div className="flex flex-wrap justify-between gap-4 pt-3.5 text-[13px] text-piedra">
-        <span>Conocé a Agustín, fundador de firma</span>
-        <span className="eyebrow text-[11px]">Resultados reales. Más allá de la formalidad.</span>
+      {/* Firma como en los posteos, con foto, nombre y cargo. */}
+      <div className="flex items-center pt-4 text-left">
+        <span className="flex items-center gap-3">
+          <img src={retrato} alt="" width={44} height={44} className="w-11 h-11 rounded-full object-cover shrink-0" />
+          <span className="flex flex-col leading-tight">
+            <span className="text-[15px] font-bold text-tinta">Agustín Castro</span>
+            <span className="text-[13px] text-piedra">Abogado (UBA) · fundador de firma</span>
+          </span>
+        </span>
       </div>
     </div>
   );

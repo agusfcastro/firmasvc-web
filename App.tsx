@@ -1,4 +1,6 @@
 import React, { Suspense, lazy } from 'react';
+// Archivo variable desde firmasvc.com, la misma del portal: pesos 100 a 900 y ancho 62 a 125.
+import '@fontsource-variable/archivo/wdth.css';
 import { Header } from './components/Header';
 import { PromoBanner } from './components/PromoBanner';
 import { Hero } from './components/Hero';
@@ -84,7 +86,7 @@ function App({ ruta }: { ruta?: string }) {
   }
 
   return (
-    <div className="min-h-screen bg-marfil">
+    <div className="landing min-h-screen bg-marfil">
       <Header />
       {/* Promo con fecha de cierre, entre el header y el hero. Se oculta sola cuando vence. */}
       <PromoBanner />

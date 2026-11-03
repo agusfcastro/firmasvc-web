@@ -475,3 +475,36 @@ a.card { color: inherit; text-decoration: none; }
 
 /* Dentro de cifras, listas y tarjetas la volanta es un dato, no un título: va con mayúscula inicial para leerse rápido. */
 .portal :is(.cifra, li, article, td) .eyebrow { font-size: 12.5px; font-weight: 500; font-stretch: 100%; letter-spacing: 0; text-transform: none; }
+
+/* =================================================================== */
+/* Landing en la línea de los posteos de @agustin.legales.             */
+/* .landing va en la raíz del home. Como .portal, pasa el verde a tinta */
+/* y los títulos a Archivo pesada sin tocar cada componente.           */
+/* =================================================================== */
+.landing {
+  font-family: var(--font-portal);
+  --font-sans: var(--font-portal);
+  --font-heading: var(--font-portal);
+  --color-bosque: var(--color-tinta);
+  --color-bosque-dark: var(--color-grafito);
+  --radius-control: 12px;
+}
+.landing :is(h1, h2, h3, .h1, .h2, .h3) { font-weight: 800; letter-spacing: -0.035em; }
+.landing .eyebrow { font-family: var(--font-portal); font-weight: 600; font-size: 12px; font-stretch: 125%; letter-spacing: 0.16em; }
+/* Frase clave en un bloque: tinta sobre claro (.resalte) y marfil sobre las secciones tinta (.resalte-claro). */
+.landing .resalte-claro { background: var(--color-marfil); color: var(--color-tinta); padding: 0 0.12em 0.04em; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+
+/* Servicios: tarjetas grafito redondeadas sobre tinta, con el ícono en un círculo marfil como en los posteos. */
+.landing .card { background: var(--color-grafito); border: 0; border-radius: 24px; padding: 28px; gap: 12px; }
+.landing .card:hover { border-color: transparent; }
+.landing .card .wm { font-family: var(--font-portal); font-weight: 800; letter-spacing: -0.04em; top: -6px; right: 14px; color: color-mix(in srgb, var(--color-marfil) 7%, transparent); }
+.landing .card .icon-box { width: 64px; height: 64px; border-radius: 50%; background: var(--color-marfil); color: var(--color-tinta); }
+.landing .card:hover .icon-box { background: var(--color-marfil); color: var(--color-tinta); transform: scale(1.06); }
+.landing .card .text-calido { color: var(--color-lateral-texto); }
+
+/* Proceso: círculos tinta con el ícono en marfil y el número de agua en Archivo. */
+.landing .step-circle { border: 0; background: var(--color-tinta); }
+.landing .step-circle svg { color: var(--color-marfil); }
+.landing .step-badge .wm { font-family: var(--font-portal); font-weight: 800; letter-spacing: -0.04em; }
+/* Con el círculo lleno, el número de agua se asomaba por el borde. */
+.landing .step-badge .wm { display: none; }

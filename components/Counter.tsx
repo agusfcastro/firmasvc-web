@@ -41,7 +41,7 @@ export const Counter: React.FC = () => {
       style={{ borderTop: RULE }}
     >
       <span
-        className="font-heading font-black text-bosque leading-none tracking-tight tabular-nums whitespace-nowrap"
+        className="font-heading font-extrabold text-tinta leading-none tracking-[-0.04em] tabular-nums whitespace-nowrap"
         style={{ fontSize: 'clamp(34px, 5.5vw, 60px)' }}
         aria-label={`${formatter.format(value)} dólares asegurados para clientes`}
       >

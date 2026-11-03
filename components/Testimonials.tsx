@@ -43,7 +43,9 @@ export const Testimonials: React.FC = () => {
       <Reveal>
         <div className="wrap flex flex-col items-center gap-3 text-center mb-12">
           <p className="eyebrow text-piedra">Negocios que confían en nosotros</p>
-          <h2 className="h2">Clientes de la firma</h2>
+          <h2 className="h2">
+            Clientes de <span className="resalte">la firma.</span>
+          </h2>
         </div>
       </Reveal>
 

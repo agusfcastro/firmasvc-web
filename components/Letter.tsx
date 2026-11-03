@@ -26,7 +26,7 @@ export const Letter: React.FC = () => {
           {/* La carta es larga: el retrato queda sticky para acompañarla sin
               forzar un recorte vertical raro y que las columnas cierren parejas. */}
           <div className="h-full">
-            <div className="desk:sticky desk:top-[132px] aspect-[4/5] max-w-[420px] bg-carbon overflow-hidden">
+            <div className="desk:sticky desk:top-[132px] aspect-[4/5] max-w-[420px] bg-carbon overflow-hidden rounded-[24px]">
               <img
                 src={retrato}
                 alt="Agustín Castro"
@@ -56,16 +56,16 @@ export const Letter: React.FC = () => {
             ))}
 
             <p
-              className="font-heading font-bold leading-[1.3] max-w-[34ch]"
+              className="font-heading font-extrabold leading-[1.3] tracking-[-0.02em] max-w-[34ch]"
               style={{ fontSize: 'clamp(20px,2.2vw,26px)' }}
             >
               Lo que construiste te costó demasiado como para dejarlo apoyado en la confianza.
             </p>
             <p
-              className="font-heading font-bold leading-[1.3]"
+              className="font-heading font-extrabold leading-[1.3] tracking-[-0.02em]"
               style={{ fontSize: 'clamp(20px,2.2vw,26px)' }}
             >
-              Estás a una firma de distancia.
+              Estás a <span className="resalte">una firma de distancia.</span>
             </p>
 
             <div className="flex flex-col gap-1 text-sm text-piedra">
@@ -80,7 +80,7 @@ export const Letter: React.FC = () => {
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm font-medium underline underline-offset-4 transition-colors duration-150 hover:text-bosque"
+                  className="text-sm font-medium underline underline-offset-4 decoration-1 transition-[text-decoration-thickness] duration-150 hover:decoration-2"
                 >
                   {link.name}
                 </a>
