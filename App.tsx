@@ -1,5 +1,6 @@
 import React, { Suspense, lazy } from 'react';
 import { Header } from './components/Header';
+import { PromoBanner } from './components/PromoBanner';
 import { Hero } from './components/Hero';
 import { Services } from './components/Services';
 import { Process } from './components/Process';
@@ -85,6 +86,8 @@ function App({ ruta }: { ruta?: string }) {
   return (
     <div className="min-h-screen bg-marfil">
       <Header />
+      {/* Promo con fecha de cierre, entre el header y el hero. Se oculta sola cuando vence. */}
+      <PromoBanner />
       <main>
         <Hero />
         <Services />
