@@ -93,7 +93,7 @@ export const CrmApp: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
   const selector =
     esAdmin && orgs.length > 1 ? (
       <label className="flex flex-col gap-2">
-        <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-piedra">Cliente de FIRMA</span>
+        <span className="text-[12.5px] font-medium text-piedra">Cliente de FIRMA</span>
         <select
           className="h-12 pl-3.5 pr-10 bg-white border border-tinta font-medium text-[15px] focus:outline-none focus:ring-1 focus:ring-bosque"
           value={orgId ?? ''}

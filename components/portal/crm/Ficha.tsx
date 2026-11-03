@@ -404,7 +404,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
       <span className="text-calido text-sm">Sin cargar</span>
     );
 
-  const etiquetaOscura = (t: string) => <span className="block text-[11px] font-medium uppercase tracking-[0.16em] text-calido mb-2">{t}</span>;
+  const etiquetaOscura = (t: string) => <span className="block text-[12.5px] font-medium text-calido mb-2">{t}</span>;
 
   return (
     <>

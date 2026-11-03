@@ -70,8 +70,8 @@ export const SegundoFactor: React.FC<{ estado: EstadoSesion }> = ({ estado }) =>
 
   return (
     <LayoutAcceso>
-      <p className="eyebrow text-piedra mb-4">Verificación en dos pasos</p>
-      <h1 className="h2 mb-3">
+      <p className="text-[13px] font-medium text-piedra mb-2">Verificación en dos pasos</p>
+      <h1 className="p-titulo-grande mb-3">
         {registrada ? (
           <>
             Ingresá tu <span className="text-bosque">código</span>
@@ -98,7 +98,7 @@ export const SegundoFactor: React.FC<{ estado: EstadoSesion }> = ({ estado }) =>
               </p>
             </>
           ) : (
-            !error && <p className="eyebrow text-piedra animate-pulse">Preparando el código QR</p>
+            !error && <p className="text-[13px] text-piedra animate-pulse">Preparando el código QR</p>
           )}
         </div>
       )}

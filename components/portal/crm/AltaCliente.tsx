@@ -274,7 +274,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
 
         <div className="flex flex-col gap-3">
           {cuotas.length > 0 && (
-            <div className="grid grid-cols-[36px_minmax(0,1fr)_minmax(0,1fr)_44px] gap-3 text-[11px] font-medium uppercase tracking-[0.16em] text-piedra">
+            <div className="grid grid-cols-[36px_minmax(0,1fr)_minmax(0,1fr)_44px] gap-3 text-[12.5px] font-medium text-piedra">
               <span>#</span>
               <span>Monto (USD)</span>
               <span>Vencimiento</span>

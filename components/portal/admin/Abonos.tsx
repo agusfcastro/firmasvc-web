@@ -77,7 +77,7 @@ function errorAmable(mensaje: string): string {
 
 const Dato: React.FC<{ titulo: string; children: React.ReactNode; mono?: boolean }> = ({ titulo, children, mono }) => (
   <div>
-    <dt className="text-[11px] font-medium uppercase tracking-[0.16em] text-piedra mb-1">{titulo}</dt>
+    <dt className="text-[12.5px] font-medium text-piedra mb-1">{titulo}</dt>
     <dd className={mono ? 'font-mono text-[12px] break-all' : 'break-words'}>{children}</dd>
   </div>
 );
@@ -530,7 +530,7 @@ export const Abonos: React.FC = () => {
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div className="flex flex-col gap-3">
-          <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-piedra">Procesador</span>
+          <span className="text-[12.5px] font-medium text-piedra">Procesador</span>
           <div className="flex flex-wrap gap-2">
             <Etiqueta tono={disp === null ? 'piedra' : disp.dlocalgo ? 'bosque' : 'alerta'}>
               {PROCESADOR} · {disp === null ? 'sin verificar' : disp.dlocalgo ? `disponible · ${entorno}` : 'no disponible'}

@@ -31,7 +31,7 @@ const areasPorDefecto = (s: SeccionDocumento): string[] => (s === 'equipo' ? ['d
 
 const ORDEN_SECCION: Record<SeccionDocumento, number> = { servicio: 0, equipo: 1, otros: 2 };
 
-const claseEtiqueta = 'block text-[11px] font-medium uppercase tracking-[0.16em] text-piedra mb-2';
+const claseEtiqueta = 'block text-[12.5px] font-medium text-piedra mb-2';
 const claseLink = 'underline underline-offset-4 hover:text-bosque';
 
 export const Documentos: React.FC = () => {
