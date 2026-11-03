@@ -28,8 +28,8 @@ export const VideoVSL: React.FC = () => {
 
   return (
     // El ancho sale del alto de la pantalla: titular, video y botón de agendar tienen que entrar sin scroll.
-    // 600px es lo que ocupan header, banner, titular, firma y botones; 480px es el piso para que no quede chico.
-    <div className="w-full mx-auto" style={{ maxWidth: 'max(480px, min(960px, calc((100svh - 600px) * 16 / 9)))' }}>
+    // El video manda: ocupa el alto que dejan header, banner y titular (330px), entre 560 y 1000px de ancho.
+    <div className="w-full mx-auto" style={{ maxWidth: 'min(1000px, max(560px, calc((100svh - 330px) * 16 / 9)))' }}>
       <div className="relative aspect-video bg-carbon overflow-hidden rounded-[24px] shadow-relieve">
         {/* En el HTML del prerender va solo el recuadro: el reproductor carga una vez, en el navegador. */}
         {typeof window !== 'undefined' && (

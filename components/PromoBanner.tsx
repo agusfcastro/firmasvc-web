@@ -58,10 +58,8 @@ export const PromoBanner: React.FC = () => {
 
         <div className="flex shrink-0 items-center justify-center gap-3 desk:gap-5">
           <div className="flex items-center gap-2.5">
-            <span className="hidden text-[11px] font-medium uppercase leading-tight tracking-[0.12em] text-white/90 min-[1200px]:inline">
-              Termina
-              <br />
-              en
+            <span className="hidden whitespace-nowrap text-[11px] font-medium uppercase leading-tight tracking-[0.12em] text-white/90 min-[1200px]:inline">
+              Termina en
             </span>
             <span className="sr-only">La promoción termina el {CIERRE} a las 23:59, hora de Argentina.</span>
             <ol aria-hidden="true" className="flex gap-1">

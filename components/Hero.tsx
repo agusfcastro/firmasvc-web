@@ -11,9 +11,9 @@ import { openCalendly } from '../lib/calendly';
  * tarjeta redondeada con la firma de Agustín y los botones redondeados.
  */
 export const Hero: React.FC = () => (
-  <section id="top" className="relative overflow-hidden text-center pt-9 desk:pt-12 pb-16 desk:pb-20">
+  <section id="top" className="relative overflow-hidden text-center pt-8 desk:pt-9 pb-16 desk:pb-20">
     <div className="wrap relative flex flex-col items-center gap-6">
-      <h1 className="font-extrabold leading-[1.02] tracking-[-0.045em]" style={{ fontSize: 'clamp(38px, 5.2vw, 70px)', textWrap: 'balance' }}>
+      <h1 className="font-extrabold leading-[1.02] tracking-[-0.045em]" style={{ fontSize: 'clamp(34px, 3.7vw, 54px)', textWrap: 'balance' }}>
         Blindamos legalmente <span className="inline-block bg-tinta text-marfil px-[0.12em] pb-[0.04em]">tu negocio digital.</span>
       </h1>
 
