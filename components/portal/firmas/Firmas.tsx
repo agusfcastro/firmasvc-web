@@ -133,13 +133,13 @@ const Listado: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> =
   return (
     <>
       <Encabezado tutorial="firmas"
-        eyebrow={esAdmin ? 'Firma electrónica · FIRMA' : `Firma electrónica · ${vista?.orgNombre ?? organizacion?.nombre ?? ''}`}
+        eyebrow={esAdmin ? 'Firmas · FIRMA' : `Firmas · ${vista?.orgNombre ?? organizacion?.nombre ?? ''}`}
         titulo={
           <>
-            Documentos <span className="text-bosque">a firma</span>
+            Mandá a firmar <span className="text-bosque whitespace-nowrap">en un minuto.</span>
           </>
         }
-        bajada="Mandá un PDF, cada persona lo firma desde su mail y recibís el documento firmado con su constancia."
+        bajada="Subí el PDF, sumá a quién firma y listo. Cada persona firma desde su mail y vos recibís el documento sellado con su constancia."
         acciones={
           !vista && !sinCupo ? (
             <Enlace a="/portal/firmas/nuevo" className={claseBotonPrincipal}>
@@ -394,10 +394,10 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
         }
         titulo={
           <>
-            Nuevo envío <span className="text-bosque">a firma</span>
+            Enviá un documento <span className="text-bosque whitespace-nowrap">a firmar.</span>
           </>
         }
-        bajada="Cada firmante recibe un mail con su enlace personal y confirma su identidad con un código antes de firmar. O copiás el enlace y se lo pasás vos."
+        bajada="Tres pasos. Subí el PDF, sumá a quién firma y elegí cómo le llega. Cada firmante confirma su identidad con un código antes de firmar."
       />
 
       {firmasAgotadas(cupo) && cupo ? (

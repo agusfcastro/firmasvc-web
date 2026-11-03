@@ -49,10 +49,10 @@ export const Agenda: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
         eyebrow="Agenda"
         titulo={
           <>
-            Agendá una <span className="text-bosque">reunión</span>
+            Hablemos <span className="text-bosque whitespace-nowrap">cara a cara.</span>
           </>
         }
-        bajada="Elegí el tipo de reunión y el horario. La invitación llega a tu mail con el enlace de la videollamada."
+        bajada="Elegí el tipo de reunión y el horario que te quede cómodo. La invitación con el enlace de la videollamada te llega por mail."
       />
       <section className="section">
         <div className="wrap flex flex-col gap-7">
@@ -77,7 +77,7 @@ export const Agenda: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
                 href={whatsapp('Hola Agustín, usé el tiempo de agenda de mi plan y necesito coordinar una reunión.')}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="self-start inline-flex items-center gap-2 h-11 px-5 bg-bosque text-marfil font-medium text-[14.5px] hover:bg-bosque-dark transition-colors duration-150"
+                className="self-start inline-flex items-center gap-2 h-11 px-5 rounded-control bg-bosque text-marfil font-medium text-[14.5px] hover:bg-bosque-dark transition-colors duration-150"
               >
                 <MessageCircle size={18} aria-hidden="true" /> Escribir por WhatsApp
               </a>
@@ -87,7 +87,7 @@ export const Agenda: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
           <div className="grid grid-cols-1 tab:grid-cols-2 wide:grid-cols-3 gap-4 desk:gap-5">
             {visibles.map((a) => (
               <a key={a.id} href={a.url} target="_blank" rel="noopener noreferrer" onClick={(e) => abrirReserva(e, a.url)} className="group p-tarjeta flex flex-col gap-2.5 p-5 desk:p-6 transition-colors duration-150 hover:border-bosque">
-                <span className="w-10 h-10 grid place-items-center bg-bosque-suave text-bosque mb-1 transition-colors duration-150 group-hover:bg-bosque group-hover:text-marfil">
+                <span className="w-10 h-10 rounded-[12px] grid place-items-center bg-niebla text-tinta mb-1 transition-colors duration-150 group-hover:bg-tinta group-hover:text-marfil">
                   <CalendarDays size={20} strokeWidth={1.75} aria-hidden="true" />
                 </span>
                 <h2 className="font-heading font-semibold text-[18px] leading-snug">{a.titulo}</h2>

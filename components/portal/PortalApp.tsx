@@ -1,4 +1,6 @@
 import React, { Suspense, lazy, useEffect } from 'react';
+// Archivo variable (peso y ancho), alojada en firmasvc.com. Solo la descarga quien entra al portal.
+import '@fontsource-variable/archivo/wdth.css';
 import { Button } from '../Button';
 import { supabase } from './supabase';
 import { navegar, useRuta } from './navegacion';

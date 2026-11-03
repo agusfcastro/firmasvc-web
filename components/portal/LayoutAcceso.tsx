@@ -2,10 +2,10 @@ import React from 'react';
 import { Logo } from '../Logo';
 import simboloOscuro from '../../assets/brand/simbolo-oscuro.png';
 
-/** Pantallas de ingreso: panel verde bosque con la marca (el mismo tono que la barra lateral del portal) y formulario sobre marfil. */
+/** Pantallas de ingreso: panel tinta con la marca (el mismo tono que la barra lateral del portal) y formulario sobre marfil. */
 export const LayoutAcceso: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="min-h-screen bg-marfil text-tinta grid desk:grid-cols-[5fr_6fr]">
-    <aside className="bg-bosque-dark text-marfil relative overflow-hidden flex flex-col justify-between gap-10 px-6 py-5 tab:px-12 desk:px-14 desk:py-14">
+  <div className="portal min-h-screen bg-marfil text-tinta grid desk:grid-cols-[5fr_6fr]">
+    <aside className="bg-tinta text-marfil relative overflow-hidden flex flex-col justify-between gap-10 px-6 py-5 tab:px-12 desk:px-14 desk:py-14">
       <img
         src={simboloOscuro}
         alt=""
@@ -21,13 +21,13 @@ export const LayoutAcceso: React.FC<{ children: React.ReactNode }> = ({ children
       </div>
       {/* El título va siempre en dos renglones. Ninguno se corta y el tamaño se ajusta al ancho del panel. */}
       <div className="relative hidden desk:flex flex-col gap-5" style={{ containerType: 'inline-size' }}>
-        <p className="eyebrow text-lateral-texto">Portal de clientes</p>
+        <p className="p-volanta text-lateral-tenue">Portal de clientes</p>
         <p
-          className="font-heading font-black leading-[1.04] tracking-[-0.02em]"
-          style={{ fontSize: 'min(clamp(30px, 4.4vw, 52px), 10.2cqi)' }}
+          className="font-extrabold leading-[1.08] tracking-[-0.04em]"
+          style={{ fontSize: 'min(clamp(30px, 4.4vw, 54px), 10.6cqi)' }}
         >
-          <span className="block whitespace-nowrap">tu empresa,</span>
-          <span className="block whitespace-nowrap text-bosque-claro">legalmente en orden</span>
+          <span className="block whitespace-nowrap">Tu empresa,</span>
+          <span className="block whitespace-nowrap"><span className="inline-block bg-marfil text-tinta px-[0.14em] mt-[0.1em]">legalmente</span> en orden.</span>
         </p>
         <p className="text-lateral-texto text-[16px] leading-[1.6] max-w-[38ch]">
           Los contratos, las firmas, los asuntos y los protocolos de tu empresa, en un solo lugar.

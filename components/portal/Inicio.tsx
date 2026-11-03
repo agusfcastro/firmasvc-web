@@ -204,13 +204,13 @@ function actividadDe(r: Resumen): Evento[] {
 /* ------------------------------------------------------------------ */
 const TONO_FICHA: Record<Tono, string> = {
   aviso: 'bg-aviso-suave text-aviso',
-  bosque: 'bg-bosque-suave text-bosque',
-  neutro: 'bg-marfil text-piedra border border-separador',
+  bosque: 'bg-tinta text-marfil',
+  neutro: 'bg-niebla text-tinta',
 };
 const TONO_CHIP: Record<Tono, string> = {
   aviso: 'bg-aviso-suave text-aviso',
-  bosque: 'bg-bosque-suave text-bosque',
-  neutro: 'bg-separador text-piedra',
+  bosque: 'bg-tinta text-marfil',
+  neutro: 'bg-niebla text-tinta',
 };
 
 interface Dato {
@@ -233,7 +233,7 @@ const Datos: React.FC<{ items: Dato[]; cargando: boolean }> = ({ items, cargando
             <Icono size={16} strokeWidth={1.75} aria-hidden="true" />
             {d.titulo}
           </span>
-          <span className="font-heading font-bold text-[30px] leading-none tracking-[-0.01em] mt-3 mb-2 tabular-nums">{cargando ? '·' : d.valor}</span>
+          <span className="font-extrabold text-[34px] leading-none tracking-[-0.04em] mt-3 mb-2 tabular-nums">{cargando ? '·' : d.valor}</span>
           {d.barra !== undefined ? (
             <span aria-hidden="true" className="block h-1 bg-separador mt-1">
               <span className="block h-full bg-bosque" style={{ width: `${Math.min(100, Math.max(0, d.barra))}%` }} />
@@ -261,7 +261,7 @@ const Tarjeta: React.FC<{ titulo: string; cuenta?: number; enlace?: { a: string;
   <section className={`p-tarjeta ${className}`}>
     <div className="p-tarjeta-cabeza">
       <h2>{titulo}</h2>
-      {cuenta !== undefined && cuenta > 0 && <span className="min-w-[22px] h-[22px] px-1.5 grid place-items-center rounded-pastilla bg-bosque-suave text-bosque text-[12px] font-semibold tabular-nums">{cuenta}</span>}
+      {cuenta !== undefined && cuenta > 0 && <span className="min-w-[22px] h-[22px] px-1.5 grid place-items-center rounded-pastilla bg-tinta text-marfil text-[12px] font-bold tabular-nums">{cuenta}</span>}
       {enlace && (
         <Enlace a={enlace.a} className="ml-auto inline-flex items-center gap-1 min-h-[40px] text-[13.5px] text-piedra hover:text-bosque">
           {enlace.texto} <ChevronRight size={15} aria-hidden="true" />
@@ -277,7 +277,7 @@ const ListaPendientes: React.FC<{ items: Pendiente[]; cargando: boolean; vacio: 
   if (!items.length)
     return (
       <div className="px-5 desk:px-6 py-8 flex items-center gap-4">
-        <span className="w-10 h-10 grid place-items-center bg-bosque-suave text-bosque shrink-0">
+        <span className="w-10 h-10 rounded-[12px] grid place-items-center bg-niebla text-tinta shrink-0">
           <CircleCheck size={20} strokeWidth={1.75} aria-hidden="true" />
         </span>
         <div>
@@ -293,15 +293,15 @@ const ListaPendientes: React.FC<{ items: Pendiente[]; cargando: boolean; vacio: 
         return (
           <li key={p.clave} className="border-b border-separador last:border-b-0">
             <Enlace a={p.a} className="group flex flex-wrap tab:flex-nowrap items-center gap-x-4 gap-y-2 px-4 desk:px-6 py-4 transition-colors duration-150 hover:bg-marfil/60">
-              <span className={`w-10 h-10 grid place-items-center shrink-0 ${TONO_FICHA[p.tono]}`}>
+              <span className={`w-10 h-10 rounded-[12px] grid place-items-center shrink-0 ${TONO_FICHA[p.tono]}`}>
                 <Icono size={19} strokeWidth={1.75} aria-hidden="true" />
               </span>
               <span className="flex flex-col min-w-0 flex-1 basis-[calc(100%-56px)] tab:basis-auto">
                 <span className="font-medium text-[15px] leading-snug">{p.titulo}</span>
                 <span className="text-[13px] text-piedra leading-snug mt-0.5 line-clamp-2">{p.detalle}</span>
               </span>
-              <span className={`ml-14 tab:ml-0 shrink-0 px-2.5 py-[3px] rounded-pastilla text-[12px] font-medium whitespace-nowrap ${TONO_CHIP[p.tono]}`}>{p.chip}</span>
-              <span className="hidden tab:inline-flex items-center gap-1.5 shrink-0 h-9 px-3.5 border border-borde-suave bg-papel text-[13.5px] font-medium group-hover:border-tinta">
+              <span className={`ml-14 tab:ml-0 shrink-0 px-2.5 py-[3px] rounded-pastilla text-[12px] font-semibold whitespace-nowrap ${TONO_CHIP[p.tono]}`}>{p.chip}</span>
+              <span className="hidden tab:inline-flex items-center gap-1.5 shrink-0 h-9 px-3.5 rounded-[10px] border border-borde-suave bg-papel text-[13.5px] font-semibold group-hover:border-tinta">
                 {p.accion}
               </span>
             </Enlace>
@@ -317,10 +317,10 @@ const Actividad: React.FC<{ eventos: Evento[] }> = ({ eventos }) => (
     {eventos.map((e, i) => (
       <li key={e.clave} className="relative grid grid-cols-[18px_minmax(0,1fr)_auto] gap-3 py-3">
         {i < eventos.length - 1 && <span aria-hidden="true" className="absolute left-[8px] top-[26px] -bottom-1 w-px bg-borde-suave" />}
-        <span aria-hidden="true" className="relative z-[1] mt-[6px] w-[9px] h-[9px] ml-[4px] border-2 border-bosque bg-papel" />
+        <span aria-hidden="true" className="relative z-[1] mt-[6px] w-[10px] h-[10px] ml-[4px] rounded-full border-2 border-tinta bg-papel" />
         <p className="text-[14px] leading-snug">
           <span className="font-medium">{e.quien}</span> {e.texto}{' '}
-          <Enlace a={e.a} className="text-bosque font-medium hover:underline underline-offset-2">
+          <Enlace a={e.a} className="text-tinta font-semibold underline decoration-borde underline-offset-[3px] hover:decoration-tinta">
             {e.objeto}
           </Enlace>
         </p>
@@ -351,7 +351,7 @@ const ModulosRapidos: React.FC<{ items: { a: string; titulo: string; texto: stri
       return (
         <li key={m.a} className="border-b border-separador last:border-b-0">
           <Enlace a={m.a} className="flex items-center gap-4 px-5 desk:px-6 py-4 transition-colors duration-150 hover:bg-marfil/60">
-            <span className="w-10 h-10 grid place-items-center bg-bosque-suave text-bosque shrink-0">
+            <span className="w-10 h-10 rounded-[12px] grid place-items-center bg-niebla text-tinta shrink-0">
               <Icono size={19} strokeWidth={1.75} aria-hidden="true" />
             </span>
             <span className="flex flex-col min-w-0 flex-1">
@@ -430,9 +430,9 @@ const InicioCliente: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
       : 'No tenés nada pendiente por ahora.';
 
   const rapidos = [
-    ...(permisos.casos ? [{ a: '/portal/documentos/equipo', titulo: 'Pedir un contrato', texto: 'Para un closer o alguien nuevo de tu equipo.', icono: FilePlus2 }] : []),
-    ...(permisos.crm ? [{ a: '/portal/crm', titulo: 'CRM legal', texto: 'Tus clientes, su contrato y el plan de cuotas.', icono: Kanban }] : []),
-    { a: '/portal/protocolos', titulo: 'Protocolos', texto: 'Cómo trabaja cada área, por escrito y con respaldo legal.', icono: BookOpen },
+    ...(permisos.casos ? [{ a: '/portal/documentos/equipo', titulo: 'Pedir un contrato', texto: 'Para un closer o alguien que se suma a tu equipo.', icono: FilePlus2 }] : []),
+    ...(permisos.crm ? [{ a: '/portal/crm', titulo: 'Clientes', texto: 'Cada cliente con su contrato, su firma y sus cuotas.', icono: Kanban }] : []),
+    { a: '/portal/protocolos', titulo: 'Protocolos', texto: 'Cómo trabaja cada área, en video y por escrito.', icono: BookOpen },
   ];
 
   return (
@@ -445,7 +445,7 @@ const InicioCliente: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
           <>
             {saludo()}
             {nombre ? ', ' : ' '}
-            <span className="text-bosque whitespace-nowrap">{nombre || 'bienvenido'}</span>
+            <span className="ondulado whitespace-nowrap">{nombre || 'bienvenido'}</span>
           </>
         }
         bajada={resumen}
@@ -485,7 +485,7 @@ const InicioCliente: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
               <Tarjeta titulo="Tu plan" enlace={{ a: '/portal/pagos', texto: 'Ver pagos' }}>
                 <div className="px-5 desk:px-6 py-5 flex flex-col gap-4">
                   <div className="flex items-baseline justify-between gap-4">
-                    <span className="font-heading font-bold text-[22px]">{plan ? ROTULO_PLAN[plan] : r.abono?.concepto ?? 'A medida'}</span>
+                    <span className="font-extrabold text-[24px] tracking-[-0.03em]">{plan ? ROTULO_PLAN[plan] : r.abono?.concepto ?? 'A medida'}</span>
                     {r.abono && (
                       <span className="text-[13px] text-piedra tabular-nums">
                         {r.abono.moneda} {Math.round(Number(r.abono.monto)).toLocaleString('es-AR')} {r.abono.periodo_meses === 1 ? 'por mes' : `cada ${r.abono.periodo_meses} meses`}
@@ -505,7 +505,7 @@ const InicioCliente: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
             {permisos.agenda && (
               <Tarjeta titulo="Agenda">
                 <div className="px-5 desk:px-6 py-5 flex flex-col gap-4">
-                  <p className="text-[14px] text-piedra leading-relaxed">Reuniones de consulta y seguimiento con Agustín Castro. Elegís el tipo de reunión y el horario.</p>
+                  <p className="text-[14px] text-piedra leading-relaxed">¿Una duda legal? Agendá con Agustín Castro y salís de la reunión con la respuesta.</p>
                   {r.agenda && !permisos.gestion && <BarraPlan titulo="Tiempo usado" usado={r.agenda.usado_min} incluido={r.agenda.incluido_min} formato={duracion} />}
                   <Button variant="ghost" onClick={() => navegar('/portal/agenda')} className="self-start">
                     <CalendarDays size={16} aria-hidden="true" /> Agendar reunión
@@ -514,7 +514,7 @@ const InicioCliente: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
               </Tarjeta>
             )}
             {(permisos.casos || permisos.documentosLegales) && (
-              <Tarjeta titulo="Accesos">
+              <Tarjeta titulo="Atajos">
                 <ModulosRapidos items={rapidos} />
               </Tarjeta>
             )}
@@ -587,7 +587,7 @@ const InicioFirma: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
     { a: '/portal/admin', titulo: 'Usuarios', texto: 'Invitaciones, roles y verificación en dos pasos.', icono: ShieldCheck },
     { a: '/portal/admin/clientes', titulo: 'Clientes', texto: 'Empresas, planes, logos y vista como cliente.', icono: Users },
     { a: '/portal/admin/documentos', titulo: 'Documentos', texto: 'Modelos, protocolos y avisos a cada empresa.', icono: FileText },
-    { a: '/portal/crm', titulo: 'CRM legal', texto: 'Clientes de cada empresa y sus casos.', icono: Kanban },
+    { a: '/portal/crm', titulo: 'Clientes', texto: 'El CRM de cada empresa y sus casos.', icono: Kanban },
   ];
 
   return (
@@ -598,7 +598,7 @@ const InicioFirma: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
         eyebrow="FIRMA · Administración"
         titulo={
           <>
-            {saludo()}, <span className="text-bosque">{(perfil!.nombre || 'FIRMA').split(' ')[0]}</span>
+            {saludo()}, <span className="ondulado">{(perfil!.nombre || 'FIRMA').split(' ')[0]}</span>
           </>
         }
         bajada={cargando ? 'Juntando lo de tus clientes…' : pendientes.length ? `Hay ${plural(pendientes.length, 'cosa que mirar', 'cosas que mirar')} en los negocios de tus clientes.` : 'Nada urgente en los negocios de tus clientes.'}
