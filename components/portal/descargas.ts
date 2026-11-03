@@ -77,6 +77,7 @@ export function extension(nombre: string | null | undefined): string {
 
 export function formatoDe(d: Pick<Documento, 'archivo_nombre' | 'url'>): string {
   if (d.url) {
+    if (/youtu\.?be|vimeo\.com|loom\.com|\.mp4($|\?)/i.test(d.url)) return 'Video';
     if (d.url.startsWith('/')) return 'Página web';
     if (/docs\.google\.com\/document/.test(d.url)) return 'Google Docs';
     if (/docs\.google\.com\/spreadsheets/.test(d.url)) return 'Google Sheets';

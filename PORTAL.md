@@ -686,13 +686,35 @@ Colores, radios, sombras y tipografías están en `index.css`, dentro de `@theme
 | Grupo | Tokens |
 |---|---|
 | Marca | `marfil`, `marfil-oscuro`, `marfil-claro`, `carbon`, `tinta`, `piedra`, `calido`, `bosque`, `bosque-dark`, `bosque-suave`, `bosque-claro` |
+| Portal | `papel` (tarjetas), `borde` (campos, 3,6 a 1 sobre blanco), `borde-suave` (tarjetas), `separador` (filas), `grafito` (sección activa del lateral), `niebla` (estados y fichas neutras), `lateral-texto` y `lateral-tenue` (barra lateral) |
 | Líneas | `linea`, `linea-suave` |
 | Estados | `peligro`, `peligro-fuerte`, `peligro-suave`, `peligro-borde`, `peligro-claro`, `aviso`, `aviso-suave`, `aviso-claro`, `urgente` |
 | Radios | `control`, `tarjeta` (0, ángulo recto) y `pastilla` |
 | Sombras | `suave`, `hoja`, `flotante` |
-| Tipografía | `font-sans` (Archivo), `font-heading` (Bitter) |
+| Tipografía | `font-sans` (Archivo), `font-heading` (Bitter), `font-portal` (Archivo variable, solo en el portal) |
 
 Los mails, el PDF firmado y los dibujos en canvas no leen CSS. Toman los colores de `api/_lib/marca.ts`, que tiene que coincidir con `index.css`; `npm run marca:verificar` lo controla. No escribas colores con `[#...]` en los componentes: si falta uno, sumalo como token.
+
+`npm run marca:verificar` también controla el contraste WCAG 2.2 AA de los pares que usa el portal: 4,5 a 1 para texto y 3 a 1 para el contorno de un campo. Si cambiás un color y deja de pasar, el script dice qué par falla y con cuánto.
+
+### Diseño del portal
+
+El portal va en negro, como los posteos de @agustin.legales, con una escala de aplicación distinta de la de la landing. Todo vive dentro de `Marco` (`components/portal/ui.tsx`), que lleva la clase `.portal`. Adentro de `.portal` el verde de la marca se redefine a tinta, así cada `bg-bosque`, `text-bosque` o `border-bosque` pasa a negro sin tocar componentes. La web pública, los mails y el PDF firmado siguen en verde bosque.
+
+| Pieza | Cómo es |
+|---|---|
+| Tipografía | Archivo variable con peso y ancho (`@fontsource-variable/archivo`), alojada en firmasvc.com y cargada solo al entrar al portal. Títulos en 800 con interletra cerrada (`p-titulo`, `p-titulo-grande`). La volanta (`p-volanta`, `.eyebrow`) va en mayúsculas expandidas, salvo adentro de cifras, listas y tarjetas, donde es un dato y va con mayúscula inicial |
+| Resaltado | La palabra clave de un título va en caja negra en ángulo recto (`resalte`). En los títulos, todo lo que antes era `text-bosque` se ve así. `ondulado` subraya a mano alzada, como en el saludo del inicio |
+| Barra lateral | Tinta, 264 px, fija en computadora, con la palabra firma arriba. Bloque de la empresa con su logo, rol y plan; si la persona es miembro de varios negocios, ese bloque es el selector. Secciones agrupadas en Expediente y Tu negocio (para FIRMA, Clientes, Gestión y FIRMA), con contadores de lo que espera en Asuntos y en Firmas |
+| Celular | Barra superior tinta con el logo y el menú, y barra inferior con las cuatro secciones más usadas según el rol y Más. Las acciones de cada encabezado van en una fila que se desliza, con la principal primero |
+| Encabezado | `Encabezado` es compacto: volanta, título, bajada en 16 px y acciones a la derecha |
+| Bordes | Como los posteos. Tarjetas de 20 px de radio (`p-tarjeta`, cifras), botones y campos de 12 px (`--radius-control` dentro de `.portal`), estados en pastilla y las cajas de resaltado en ángulo recto |
+| Botones | `Marco` envuelve todo en `DensidadBotones` compacta: botones de 36 a 48 px, el principal en negro y el secundario sobre papel. La landing sigue igual |
+| Campos | `claseInput` con borde `borde` (3,6 a 1), foco de 2 px en tinta, etiquetas de 13 px (`Campo`). El foco visible de teclado vale para todo el sitio |
+| Estados | `Etiqueta` en pastilla de 12 px. `bosque` es negra llena (activo, firmado), `tinta` con borde (finalizado, en pausa), `piedra` gris niebla (en espera) y `alerta` roja |
+| Protocolos | Portada «Un contrato no es desconfianza. Es claridad.» y cada protocolo como la tarjeta de video del posteo (`TarjetaProtocolo.tsx`). Si el enlace es de YouTube, Vimeo, Loom o un mp4, el círculo es play y el video se abre en el portal; si es un archivo, descarga; si es otro enlace, lo abre |
+
+El inicio (`Inicio.tsx`) muestra lo que la persona tiene que resolver, con datos reales: firmas que le faltan firmar o vencen en tres días, asuntos que esperan su respuesta o vencen en una semana, pedidos de contrato sin enviar, problemas con el débito y, para el closer, clientes del CRM con la firma pendiente. Arriba van las cifras y al costado el plan, la agenda y los accesos. FIRMA ve un inicio propio con los problemas de cobro, los errores de sellado, los pedidos nuevos y los asuntos que vencen en la semana.
 
 ## Multitenant: membresías, equipo, variables, planes y bitácora
 
@@ -714,7 +736,7 @@ Etapa 2, migraciones 0036 a 0043.
 
 | Dónde | Qué |
 |---|---|
-| Encabezado del portal | Selector de negocio, solo para quien es miembro de más de uno. Al cambiar, el portal vuelve al inicio con el negocio nuevo |
+| Barra lateral del portal | Selector de negocio en el bloque de la empresa, solo para quien es miembro de más de uno. Al cambiar, el portal vuelve al inicio con el negocio nuevo |
 | CRM › Equipo (`/portal/crm/equipo`) | Alta, edición y baja (desactivar) del equipo comercial. Lo administra el titular |
 | CRM › Servicios › Variables de la empresa (`/portal/crm/variables`) | Variables propias y los valores de las de ámbito empresa. Las de ámbito cliente se cargan en la ficha |
 | Ficha del cliente | Closer, setter y responsable elegidos del equipo, y los datos propios de la empresa. El responsable anotado a mano se sigue viendo hasta que se elige a alguien |

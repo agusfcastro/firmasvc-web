@@ -201,7 +201,7 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
               <Button variant="ghost" size="lg" onClick={() => navegar('/portal/crm/casos')} className="self-end">
                 <ShieldAlert size={18} /> Casos de conflicto
                 {casosAbiertos ? (
-                  <span className="inline-flex items-center justify-center min-w-6 h-6 px-1.5 bg-peligro text-marfil text-xs font-medium tabular-nums">
+                  <span className="inline-flex items-center justify-center min-w-6 h-6 px-1.5 rounded-pastilla bg-peligro text-marfil text-xs font-semibold tabular-nums">
                     {casosAbiertos}
                     <span className="sr-only">{casosAbiertos === 1 ? ' caso abierto' : ' casos abiertos'}</span>
                   </span>

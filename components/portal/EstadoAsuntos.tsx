@@ -280,7 +280,7 @@ const Lista: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
   return (
     <Marco perfil={perfil}>
       <Encabezado tutorial="asuntos"
-        eyebrow={esFirma ? 'Estado de asuntos · Todas las empresas' : 'Estado de asuntos'}
+        eyebrow={esFirma ? 'Asuntos · Todas las empresas' : 'Asuntos'}
         titulo={
           esFirma ? (
             <>
@@ -288,7 +288,7 @@ const Lista: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
             </>
           ) : (
             <>
-              Tus asuntos con <span className="text-bosque">FIRMA</span>
+              Tus asuntos, <span className="text-bosque whitespace-nowrap">siempre al día.</span>
             </>
           )
         }
@@ -911,18 +911,18 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
             <>
               <dl className="flex flex-col gap-4 text-[15px]">
                 <div>
-                  <dt className="text-[11px] font-medium uppercase tracking-[0.16em] text-piedra mb-1">Próximo paso</dt>
+                  <dt className="text-[12.5px] font-medium text-piedra mb-1">Próximo paso</dt>
                   <dd>{asunto.proximo_paso || (asunto.estado === 'finalizado' ? 'Ninguno, el asunto está cerrado.' : 'Lo definimos con la próxima novedad.')}</dd>
                 </div>
                 {asunto.vence_en && (
                   <div>
-                    <dt className="text-[11px] font-medium uppercase tracking-[0.16em] text-piedra mb-1">Vence</dt>
+                    <dt className="text-[12.5px] font-medium text-piedra mb-1">Vence</dt>
                     <dd>{fechaVence(asunto.vence_en)}</dd>
                   </div>
                 )}
                 {cliente && (
                   <div>
-                    <dt className="text-[11px] font-medium uppercase tracking-[0.16em] text-piedra mb-1">Cliente</dt>
+                    <dt className="text-[12.5px] font-medium text-piedra mb-1">Cliente</dt>
                     <dd>
                       {veCrm && !vista ? (
                         <Enlace a={`/portal/crm/${cliente.id}`} className="underline underline-offset-4 hover:text-bosque">
@@ -936,12 +936,12 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
                   </div>
                 )}
                 <div>
-                  <dt className="text-[11px] font-medium uppercase tracking-[0.16em] text-piedra mb-1">Abierto</dt>
+                  <dt className="text-[12.5px] font-medium text-piedra mb-1">Abierto</dt>
                   <dd>{fechaAsunto(asunto.creado_en)}</dd>
                 </div>
                 {asunto.cerrado_en && (
                   <div>
-                    <dt className="text-[11px] font-medium uppercase tracking-[0.16em] text-piedra mb-1">Finalizado</dt>
+                    <dt className="text-[12.5px] font-medium text-piedra mb-1">Finalizado</dt>
                     <dd>{fechaAsunto(asunto.cerrado_en)}</dd>
                   </div>
                 )}
@@ -990,18 +990,18 @@ const BloqueCaso: React.FC<{ caso: Caso; moneda: string; puedeSeguir: boolean }>
     <p className="text-[14px] leading-[1.5]">{AYUDA_SEMAFORO[caso.semaforo]}</p>
     <dl className="flex flex-col gap-3 text-[14px]">
       <div>
-        <dt className="text-[11px] font-medium uppercase tracking-[0.16em] text-piedra mb-1">Causa</dt>
+        <dt className="text-[12.5px] font-medium text-piedra mb-1">Causa</dt>
         <dd>{ROTULO_CAUSA[caso.causa]}</dd>
       </div>
       {caso.monto_reclamado !== null && (
         <div>
-          <dt className="text-[11px] font-medium uppercase tracking-[0.16em] text-piedra mb-1">Monto reclamado</dt>
+          <dt className="text-[12.5px] font-medium text-piedra mb-1">Monto reclamado</dt>
           <dd>{dinero(Number(caso.monto_reclamado), moneda)}</dd>
         </div>
       )}
       {caso.contracargo && (
         <div>
-          <dt className="text-[11px] font-medium uppercase tracking-[0.16em] text-piedra mb-1">Contracargo</dt>
+          <dt className="text-[12.5px] font-medium text-piedra mb-1">Contracargo</dt>
           <dd>{ROTULO_RESULTADO[caso.contracargo_resultado ?? 'pendiente']}</dd>
         </div>
       )}
@@ -1077,7 +1077,7 @@ const Chat: React.FC<{
             const mio = propio(m);
             return (
               <div key={m.id} className={`flex flex-col max-w-[80%] ${mio ? 'self-end items-end' : 'self-start items-start'}`}>
-                <span className="text-[11px] text-piedra mb-1">
+                <span className="text-[12px] text-piedra mb-1">
                   {nombreDe(m.autor_id)} · {fechaHoraAsunto(m.creado_en)}
                 </span>
                 <p className={`px-4 py-2.5 text-[15px] leading-[1.5] whitespace-pre-line break-words ${mio ? 'bg-bosque text-marfil' : 'bg-white border border-[rgba(27,31,27,0.15)]'}`}>{m.texto}</p>

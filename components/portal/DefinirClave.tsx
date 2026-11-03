@@ -33,8 +33,8 @@ export const DefinirClave: React.FC<{ estado: EstadoSesion }> = ({ estado }) => 
   if (estado.enlacePendiente) {
     return (
       <LayoutAcceso>
-        <p className="eyebrow text-piedra mb-4">Acceso de clientes</p>
-        <h1 className="h2 mb-3">
+        <p className="text-[13px] font-medium text-piedra mb-2">Acceso de clientes</p>
+        <h1 className="p-titulo-grande mb-3">
           Activá tu <span className="text-bosque">acceso</span>
         </h1>
         <p className="text-piedra mb-8">Tocá el botón para validar tu enlace. Después definís tu contraseña y entrás al portal.</p>
@@ -48,8 +48,8 @@ export const DefinirClave: React.FC<{ estado: EstadoSesion }> = ({ estado }) => 
   if (!estado.sesion) {
     return (
       <LayoutAcceso>
-        <p className="eyebrow text-piedra mb-4">Acceso</p>
-        <h1 className="h2 mb-6">
+        <p className="text-[13px] font-medium text-piedra mb-2">Acceso</p>
+        <h1 className="p-titulo-grande mb-5">
           El enlace <span className="text-bosque">venció</span>
         </h1>
         <p className="text-piedra mb-8">
@@ -85,8 +85,8 @@ export const DefinirClave: React.FC<{ estado: EstadoSesion }> = ({ estado }) => 
 
   return (
     <LayoutAcceso>
-      <p className="eyebrow text-piedra mb-4">Primer ingreso</p>
-      <h1 className="h2 mb-3">
+      <p className="text-[13px] font-medium text-piedra mb-2">Primer ingreso</p>
+      <h1 className="p-titulo-grande mb-3">
         Definí tu <span className="text-bosque">contraseña</span>
       </h1>
       <p className="text-piedra mb-8">Para {estado.sesion.user.email}. Se guarda cifrada: nadie en FIRMA puede verla.</p>

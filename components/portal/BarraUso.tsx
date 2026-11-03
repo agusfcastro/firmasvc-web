@@ -21,7 +21,7 @@ export const BarraUso: React.FC<{
   return (
     <div className="flex flex-col gap-3 max-w-[560px]">
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-        <p className={`eyebrow ${suave}`}>{titulo}</p>
+        <p className={oscuro ? `eyebrow ${suave}` : 'text-[14px] font-medium text-tinta'}>{titulo}</p>
         <p className="text-[15px] tabular-nums">
           <span className="font-medium">{formato(usado)}</span> <span className={suave}>de {formato(incluido)}</span>
         </p>
@@ -32,7 +32,7 @@ export const BarraUso: React.FC<{
         aria-valuemin={0}
         aria-valuemax={incluido}
         aria-valuenow={Math.min(usado, incluido)}
-        className={`h-2 w-full overflow-hidden ${oscuro ? 'bg-[rgba(244,242,237,0.14)]' : 'bg-marfil-oscuro'}`}
+        className={`h-1.5 w-full overflow-hidden ${oscuro ? 'bg-[rgba(244,242,237,0.14)]' : 'bg-separador'}`}
       >
         <div className={`h-full ${agotado ? (oscuro ? 'bg-marfil' : 'bg-tinta') : oscuro ? 'bg-calido' : 'bg-bosque'}`} style={{ width: `${pct}%` }} />
       </div>

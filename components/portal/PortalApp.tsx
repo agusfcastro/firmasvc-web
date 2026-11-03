@@ -1,4 +1,6 @@
 import React, { Suspense, lazy, useEffect } from 'react';
+// Archivo variable (peso y ancho), alojada en firmasvc.com. Solo la descarga quien entra al portal.
+import '@fontsource-variable/archivo/wdth.css';
 import { Button } from '../Button';
 import { supabase } from './supabase';
 import { navegar, useRuta } from './navegacion';
@@ -65,7 +67,7 @@ export const PortalApp: React.FC = () => {
   if (!supabase) {
     return (
       <LayoutAcceso>
-        <h1 className="h2 mb-6">Portal sin configurar</h1>
+        <h1 className="p-titulo-grande mb-5">Portal sin configurar</h1>
         <Aviso tipo="error">Faltan las variables VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY. Revisá la guía PORTAL.md.</Aviso>
       </LayoutAcceso>
     );
@@ -83,8 +85,8 @@ export const PortalApp: React.FC = () => {
   if (!perfil || !perfil.activo || (perfil.rol !== 'admin' && !estado.organizacion)) {
     return (
       <LayoutAcceso>
-        <p className="eyebrow text-piedra mb-4">Acceso</p>
-        <h1 className="h2 mb-6">
+        <p className="text-[13px] font-medium text-piedra mb-2">Acceso</p>
+        <h1 className="p-titulo-grande mb-5">
           Tu cuenta no está <span className="text-bosque">habilitada</span>
         </h1>
         <p className="text-piedra mb-8">Ingresaste como {sesion.user.email}, pero esta cuenta no tiene acceso activo al portal. Escribinos y lo revisamos.</p>

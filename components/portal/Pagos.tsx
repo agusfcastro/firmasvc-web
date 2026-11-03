@@ -63,7 +63,7 @@ const futuro = (iso: string | null): boolean => Boolean(iso) && Date.parse(iso a
 
 const Dato: React.FC<{ titulo: string; children: React.ReactNode; ancho?: boolean }> = ({ titulo, children, ancho }) => (
   <div className={`flex flex-col gap-1.5 ${ancho ? 'tab:col-span-2' : ''}`}>
-    <dt className="text-[11px] font-medium uppercase tracking-[0.16em] text-piedra">{titulo}</dt>
+    <dt className="text-[12.5px] font-medium text-piedra">{titulo}</dt>
     <dd className="text-[15px] leading-[1.55]">{children}</dd>
   </div>
 );
@@ -411,7 +411,7 @@ const Copiar: React.FC<{ texto: string; etiqueta: string }> = ({ texto, etiqueta
 
 const FilaDato: React.FC<{ dato: DatoPago }> = ({ dato }) => (
   <div className="flex flex-col gap-1">
-    <dt className="text-[11px] font-medium uppercase tracking-[0.16em] text-piedra">{dato.etiqueta}</dt>
+    <dt className="text-[12.5px] font-medium text-piedra">{dato.etiqueta}</dt>
     <dd className="flex items-center justify-between gap-3">
       <span className="text-[15px] leading-[1.45] [overflow-wrap:anywhere] select-all">{dato.valor}</span>
       {dato.copiable && <Copiar texto={dato.valor} etiqueta={dato.etiqueta} />}

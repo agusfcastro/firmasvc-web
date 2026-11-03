@@ -49,17 +49,16 @@ export const Agenda: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
         eyebrow="Agenda"
         titulo={
           <>
-            Agendá una <span className="text-bosque">reunión</span>
+            Hablemos <span className="text-bosque whitespace-nowrap">cara a cara.</span>
           </>
         }
-        bajada="Elegí el tipo de reunión y el horario. La invitación llega a tu mail con el enlace de la videollamada."
+        bajada="Elegí el tipo de reunión y el horario que te quede cómodo. La invitación con el enlace de la videollamada te llega por mail."
       />
-      <section className="section bg-carbon text-marfil">
-        <div className="wrap flex flex-col gap-10">
+      <section className="section">
+        <div className="wrap flex flex-col gap-7">
           {error && <Aviso tipo="error">{error}</Aviso>}
           {conLimite && (
             <BarraUso
-              oscuro
               titulo={`Tiempo de reuniones ${periodoAgenda(uso.plan)}`}
               usado={uso.usado_min}
               incluido={uso.incluido_min as number}
@@ -68,9 +67,9 @@ export const Agenda: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
             />
           )}
           {agotada && uso && (
-            <div className="flex flex-col gap-5 max-w-[620px] border border-[rgba(244,242,237,0.2)] p-6 desk:p-8">
-              <h2 className="h3">Usaste el tiempo de reuniones {periodoAgenda(uso.plan)}</h2>
-              <p className="text-[15px] leading-[1.6] text-calido">
+            <div className="p-tarjeta flex flex-col gap-4 max-w-[620px] p-6 desk:p-8">
+              <h2 className="font-heading font-semibold text-[18px]">Usaste el tiempo de reuniones {periodoAgenda(uso.plan)}</h2>
+              <p className="text-[15px] leading-[1.6] text-piedra">
                 Tu plan incluye {duracion(uso.incluido_min as number)} {uso.plan === 'black' ? 'por semana' : 'por mes'}. La agenda se habilita de nuevo el {diaYMes(uso.hasta)}. Si necesitás
                 hablar antes, escribinos por WhatsApp.
               </p>
@@ -78,31 +77,28 @@ export const Agenda: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
                 href={whatsapp('Hola Agustín, usé el tiempo de agenda de mi plan y necesito coordinar una reunión.')}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="self-start inline-flex items-center gap-2 h-12 px-6 bg-marfil text-tinta font-medium text-[15px] hover:bg-calido transition-colors duration-150"
+                className="self-start inline-flex items-center gap-2 h-11 px-5 rounded-control bg-bosque text-marfil font-medium text-[14.5px] hover:bg-bosque-dark transition-colors duration-150"
               >
                 <MessageCircle size={18} aria-hidden="true" /> Escribir por WhatsApp
               </a>
             </div>
           )}
-          {!agotada && agendas && agendas.length === 0 && <p className="text-calido">No hay horarios publicados en este momento. Escribinos a agustin@firmasvc.com y coordinamos.</p>}
-          <div className="grid grid-cols-1 tab:grid-cols-2 wide:grid-cols-3 gap-5">
-            {visibles.map((a, i) => (
-              <a key={a.id} href={a.url} target="_blank" rel="noopener noreferrer" onClick={(e) => abrirReserva(e, a.url)} className="card">
-                <span aria-hidden="true" className="wm">
-                  {String(i + 1).padStart(2, '0')}
+          {!agotada && agendas && agendas.length === 0 && <p className="text-piedra">No hay horarios publicados en este momento. Escribinos a agustin@firmasvc.com y coordinamos.</p>}
+          <div className="grid grid-cols-1 tab:grid-cols-2 wide:grid-cols-3 gap-4 desk:gap-5">
+            {visibles.map((a) => (
+              <a key={a.id} href={a.url} target="_blank" rel="noopener noreferrer" onClick={(e) => abrirReserva(e, a.url)} className="group p-tarjeta flex flex-col gap-2.5 p-5 desk:p-6 transition-colors duration-150 hover:border-bosque">
+                <span className="w-10 h-10 rounded-[12px] grid place-items-center bg-niebla text-tinta mb-1 transition-colors duration-150 group-hover:bg-tinta group-hover:text-marfil">
+                  <CalendarDays size={20} strokeWidth={1.75} aria-hidden="true" />
                 </span>
-                <div className="icon-box">
-                  <CalendarDays size={26} strokeWidth={1.8} />
-                </div>
-                <h2 className="h3 relative">{a.titulo}</h2>
+                <h2 className="font-heading font-semibold text-[18px] leading-snug">{a.titulo}</h2>
                 {a.duracion_min && (
-                  <span className="relative inline-flex items-center gap-2 eyebrow text-[11px] text-calido">
-                    <Clock size={13} aria-hidden="true" /> {a.duracion_min} minutos
+                  <span className="inline-flex items-center gap-1.5 text-[13px] text-piedra">
+                    <Clock size={14} aria-hidden="true" /> {a.duracion_min} minutos
                   </span>
                 )}
-                {a.descripcion && <p className="relative text-[15px] leading-[1.6] text-calido">{a.descripcion}</p>}
-                <span className="ir relative">
-                  Ver disponibilidad <ArrowUpRight size={16} />
+                {a.descripcion && <p className="text-[14px] leading-[1.55] text-piedra">{a.descripcion}</p>}
+                <span className="mt-auto pt-2 inline-flex items-center gap-1.5 text-[14px] font-medium text-bosque">
+                  Ver disponibilidad <ArrowUpRight size={16} aria-hidden="true" />
                 </span>
               </a>
             ))}

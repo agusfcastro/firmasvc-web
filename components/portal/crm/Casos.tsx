@@ -69,7 +69,7 @@ const PUNTO_SEMAFORO: Record<Semaforo, string> = {
   rojo: 'bg-peligro',
 };
 
-const claseEtiqueta = 'block text-[11px] font-medium uppercase tracking-[0.16em] text-piedra mb-2';
+const claseEtiqueta = 'block text-[12.5px] font-medium text-piedra mb-2';
 const claseSelectorEncabezado = 'h-12 pl-3.5 pr-10 bg-white border border-tinta font-medium text-[15px] focus:outline-none focus:ring-1 focus:ring-bosque';
 const filete = { borderTop: '1px solid rgba(27,31,27,0.15)' };
 
@@ -95,7 +95,7 @@ const DEFINICIONES: [string, string][] = [
 const LIMITES = [10, 20, 30];
 
 export const EtiquetaSemaforo: React.FC<{ nivel: Semaforo }> = ({ nivel }) => (
-  <span className={`inline-flex items-center gap-1.5 px-2 py-1 text-[11px] font-medium uppercase tracking-[0.12em] whitespace-nowrap ${ESTILO_SEMAFORO[nivel]}`}>
+  <span className={`inline-flex items-center gap-1.5 px-2.5 py-[3px] rounded-pastilla text-[12px] font-medium whitespace-nowrap ${ESTILO_SEMAFORO[nivel]}`}>
     <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-current" />
     {ROTULO_SEMAFORO[nivel]}
   </span>

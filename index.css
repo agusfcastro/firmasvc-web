@@ -23,6 +23,18 @@
   --color-bosque-suave: #E4E9E3;
   --color-bosque-claro: #B9D4C4;
 
+  /* Portal. Va en negro, como los posteos: papel para tarjetas, borde de campo con 3,6 a 1 sobre blanco,
+     grafito para el activo de la barra lateral y niebla para estados y fichas neutras.
+     marca:verificar controla el contraste de estos pares. */
+  --color-papel: #FFFEFB;
+  --color-borde: #8A867A;
+  --color-borde-suave: #E4E1D7;
+  --color-separador: #EEECE5;
+  --color-grafito: #33362F;
+  --color-niebla: #ECE9E1;
+  --color-lateral-texto: #D6D3C9;
+  --color-lateral-tenue: #A9A79E;
+
   /* Estados. Los -claro van como texto sobre fondo oscuro */
   --color-peligro: #8A2B20;
   --color-peligro-fuerte: #5C1D15;
@@ -49,6 +61,8 @@
 
   --font-sans: 'Archivo', system-ui, sans-serif;
   --font-heading: 'Bitter', Georgia, serif;
+  /* Archivo variable (peso y ancho) alojada en firmasvc.com. La usa el portal, como los posteos. */
+  --font-portal: 'Archivo Variable', 'Archivo', system-ui, sans-serif;
 
   /* Breakpoints del diseño (720 / 900 / 1000) */
   --breakpoint-tab: 720px;
@@ -338,3 +352,107 @@ a.card { color: inherit; text-decoration: none; }
 
 /* Panel oscuro (como la tarjeta de agenda de Contacto) */
 .panel-carbon { background: var(--color-carbon); color: var(--color-marfil); }
+
+/* =================================================================== */
+/* Portal: escala de aplicación                                         */
+/* El Marco del portal lleva la clase .portal. Adentro, las primitivas  */
+/* de la landing (.section, .wrap, .h1…) se achican a escala de app.   */
+/* =================================================================== */
+
+/* Foco visible en todo el sitio: 2 px con separación, se ve sin buscarlo. */
+:where(a, button, summary, select, textarea, input[type='checkbox'], input[type='radio'], [role='button'], [role='tab'], [role='switch'], [tabindex]):focus-visible {
+  outline: 2px solid var(--color-bosque);
+  outline-offset: 2px;
+}
+.lateral :where(a, button, select, [tabindex]):focus-visible { outline-color: var(--color-marfil); }
+
+/* El portal va en negro, como los posteos de @agustin.legales. Adentro de .portal el verde de la
+   marca se redefine a tinta, así cada bg-bosque, text-bosque o border-bosque pasa a negro sin tocar
+   componentes. La web pública, los mails y el PDF firmado siguen en verde bosque. */
+.portal {
+  font-size: 15px;
+  font-family: var(--font-portal);
+  --font-sans: var(--font-portal);
+  --font-heading: var(--font-portal);
+  --color-bosque: var(--color-tinta);
+  --color-bosque-dark: var(--color-grafito);
+  --color-bosque-suave: var(--color-niebla);
+  --color-bosque-claro: var(--color-borde-suave);
+  --radius-control: 12px;
+  --radius-tarjeta: 20px;
+}
+.portal .wrap { max-width: 1240px; padding-inline: 16px; }
+@media (min-width: 900px) { .portal .wrap { padding-inline: 40px; } }
+.portal .section { padding: 24px 0; }
+@media (min-width: 900px) { .portal .section { padding: 32px 0; } }
+
+.portal .h1 { font-size: clamp(28px, 3vw, 36px); line-height: 1.05; letter-spacing: -0.035em; font-weight: 800; }
+.portal .h2 { font-size: clamp(24px, 2.4vw, 30px); line-height: 1.08; letter-spacing: -0.03em; font-weight: 800; }
+.portal .h3 { font-size: 18px; line-height: 1.25; font-weight: 700; letter-spacing: -0.02em; }
+.portal .stat-label { font-size: 12px; }
+
+/* Volanta: mayúsculas en Archivo expandida, como CONTRATOS PARA TU NEGOCIO en los posteos */
+.p-volanta, .portal .eyebrow { font-family: var(--font-portal); font-size: 12px; font-weight: 600; font-stretch: 125%; letter-spacing: 0.16em; text-transform: uppercase; line-height: 1.4; }
+
+/* Títulos de página en Archivo pesada, con interletra cerrada */
+.p-titulo { font-family: var(--font-heading); font-weight: 800; font-size: clamp(28px, 2.8vw, 38px); line-height: 1.04; letter-spacing: -0.035em; }
+.p-titulo-grande { font-family: var(--font-heading); font-weight: 800; font-size: clamp(32px, 3.6vw, 48px); line-height: 1.02; letter-spacing: -0.04em; }
+
+/* Palabra clave en caja negra, en ángulo recto como en los posteos. En los títulos, lo que antes iba en verde. */
+.resalte, .p-titulo .text-bosque, .p-titulo-grande .text-bosque {
+  background: var(--color-tinta);
+  color: var(--color-marfil);
+  padding: 0 0.14em 0.03em;
+  margin-inline: 0.02em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+/* Subrayado a mano alzada, como tu negocio en el primer posteo */
+.ondulado {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 10' preserveAspectRatio='none'%3E%3Cpath d='M3 6.5C40 3 78 8.5 118 5.5S178 3.5 197 5' fill='none' stroke='%236B6553' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E") left bottom / 100% 0.2em no-repeat;
+  padding-bottom: 0.14em;
+}
+
+/* Tarjeta de aplicación: papel, filete suave y bordes redondeados como en los posteos */
+.p-tarjeta { background: var(--color-papel); border: 1px solid var(--color-borde-suave); border-radius: 20px; overflow: hidden; }
+.p-tarjeta-cabeza { display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid var(--color-separador); }
+@media (min-width: 900px) { .p-tarjeta-cabeza { padding: 18px 24px; } }
+.p-tarjeta-cabeza h2 { font-family: var(--font-heading); font-weight: 700; font-size: 18px; line-height: 1.25; letter-spacing: -0.02em; }
+
+/* Cifras: tira de tarjetas */
+.portal .cifras { background: var(--color-papel); border: 1px solid var(--color-borde-suave); border-radius: 20px; overflow: hidden; }
+.portal .cifra, .portal .cifra + .cifra { padding: 18px 20px; }
+.portal .cifra + .cifra { border-left-color: var(--color-separador); }
+@media (max-width: 719px) { .portal .cifra:nth-child(n+3) { border-top-color: var(--color-separador); } }
+@media (min-width: 720px) and (max-width: 999px) { .portal .cifra:nth-child(n+4) { border-top-color: var(--color-separador); } }
+.portal .cifra-valor { font-weight: 800; font-size: clamp(24px, 2vw, 32px); letter-spacing: -0.03em; }
+
+/* Tablas: encabezados legibles, sin versalitas */
+.portal .tabla thead th { font-size: 12.5px; letter-spacing: 0; text-transform: none; padding: 0 16px 10px; border-bottom: 1px solid var(--color-borde-suave); }
+.portal .tabla tbody td { padding: 14px 16px; border-bottom-color: var(--color-separador); }
+.portal .tabla tbody tr.fila-link:hover { background: var(--color-papel); }
+
+/* Tarjetas de módulo en claro */
+.portal .card { background: var(--color-papel); border-color: var(--color-borde-suave); color: var(--color-tinta); padding: 24px; gap: 10px; border-radius: 20px; }
+.portal .card:hover { transform: none; border-color: var(--color-tinta); }
+.portal .card .wm { display: none; }
+.portal .card .icon-box { width: 44px; height: 44px; border-radius: 12px; background: var(--color-niebla); color: var(--color-tinta); }
+.portal .card:hover .icon-box { background: var(--color-tinta); color: var(--color-marfil); }
+.portal .card .text-calido { color: var(--color-piedra); }
+.portal .card .text-marfil { color: var(--color-tinta); }
+.portal .card .ir { color: var(--color-tinta); }
+.portal .card.card-apagada:hover { border-color: var(--color-borde-suave); }
+.portal .card.card-apagada:hover .icon-box { background: var(--color-niebla); color: var(--color-tinta); }
+
+/* Paneles de acento en tinta, como la tarjeta del chat en los posteos */
+.portal .panel-carbon { background: var(--color-tinta); border-radius: 20px; }
+
+/* Interruptor redondo en el portal */
+.portal [role='switch'] { border-radius: 999px; }
+.portal [role='switch'] > span { border-radius: 999px; }
+
+/* Barra inferior del celular: deja lugar al final de la página */
+@media (max-width: 899px) { .portal-cuerpo { padding-bottom: calc(76px + env(safe-area-inset-bottom)); } }
+
+/* Dentro de cifras, listas y tarjetas la volanta es un dato, no un título: va con mayúscula inicial para leerse rápido. */
+.portal :is(.cifra, li, article, td) .eyebrow { font-size: 12.5px; font-weight: 500; font-stretch: 100%; letter-spacing: 0; text-transform: none; }
