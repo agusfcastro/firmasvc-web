@@ -56,6 +56,8 @@ const PARES = [
   ['tinta', 'niebla', 4.5, 'estados y fichas neutras del portal'],
   ['aviso', 'aviso-suave', 4.5, 'estado de aviso'],
   ['peligro', 'peligro-suave', 4.5, 'estado de error'],
+  ['exito', 'exito-suave', 4.5, 'estado de éxito'],
+  ['exito', 'papel', 4.5, 'texto de éxito en tarjetas'],
   ['calido', 'carbon', 4.5, 'texto en carbón'],
   ['calido', 'tinta', 4.5, 'texto en tarjetas y paneles negros'],
   ['lateral-texto', 'tinta', 4.5, 'barra lateral'],

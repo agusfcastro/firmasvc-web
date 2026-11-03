@@ -12,6 +12,7 @@ import { CAMPOS_CASO, VALORES_CASO } from './reglasCasos';
 import { CasosCliente } from './Casos';
 import { AsuntosCliente } from './AsuntosCliente';
 import { PerfilCliente } from './PerfilCliente';
+import { registrarLectura } from '../lecturas';
 import { ContratoFirma } from './contratoFirma';
 import { DatosCliente, filaIdentidad, type Identidad } from './DatosCliente';
 
@@ -114,6 +115,8 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
 
   useEffect(() => {
     void cargar();
+    // DNI, teléfono y domicilio a la vista: queda en la bitácora del negocio.
+    registrarLectura('crm_cliente', id);
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (noExiste)

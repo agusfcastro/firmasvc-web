@@ -45,6 +45,8 @@
   --color-aviso-suave: #F6ECD2;
   --color-aviso-claro: #F0D2A8;
   --color-urgente: #B3261E;
+  --color-exito: #2E6544;
+  --color-exito-suave: #E2EEE5;
 
   /* Radios. La marca va en ángulo recto; pastilla es para etiquetas y chips */
   --radius-control: 0px;
@@ -69,6 +71,22 @@
   --breakpoint-tab: 720px;
   --breakpoint-desk: 900px;
   --breakpoint-wide: 1000px;
+}
+
+/* Capa semántica. Nombra el uso, no el color: un componente nuevo pide text-texto-suave o
+   bg-acento y el manual de marca decide qué color es. Apunta a los tokens de arriba; con
+   inline las clases usan var(--color-bosque) directo, así dentro de .portal el acento
+   también pasa a tinta. Los tokens de marca (marfil, tinta, bosque) siguen valiendo. */
+@theme inline {
+  --color-superficie: var(--color-marfil);
+  --color-superficie-alta: var(--color-papel);
+  --color-superficie-baja: var(--color-marfil-oscuro);
+  --color-texto: var(--color-tinta);
+  --color-texto-suave: var(--color-piedra);
+  --color-acento: var(--color-bosque);
+  --color-acento-suave: var(--color-bosque-suave);
+  --color-sobre-acento: var(--color-marfil);
+  --color-linea-tarjeta: var(--color-borde-suave);
 }
 
 html {
@@ -106,7 +124,7 @@ h1, h2, h3, h4 {
   .section { padding: 112px 0; }
 }
 
-.rule { border-top: 1px solid rgba(27, 31, 27, 0.15); }
+.rule { border-top: 1px solid color-mix(in srgb, var(--color-tinta) 15%, transparent); }
 
 .h1 { font-size: clamp(36px, 7vw, 72px); line-height: 1.02; letter-spacing: -0.02em; font-weight: 900; }
 .h2 { font-size: clamp(28px, 4.5vw, 44px); line-height: 1.08; letter-spacing: -0.015em; font-weight: 900; }
@@ -154,7 +172,7 @@ h1, h2, h3, h4 {
   position: relative;
   overflow: hidden;
   background: var(--color-tinta);
-  border: 1px solid rgba(245, 243, 236, 0.12);
+  border: 1px solid color-mix(in srgb, var(--color-marfil) 12%, transparent);
   padding: 32px;
   display: flex;
   flex-direction: column;
@@ -164,7 +182,7 @@ h1, h2, h3, h4 {
 }
 .card:hover {
   transform: translateY(-4px);
-  border-color: rgba(245, 243, 236, 0.4);
+  border-color: color-mix(in srgb, var(--color-marfil) 40%, transparent);
 }
 
 .card .wm {
@@ -175,12 +193,12 @@ h1, h2, h3, h4 {
   font-weight: 900;
   font-size: 88px;
   line-height: 1;
-  color: rgba(245, 243, 236, 0.06);
+  color: color-mix(in srgb, var(--color-marfil) 6%, transparent);
   user-select: none;
   pointer-events: none;
   transition: color 0.3s;
 }
-.card:hover .wm { color: rgba(245, 243, 236, 0.12); }
+.card:hover .wm { color: color-mix(in srgb, var(--color-marfil) 12%, transparent); }
 
 .icon-box {
   position: relative;
@@ -219,7 +237,7 @@ h1, h2, h3, h4 {
     left: 12.5%;
     right: 12.5%;
     height: 1px;
-    background-image: repeating-linear-gradient(to right, rgba(27, 31, 27, 0.35) 0 6px, transparent 6px 14px);
+    background-image: repeating-linear-gradient(to right, color-mix(in srgb, var(--color-tinta) 35%, transparent) 0 6px, transparent 6px 14px);
   }
 }
 
@@ -242,7 +260,7 @@ h1, h2, h3, h4 {
   font-weight: 900;
   font-size: 84px;
   line-height: 1;
-  color: rgba(27, 31, 27, 0.07);
+  color: color-mix(in srgb, var(--color-tinta) 7%, transparent);
   user-select: none;
   pointer-events: none;
 }
@@ -283,8 +301,8 @@ h1, h2, h3, h4 {
 .cifras {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  border-top: 1px solid rgba(27, 31, 27, 0.15);
-  border-bottom: 1px solid rgba(27, 31, 27, 0.15);
+  border-top: 1px solid color-mix(in srgb, var(--color-tinta) 15%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-tinta) 15%, transparent);
 }
 @media (min-width: 720px) { .cifras { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (min-width: 1000px) { .cifras { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); } }
@@ -294,14 +312,14 @@ h1, h2, h3, h4 {
   gap: 8px;
   padding: 22px 20px 20px 0;
 }
-.cifra + .cifra { padding-left: 20px; border-left: 1px solid rgba(27, 31, 27, 0.12); }
+.cifra + .cifra { padding-left: 20px; border-left: 1px solid color-mix(in srgb, var(--color-tinta) 12%, transparent); }
 @media (max-width: 719px) {
   .cifra:nth-child(2n+1) { padding-left: 0; border-left: 0; }
-  .cifra:nth-child(n+3) { border-top: 1px solid rgba(27, 31, 27, 0.12); }
+  .cifra:nth-child(n+3) { border-top: 1px solid color-mix(in srgb, var(--color-tinta) 12%, transparent); }
 }
 @media (min-width: 720px) and (max-width: 999px) {
   .cifra:nth-child(3n+1) { padding-left: 0; border-left: 0; }
-  .cifra:nth-child(n+4) { border-top: 1px solid rgba(27, 31, 27, 0.12); }
+  .cifra:nth-child(n+4) { border-top: 1px solid color-mix(in srgb, var(--color-tinta) 12%, transparent); }
 }
 .cifra-valor {
   font-family: var(--font-heading);
@@ -326,7 +344,7 @@ h1, h2, h3, h4 {
   border-bottom: 1px solid var(--color-tinta);
   white-space: nowrap;
 }
-.tabla tbody td { padding: 16px; border-bottom: 1px solid rgba(27, 31, 27, 0.12); vertical-align: top; }
+.tabla tbody td { padding: 16px; border-bottom: 1px solid color-mix(in srgb, var(--color-tinta) 12%, transparent); vertical-align: top; }
 .tabla th:first-child, .tabla td:first-child { padding-left: 0; }
 .tabla th:last-child, .tabla td:last-child { padding-right: 0; }
 .tabla tbody tr { transition: background-color 0.15s; }
@@ -348,7 +366,7 @@ a.card { color: inherit; text-decoration: none; }
   gap: 8px;
 }
 .card.card-apagada { opacity: 0.55; }
-.card.card-apagada:hover { transform: none; border-color: rgba(245, 243, 236, 0.12); }
+.card.card-apagada:hover { transform: none; border-color: color-mix(in srgb, var(--color-marfil) 12%, transparent); }
 .card.card-apagada:hover .icon-box { background: var(--color-marfil); color: var(--color-tinta); }
 
 /* Panel oscuro (como la tarjeta de agenda de Contacto) */

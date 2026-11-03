@@ -20,6 +20,7 @@ import {
 } from './crm/reglasCasos';
 import { dinero, hoyISO } from './crm/tipos';
 import { FormularioDelAsunto, type PedidoContrato } from './pedidos/Pedidos';
+import { registrarLectura } from './lecturas';
 import {
   BUCKET_ASUNTOS,
   ESTADOS,
@@ -632,6 +633,11 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
   useEffect(() => {
     void cargar();
   }, [cargar]);
+
+  // Lo que abre FIRMA queda en la bitácora del negocio. La base decide qué se anota.
+  useEffect(() => {
+    registrarLectura('asunto', id);
+  }, [id]);
 
   // Chat en vivo y quién tiene el asunto abierto. En la vista previa se mira sin anunciarse.
   useEffect(() => {

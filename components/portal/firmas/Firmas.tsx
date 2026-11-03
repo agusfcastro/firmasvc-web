@@ -10,6 +10,7 @@ import { ESTADO_FIRMANTE, ESTADO_SOBRE, fechaHora } from '../../firma/comun';
 import type { Organizacion, Perfil } from '../tipos';
 import { BarraUso } from '../BarraUso';
 import { diaYMes, firmasAgotadas, firmasOcupadas, usoFirmas, whatsapp, type UsoFirmas } from '../planes';
+import { registrarLectura } from '../lecturas';
 import {
   COLUMNAS_FIRMANTE,
   ROTULO_EVENTO,
@@ -593,6 +594,7 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
       if (!vivo) return;
       setSobre((s as Sobre) ?? null);
       if (!s) return;
+      registrarLectura('firma_sobre', id);
       const [{ data: f }, { data: ev }, { data: c }] = await Promise.all([
         supabase!.from('firma_firmantes').select(COLUMNAS_FIRMANTE).eq('sobre_id', id).order('orden').order('nombre'),
         supabase!.from('firma_eventos').select('*').eq('sobre_id', id).order('id', { ascending: false }),

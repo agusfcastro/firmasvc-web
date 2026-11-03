@@ -9,6 +9,7 @@ import { Casos } from './Casos';
 import { Servicios } from './Servicios';
 import { Equipo } from './Equipo';
 import { Variables } from './Variables';
+import { registrarLectura } from '../lecturas';
 
 /**
  * CRM legal de cada cliente de FIRMA.
@@ -48,6 +49,8 @@ export const CrmApp: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
 
   useEffect(() => {
     if (!esAdmin || !orgId) return;
+    // Que FIRMA entró a un negocio queda en la bitácora de ese negocio.
+    registrarLectura('negocio', orgId);
     try {
       window.localStorage.setItem('firma-crm-org', orgId);
     } catch {

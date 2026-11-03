@@ -4,6 +4,7 @@ import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { Aviso, Campo, Etiqueta, TituloSeccion, claseInput } from '../ui';
 import { hoyISO } from './tipos';
+import { registrarLectura } from '../lecturas';
 
 type Arquetipo = { clave: string; nombre: string; descripcion: string; umbral: number; ventana_dias: number; orden: number };
 type TipoSenal = { clave: string; arquetipo: string; nombre: string; descripcion: string | null; origen: 'crm' | 'manual' | 'llamada'; peso: number; orden: number; activo: boolean };
@@ -79,6 +80,10 @@ export const PerfilCliente: React.FC<{ clienteId: string; soloLectura: boolean; 
   useEffect(() => {
     void cargar();
   }, [clienteId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (habilitado) registrarLectura('perfil_conductual', clienteId);
+  }, [habilitado, clienteId]);
 
   if (habilitado === null) return null;
   if (!habilitado)

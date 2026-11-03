@@ -688,12 +688,15 @@ Colores, radios, sombras y tipografías están en `index.css`, dentro de `@theme
 | Marca | `marfil`, `marfil-oscuro`, `marfil-claro`, `carbon`, `tinta`, `piedra`, `calido`, `bosque`, `bosque-dark`, `bosque-suave`, `bosque-claro` |
 | Portal | `papel` (tarjetas), `borde` (campos, 3,6 a 1 sobre blanco), `borde-suave` (tarjetas), `separador` (filas), `grafito` (sección activa del lateral), `niebla` (estados y fichas neutras), `lateral-texto` y `lateral-tenue` (barra lateral) |
 | Líneas | `linea`, `linea-suave` |
-| Estados | `peligro`, `peligro-fuerte`, `peligro-suave`, `peligro-borde`, `peligro-claro`, `aviso`, `aviso-suave`, `aviso-claro`, `urgente` |
+| Estados | `peligro`, `peligro-fuerte`, `peligro-suave`, `peligro-borde`, `peligro-claro`, `aviso`, `aviso-suave`, `aviso-claro`, `urgente`, `exito`, `exito-suave` |
+| Semánticos | `superficie`, `superficie-alta`, `superficie-baja`, `texto`, `texto-suave`, `acento`, `acento-suave`, `sobre-acento`, `linea-tarjeta`. Nombran el uso y apuntan a los de marca |
 | Radios | `control`, `tarjeta` (0, ángulo recto) y `pastilla` |
 | Sombras | `suave`, `hoja`, `flotante`, `relieve` (tarjetas de video de los protocolos) |
 | Tipografía | `font-sans` (Archivo), `font-heading` (Bitter), `font-portal` (Archivo variable, solo en el portal) |
 
 Los mails, el PDF firmado y los dibujos en canvas no leen CSS. Toman los colores de `api/_lib/marca.ts`, que tiene que coincidir con `index.css`; `npm run marca:verificar` lo controla. No escribas colores con `[#...]` ni `rgba(...)` en los componentes ni en los mails: si falta uno, sumalo como token. Las transparencias van con el modificador de Tailwind sobre un token (`border-tinta/15`, `bg-marfil/8`) y, en un `style` o una variable CSS, con `color-mix(in srgb, var(--color-tinta) 15%, transparent)`.
+
+Lo nuevo conviene escribirlo con los semánticos (`bg-superficie-alta`, `text-texto-suave`, `bg-acento`): si mañana cambia el manual de marca, se cambia a qué apuntan y nada más. Están en un `@theme inline`, así `acento` sigue a `bosque` también dentro de `.portal`, donde pasa a tinta. Los nombres de marca siguen valiendo y no hace falta migrar lo que ya está escrito. Las reglas propias de `index.css` (`.rule`, `.cifra`, `.tabla`, las tarjetas) tampoco llevan colores escritos a mano.
 
 `npm run marca:verificar` también controla el contraste WCAG 2.2 AA de los pares que usa el portal: 4,5 a 1 para texto y 3 a 1 para el contorno de un campo. Si cambiás un color y deja de pasar, el script dice qué par falla y con cuánto.
 
@@ -751,6 +754,26 @@ Los avisos por mail de asuntos y documentos, las alertas de vencimientos y el fi
 Las funciones que atienden a usuarios (`api/portal/avisos.ts`, `api/firma/sobres.ts`, `api/pagos/activar.ts` y `api/pagos/gestionar.ts`) traen lo que pide la persona (la novedad, el mensaje, el archivo o el asunto que avisa, el envío a firma, el cliente del CRM, el abono) con `clienteDelUsuario(request)` de `api/_lib/acceso.ts`: un cliente de Supabase con su token y la clave pública. Esa lectura pasa por las mismas políticas que el portal, así lo que no se ve en pantalla tampoco se alcanza por la API, aunque el código de la función tenga un error. Los controles de la función (`puedeOperar`, rol, empresa) siguen, como segunda barrera.
 
 La clave de servicio queda para lo que sí saltea permisos: validar el token, buscar los mails de otras personas, escribir registros del sistema (eventos de firma, bitácora, turnos de aviso), los archivos de Storage, la tarea diaria, los avisos de dLocal Go y la administración de usuarios. Las funciones necesitan `SUPABASE_ANON_KEY` o, si no está, `VITE_SUPABASE_ANON_KEY`, que en Vercel ya existe.
+
+Las escrituras siguen con la clave de servicio a propósito. Se revisaron una por una (estado de los envíos y los firmantes, contratos firmados del CRM, turnos de aviso de los asuntos, abonos y sus pagos, bitácora) y ninguna la puede hacer un usuario del negocio por las políticas: son movimientos del sistema, que la función hace después de validar quién pide y qué. Pasarlas al token obligaría a abrir esas tablas a escritura, que es peor.
+
+### Lecturas en la bitácora
+
+Migración `0046_bitacora_lecturas.sql`. Postgres no registra un SELECT, así que el portal avisa con `bitacora_lectura(tipo, id)` (`components/portal/lecturas.ts`) cuando se abre algo, y la base decide si se anota:
+
+| Qué se abre | Dónde | Se anota |
+|---|---|---|
+| Un negocio (`negocio`) | CRM, al elegir la empresa | Solo si es FIRMA |
+| La ficha de un cliente (`crm_cliente`) | Ficha del CRM | Siempre: muestra DNI, teléfono y domicilio |
+| Su perfil conductual (`perfil_conductual`) | Ficha, sección Perfil | Siempre |
+| Un asunto (`asunto`) | Detalle del asunto | Solo si es FIRMA |
+| Un envío a firma (`firma_sobre`) | Detalle del envío | Solo si es FIRMA |
+
+El negocio sale del objeto, no de quien llama, y si la persona no lo puede ver no se anota nada. La misma persona abriendo lo mismo cuenta una vez cada 30 minutos. El titular lo ve en Bitácora con el nombre del cliente, el asunto o el envío; lo de FIRMA, marcado. Las lecturas entran en la cadena como cualquier otro movimiento.
+
+### Staff de FIRMA
+
+Migración `0047_staff_firma.sql`. `perfiles.es_staff_firma` se calcula sola del rol admin y `es_staff()` la consulta con la verificación en dos pasos, como `es_admin()`. La base impide que alguien de FIRMA tenga un negocio asignado. Para sumar a alguien de FIRMA se le sigue dando el rol admin desde Administración › Usuarios. Lo nuevo usa `es_staff()`; lo que ya usa `es_admin()` o `rol === 'admin'` sigue igual, porque es la misma regla.
 
 ## Perfil conductual del cliente
 

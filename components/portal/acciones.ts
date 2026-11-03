@@ -36,4 +36,11 @@ export const ACCIONES: Record<string, string> = {
   cambio_organizacion: 'Pasó a trabajar en otro negocio',
   resumen_alta: 'Volvió a recibir el mail de los lunes',
   resumen_baja: 'Dejó de recibir el mail de los lunes',
+  acceso_negocio: 'Entró al negocio',
+  lectura_cliente: 'Abrió la ficha de un cliente',
+  lectura_perfil: 'Consultó el perfil conductual de un cliente',
+  lectura_asunto: 'Abrió un asunto',
+  lectura_firma: 'Abrió un envío a firma',
+  perfil_confirmado: 'Confirmó un perfil conductual',
+  perfil_rechazado: 'Rechazó un perfil conductual',
 };
