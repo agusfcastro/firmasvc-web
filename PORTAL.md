@@ -810,7 +810,7 @@ Para cambiar el catálogo (un arquetipo, un peso o un umbral) se agrega una migr
 
 ## Llamadas de Fathom y cola de trabajos
 
-Fase 4, migraciones 0048 a 0051. Las llamadas que el equipo graba con Fathom llegan por webhook, se guardan cifradas y quedan a nombre del cliente por su mail. El análisis con Claude (fase 5) va a trabajar sobre esto sin cambiarlo.
+Fase 4, migraciones 0048 a 0052. Las llamadas que el equipo graba con Fathom llegan por webhook, se guardan cifradas y quedan a nombre del cliente por su mail. El análisis con Claude (fase 5) va a trabajar sobre esto sin cambiarlo.
 
 | Migración | Qué hace |
 |---|---|
@@ -852,7 +852,7 @@ Los pasos llevan el enlace directo a la sección de Fathom donde se crea el webh
 
 **Enlace de conexión.** Para quien graba con su Fathom personal y no tiene cuenta en el portal. El titular lo genera en Conexiones y lo manda por WhatsApp o mail. La página `/conectar-fathom/<enlace>` es pública. Muestra a quién conecta y de qué negocio, la URL del webhook y los pasos, y recibe el secreto. Nada más del CRM. Vale 7 días, se usa una vez y generar otro anula el anterior. La URL se deriva del enlace (HMAC), así abrirlo dos veces muestra la misma sin guardarla.
 
-Sin la funcionalidad `fathom` en el plan, la pantalla lo avisa.
+Sin la funcionalidad `fathom` en el plan, la pantalla lo avisa. La traen los planes de producto (Radar, Escudo y Blindaje) y, desde la migración `0052_funcionalidades_por_plan_servicio.sql`, el plan de servicio **Eminent**, aunque el negocio no tenga plan de producto. Los planes de servicio que incluyen funcionalidades están en `planes_servicio_funcionalidades`; para sumar otra, un `insert` ahí. Una excepción de `org_funcionalidades` sigue mandando sobre los dos planes.
 
 ### Puesta en marcha
 
