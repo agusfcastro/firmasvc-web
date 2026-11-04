@@ -2,9 +2,12 @@
 -- Planes de producto y funcionalidades.
 -- =====================================================================
 
--- Sin plan de producto no tiene ninguna funcionalidad nueva.
-select pruebas.ok(not public.tiene_funcionalidad('aaaaaaaa-0000-0000-0000-000000000000', 'fathom'), 'sin plan no hay Fathom');
-select pruebas.ok(public.limite_funcionalidad('aaaaaaaa-0000-0000-0000-000000000000', 'fathom') is null, 'sin plan el límite es null');
+-- Desde 0054 todo negocio tiene plan de servicio y el que viene por defecto
+-- es Eminent, que trae Fathom (0052). Gold sin plan de producto no tiene
+-- ninguna funcionalidad nueva.
+update public.organizaciones set plan = 'gold';
+select pruebas.ok(not public.tiene_funcionalidad('aaaaaaaa-0000-0000-0000-000000000000', 'fathom'), 'Gold sin plan de producto no tiene Fathom');
+select pruebas.ok(public.limite_funcionalidad('aaaaaaaa-0000-0000-0000-000000000000', 'fathom') is null, 'Gold sin plan de producto no tiene límite de Fathom');
 
 update public.organizaciones set plan_producto = 'radar' where id = 'aaaaaaaa-0000-0000-0000-000000000000';
 update public.organizaciones set plan_producto = 'blindaje' where id = 'bbbbbbbb-0000-0000-0000-000000000000';

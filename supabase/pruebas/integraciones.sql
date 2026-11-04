@@ -9,7 +9,9 @@ insert into public.equipo_miembros (id, organizacion_id, nombre, rol_comercial, 
 create temporary table tokens (nombre text primary key, token text);
 grant all on tokens to anon, authenticated, service_role;
 
--- Sin un plan con Fathom no se conecta.
+-- Sin un plan con Fathom no se conecta. Eminent, el plan por defecto desde
+-- 0054, lo trae: se prueba con Gold.
+update public.organizaciones set plan = 'gold';
 select pruebas.como('00000000-0000-0000-0000-0000000000a1');
 do $$
 begin
