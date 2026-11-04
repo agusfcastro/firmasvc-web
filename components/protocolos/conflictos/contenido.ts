@@ -87,12 +87,7 @@ export function secciones(f: Ficha): Seccion[] {
         {
           tipo: 'parrafo',
           texto:
-            'Este protocolo ordena cómo se previenen, se contienen y se gestionan los pedidos de reembolso de {empresa}, desde la primera señal de insatisfacción hasta una eventual difusión pública. Los datos del negocio se completan una vez en la ficha y se actualizan solos en todas las plantillas.',
-        },
-        {
-          tipo: 'parrafo',
-          texto:
-            'El objetivo es triple. Que haya menos reclamos porque se previenen, que la mayoría se resuelva sin intervención legal y que, cuando legales intervenga, lo haga con una posición documental sólida y un solo canal.',
+            'Cómo se previenen, se contienen y se gestionan los pedidos de reembolso de {empresa}, de la primera señal de insatisfacción a una eventual difusión pública. Menos reclamos porque se previenen, la mayoría resueltos sin legales y, cuando legales interviene, con prueba sólida y un solo canal.',
         },
         { tipo: 'leyenda' },
         {
@@ -242,24 +237,31 @@ export function secciones(f: Ficha): Seccion[] {
           evaluar: evaluarCompuerta,
         },
         {
-          tipo: 'tarjetas',
-          items: [
+          tipo: 'plegable',
+          titulo: 'Por qué estas cuatro preguntas',
+          bajada: 'Qué cambia con un consumidor y qué plazos no esperan',
+          bloques: [
             {
-              titulo: 'Qué cambia con un consumidor',
-              lista: [
-                'Puede arrepentirse dentro de {plazoLegal} sin dar motivos ({normaRevocacion}).',
-                'Si el contrato no informó ese derecho en forma destacada antes de la firma, en Argentina el plazo no vence y en España se extiende hasta doce meses.',
-                'La devolución no se condiciona a confidencialidad, a no publicar opiniones ni a aceptar alternativas.',
-                'Ser consumidor no depende de lo que diga el contrato sino de para qué contrató.',
-              ],
-            },
-            {
-              titulo: 'Plazos formales que no esperan',
-              lista: [
-                'Contracargo o disputa ante la tarjeta o el banco. Se responde con prueba dentro del plazo que fija {pasarela}.',
-                'Carta documento, intimación formal o citación a una audiencia de conciliación.',
-                'Reclamo ante {organismo}.',
-                'Pedido por el botón de arrepentimiento o de baja. En Argentina, el código de la solicitud se informa dentro de las 24 horas.',
+              tipo: 'tarjetas',
+              items: [
+                {
+                  titulo: 'Qué cambia con un consumidor',
+                  lista: [
+                    'Puede arrepentirse dentro de {plazoLegal} sin dar motivos ({normaRevocacion}).',
+                    'Si el contrato no informó ese derecho en forma destacada antes de la firma, en Argentina el plazo no vence y en España se extiende hasta doce meses.',
+                    'La devolución no se condiciona a confidencialidad, a no publicar opiniones ni a aceptar alternativas.',
+                    'Ser consumidor no depende de lo que diga el contrato sino de para qué contrató.',
+                  ],
+                },
+                {
+                  titulo: 'Plazos formales que no esperan',
+                  lista: [
+                    'Contracargo o disputa ante la tarjeta o el banco. Se responde con prueba dentro del plazo que fija {pasarela}.',
+                    'Carta documento, intimación formal o citación a una audiencia de conciliación.',
+                    'Reclamo ante {organismo}.',
+                    'Pedido por el botón de arrepentimiento o de baja. En Argentina, el código de la solicitud se informa dentro de las 24 horas.',
+                  ],
+                },
               ],
             },
           ],
@@ -271,7 +273,7 @@ export function secciones(f: Ficha): Seccion[] {
       id: 'etapas',
       titulo: 'El recorrido en seis etapas',
       corto: 'Seis etapas',
-      intro: 'Cada etapa tiene responsable, plazo y objetivo. El paso de una a otra queda registrado en el expediente.',
+      intro: 'El paso de una etapa a otra queda registrado en el expediente.',
       bloques: [
         {
           tipo: 'etapas',
@@ -280,39 +282,33 @@ export function secciones(f: Ficha): Seccion[] {
               titulo: 'En la venta',
               cuando: 'Responsable equipo comercial · Antes del pago',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Que lo prometido coincida con lo contratado y quede por escrito.' },
                 {
                   rotulo: 'Qué tiene que pasar',
-                  texto:
-                    'Contrato disponible antes de la firma, mensaje de confirmación posterior a la llamada con respuesta del cliente y registro de la finalidad profesional cuando la hay. Las llamadas se revisan para corregir a quien promete de más.',
+                  texto: 'Contrato disponible antes de firmar, confirmación escrita después de la llamada con respuesta del cliente y finalidad profesional registrada cuando la hay.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Te confirmo por escrito lo conversado y te adjunto el contrato completo para que lo leas con tiempo.', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Prometer algo que el contrato no incluye, o cobrar sin que el cliente haya podido leer las condiciones.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Prometer algo que el contrato no incluye, o cobrar antes de que pueda leerlo.', estilo: 'error' },
               ],
             },
             {
               titulo: 'Durante la prestación',
               cuando: 'Responsable {respAcomp} · Todo el programa',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Construir la prueba mientras todo está bien.' },
                 {
                   rotulo: 'Qué tiene que pasar',
-                  texto:
-                    'Cada hito se confirma en {canal}, se pide feedback por escrito, las demoras se avisan antes de que el cliente las note y la inactividad se contacta de forma proactiva.',
+                  texto: 'La prueba se construye mientras todo está bien. Cada hito se confirma en {canal}, el feedback se pide por escrito y las demoras se avisan antes de que el cliente las note.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Dejamos registrado que hoy completamos [[hito]]. Los próximos pasos acordados son [[pasos]].', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Dejar pasar semanas sin registro de lo entregado y enterarse de la insatisfacción por un reclamo.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Pasar semanas sin registrar lo entregado.', estilo: 'error' },
               ],
             },
             {
               titulo: 'Disconformidad',
               cuando: 'Responsable {respAcomp} · Primera respuesta dentro de las 24 horas',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Retener y resolver dentro del contrato.' },
                 {
                   rotulo: 'Qué tiene que pasar',
-                  texto:
-                    'Contener sin improvisar. Diagnosticar si el planteo está dentro o fuera del alcance y cuál es el interés detrás del pedido. Ofrecer alternativas por escrito y registrar la aceptación o el rechazo.',
+                  texto: 'Contener sin improvisar, diagnosticar si el planteo está dentro del alcance y cuál es el interés detrás, y ofrecer alternativas del contrato por escrito, registrando la respuesta.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Queremos revisarlo bien antes de responderte. Te escribimos el [[día]] con una propuesta concreta.', estilo: 'frase' },
                 { rotulo: 'Error típico', texto: 'Resolver en caliente, prometer una solución sin consultar o discutir quién tiene razón.', estilo: 'error' },
@@ -322,11 +318,9 @@ export function secciones(f: Ficha): Seccion[] {
               titulo: 'Derivación a legales',
               cuando: 'Responsables {respAcomp} y {respLegales} · El mismo día del disparador',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Cambiar de canal y de voz sin perder información.' },
                 {
                   rotulo: 'Qué tiene que pasar',
-                  texto:
-                    'Resumen del caso con cronología, contrato, constancias e intercambios. Un único mensaje al cliente informando el traspaso al correo. Desde ahí nadie fuera de legales responde sobre el reclamo, por ningún canal.',
+                  texto: 'Resumen con cronología, contrato y constancias, y un único mensaje al cliente con el traspaso al correo. Desde ahí solo responde legales, por ningún otro canal.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Tu solicitud fue derivada a nuestro equipo de legales, que te va a responder por correo.', estilo: 'frase' },
                 { rotulo: 'Error típico', texto: 'Seguir respondiendo por chat después del traspaso, aunque sea para calmar.', estilo: 'error' },
@@ -336,32 +330,28 @@ export function secciones(f: Ficha): Seccion[] {
               titulo: 'Respuesta legal',
               cuando: 'Responsable {respLegales} · Acuse en 24 horas y respuesta en {diasRespuesta}',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Decidir con números y responder una sola vez, bien.' },
                 {
                   rotulo: 'Qué tiene que pasar',
-                  texto:
-                    'Compuerta legal, evaluación de riesgo por escrito con MAAN y ZOPA, decisión según la matriz de autorizaciones y una sola respuesta, sea un rechazo con su arquitectura completa o una propuesta transaccional única.',
+                  texto: 'Compuerta legal, evaluación de riesgo escrita con la calculadora de negociación, decisión según la matriz de autorizaciones y una sola respuesta, sea un rechazo completo o una propuesta única.',
                 },
                 {
                   rotulo: 'Frase ancla',
                   texto: 'Sin que ello importe reconocimiento de hecho ni de derecho alguno, y con el exclusivo propósito de concluir la relación de manera ordenada.',
                   estilo: 'frase',
                 },
-                { rotulo: 'Error típico', texto: 'Negociar por goteo, mandar varias respuestas parciales o regatear desde una oferta improvisada.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Negociar por goteo o mandar varias respuestas parciales.', estilo: 'error' },
               ],
             },
             {
               titulo: 'Difusión pública',
               cuando: 'Responsable {respLegales} · Desde el anuncio o la publicación',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Proteger la reputación por canales formales y sin escalar.' },
                 {
                   rotulo: 'Qué tiene que pasar',
-                  texto:
-                    'Constancia formal del anuncio, preservación de evidencia, clasificación de cada publicación como opinión o como imputación de hechos falsos, intimación solo por estas últimas y carta documento si persiste.',
+                  texto: 'Preservar la evidencia y separar la opinión de la imputación de hechos falsos. Solo esta última se intima, y con carta documento si persiste.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Su mensaje fue registrado y conservado, con expresa reserva de las acciones que pudieran corresponder.', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Responder en redes, contestar la amenaza con otra amenaza o cambiar la decisión de fondo por presión.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Responder en redes o cambiar la decisión de fondo por presión.', estilo: 'error' },
               ],
             },
           ],
@@ -426,52 +416,59 @@ export function secciones(f: Ficha): Seccion[] {
       titulo: 'Marco de negociación',
       corto: 'Negociación',
       intro:
-        'Quien responde a un cliente en conflicto maneja cuatro ideas del Proyecto de Negociación de Harvard y de la práctica de mediación. Son la base racional de cada decisión de legales.',
+        'La calculadora aplica cuatro ideas del Proyecto de Negociación de Harvard y de la práctica de mediación, que se explican abajo. Son la base de cada decisión de legales.',
       bloques: [
         {
-          tipo: 'tarjetas',
-          items: [
+          tipo: 'plegable',
+          titulo: 'Las cuatro ideas de la negociación',
+          bajada: 'Intereses, MAAN, ZOPA y anclaje',
+          bloques: [
             {
-              titulo: 'Posiciones e intereses',
-              texto:
-                'La posición es lo que el cliente pide. El interés es lo que hay detrás. Recuperar dinero, sí, pero muchas veces también sentirse escuchado, no quedar mal frente a un socio o salir de un programa que le quedó grande. Negociar sobre posiciones lleva al empate de devolver o no devolver. Negociar sobre intereses abre alternativas.',
-              lista: [
-                'Reasignación del equipo de acompañamiento.',
-                'Extensión del plazo del servicio.',
-                'Pausa o congelamiento acordado.',
-                'Conversión del saldo en otro producto.',
-                'Plan de salida ordenada.',
-              ],
-            },
-            {
-              titulo: 'MAAN, la mejor alternativa a un acuerdo negociado',
-              texto: 'Formulado por Roger Fisher y William Ury, responde una pregunta. Si esta negociación fracasa, qué es lo mejor que cada parte puede hacer por su cuenta.',
-              leads: [
+              tipo: 'tarjetas',
+              items: [
                 {
-                  lead: 'Es el piso.',
-                  texto: 'Nunca se acepta un acuerdo peor que el propio MAAN. Si el conflicto público va a costar más que el reembolso, el reembolso deja de ser una derrota y pasa a ser la jugada racional.',
-                },
-                { lead: 'Es la fuente del poder.', texto: 'El poder en la mesa no depende de quién grita más, sino de quién puede irse con menos daño.' },
-                {
-                  lead: 'Se trabaja.',
+                  titulo: 'Posiciones e intereses',
                   texto:
-                    'Cada cláusula bien redactada, cada constancia de prestación y cada feedback positivo archivado mejoran el MAAN propio. Cada intimación documentada deteriora el de quien presiona con difamación.',
+                    'La posición es lo que el cliente pide. El interés es lo que hay detrás. Recuperar dinero, sí, pero muchas veces también sentirse escuchado, no quedar mal frente a un socio o salir de un programa que le quedó grande. Negociar sobre posiciones lleva al empate de devolver o no devolver. Negociar sobre intereses abre alternativas.',
+                  lista: [
+                    'Reasignación del equipo de acompañamiento.',
+                    'Extensión del plazo del servicio.',
+                    'Pausa o congelamiento acordado.',
+                    'Conversión del saldo en otro producto.',
+                    'Plan de salida ordenada.',
+                  ],
                 },
-              ],
-            },
-            {
-              titulo: 'ZOPA, la zona de posible acuerdo',
-              texto:
-                'Es el espacio entre lo mínimo que aceptaría el cliente y lo máximo que la empresa concedería según su MAAN. Si ese espacio no existe, no tiene sentido simular una negociación y la respuesta es un rechazo documentado. La escalada destruye la zona de acuerdo, por eso las reglas de tono y de ritmo la preservan.',
-            },
-            {
-              titulo: 'Anclaje y diseño de la concesión',
-              texto:
-                'La primera cifra condiciona todo lo que sigue. Si la empresa ofrece algo, la oferta es deliberada, fundada y excepcional, nunca el punto de partida de un regateo.',
-              leads: [
-                { lead: 'Una sola vez.', texto: 'Por escrito y como gesto de buena voluntad, sin reconocimiento de hechos ni de derecho.' },
-                { lead: 'Con contrapartida.', texto: 'Condicionada a un acuerdo con confidencialidad y abstención recíproca de manifestaciones públicas.' },
-                { lead: 'Sin goteo.', texto: 'Una concesión sin contrapartida documentada no compra paz, compra la siguiente exigencia.' },
+                {
+                  titulo: 'MAAN, la mejor alternativa a un acuerdo negociado',
+                  texto: 'Formulado por Roger Fisher y William Ury, responde una pregunta. Si esta negociación fracasa, qué es lo mejor que cada parte puede hacer por su cuenta.',
+                  leads: [
+                    {
+                      lead: 'Es el piso.',
+                      texto: 'Nunca se acepta un acuerdo peor que el propio MAAN. Si el conflicto público va a costar más que el reembolso, el reembolso deja de ser una derrota y pasa a ser la jugada racional.',
+                    },
+                    { lead: 'Es la fuente del poder.', texto: 'El poder en la mesa no depende de quién grita más, sino de quién puede irse con menos daño.' },
+                    {
+                      lead: 'Se trabaja.',
+                      texto:
+                        'Cada cláusula bien redactada, cada constancia de prestación y cada feedback positivo archivado mejoran el MAAN propio. Cada intimación documentada deteriora el de quien presiona con difamación.',
+                    },
+                  ],
+                },
+                {
+                  titulo: 'ZOPA, la zona de posible acuerdo',
+                  texto:
+                    'Es el espacio entre lo mínimo que aceptaría el cliente y lo máximo que la empresa concedería según su MAAN. Si ese espacio no existe, no tiene sentido simular una negociación y la respuesta es un rechazo documentado. La escalada destruye la zona de acuerdo, por eso las reglas de tono y de ritmo la preservan.',
+                },
+                {
+                  titulo: 'Anclaje y diseño de la concesión',
+                  texto:
+                    'La primera cifra condiciona todo lo que sigue. Si la empresa ofrece algo, la oferta es deliberada, fundada y excepcional, nunca el punto de partida de un regateo.',
+                  leads: [
+                    { lead: 'Una sola vez.', texto: 'Por escrito y como gesto de buena voluntad, sin reconocimiento de hechos ni de derecho.' },
+                    { lead: 'Con contrapartida.', texto: 'Condicionada a un acuerdo con confidencialidad y abstención recíproca de manifestaciones públicas.' },
+                    { lead: 'Sin goteo.', texto: 'Una concesión sin contrapartida documentada no compra paz, compra la siguiente exigencia.' },
+                  ],
+                },
               ],
             },
           ],

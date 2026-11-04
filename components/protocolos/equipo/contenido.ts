@@ -118,12 +118,7 @@ export function secciones(f: Ficha): Seccion[] {
         {
           tipo: 'parrafo',
           texto:
-            'Este protocolo ordena cómo {empresa} incorpora, coordina, mide, paga y cierra la relación con su equipo de {roles}. Los datos del negocio se completan una vez en la ficha y se actualizan solos en todos los textos, mensajes y herramientas.',
-        },
-        {
-          tipo: 'parrafo',
-          texto:
-            'El punto central es que la gestión de todos los días no contradiga el encuadre del contrato. Muchos negocios trabajan con closers, setters y acompañantes independientes que facturan, y la forma de coordinar, de dar feedback y de pagar puede generar, sin que nadie lo busque, indicios de una relación laboral. Por eso los textos se adaptan a la modalidad cargada en la ficha, que hoy es {modalidadTexto}.',
+            'Cómo {empresa} incorpora, coordina, mide, paga y cierra la relación con su equipo de {roles}, sin que la gestión de todos los días contradiga el contrato. Coordinar, dar feedback o pagar de cierta forma puede generar indicios de una relación laboral sin que nadie lo busque. Por eso los textos se adaptan a la modalidad de la ficha, que hoy es {modalidadTexto}.',
         },
         { tipo: 'leyenda' },
         {
@@ -139,7 +134,7 @@ export function secciones(f: Ficha): Seccion[] {
         {
           tipo: 'aclaracion',
           texto:
-            'El encuadre laboral de cada persona depende de los hechos de su caso y se analiza con el abogado. Este protocolo evita generar indicios de dependencia por descuido, pero no vuelve independiente una relación que en los hechos no lo es. Lo laboral o impositivo complejo se consulta con el abogado o con el contador antes de actuar.',
+            'Este protocolo evita generar indicios de dependencia por descuido, pero no vuelve independiente una relación que en los hechos no lo es. El encuadre de cada persona se analiza con el abogado, y lo impositivo con el contador.',
         },
       ],
     },
@@ -237,7 +232,7 @@ export function secciones(f: Ficha): Seccion[] {
       id: 'ciclo',
       titulo: 'El ciclo del colaborador en seis etapas',
       corto: 'Seis etapas',
-      intro: 'Cada etapa tiene responsable, plazo y objetivo. Lo que pasa en cada una queda registrado en el legajo de la persona.',
+      intro: 'Lo que pasa en cada etapa queda registrado en el legajo de la persona.',
       bloques: [
         {
           tipo: 'etapas',
@@ -246,12 +241,11 @@ export function secciones(f: Ficha): Seccion[] {
               titulo: 'Incorporación',
               cuando: 'Responsables dirección y administración · Antes del primer día',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Que la persona empiece con contrato firmado, accesos mínimos y reglas claras.' },
                 {
                   rotulo: 'Qué tiene que pasar',
                   texto: `Contrato firmado antes de empezar, ${
                     mod === 'IND' ? 'constancia fiscal del colaborador' : mod === 'DEP' ? 'alta laboral antes del inicio' : 'constancia fiscal o alta laboral según la modalidad'
-                  }, usuarios personales en {crm}, {gestor} y {canal}, mensaje de bienvenida con las reglas de trabajo y una primera {unoauno} con los objetivos del período por escrito.${
+                  }, usuarios personales en {crm}, {gestor} y {canal}, mensaje de bienvenida con las reglas de trabajo y una primera {unoauno} con las metas del período por escrito.${
                     ind ? ' Con independientes se completa además el semáforo de independencia inicial.' : ''
                   }`,
                 },
@@ -265,7 +259,7 @@ export function secciones(f: Ficha): Seccion[] {
                         : 'Te sumás al equipo. Acá tenés tu contrato y las reglas de trabajo que corresponden a tu modalidad.',
                   estilo: 'frase',
                 },
-                { rotulo: 'Error típico', texto: 'Empezar a trabajar con la promesa de firmar después, o compartir usuarios genéricos entre varias personas.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Empezar con la promesa de firmar después, o compartir usuarios genéricos.', estilo: 'error' },
               ],
             },
             {
@@ -302,25 +296,21 @@ export function secciones(f: Ficha): Seccion[] {
               titulo: 'Medición',
               cuando: 'Responsable dirección · Primera semana de cada mes',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Mirar resultados con los mismos indicadores para todos los que cumplen el mismo rol.' },
                 {
                   rotulo: 'Qué tiene que pasar',
-                  texto:
-                    'Tablero por rol con datos de {crm} y de administración. Cada resultado se compara con lo acordado y con la propia evolución, nunca con horas conectadas. Cada persona ve sus números antes de la revisión.',
+                  texto: 'Mismos indicadores para todos los del mismo rol, con datos de {crm}. Se compara con lo acordado y con la propia evolución, nunca con horas conectadas. Cada persona ve sus números antes.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Estos son tus números del mes según {crm}. Revisalos y marcame cualquier dato que no te cierre.', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Medir actividad, como mensajes enviados u horas en línea, en lugar de resultados.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Medir actividad, como horas en línea, en lugar de resultados.', estilo: 'error' },
               ],
             },
             {
               titulo: 'Feedback y desarrollo',
               cuando: 'Responsable dirección · {UnoAUno} {cadaUnoAUno}',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Mejorar conductas concretas con devoluciones oportunas y por escrito.' },
                 {
                   rotulo: 'Qué tiene que pasar',
-                  texto:
-                    'Feedback con el modelo situación, conducta e impacto, primero en privado y después por escrito. Si el resultado no llega, se abre {revision}, por escrito, con plazo y apoyo concreto.',
+                  texto: 'Situación, conducta e impacto, primero en privado y después por escrito. Si el resultado no llega, se abre {revision} por escrito, con plazo y apoyo.',
                 },
                 { rotulo: 'Frase ancla', texto: 'En la llamada del [[día]] pasó [[conducta]] y eso generó [[impacto]]. ¿Cómo lo encaramos la próxima vez?', estilo: 'frase' },
                 { rotulo: 'Error típico', texto: 'Hablar de la persona y no de la conducta, o dar el feedback en público en {canal}.', estilo: 'error' },
@@ -330,46 +320,50 @@ export function secciones(f: Ficha): Seccion[] {
               titulo: 'Comisiones',
               cuando: 'Responsable administración · Liquidación {liquidacion}',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Pagar lo que corresponde, a tiempo y con detalle.' },
                 { rotulo: 'Qué tiene que pasar', texto: queComisiones },
                 { rotulo: 'Frase ancla', texto: 'Te enviamos la liquidación de [[período]] con el detalle por venta. Si ves una diferencia, avisanos antes del [[fecha]].', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Descontar por fuera del contrato, retener un pago como presión o liquidar sin detalle.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Descontar fuera del contrato o retener un pago como presión.', estilo: 'error' },
               ],
             },
             {
               titulo: 'Salida ordenada',
               cuando: 'Responsables dirección y administración · Del aviso al último día',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Terminar según lo pactado, sin dejar clientes ni accesos sueltos.' },
                 {
                   rotulo: 'Qué tiene que pasar',
-                  texto: `Aviso escrito según el contrato y su preaviso, traspaso de clientes y pendientes, liquidación final, devolución de materiales y de datos, y baja de accesos el último día.${
+                  texto: `Aviso escrito con el preaviso del contrato, traspaso de clientes, liquidación final, devolución de materiales y datos, y baja de accesos el último día.${
                     dep ? ' La desvinculación de un empleado se define antes con el abogado.' : ''
                   }`,
                 },
                 { rotulo: 'Frase ancla', texto: 'Coordinemos el traspaso para que ningún cliente quede sin respuesta. Te confirmo todo por escrito.', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Cortar accesos sin aviso, retener pagos hasta que devuelva materiales o comentar la salida en el grupo del equipo.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Cortar accesos sin aviso o retener pagos hasta que devuelva materiales.', estilo: 'error' },
               ],
             },
           ],
         },
-        { tipo: 'subtitulo', texto: 'Lo que cambia según la modalidad' },
         {
-          tipo: 'tabla',
-          aria: 'Diferencias de gestión según la modalidad',
-          columnas: [
-            { rotulo: 'Tema', ancho: '0.8fr', estilo: 'fuerte' },
-            { rotulo: 'Con independientes', ancho: '1.2fr' },
-            { rotulo: 'En relación de dependencia', ancho: '1.2fr' },
-          ],
-          filas: [
-            ['Reunión semanal', 'Reunión de coordinación. Se ofrece, se resume por escrito y la ausencia no tiene consecuencias.', 'Reunión de equipo dentro de la jornada. La asistencia forma parte del trabajo.'],
-            ['Seguimiento individual', 'Revisión de objetivos del contrato, con resultados y no con horas.', 'Reunión uno a uno sobre desempeño, desarrollo y bienestar.'],
-            ['Bajo rendimiento', 'Revisión de objetivos y, si sigue, lo que prevé el contrato.', 'Plan de mejora con apoyo y plazos. Las sanciones siguen la ley laboral.'],
-            ['Ausencias', 'Aviso de disponibilidad para reasignar agendas.', 'Licencias y permisos según la ley y el reglamento.'],
-            ['Pago', 'Honorarios contra factura, con detalle por venta.', 'Remuneración con recibo de sueldo, comisiones incluidas.'],
-            ['Herramientas', 'Usuario personal para prestar el servicio y medios propios del colaborador.', 'Herramientas provistas por el empleador.'],
-            ['Salida', 'Finalización según el contrato y su preaviso.', 'Desvinculación definida antes con el abogado.'],
+          tipo: 'plegable',
+          titulo: 'Lo que cambia según la modalidad',
+          bajada: 'Independientes y en relación de dependencia',
+          bloques: [
+            {
+              tipo: 'tabla',
+              aria: 'Diferencias de gestión según la modalidad',
+              columnas: [
+                { rotulo: 'Tema', ancho: '0.8fr', estilo: 'fuerte' },
+                { rotulo: 'Con independientes', ancho: '1.2fr' },
+                { rotulo: 'En relación de dependencia', ancho: '1.2fr' },
+              ],
+              filas: [
+                ['Reunión semanal', 'Reunión de coordinación. Se ofrece, se resume por escrito y la ausencia no tiene consecuencias.', 'Reunión de equipo dentro de la jornada. La asistencia forma parte del trabajo.'],
+                ['Seguimiento individual', 'Revisión de objetivos del contrato, con resultados y no con horas.', 'Reunión uno a uno sobre desempeño, desarrollo y bienestar.'],
+                ['Bajo rendimiento', 'Revisión de objetivos y, si sigue, lo que prevé el contrato.', 'Plan de mejora con apoyo y plazos. Las sanciones siguen la ley laboral.'],
+                ['Ausencias', 'Aviso de disponibilidad para reasignar agendas.', 'Licencias y permisos según la ley y el reglamento.'],
+                ['Pago', 'Honorarios contra factura, con detalle por venta.', 'Remuneración con recibo de sueldo, comisiones incluidas.'],
+                ['Herramientas', 'Usuario personal para prestar el servicio y medios propios del colaborador.', 'Herramientas provistas por el empleador.'],
+                ['Salida', 'Finalización según el contrato y su preaviso.', 'Desvinculación definida antes con el abogado.'],
+              ],
+            },
           ],
         },
         {
