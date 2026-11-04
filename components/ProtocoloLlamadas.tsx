@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { Logo } from './Logo';
 import { Footer } from './Footer';
 import SopLlamadasVenta from './sop-llamadas-venta';
+import { MARCA_FIRMA } from './protocolos/marca';
 
 /**
  * Protocolo de comunicación legal en llamadas de venta (plantilla para clientes).
@@ -10,30 +11,6 @@ import SopLlamadasVenta from './sop-llamadas-venta';
  * con header simple, contenido y footer del sitio.
  */
 
-// Paleta y tipografía de Firma aplicadas al protocolo. Radio 0, como el resto de la marca.
-const marcaFirma = {
-  '--sop-bg': 'var(--color-marfil)',
-  '--sop-surface': 'var(--color-marfil-claro)',
-  '--sop-surface-2': 'var(--color-marfil-oscuro)',
-  '--sop-ink': 'var(--color-tinta)',
-  '--sop-ink-2': 'var(--color-carbon)',
-  '--sop-muted': 'var(--color-piedra)',
-  '--sop-line': 'color-mix(in srgb, var(--color-tinta) 15%, transparent)',
-  '--sop-line-2': 'color-mix(in srgb, var(--color-tinta) 32%, transparent)',
-  '--sop-accent': 'var(--color-bosque)',
-  '--sop-accent-ink': 'var(--color-marfil)',
-  '--sop-accent-soft': 'var(--color-bosque-suave)',
-  '--sop-focus': 'var(--color-bosque)',
-  '--sop-font-body': "var(--font-sans, 'Archivo', system-ui, sans-serif)",
-  '--sop-font-display': "var(--font-heading, 'Bitter', Georgia, serif)",
-  '--sop-display-weight': '900',
-  '--sop-display-weight-sm': '700',
-  '--sop-radius': '0px',
-  '--sop-radius-md': '0px',
-  '--sop-radius-sm': '0px',
-  '--sop-radius-xs': '0px',
-  '--sop-radius-pill': '0px',
-} as React.CSSProperties;
 
 export const ProtocoloLlamadas: React.FC = () => {
   useEffect(() => {
@@ -60,7 +37,7 @@ export const ProtocoloLlamadas: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-marfil flex flex-col">
+    <div className="landing min-h-screen bg-marfil flex flex-col">
       <header className="border-b border-tinta/15">
         <div className="wrap h-28 flex items-center justify-between gap-4">
           <a href="/" className="flex items-center min-w-0 select-none">
@@ -77,7 +54,7 @@ export const ProtocoloLlamadas: React.FC = () => {
       </header>
 
       <main className="flex-1">
-        <SopLlamadasVenta marca="Firma" style={marcaFirma} />
+        <SopLlamadasVenta marca="Firma" style={MARCA_FIRMA} />
       </main>
 
       <Footer />

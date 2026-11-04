@@ -12,6 +12,7 @@ const protocolo: DefProtocolo = {
   meta: {
     kicker: 'Protocolo de gestión · Plantilla',
     titulo: 'Onboarding de clientes',
+    resalte: 'Onboarding',
     bajada:
       'De la firma al primer resultado, con accesos, bienvenida, reunión de inicio e hitos confirmados por escrito. Con checklist de ingreso, índice de salud de la cuenta y tablero de indicadores.',
     version: 'Versión 1.0 · Octubre de 2026',

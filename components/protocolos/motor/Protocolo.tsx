@@ -1,15 +1,72 @@
 /**
  * Motor de protocolos FIRMA. Recibe la definición de un protocolo y arma la página
  * completa, con ficha configurable, índice, herramientas, impresión y tarjeta de bolsillo.
- * Usa los estilos del protocolo de llamadas, así que se ajusta con las mismas variables --sop-*.
+ * Usa los estilos del protocolo de llamadas, así que se ajusta con las mismas variables --sop-*,
+ * y encima el diseño del portal (motor.module.css). Las secciones se agrupan en las partes de PARTES.
  */
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
 import s from '../../sop-llamadas-venta/sop.module.css';
 import m from './motor.module.css';
 import { enlaceConfigurado, guardarLocal, leerFichaInicial, limpiarHash } from './ficha';
 import { Calculadora, Checklist, Evaluacion, Plazos, Rubrica, Semaforo } from './herramientas';
-import { Acordeon, BotonCopiar, IconoAlerta, IconoEnlace, IconoImprimir, TextoCtx, Tx, usePlano, type ContextoTexto } from './piezas';
-import type { Bloque, BloqueGuion, CampoFicha, DefFicha, DefProtocolo, Ficha, Guion, ItemBolsillo, Seccion as DefSeccion } from './tipos';
+import { Acordeon, BotonCopiar, IconoAlerta, IconoChevron, IconoEnlace, IconoImprimir, TextoCtx, Tx, usePlano, type ContextoTexto } from './piezas';
+import type { Bloque, BloqueGuion, CampoFicha, DefFicha, DefProtocolo, Ficha, Guion, ItemBolsillo, Parte, Seccion as DefSeccion } from './tipos';
+import { opcion } from './ficha';
+import { TarjetaVideo } from '../Video';
+import { presentacionDe, videoDeSeccion } from '../videos';
+
+// Partes de todo protocolo, en el orden en que se usan. Cada una responde una pregunta.
+export const PARTES: { id: Parte; titulo: string; pregunta: string }[] = [
+  { id: 'inicio', titulo: 'Antes de empezar', pregunta: '¿De qué se trata y para quién es?' },
+  { id: 'principios', titulo: 'Principios', pregunta: '¿Qué no se negocia?' },
+  { id: 'recorrido', titulo: 'Recorrido', pregunta: '¿Qué hago y cuándo?' },
+  { id: 'decir', titulo: 'Qué decir', pregunta: '¿Cómo lo digo?' },
+  { id: 'escalar', titulo: 'Escalar', pregunta: '¿Cuándo no lo resuelvo yo?' },
+  { id: 'medir', titulo: 'Controlar y medir', pregunta: '¿Lo hicimos bien?' },
+  { id: 'respaldo', titulo: 'Respaldo legal', pregunta: '¿Por qué es así?' },
+  { id: 'bolsillo', titulo: 'Para llevar', pregunta: '¿Qué tengo que recordar?' },
+];
+
+// Parte de las secciones que no la declaran, según su id.
+const PARTE_POR_ID: Record<string, Parte> = {
+  uso: 'inicio',
+  ficha: 'inicio',
+  principios: 'principios',
+  reglas: 'principios',
+  mensajes: 'decir',
+  plantillas: 'decir',
+  frases: 'decir',
+  preguntas: 'decir',
+  guiones: 'decir',
+  objeciones: 'decir',
+  repaso: 'decir',
+  alertas: 'escalar',
+  derivacion: 'escalar',
+  autorizaciones: 'escalar',
+  control: 'medir',
+  calidad: 'medir',
+  expediente: 'medir',
+  paquete: 'medir',
+  tablero: 'medir',
+  embudo: 'medir',
+  comisiones: 'medir',
+  herramientas: 'medir',
+  juridico: 'respaldo',
+  tarjeta: 'bolsillo',
+};
+
+export function parteDe(sec: Pick<DefSeccion, 'id' | 'parte' | 'tarjeta'>): Parte {
+  return sec.parte ?? (sec.tarjeta ? 'bolsillo' : (PARTE_POR_ID[sec.id] ?? 'recorrido'));
+}
+
+/** Ordena las secciones por parte, respetando el orden propio dentro de cada una. */
+export function ordenarPorParte<T extends Pick<DefSeccion, 'id' | 'parte' | 'tarjeta'>>(secciones: T[]): T[] {
+  const orden = (x: T) => PARTES.findIndex((p) => p.id === parteDe(x));
+  return secciones.map((x, i) => ({ x, i })).sort((a, b) => orden(a.x) - orden(b.x) || a.i - b.i).map(({ x }) => x);
+}
+
+// El anexo jurídico muestra solo el país del mercado de la ficha. Con otro mercado, todos.
+const ANEXO_POR_MERCADO: Record<string, string> = { AR: 'es', ES: 'ar' };
 
 export interface ProtocoloProps {
   def: DefProtocolo;
@@ -38,8 +95,16 @@ export default function Protocolo({ def, theme = 'light', marca = 'FIRMA', ficha
     () => ({ valores: def.ficha.valores(ficha), macros: def.ficha.macros ? def.ficha.macros(ficha) : {}, rotulos: def.ficha.rotulos }),
     [def, ficha],
   );
-  const todas = useMemo(() => def.secciones(ficha), [def, ficha]);
+  const todas = useMemo(() => ordenarPorParte(def.secciones(ficha)), [def, ficha]);
   const secciones = useMemo(() => (ocultarFicha ? todas.filter((x) => !x.bloques.some((b) => b.tipo === 'ficha')) : todas), [todas, ocultarFicha]);
+  const grupos = useMemo(
+    () => PARTES.map((p) => ({ ...p, secciones: secciones.filter((x) => parteDe(x) === p.id) })).filter((g) => g.secciones.length > 0),
+    [secciones],
+  );
+  const numeroDe = (id: string) => String(secciones.findIndex((x) => x.id === id) + 1).padStart(2, '0');
+  const faltan = useMemo(() => Object.values(ctx.valores).filter((v) => v === null).length, [ctx]);
+  const ocultoDelAnexo = ANEXO_POR_MERCADO[opcion(ficha, 'mercado')];
+  const presentacion = presentacionDe(def.ruta);
   const prefijo = useId().replace(/[^a-zA-Z0-9]/g, '');
   const idDe = (id: string) => `pr-${prefijo}-${id}`;
   const activa = useSeccionActiva(secciones.map((x) => idDe(x.id)));
@@ -48,7 +113,9 @@ export default function Protocolo({ def, theme = 'light', marca = 'FIRMA', ficha
 
   const irA = (id: string) => (e: MouseEvent) => {
     e.preventDefault();
-    document.getElementById(idDe(id))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const destino = document.getElementById(idDe(id));
+    destino?.querySelector('details[data-ficha]')?.setAttribute('open', '');
+    destino?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const actualizar = useCallback((clave: string, valor: string | boolean) => setFicha((f) => ({ ...f, [clave]: valor })), []);
@@ -57,12 +124,15 @@ export default function Protocolo({ def, theme = 'light', marca = 'FIRMA', ficha
   return (
     <TextoCtx.Provider value={ctx}>
       <div ref={raizRef} className={`${s.raiz} ${className ?? ''}`} style={style} data-theme={theme} lang="es">
-        <header className={s.hero}>
-          <div className={s.heroInterior}>
-            <p className={s.kicker}>
+        <header className={`${s.hero} ${m.hero}`}>
+          <div className={`${s.heroInterior} ${presentacion ? m.heroConVideo : ''}`}>
+            <div className={m.heroTexto}>
+            <p className={`${s.kicker} ${m.volanta}`}>
               {def.meta.kicker} {marca}
             </p>
-            <h1 className={s.titulo}>{def.meta.titulo}</h1>
+            <h1 className={`${s.titulo} ${m.titulo}`}>
+              <TituloResaltado titulo={def.meta.titulo} resalte={def.meta.resalte} />
+            </h1>
             <p className={s.bajada}>{def.meta.bajada}</p>
             <p className={s.meta}>
               {def.meta.version}
@@ -75,7 +145,7 @@ export default function Protocolo({ def, theme = 'light', marca = 'FIRMA', ficha
             <div className={`${s.acciones} ${s.noImprimir}`}>
               {seccionFicha && (
                 <a href={`#${idDe(seccionFicha.id)}`} onClick={irA(seccionFicha.id)} className={`${s.boton} ${s.botonPrimario}`}>
-                  Configurar la ficha
+                  {faltan > 0 ? 'Configurar la ficha' : 'Revisar la ficha'}
                 </a>
               )}
               <button type="button" className={s.boton} onClick={() => imprimirEnVentana(raizRef.current, 'todo', tituloImpresion)}>
@@ -89,9 +159,15 @@ export default function Protocolo({ def, theme = 'light', marca = 'FIRMA', ficha
                 </button>
               )}
             </div>
-            <div className={s.ideas}>
+            </div>
+            {presentacion && (
+              <div className={`${m.heroVideo} ${s.noImprimir}`}>
+                <TarjetaVideo url={presentacion} titulo={def.meta.titulo} volanta="Presentación" tamano="grande" />
+              </div>
+            )}
+            <div className={`${s.ideas} ${m.ideas}`}>
               {def.ideas.map((idea) => (
-                <div key={idea.titulo} className={s.idea}>
+                <div key={idea.titulo} className={`${s.idea} ${m.idea}`}>
                   <p className={s.ideaTitulo}>{idea.titulo}</p>
                   <p className={s.ideaTexto}>{idea.texto}</p>
                 </div>
@@ -103,29 +179,53 @@ export default function Protocolo({ def, theme = 'light', marca = 'FIRMA', ficha
         <div className={s.cuerpo}>
           <nav className={`${s.indice} ${s.noImprimir}`} aria-label="Índice del protocolo">
             <p className={s.indiceTitulo}>Contenido</p>
-            <ol className={s.indiceLista}>
-              {secciones.map((x, i) => (
-                <li key={x.id}>
-                  <a href={`#${idDe(x.id)}`} onClick={irA(x.id)} aria-current={activa === idDe(x.id) ? 'true' : undefined}>
-                    <span className={s.indiceNumero}>{String(i + 1).padStart(2, '0')}</span>
-                    {x.corto}
-                  </a>
+            <ol className={m.indicePartes}>
+              {grupos.map((g) => (
+                <li key={g.id}>
+                  <p className={m.indiceParte}>{g.titulo}</p>
+                  <ol className={s.indiceLista}>
+                    {g.secciones.map((x) => (
+                      <li key={x.id}>
+                        <a href={`#${idDe(x.id)}`} onClick={irA(x.id)} aria-current={activa === idDe(x.id) ? 'true' : undefined}>
+                          <span className={s.indiceNumero}>{numeroDe(x.id)}</span>
+                          {x.corto}
+                        </a>
+                      </li>
+                    ))}
+                  </ol>
                 </li>
               ))}
             </ol>
           </nav>
 
           <main className={s.contenido}>
-            {secciones.map((sec, i) => (
-              <Seccion key={sec.id} id={idDe(sec.id)} sec={sec} numero={String(i + 1).padStart(2, '0')}>
+            {grupos.map((g, k) => (
+              <div key={g.id} className={m.parte} data-parte={g.id}>
+                {g.id !== 'inicio' && (
+                  <div className={m.parteCabeza}>
+                    <p className={m.parteNumero}>Parte {k + (grupos[0].id === 'inicio' ? 0 : 1)}</p>
+                    <p className={m.parteTitulo}>{g.titulo}</p>
+                    <p className={m.partePregunta}>{g.pregunta}</p>
+                  </div>
+                )}
+                {g.secciones.map((sec) => {
+                  const video = videoDeSeccion(def.ruta, sec.id);
+                  return (
+              <Seccion key={sec.id} id={idDe(sec.id)} sec={sec} numero={numeroDe(sec.id)}>
+                {video && (
+                  <div className={`${m.videoSeccion} ${s.noImprimir}`}>
+                    <TarjetaVideo url={video} titulo={sec.titulo} />
+                  </div>
+                )}
                 {sec.bloques.map((b, j) => (
                   <div key={`${sec.id}-${j}`} className={m.bloque} data-bloque={b.tipo}>
                     <RenderBloque
-                      b={b}
+                      b={b.tipo === 'juridico' && ocultoDelAnexo ? { ...b, items: b.items.filter((x) => x.id !== ocultoDelAnexo) } : b}
                       ficha={ficha}
                       defFicha={def.ficha}
                       actualizar={actualizar}
                       guardado={guardado}
+                      faltan={faltan}
                       onEjemplo={() => setFicha({ ...def.ficha.ejemplo })}
                       onLimpiar={() => setFicha({ ...def.ficha.vacia, ...(fichaInicial ?? {}) } as Ficha)}
                     />
@@ -140,6 +240,9 @@ export default function Protocolo({ def, theme = 'light', marca = 'FIRMA', ficha
                   </div>
                 )}
               </Seccion>
+                  );
+                })}
+              </div>
             ))}
 
             <footer className={s.pie}>
@@ -157,9 +260,9 @@ export default function Protocolo({ def, theme = 'light', marca = 'FIRMA', ficha
 
 function Seccion({ id, sec, numero, children }: { id: string; sec: DefSeccion; numero: string; children: ReactNode }) {
   return (
-    <section id={id} className={`${s.seccion} ${sec.tarjeta ? s.seccionTarjeta : ''}`} data-seccion={sec.id} aria-labelledby={`${id}-t`}>
+    <section id={id} className={`${s.seccion} ${m.seccion} ${sec.tarjeta ? s.seccionTarjeta : ''}`} data-seccion={sec.id} aria-labelledby={`${id}-t`}>
       <p className={s.seccionNumero}>{numero}</p>
-      <h2 id={`${id}-t`} className={s.seccionTitulo}>
+      <h2 id={`${id}-t`} className={`${s.seccionTitulo} ${m.seccionTitulo}`}>
         {sec.titulo}
       </h2>
       {sec.intro && (
@@ -169,6 +272,35 @@ function Seccion({ id, sec, numero, children }: { id: string; sec: DefSeccion; n
       )}
       {children}
     </section>
+  );
+}
+
+function TituloResaltado({ titulo, resalte }: { titulo: string; resalte?: string }) {
+  const i = resalte ? titulo.indexOf(resalte) : -1;
+  if (!resalte || i < 0) return <>{titulo}</>;
+  return (
+    <>
+      {titulo.slice(0, i)}
+      <span className={m.resalte}>{resalte}</span>
+      {titulo.slice(i + resalte.length)}
+    </>
+  );
+}
+
+// La ficha sale del recorrido de lectura. Se abre sola mientras le falten datos.
+function FichaPlegable({ faltan, children }: { faltan: number; children: ReactNode }) {
+  const [abiertaAlInicio] = useState(faltan > 0);
+  return (
+    <details className={m.fichaPlegable} data-ficha="" open={abiertaAlInicio}>
+      <summary className={m.fichaResumen}>
+        <span className={m.fichaResumenTitulo}>{faltan > 0 ? 'Completar la ficha' : 'Ficha completa'}</span>
+        <span className={m.fichaEstado} data-completa={faltan === 0 ? '' : undefined}>
+          {faltan === 0 ? 'Lista' : faltan === 1 ? 'Falta 1 dato' : `Faltan ${faltan} datos`}
+        </span>
+        <IconoChevron />
+      </summary>
+      <div className={m.fichaCuerpo}>{children}</div>
+    </details>
   );
 }
 
@@ -212,6 +344,7 @@ function RenderBloque({
   defFicha,
   actualizar,
   guardado,
+  faltan,
   onEjemplo,
   onLimpiar,
 }: {
@@ -220,6 +353,7 @@ function RenderBloque({
   defFicha: DefFicha;
   actualizar: (clave: string, valor: string | boolean) => void;
   guardado: boolean | null;
+  faltan: number;
   onEjemplo: () => void;
   onLimpiar: () => void;
 }) {
@@ -254,7 +388,11 @@ function RenderBloque({
         </div>
       );
     case 'ficha':
-      return <FichaForm def={defFicha} ficha={ficha} actualizar={actualizar} guardado={guardado} onEjemplo={onEjemplo} onLimpiar={onLimpiar} />;
+      return (
+        <FichaPlegable faltan={faltan}>
+          <FichaForm def={defFicha} ficha={ficha} actualizar={actualizar} guardado={guardado} onEjemplo={onEjemplo} onLimpiar={onLimpiar} />
+        </FichaPlegable>
+      );
     case 'roles':
       return (
         <div className={s.grillaRoles}>
@@ -921,6 +1059,7 @@ function imprimirEnVentana(raiz: HTMLElement | null, modo: 'todo' | 'tarjeta', t
   // Los paneles cerrados se abren en la copia. Algunos resets globales (Tailwind v4)
   // ocultan [hidden] con !important y le ganarían a cualquier regla de impresión.
   clon.querySelectorAll('[hidden]').forEach((el) => el.removeAttribute('hidden'));
+  clon.querySelectorAll('details').forEach((el) => el.setAttribute('open', ''));
   // Los valores escritos en campos no viajan con el clon. Se copian a mano.
   const originales = raiz.querySelectorAll('input, select');
   const copias = clon.querySelectorAll('input, select');

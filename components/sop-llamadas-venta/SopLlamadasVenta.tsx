@@ -19,6 +19,9 @@
  */
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
 import s from './sop.module.css';
+import m from '../protocolos/motor/motor.module.css';
+import { TarjetaVideo } from '../protocolos/Video';
+import { presentacionDe } from '../protocolos/videos';
 import {
   CONFIG_EJEMPLO,
   CONFIG_VACIA,
@@ -129,6 +132,7 @@ export default function SopLlamadasVenta({ theme = 'light', marca = 'FIRMA', con
   const [config, setConfig] = useState<ConfigSop>(() => leerConfigInicial(configInicial));
   const [guardado, setGuardado] = useState<boolean | null>(null);
   const raizRef = useRef<HTMLDivElement>(null);
+  const presentacion = presentacionDe('/protocolo-llamadas');
 
   useEffect(() => {
     setGuardado(guardarLocal(config));
@@ -176,12 +180,15 @@ export default function SopLlamadasVenta({ theme = 'light', marca = 'FIRMA', con
   return (
     <TextoCtx.Provider value={ctx}>
       <div ref={raizRef} className={`${s.raiz} ${className ?? ''}`} style={style} data-theme={theme} lang="es">
-        <header className={s.hero}>
-          <div className={s.heroInterior}>
-            <p className={s.kicker}>
+        <header className={`${s.hero} ${m.hero}`}>
+          <div className={`${s.heroInterior} ${presentacion ? m.heroConVideo : ''}`}>
+            <div className={m.heroTexto}>
+            <p className={`${s.kicker} ${m.volanta}`}>
               {META.kicker} {marca}
             </p>
-            <h1 className={s.titulo}>{META.titulo}</h1>
+            <h1 className={`${s.titulo} ${m.titulo}`}>
+              Comunicación legal en <span className={m.resalte}>llamadas de venta</span>
+            </h1>
             <p className={s.bajada}>{META.bajada}</p>
             <p className={s.meta}>
               {META.version}
@@ -206,9 +213,15 @@ export default function SopLlamadasVenta({ theme = 'light', marca = 'FIRMA', con
                 <span>Tarjeta de bolsillo</span>
               </button>
             </div>
-            <div className={s.ideas}>
+            </div>
+            {presentacion && (
+              <div className={`${m.heroVideo} ${s.noImprimir}`}>
+                <TarjetaVideo url={presentacion} titulo={META.titulo} volanta="Presentación" tamano="grande" />
+              </div>
+            )}
+            <div className={`${s.ideas} ${m.ideas}`}>
               {IDEAS.map((idea) => (
-                <div key={idea.titulo} className={s.idea}>
+                <div key={idea.titulo} className={`${s.idea} ${m.idea}`}>
                   <p className={s.ideaTitulo}>{idea.titulo}</p>
                   <p className={s.ideaTexto}>{idea.texto}</p>
                 </div>
@@ -664,7 +677,7 @@ function Seccion({
   return (
     <section id={id} className={`${s.seccion} ${claseExtra ?? ''}`} data-seccion={clave} aria-labelledby={`${id}-t`}>
       <p className={s.seccionNumero}>{numero}</p>
-      <h2 id={`${id}-t`} className={s.seccionTitulo}>
+      <h2 id={`${id}-t`} className={`${s.seccionTitulo} ${m.seccionTitulo}`}>
         {titulo}
       </h2>
       {intro && <p className={s.seccionIntro}>{intro}</p>}

@@ -12,6 +12,7 @@ const protocolo: DefProtocolo = {
   meta: {
     kicker: 'Protocolo de gestión · Plantilla',
     titulo: 'Cobranza y contracargos',
+    resalte: 'contracargos',
     bajada:
       'Secuencia de cobro firme y amable, planes de pago documentados y respuesta a disputas con prueba, desde el recordatorio previo al vencimiento hasta el cierre de cada cuenta. Con antigüedad de saldos, calculadora de intereses y paquete de prueba.',
     version: 'Versión 1.0 · Octubre de 2026',

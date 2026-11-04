@@ -1,6 +1,8 @@
 /* Piezas nuevas del motor de protocolos.
    Usa las variables --c-* que define la raíz del protocolo de llamadas (.raiz),
-   así que hereda la marca, el tema y la impresión sin repetir nada. */
+   así que hereda la marca, el tema y la impresión sin repetir nada.
+   El diseño del portal (portada tinta, títulos en Archivo pesada, resalte y partes)
+   está al final, en «Diseño del portal». */
 
 /* Separación entre bloques consecutivos de una sección */
 
@@ -585,4 +587,364 @@
   .resultado {
     break-inside: avoid;
   }
+}
+
+/* =================================================================== */
+/* Diseño del portal                                                    */
+/* Portada en tinta como los posteos de @agustin.legales, títulos en    */
+/* Archivo pesada con la palabra clave en caja y el índice por partes. */
+/* =================================================================== */
+
+/* Portada. Redefine las variables --c-* para el fondo tinta, así todo lo de adentro se invierte. */
+.hero {
+  --c-bg: var(--color-tinta);
+  --c-surface: var(--color-grafito);
+  --c-surface-2: color-mix(in srgb, var(--color-marfil) 8%, transparent);
+  --c-ink: var(--color-marfil);
+  --c-ink-2: var(--color-lateral-texto);
+  --c-muted: var(--color-calido);
+  --c-line: color-mix(in srgb, var(--color-marfil) 12%, transparent);
+  --c-line-2: color-mix(in srgb, var(--color-marfil) 28%, transparent);
+  --c-accent: var(--color-marfil);
+  --c-accent-ink: var(--color-tinta);
+  --c-focus: var(--color-marfil);
+  background: var(--c-bg);
+  color: var(--c-ink);
+  border-bottom: 0;
+}
+
+.heroConVideo {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 20px 48px;
+  align-items: center;
+}
+
+.heroConVideo .ideas {
+  grid-column: 1 / -1;
+}
+
+.heroTexto {
+  min-width: 0;
+}
+
+.heroVideo {
+  min-width: 0;
+}
+
+.volanta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--color-marfil);
+  color: var(--color-tinta);
+  font-size: 11px;
+  font-weight: 600;
+  font-stretch: 125%;
+  letter-spacing: 0.16em;
+}
+
+.titulo {
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.02;
+  max-width: 18ch;
+  margin-top: 18px;
+}
+
+/* Palabra clave en caja, en ángulo recto. En la portada va en marfil sobre tinta. */
+.resalte {
+  background: var(--c-ink);
+  color: var(--c-bg);
+  padding: 0 0.14em 0.03em;
+  margin-inline: 0.02em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+.ideas {
+  margin-top: 32px;
+}
+
+.idea {
+  border: 0;
+  border-radius: 20px;
+}
+
+/* Índice agrupado por partes */
+
+.indicePartes {
+  list-style: none;
+  display: grid;
+  gap: 14px;
+}
+
+.indiceParte {
+  padding: 0 10px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  font-stretch: 125%;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--c-ink);
+}
+
+/* Partes en el contenido */
+
+.parte + .parte {
+  margin-top: 24px;
+}
+
+.parteCabeza {
+  margin-top: 40px;
+  padding: 22px 24px;
+  border-radius: 20px;
+  background: var(--color-tinta);
+  color: var(--color-marfil);
+  display: grid;
+  gap: 2px;
+}
+
+.parteNumero {
+  font-size: 11px;
+  font-weight: 600;
+  font-stretch: 125%;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-calido);
+}
+
+.parteTitulo {
+  font-family: var(--sop-font-display, inherit);
+  font-size: clamp(24px, 2.6vw, 30px);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+}
+
+.partePregunta {
+  font-size: 15px;
+  color: var(--color-lateral-texto);
+}
+
+.parteCabeza + .seccion {
+  border-top: 0;
+}
+
+.seccionTitulo {
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.06;
+}
+
+/* Video arriba de una sección */
+
+.videoSeccion {
+  max-width: 560px;
+  margin: 14px 0 22px;
+}
+
+/* Ficha plegable */
+
+.fichaPlegable {
+  border: 1px solid var(--c-line);
+  border-radius: 20px;
+  background: var(--c-surface);
+}
+
+.fichaResumen {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.fichaResumen::-webkit-details-marker {
+  display: none;
+}
+
+.fichaResumen svg {
+  margin-left: auto;
+  transition: transform 0.15s ease;
+}
+
+.fichaPlegable[open] .fichaResumen svg {
+  transform: rotate(180deg);
+}
+
+.fichaResumenTitulo {
+  font-weight: 700;
+  font-size: 17px;
+  letter-spacing: -0.02em;
+}
+
+.fichaEstado {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--color-aviso-suave);
+  color: var(--color-aviso);
+}
+
+.fichaEstado[data-completa] {
+  background: var(--color-tinta);
+  color: var(--color-marfil);
+}
+
+.fichaCuerpo {
+  padding: 4px 20px 20px;
+  border-top: 1px solid var(--c-line);
+}
+
+.fichaCuerpo > * {
+  margin-top: 16px;
+}
+
+/* Catálogo de /protocolos como las tarjetas de video del portal */
+
+.catalogoItem {
+  position: relative;
+  overflow: hidden;
+  border: 0;
+  border-radius: 24px;
+  background: var(--color-tinta);
+  color: var(--color-marfil);
+  padding: 24px;
+  gap: 10px;
+  box-shadow: var(--shadow-relieve);
+  transition: transform 0.2s ease;
+}
+
+.catalogoItem:hover {
+  background: var(--color-tinta);
+  transform: translateY(-2px);
+}
+
+.catalogoItem .catalogoKicker {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 11px;
+  border-radius: 999px;
+  background: var(--color-marfil);
+  color: var(--color-tinta);
+  font-size: 11px;
+  font-weight: 600;
+  font-stretch: 125%;
+  letter-spacing: 0.16em;
+}
+
+.catalogoItem .catalogoTitulo {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+}
+
+.catalogoItem .catalogoTexto {
+  color: var(--color-calido);
+}
+
+.catalogoItem .catalogoCapas > * {
+  border-color: color-mix(in srgb, var(--color-marfil) 28%, transparent);
+  color: var(--color-marfil);
+  background: transparent;
+}
+
+.catalogoVideo {
+  max-width: 640px;
+  margin-bottom: 24px;
+}
+
+/* En pantallas chicas el índice es una sola tira que se desliza, como en el protocolo de llamadas. */
+@media screen and (max-width: 1080px) {
+  .indicePartes {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .indicePartes::-webkit-scrollbar {
+    display: none;
+  }
+
+  .indicePartes > li {
+    display: flex;
+    flex: none;
+    align-items: center;
+  }
+
+  .indicePartes > li + li {
+    border-left: 1px solid var(--c-line);
+    padding-left: 4px;
+  }
+
+  .indiceParte {
+    display: none;
+  }
+
+  .indicePartes .indiceLista {
+    overflow: visible;
+  }
+}
+
+@media screen and (max-width: 900px) {
+  .heroConVideo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Impresión en claro, sin la portada tinta ni las cabeceras de parte en la tarjeta */
+
+[data-print] .hero {
+  --c-bg: #fff;
+  --c-surface: #fff;
+  --c-ink: var(--color-tinta);
+  --c-ink-2: var(--color-carbon);
+  --c-muted: var(--color-piedra);
+  --c-line: var(--color-borde-suave);
+  --c-line-2: var(--color-borde);
+  --c-accent: var(--color-tinta);
+}
+
+[data-print] .idea {
+  border: 1px solid var(--color-borde-suave);
+}
+
+[data-print] .parteCabeza {
+  background: #fff;
+  color: var(--color-tinta);
+  border: 1px solid var(--color-tinta);
+  break-after: avoid;
+}
+
+[data-print] .partePregunta,
+[data-print] .parteNumero {
+  color: var(--color-piedra);
+}
+
+[data-print='tarjeta'] .parteCabeza {
+  display: none;
+}
+
+[data-print] .fichaResumen {
+  display: none;
+}
+
+[data-print] .fichaPlegable,
+[data-print] .fichaCuerpo {
+  border: 0;
+  padding: 0;
+  background: transparent;
 }

@@ -12,6 +12,7 @@ const protocolo: DefProtocolo = {
   meta: {
     kicker: 'Protocolo de gestión · Plantilla',
     titulo: 'Datos personales',
+    resalte: 'personales',
     bajada:
       'Qué datos se piden, dónde viven, cuánto se guardan y cómo se responden los pedidos de sus titulares. Con mapa de datos, calculadora de plazos y flujo de incidentes.',
     version: 'Versión 1.0 · Octubre de 2026',

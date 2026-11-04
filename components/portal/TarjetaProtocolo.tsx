@@ -1,85 +1,17 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { ArrowDown, ArrowUpRight, FileText, Play, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowDown, ArrowUpRight, FileText, Play } from 'lucide-react';
 import retrato from '../../assets/brand/retrato.jpg';
 import { Enlace } from './ui';
 import { fechaLarga, formatoDe } from './descargas';
 import type { Documento } from './tipos';
+import { VisorVideo, videoDe } from '../protocolos/Video';
+import { presentacionDe } from '../protocolos/videos';
 
 /**
  * Tarjeta de un protocolo con el diseño de los posteos de @agustin.legales: fondo tinta, volanta en
  * pastilla, título en Archivo pesada, firma de Agustín y un círculo grande que dice qué pasa al tocarla
  * (play para los videos, flecha para los documentos).
  */
-
-/** Dirección para incrustar un video de YouTube, Vimeo o Loom, o el mp4 tal cual. null si el enlace no es un video. */
-export function videoDe(url: string | null | undefined): { tipo: 'iframe' | 'mp4'; src: string } | null {
-  if (!url) return null;
-  let u: URL;
-  try {
-    u = new URL(url, window.location.origin);
-  } catch {
-    return null;
-  }
-  const host = u.hostname.replace(/^www\./, '');
-  if (/\.mp4$/i.test(u.pathname)) return { tipo: 'mp4', src: u.href };
-  if (host === 'youtu.be') return { tipo: 'iframe', src: `https://www.youtube-nocookie.com/embed/${u.pathname.slice(1)}?autoplay=1&rel=0` };
-  if (host.endsWith('youtube.com')) {
-    const id = u.searchParams.get('v') ?? u.pathname.match(/\/(?:embed|shorts)\/([\w-]+)/)?.[1];
-    return id ? { tipo: 'iframe', src: `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0` } : null;
-  }
-  if (host === 'vimeo.com' || host === 'player.vimeo.com') {
-    const partes = u.pathname.split('/').filter(Boolean).filter((p) => p !== 'video');
-    const [id, h] = partes;
-    if (!id || !/^\d+$/.test(id)) return null;
-    return { tipo: 'iframe', src: `https://player.vimeo.com/video/${id}?autoplay=1${h ? `&h=${h}` : ''}` };
-  }
-  if (host.endsWith('loom.com')) {
-    const id = u.pathname.match(/\/(?:share|embed)\/([\w-]+)/)?.[1];
-    return id ? { tipo: 'iframe', src: `https://www.loom.com/embed/${id}?autoplay=1` } : null;
-  }
-  return null;
-}
-
-const VisorVideo: React.FC<{ titulo: string; video: { tipo: 'iframe' | 'mp4'; src: string }; alCerrar: () => void }> = ({ titulo, video, alCerrar }) => {
-  const cerrarRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    cerrarRef.current?.focus();
-    const tecla = (e: KeyboardEvent) => e.key === 'Escape' && alCerrar();
-    const desborde = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    window.addEventListener('keydown', tecla);
-    return () => {
-      window.removeEventListener('keydown', tecla);
-      document.body.style.overflow = desborde;
-    };
-  }, [alCerrar]);
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-tinta/80 p-3 tab:p-8"
-      role="dialog"
-      aria-modal="true"
-      aria-label={titulo}
-      onMouseDown={(e) => e.target === e.currentTarget && alCerrar()}
-    >
-      <div className="w-full max-w-[1100px] overflow-hidden rounded-[20px] bg-tinta text-marfil">
-        <div className="flex items-center justify-between gap-4 px-5 py-3 border-b border-marfil/10">
-          <span className="font-bold tracking-[-0.01em] truncate">{titulo}</span>
-          <button ref={cerrarRef} type="button" onClick={alCerrar} aria-label="Cerrar el video" className="h-10 w-10 shrink-0 grid place-items-center rounded-[10px] hover:bg-marfil/10">
-            <X size={18} aria-hidden="true" />
-          </button>
-        </div>
-        <div className="aspect-video bg-black">
-          {video.tipo === 'mp4' ? (
-            <video className="block w-full h-full" src={video.src} controls autoPlay playsInline preload="metadata" />
-          ) : (
-            <iframe className="block w-full h-full" src={video.src} title={titulo} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen />
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
 
 export const TarjetaProtocolo: React.FC<{
   doc: Documento;
@@ -91,8 +23,10 @@ export const TarjetaProtocolo: React.FC<{
   bajando: boolean;
 }> = ({ doc, areas, alDescargar, alAbrir, bajando }) => {
   const [viendo, setViendo] = useState(false);
-  const video = videoDe(doc.url);
   const enSitio = Boolean(doc.url?.startsWith('/'));
+  // Un protocolo del sitio con video de presentación cargado se ve como video y el protocolo se abre aparte.
+  const presentacion = enSitio ? presentacionDe(doc.url) : null;
+  const video = videoDe(doc.url) ?? videoDe(presentacion);
   const volanta = video ? 'Video' : doc.url ? formatoDe(doc) : 'Protocolo escrito';
   const accion = video ? `Ver el video ${doc.titulo}` : doc.archivo_ruta ? `Descargar ${doc.titulo}` : `Abrir ${doc.titulo}`;
   const nombresAreas = doc.areas.map((a) => areas[a] ?? a);
@@ -157,6 +91,12 @@ export const TarjetaProtocolo: React.FC<{
         </a>
       ) : (
         <div className={clase}>{contenido}</div>
+      )}
+      {presentacion && video && doc.url && (
+        <Enlace a={doc.url} className="self-start inline-flex items-center gap-1.5 px-1 text-[14px] font-semibold text-tinta underline-offset-4 hover:underline" onClick={() => alAbrir(doc)}>
+          Abrir el protocolo
+          <ArrowUpRight size={16} aria-hidden="true" />
+        </Enlace>
       )}
       <p className="px-1 text-[13px] text-piedra">
         {bajando ? 'Preparando la descarga…' : [nombresAreas.length ? `Para ${nombresAreas.join(' y ')}` : 'Para todo el equipo', `actualizado el ${fechaLarga(doc.actualizado_en)}`].join(' · ')}

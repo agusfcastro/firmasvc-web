@@ -8,6 +8,8 @@ import Protocolo from './motor/Protocolo';
 import type { DefProtocolo } from './motor/tipos';
 import { MARCA_FIRMA } from './marca';
 import { CATALOGO } from './rutas';
+import { TarjetaVideo } from './Video';
+import { VIDEO_GENERAL } from './videos';
 
 /**
  * Página de los protocolos que arma el motor, más el índice en /protocolos.
@@ -73,7 +75,7 @@ export default function PaginaProtocolo({ ruta }: { ruta: string }) {
   }, [def, esIndice]);
 
   return (
-    <div className="min-h-screen bg-marfil flex flex-col">
+    <div className="landing min-h-screen bg-marfil flex flex-col">
       <header className="border-b border-tinta/15">
         <div className="wrap h-28 flex items-center justify-between gap-4">
           <a href="/" className="flex items-center min-w-0 select-none">
@@ -96,7 +98,7 @@ export default function PaginaProtocolo({ ruta }: { ruta: string }) {
           <Protocolo def={def} marca="Firma" style={MARCA_FIRMA} />
         ) : error ? (
           <div className={s.raiz} style={MARCA_FIRMA}>
-            <div className={s.hero}>
+            <div className={`${s.hero} ${m.hero}`}>
               <div className={s.heroInterior}>
                 <h1 className={s.titulo}>No encontramos este protocolo</h1>
                 <p className={s.bajada}>
@@ -118,23 +120,25 @@ export default function PaginaProtocolo({ ruta }: { ruta: string }) {
 function IndiceProtocolos() {
   return (
     <div className={s.raiz} style={MARCA_FIRMA} lang="es">
-      <header className={s.hero}>
+      <header className={`${s.hero} ${m.hero}`}>
         <div className={s.heroInterior}>
-          <p className={s.kicker}>Sistemas de gestión Firma</p>
-          <h1 className={s.titulo}>Protocolos</h1>
+          <p className={`${s.kicker} ${m.volanta}`}>Sistemas de gestión Firma</p>
+          <h1 className={`${s.titulo} ${m.titulo}`}>
+            Un contrato no es desconfianza. <span className={m.resalte}>Es claridad.</span>
+          </h1>
           <p className={s.bajada}>
             Cada protocolo combina tres capas. Lo que se dice y lo que no, lo que se firma o se registra, y cómo se gestiona con responsables, plazos, indicadores y una herramienta para decidir.
           </p>
-          <div className={s.ideas}>
-            <div className={s.idea}>
+          <div className={`${s.ideas} ${m.ideas}`}>
+            <div className={`${s.idea} ${m.idea}`}>
               <p className={s.ideaTitulo}>Capa legal</p>
               <p className={s.ideaTexto}>Guiones, cláusulas y plantillas con la normativa de Argentina y España.</p>
             </div>
-            <div className={s.idea}>
+            <div className={`${s.idea} ${m.idea}`}>
               <p className={s.ideaTitulo}>Capa de gestión</p>
               <p className={s.ideaTexto}>Responsables, plazos y matrices de decisión para que nadie improvise.</p>
             </div>
-            <div className={s.idea}>
+            <div className={`${s.idea} ${m.idea}`}>
               <p className={s.ideaTitulo}>Capa de medición</p>
               <p className={s.ideaTexto}>Indicadores y calculadoras para decidir con números y mejorar cada mes.</p>
             </div>
@@ -144,10 +148,15 @@ function IndiceProtocolos() {
       <div className={s.cuerpo} style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
         <main className={s.contenido}>
           <section className={s.seccion} aria-labelledby="protocolos-lista">
-            <h2 id="protocolos-lista" className={s.seccionTitulo}>
+            <h2 id="protocolos-lista" className={`${s.seccionTitulo} ${m.seccionTitulo}`}>
               Catálogo
             </h2>
             <p className={s.seccionIntro}>Cada protocolo tiene su ficha. Se completa una vez por negocio y el enlace configurado se comparte con el equipo.</p>
+            {VIDEO_GENERAL && (
+              <div className={m.catalogoVideo}>
+                <TarjetaVideo url={VIDEO_GENERAL} titulo="Cómo se usan los protocolos" volanta="Empezá acá" tamano="grande" />
+              </div>
+            )}
             <div className={m.catalogo}>
               {CATALOGO.map((c) => (
                 <a key={c.ruta} href={c.ruta} className={m.catalogoItem}>

@@ -12,6 +12,7 @@ const protocolo: DefProtocolo = {
   meta: {
     kicker: 'Protocolo de gestión · Plantilla',
     titulo: 'Marketing y publicidad',
+    resalte: 'publicidad',
     bajada:
       'Piezas, testimonios, promociones y comunicaciones que venden sin prometer de más. Con revisor de piezas, testimonios autorizados, métricas de adquisición y tablero de indicadores.',
     version: 'Versión 1.0 · Octubre de 2026',

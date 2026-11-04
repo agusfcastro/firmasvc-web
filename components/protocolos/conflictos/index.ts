@@ -12,6 +12,7 @@ const protocolo: DefProtocolo = {
   meta: {
     kicker: 'Protocolo de gestión · Plantilla',
     titulo: 'Conflictos y pedidos de reembolso',
+    resalte: 'pedidos de reembolso',
     bajada:
       'Cómo se previenen, se contienen y se gestionan los reclamos, desde la primera señal de insatisfacción hasta una eventual difusión pública. Con compuerta legal, calculadora de negociación y tablero de indicadores.',
     version: 'Versión 1.0 · Octubre de 2026',

@@ -242,8 +242,15 @@ export type Bloque =
   | { tipo: 'plazos'; id: string; titulo: string; intro?: string; opciones: OpcionPlazo[] }
   | { tipo: 'componente'; componente: ComponentType<{ ficha: Ficha }> };
 
+/**
+ * Las partes en que se ordena todo protocolo, en el orden en que se usan.
+ * Cada sección pertenece a una. Si no la declara, el motor la deduce de su id.
+ */
+export type Parte = 'inicio' | 'principios' | 'recorrido' | 'decir' | 'escalar' | 'medir' | 'respaldo' | 'bolsillo';
+
 export interface Seccion {
   id: string;
+  parte?: Parte;
   titulo: string;
   /** Rótulo corto del índice. */
   corto: string;
@@ -257,7 +264,14 @@ export interface DefProtocolo {
   id: string;
   ruta: string;
   tituloPagina: string;
-  meta: { kicker: string; titulo: string; bajada: string; version: string };
+  meta: {
+    kicker: string;
+    titulo: string;
+    /** Parte del título que va en la caja de resalte, como en los posteos. */
+    resalte?: string;
+    bajada: string;
+    version: string;
+  };
   ideas: { titulo: string; texto: string }[];
   ficha: DefFicha;
   secciones: (f: Ficha) => Seccion[];

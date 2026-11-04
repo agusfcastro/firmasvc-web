@@ -12,6 +12,7 @@ const protocolo: DefProtocolo = {
   meta: {
     kicker: 'Protocolo de gestión · Plantilla',
     titulo: 'Reclutamiento y selección',
+    resalte: 'selección',
     bajada:
       'Del perfil del puesto a la oferta firmada, con entrevistas estructuradas, avisos sin sesgos y datos de candidatos bien cuidados. Con rúbrica de entrevista, embudo de selección y tabla de preguntas prohibidas.',
     version: 'Versión 1.0 · Octubre de 2026',

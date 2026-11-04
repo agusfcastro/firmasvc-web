@@ -12,6 +12,7 @@ const protocolo: DefProtocolo = {
   meta: {
     kicker: 'Protocolo de gestión · Plantilla',
     titulo: 'Gestión del equipo',
+    resalte: 'equipo',
     bajada:
       'Incorporación, rituales, comisiones, desempeño y salida ordenada de setters, closers y acompañamiento, cuidando que la práctica de todos los días coincida con el contrato. Con semáforo de independencia, simulador de comisiones y matriz de responsables.',
     version: 'Versión 1.0 · Octubre de 2026',
