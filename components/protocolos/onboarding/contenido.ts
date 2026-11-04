@@ -247,12 +247,7 @@ export function secciones(f: Ficha): Seccion[] {
         {
           tipo: 'parrafo',
           texto:
-            'Este protocolo ordena el ingreso de cada cliente de {empresa} a {programa}, desde el cierre comercial hasta el primer resultado y la renovación. Los datos del negocio se completan una vez en la ficha y se actualizan solos en todos los mensajes y herramientas.',
-        },
-        {
-          tipo: 'parrafo',
-          texto:
-            'El onboarding es la etapa que más reclamos previene. Lo que no se aclara en las primeras semanas vuelve después como pedido de devolución, y lo que se registra en ellas es la mejor prueba si el reclamo llega. Empieza donde termina el protocolo de llamadas de venta y le pasa la posta al protocolo de conflictos apenas aparece una señal de reclamo.',
+            'El ingreso de cada cliente de {empresa} a {programa}, del cierre comercial a la renovación. Es la etapa que más reclamos previene, porque lo que no se aclara en las primeras semanas vuelve como pedido de devolución. Empieza donde termina el protocolo de llamadas y, ante un pedido de devolución, una mención de abogados o un contracargo, pasa al de conflictos.',
         },
         {
           tipo: 'parrafo',
@@ -269,11 +264,6 @@ export function secciones(f: Ficha): Seccion[] {
             { rol: 'Legales', foco: 'Modelo de contrato, aviso de arrepentimiento, privacidad y casos derivados a {correoLegales}.' },
             { rol: 'Dirección', foco: 'Tablero de indicadores, renovaciones y ajustes al protocolo.' },
           ],
-        },
-        {
-          tipo: 'aclaracion',
-          texto:
-            'El protocolo de llamadas termina con el correo de confirmación de la venta y este empieza ahí. Si en cualquier momento aparece un pedido de devolución, una mención de abogados o un contracargo, rige el protocolo de conflictos.',
         },
       ],
     },
@@ -359,7 +349,7 @@ export function secciones(f: Ficha): Seccion[] {
       id: 'etapas',
       titulo: 'El recorrido en ocho etapas',
       corto: 'Ocho etapas',
-      intro: 'Cada etapa tiene responsable, plazo y objetivo. El paso de una a otra queda registrado en la ficha del cliente en el CRM.',
+      intro: 'Cada paso de una etapa a otra queda registrado en la ficha del cliente en el CRM.',
       bloques: [
         {
           tipo: 'etapas',
@@ -368,67 +358,60 @@ export function secciones(f: Ficha): Seccion[] {
               titulo: 'Cierre comercial',
               cuando: 'Responsable equipo comercial · En la llamada y dentro de las 24 horas',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Que el cliente llegue al onboarding con lo prometido igual a lo contratado.' },
                 {
                   rotulo: 'Qué tiene que pasar',
-                  texto:
-                    'Repaso de cierre del protocolo de llamadas, correo de confirmación con respuesta del cliente, finalidad de la compra registrada en el CRM y traspaso a {respOnboarding} con la ficha completa.',
+                  texto: 'Repaso de cierre del protocolo de llamadas, correo de confirmación con respuesta del cliente y traspaso a {respOnboarding} con la ficha completa y la finalidad de la compra.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Te confirmo por escrito lo que acordamos y te llega el contrato por {firma} para que lo leas con tiempo.', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Prometer en la llamada un plazo, un bono o un resultado que el contrato no menciona, y que onboarding lo descubra después.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Prometer un plazo, un bono o un resultado que el contrato no menciona.', estilo: 'error' },
               ],
             },
             {
               titulo: 'Firma y pago',
               cuando: 'Responsable equipo comercial · Recordatorio a las 24 horas si no firmó',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Contrato firmado y pago acreditado antes de cualquier acceso.' },
                 {
                   rotulo: 'Qué tiene que pasar',
                   texto:
-                    'Contrato enviado por {firma} antes del enlace de pago o junto con él, con el aviso de arrepentimiento destacado antes de la firma si el cliente puede ser consumidor. Cobro en {pasarela} a nombre del titular. Descarga de la constancia de firma y registro de ambas fechas. El alta se produce cuando las dos cosas están completas.',
+                    'Contrato por {firma} antes del enlace de pago o junto con él, con el aviso de arrepentimiento destacado si puede ser consumidor. Cobro en {pasarela} a nombre del titular. Con las dos cosas completas se produce el alta.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Apenas esté firmado el contrato y acreditado el pago, te llega la bienvenida con tus accesos.', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Habilitar accesos con el pago hecho y la firma pendiente, o aceptar que firme otra persona por el cliente.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Habilitar accesos con la firma pendiente, o aceptar que firme otra persona.', estilo: 'error' },
               ],
             },
             {
               titulo: 'Bienvenida y accesos',
               cuando: 'Responsable {respOnboarding} · Dentro de las 24 horas del alta',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Que el cliente tenga su copia, sus accesos y las reglas del servicio por escrito.' },
                 {
                   rotulo: 'Qué tiene que pasar',
                   texto:
-                    'Checklist de ingreso con los críticos cumplidos. Mensaje de bienvenida con la copia firmada y su constancia, el canal oficial, las reglas del servicio y el pedido de completar {formulario}. Alta en {contenidos} a nombre del titular. Pedido de confirmación de recepción.',
+                    'Checklist de ingreso con los críticos cumplidos. Un solo mensaje con la copia firmada, el canal oficial, las reglas del servicio, el pedido de completar {formulario} y el alta en {contenidos}, con pedido de confirmación.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Respondé este mensaje con un ok para confirmar que recibiste tu copia del contrato y tus accesos.', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Mandar los accesos por un canal y el contrato por otro, sin pedir confirmación de ninguno.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Mandar accesos y contrato por canales distintos, sin pedir confirmación.', estilo: 'error' },
               ],
             },
             {
               titulo: 'Reunión de inicio',
               cuando: 'Responsable {respOnboarding} · Dentro de {diasInicio} desde el alta',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Acordar objetivos, compromisos de cada parte y el primer hito, y dejarlo por escrito.' },
                 {
                   rotulo: 'Qué tiene que pasar',
                   texto:
-                    'Invitación con agenda, aviso y conformidad si la reunión se registra, repaso del alcance contratado, objetivo del cliente en sus palabras, compromisos de cada parte, calendario de hitos y canal oficial. Resumen por escrito dentro de las 24 horas, con pedido de confirmación.',
+                    'Conformidad si se registra, repaso del alcance contratado, objetivo del cliente en sus palabras, compromisos de cada parte y calendario de hitos. Resumen escrito dentro de las 24 horas, con pedido de confirmación.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Te resumo lo que acordamos hoy para que lo tengamos los dos por escrito.', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Convertir la reunión en una clase y terminarla sin objetivos acordados ni resumen escrito.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Terminar la reunión sin objetivos acordados ni resumen escrito.', estilo: 'error' },
               ],
             },
             {
               titulo: 'Primer hito',
               cuando: 'Responsable {respOnboarding} · Dentro de {diasResultado} desde el alta',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Que el cliente vea un primer resultado concreto y que quede constancia.' },
                 {
                   rotulo: 'Qué tiene que pasar',
-                  texto:
-                    'Seguimiento del avance hacia {primerHito}, aviso con anticipación si cambia la fecha y mensaje de cierre en {canal} con lo entregado, la fecha y los próximos pasos. La respuesta del cliente se guarda en su ficha.',
+                  texto: 'Seguimiento hacia {primerHito}, aviso anticipado si cambia la fecha y mensaje de cierre en {canal} con lo entregado y los próximos pasos. La respuesta del cliente va a su ficha.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Dejamos registrado que hoy completamos el primer hito, {primerHito}. Los próximos pasos acordados son [[pasos]].', estilo: 'frase' },
                 { rotulo: 'Error típico', texto: 'Cumplir el hito sin decirlo por escrito, o presentarlo como un resultado económico garantizado.', estilo: 'error' },
@@ -438,42 +421,36 @@ export function secciones(f: Ficha): Seccion[] {
               titulo: 'Seguimiento de los 30 días',
               cuando: 'Responsable {respOnboarding} · A los 30 días del alta',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Medir la salud de la cuenta y corregir antes de que aparezca un reclamo.' },
                 {
                   rotulo: 'Qué tiene que pasar',
-                  texto:
-                    'Índice de salud de la cuenta, pedido de feedback por escrito con una calificación de 1 a 5 y revisión de asistencia, hitos y pagos. Si la cuenta da ámbar o rojo, plan de acción con responsable y fecha.',
+                  texto: 'Índice de salud de la cuenta y feedback por escrito con una calificación de 1 a 5. En ámbar o rojo, plan de acción con responsable y fecha.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Cerramos tu primer mes. Contanos en pocas líneas qué te está sirviendo y qué ajustarías.', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Leer el silencio del cliente como conformidad y enterarse de la insatisfacción por un pedido de devolución.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Leer el silencio como conformidad y enterarse por un pedido de devolución.', estilo: 'error' },
               ],
             },
             {
               titulo: 'Revisión de mitad de programa',
               cuando: 'Responsable {respOnboarding} · A la mitad del programa',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Comparar lo acordado al inicio con lo logrado y ajustar la segunda mitad.' },
                 {
                   rotulo: 'Qué tiene que pasar',
-                  texto:
-                    'Reunión breve con el resumen de inicio a la vista, hitos cumplidos y pendientes, índice de salud y feedback. Acta escrita con los ajustes, siempre dentro de lo que permite el contrato.',
+                  texto: 'Reunión breve con el resumen de inicio a la vista, hitos, índice de salud y feedback. Acta escrita con los ajustes, dentro de lo que permite el contrato.',
                 },
-                { rotulo: 'Frase ancla', texto: 'Repasemos lo que nos propusimos al inicio, lo que ya logramos y qué ajustamos para la segunda mitad.', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Prometer extras fuera del contrato para compensar un avance lento, sin autorización ni registro.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Prometer extras fuera del contrato para compensar un avance lento.', estilo: 'error' },
               ],
             },
             {
               titulo: 'Cierre o renovación',
               cuando: 'Responsables {respOnboarding} y dirección · 30 días antes del cierre',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Cerrar con constancia de lo prestado y, si corresponde, proponer la continuidad por escrito.' },
                 {
                   rotulo: 'Qué tiene que pasar',
                   texto:
-                    'Resumen final con los hitos cumplidos y sus constancias, pedido de feedback final y propuesta de renovación con sus condiciones. La nueva etapa empieza con un contrato o una adenda firmada. Si no renueva, baja de accesos en la fecha prevista y mensaje de cierre.',
+                    'Resumen final con los hitos y sus constancias, feedback final y, si corresponde, propuesta de renovación. La nueva etapa empieza con contrato o adenda firmada. Si no renueva, baja de accesos en la fecha prevista.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Te compartimos el resumen de todo lo que trabajamos y, si querés seguir, la propuesta para la próxima etapa.', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Renovar de palabra o seguir prestando después del cierre sin contrato vigente.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Renovar de palabra o seguir prestando sin contrato vigente.', estilo: 'error' },
               ],
             },
           ],
@@ -602,22 +579,28 @@ export function secciones(f: Ficha): Seccion[] {
           conclusion: (v) => conclusionSalud(v),
           nota: 'Verde desde 75 puntos, ámbar de 50 a 74 y rojo por debajo de 50. Una satisfacción de 1 o 2, más de 15 días de atraso o más de tres semanas sin interacción llevan la cuenta a observación aunque el puntaje sea alto. Los umbrales son criterios de este protocolo y se ajustan con la historia de cada negocio.',
         },
-        { tipo: 'subtitulo', texto: 'Cómo se calcula' },
         {
-          tipo: 'tabla',
-          aria: 'Componentes del índice de salud',
-          columnas: [
-            { rotulo: 'Componente', ancho: '0.9fr', estilo: 'fuerte' },
-            { rotulo: 'Peso', ancho: '0.55fr' },
-            { rotulo: 'Cómo suma', ancho: '1.4fr' },
-            { rotulo: 'Por qué pesa', ancho: '1.1fr', estilo: 'porque' },
-          ],
-          filas: [
-            ['Asistencia a sesiones', '25 puntos', 'En proporción a las sesiones asistidas sobre las programadas.', 'Es la señal más temprana de desconexión.'],
-            ['Hitos cumplidos', '25 puntos', 'En proporción a los hitos confirmados por escrito sobre los previstos a la fecha.', 'Mide el avance real y, a la vez, la prueba de prestación.'],
-            ['Pagos', '20 puntos', 'Resta un punto por cada día de atraso, hasta llegar a cero a los 20 días.', 'Un atraso sin explicación puede anticipar un pedido de baja o un contracargo.'],
-            ['Satisfacción', '20 puntos', 'Cinco puntos por cada escalón por encima de 1, en la escala de 1 a 5.', 'Es lo que el cliente dice por escrito, con fecha.'],
-            ['Contacto', '10 puntos', 'Completo hasta siete días sin interacción. Desde el octavo día resta medio punto por día.', 'El silencio largo no es conformidad.'],
+          tipo: 'plegable',
+          titulo: 'Cómo se calcula el índice',
+          bajada: 'Peso de cada componente',
+          bloques: [
+            {
+              tipo: 'tabla',
+              aria: 'Componentes del índice de salud',
+              columnas: [
+                { rotulo: 'Componente', ancho: '0.9fr', estilo: 'fuerte' },
+                { rotulo: 'Peso', ancho: '0.55fr' },
+                { rotulo: 'Cómo suma', ancho: '1.4fr' },
+                { rotulo: 'Por qué pesa', ancho: '1.1fr', estilo: 'porque' },
+              ],
+              filas: [
+                ['Asistencia a sesiones', '25 puntos', 'En proporción a las sesiones asistidas sobre las programadas.', 'Es la señal más temprana de desconexión.'],
+                ['Hitos cumplidos', '25 puntos', 'En proporción a los hitos confirmados por escrito sobre los previstos a la fecha.', 'Mide el avance real y, a la vez, la prueba de prestación.'],
+                ['Pagos', '20 puntos', 'Resta un punto por cada día de atraso, hasta llegar a cero a los 20 días.', 'Un atraso sin explicación puede anticipar un pedido de baja o un contracargo.'],
+                ['Satisfacción', '20 puntos', 'Cinco puntos por cada escalón por encima de 1, en la escala de 1 a 5.', 'Es lo que el cliente dice por escrito, con fecha.'],
+                ['Contacto', '10 puntos', 'Completo hasta siete días sin interacción. Desde el octavo día resta medio punto por día.', 'El silencio largo no es conformidad.'],
+              ],
+            },
           ],
         },
         { tipo: 'subtitulo', texto: 'Qué hacer según el color' },
