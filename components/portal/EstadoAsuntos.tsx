@@ -109,7 +109,8 @@ const Lista: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
   const [ok, setOk] = useState<string | null>(null);
   const [clientesCrm, setClientesCrm] = useState<ClienteCrm[]>([]);
   const [nombresCliente, setNombresCliente] = useState<Record<string, string>>({});
-  const puedeCrear = !vista;
+  // Quien entra solo por su cartera ve los asuntos de sus clientes, pero no abre asuntos nuevos.
+  const puedeCrear = !vista && (esFirma || permisosDe(perfil.rol).casos);
 
   const cargar = useCallback(async () => {
     if (!supabase) return;
@@ -480,7 +481,9 @@ const Lista: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
             <p className="text-[15px] leading-[1.6] text-piedra">
               {esFirma
                 ? 'Creá el primero con Nuevo asunto. El cliente lo ve en esta sección y recibe las novedades por mail.'
-                : 'Acá vas a ver los trámites que FIRMA lleva para tu empresa. Si tenés un conflicto con un cliente o con tu equipo, abrilo con Nuevo asunto.'}
+                : puedeCrear
+                  ? 'Acá vas a ver los trámites que FIRMA lleva para tu empresa. Si tenés un conflicto con un cliente o con tu equipo, abrilo con Nuevo asunto.'
+                  : 'Acá vas a ver los asuntos de los clientes de tu cartera.'}
             </p>
           </div>
         ) : (

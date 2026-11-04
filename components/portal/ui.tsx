@@ -24,7 +24,7 @@ import { supabase } from './supabase';
 import { navegar } from './navegacion';
 import { salirVistaPrevia, useVistaPrevia } from './vistaPrevia';
 import { useLogoOrg } from './logos';
-import { ROTULO_ROL, cargoDe, permisosDe, type Perfil, type Permisos } from './tipos';
+import { ROTULO_ROL, cargoDe, permisosDe, veAsuntos, type Perfil, type Permisos } from './tipos';
 import { ROTULO_PLAN, type Plan } from './planes';
 
 import simboloClaro from '../../assets/brand/simbolo-claro.png';
@@ -75,7 +75,7 @@ function seccionesDe(perfil: Perfil, permisos: Permisos, ruta: string): Seccion[
   const s = (clave: ClaveSeccion, a: string, titulo: string, corto: string, icono: LucideIcon, grupo: Seccion['grupo'], activo: boolean): Seccion => ({ clave, a, titulo, corto, icono, grupo, activo });
   return [
     s('inicio', '/portal', 'Inicio', 'Inicio', House, 'expediente', ruta === '/portal'),
-    ...(permisos.casos ? [s('asuntos', '/portal/asuntos', 'Asuntos', 'Asuntos', BriefcaseBusiness, 'expediente', ruta.startsWith('/portal/asuntos'))] : []),
+    ...(veAsuntos(perfil) ? [s('asuntos', '/portal/asuntos', 'Asuntos', 'Asuntos', BriefcaseBusiness, 'expediente', ruta.startsWith('/portal/asuntos'))] : []),
     ...(permisos.documentosLegales ? [s('firmas', '/portal/firmas', 'Firmas', 'Firmas', FileSignature, 'expediente', ruta.startsWith('/portal/firmas'))] : []),
     ...(permisos.documentosLegales
       ? [s('documentos', '/portal/documentos', 'Documentos', 'Documentos', FileText, 'expediente', ruta.startsWith('/portal/documentos') || ruta.startsWith('/portal/pedidos'))]
@@ -136,8 +136,8 @@ interface Contadores {
 }
 const cacheContadores = new Map<string, { t: number; v: Contadores }>();
 
-function useContadores(permisos: Permisos | null, orgId: string | null | undefined, esAdmin: boolean): Contadores {
-  const clave = `${orgId ?? 'todas'}:${esAdmin ? 'firma' : 'cliente'}:${permisos?.casos ? 1 : 0}${permisos?.documentosLegales ? 1 : 0}`;
+function useContadores(permisos: Permisos | null, orgId: string | null | undefined, esAdmin: boolean, conAsuntos: boolean): Contadores {
+  const clave = `${orgId ?? 'todas'}:${esAdmin ? 'firma' : 'cliente'}:${conAsuntos ? 1 : 0}${permisos?.documentosLegales ? 1 : 0}`;
   const [v, setV] = useState<Contadores>(() => cacheContadores.get(clave)?.v ?? {});
   useEffect(() => {
     if (!supabase || !permisos) return;
@@ -153,7 +153,7 @@ function useContadores(permisos: Permisos | null, orgId: string | null | undefin
       };
       const [asuntos, firmas] = await Promise.all([
         // Al cliente le cuenta lo que espera su respuesta. A FIRMA, lo que está en curso de su lado.
-        permisos.casos ? contar('asuntos', esAdmin ? 'en_curso' : 'espera_cliente') : Promise.resolve(undefined),
+        conAsuntos ? contar('asuntos', esAdmin ? 'en_curso' : 'espera_cliente') : Promise.resolve(undefined),
         permisos.documentosLegales ? contar('firma_sobres', 'en_curso') : Promise.resolve(undefined),
       ]);
       const nuevo = { asuntos, firmas };
@@ -396,7 +396,7 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
   const permisos = perfil ? permisosDe(perfil.rol) : null;
   const esAdmin = perfil?.rol === 'admin' && !vista;
   const secciones = perfil && permisos ? seccionesDe(perfil, permisos, ruta) : [];
-  const contadores = useContadores(permisos, esAdmin ? null : orgDelMarco, esAdmin);
+  const contadores = useContadores(permisos, esAdmin ? null : orgDelMarco, esAdmin, perfil ? veAsuntos(perfil) : false);
   const [menu, setMenu] = useState(false);
 
   // La barra inferior muestra las cuatro secciones que más se usan. El resto vive en Más.

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
-import type { Organizacion, Perfil } from './tipos';
+import { permisosDe, type Organizacion, type Perfil } from './tipos';
 
 export interface EstadoSesion {
   cargando: boolean;
@@ -63,7 +63,13 @@ export function useSesion(): EstadoSesion {
       return;
     }
     const { data: p } = await supabase.from('perfiles').select('*').eq('id', s.user.id).maybeSingle();
-    setPerfil((p as Perfil) ?? null);
+    // Closers y setters responsables de un cliente ven los asuntos de su cartera (migración 0057).
+    let cartera = false;
+    if (p && p.rol !== 'admin' && !permisosDe(p.rol as Perfil['rol']).casos) {
+      const { data: c } = await supabase.rpc('tengo_asuntos_de_cartera');
+      cartera = c === true;
+    }
+    setPerfil(p ? ({ ...p, cartera } as Perfil) : null);
     if (p?.organizacion_id) {
       const { data: o } = await supabase.from('organizaciones').select('*').eq('id', p.organizacion_id).maybeSingle();
       setOrganizacion((o as Organizacion) ?? null);

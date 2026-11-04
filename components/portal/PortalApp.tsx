@@ -17,7 +17,7 @@ import { Pagos } from './Pagos';
 // Sin lazy: Documentos ya trae este módulo para la tarjeta del pedido.
 import { Pedido } from './pedidos/Pedidos';
 import { VistaPreviaContexto, leerVistaPrevia } from './vistaPrevia';
-import { permisosDe, type Organizacion, type Perfil } from './tipos';
+import { permisosDe, veAsuntos, type Organizacion, type Perfil } from './tipos';
 
 const CrmApp = lazy(() => import('./crm/CrmApp'));
 const Firmas = lazy(() => import('./firmas/Firmas'));
@@ -166,7 +166,8 @@ export const PortalApp: React.FC = () => {
     );
   }
 
-  if ((ruta === '/portal/asuntos' || ruta.startsWith('/portal/asuntos/')) && permisos.casos) {
+  // Closers y setters responsables de un cliente entran solo a los asuntos de su cartera.
+  if ((ruta === '/portal/asuntos' || ruta.startsWith('/portal/asuntos/')) && veAsuntos(perfil)) {
     return (
       <Suspense fallback={<Cargando />}>
         <Asuntos perfil={perfil} organizacion={estado.organizacion} ruta={ruta} />

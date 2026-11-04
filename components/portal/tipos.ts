@@ -15,6 +15,9 @@ export interface Permisos {
   gestion: boolean;
 }
 
+/** Ve la sección Asuntos: por su rol o, solo con los de sus clientes, por su cartera (migración 0057). */
+export const veAsuntos = (perfil: Pick<Perfil, 'rol' | 'cartera'>): boolean => permisosDe(perfil.rol).casos || perfil.cartera === true;
+
 /** Lo que ve cada rol. La base de datos aplica las mismas reglas (migración 0012). */
 export function permisosDe(rol: Rol): Permisos {
   switch (rol) {
@@ -61,6 +64,8 @@ export interface Perfil {
   ultimo_ingreso: string | null;
   /** Cargo que se muestra en lugar del rol, por ejemplo CEO & Founder. No cambia los permisos. */
   cargo?: string | null;
+  /** Es responsable de clientes con asuntos: ve esos asuntos aunque su rol no vea Asuntos. Lo calcula el portal. */
+  cartera?: boolean;
 }
 
 export interface Area {

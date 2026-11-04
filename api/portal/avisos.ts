@@ -4,7 +4,9 @@
  *
  * POST /api/portal/avisos  { tipo, id }
  *   novedad    Nota visible de la bitácora de un asunto. La pide FIRMA, que
- *              la escribió, una sola vez. Avisa al titular y al CSM.
+ *              la escribió, una sola vez. Avisa al titular y al CSM. Si el
+ *              asunto es de un cliente con responsable (su CSM o account
+ *              manager), al titular y a ese responsable.
  *   mensaje    Mensaje del chat de un asunto. Lo pide quien lo escribió cuando
  *              la otra parte no tiene el asunto abierto. Como mucho un mail
  *              cada 15 minutos por asunto y por lado: los demás esperan.
@@ -116,7 +118,7 @@ async function avisoNovedad(sb: SupabaseClient, quien: Quien, id: string, base: 
   if (nov.interna || nov.tipo !== 'nota') return error('Las notas internas y las anotaciones automáticas no se avisan.', 409);
   if (Date.now() - Date.parse(nov.creado_en) > 3_600_000) return error('Esa novedad es vieja para avisar.', 409);
 
-  const { data: asunto } = await sb.from('asuntos').select('id, codigo, titulo, estado, proximo_paso, organizacion_id').eq('id', nov.asunto_id).maybeSingle();
+  const { data: asunto } = await sb.from('asuntos').select('id, codigo, titulo, estado, proximo_paso, organizacion_id, cliente_id').eq('id', nov.asunto_id).maybeSingle();
   if (!asunto) return error('No existe ese asunto.', 404);
   if (await esDemo(sb, asunto.organizacion_id)) return json({ ok: true, avisados: 0 });
   const { data: org } = await sb.from('organizaciones').select('nombre').eq('id', asunto.organizacion_id).maybeSingle();
@@ -126,7 +128,7 @@ async function avisoNovedad(sb: SupabaseClient, quien: Quien, id: string, base: 
 
   let destinatarios: Destinatario[];
   if (deFirma) {
-    destinatarios = await genteDe(sb, [asunto.organizacion_id], ['titular', 'csm', 'miembro']);
+    destinatarios = await genteDelAsunto(sb, asunto);
   } else {
     const { data } = await sb.from('perfiles').select('email, nombre').eq('rol', 'admin').eq('activo', true);
     destinatarios = ((data ?? []) as Destinatario[]).length ? (data as Destinatario[]) : [{ email: FIRMA_MAIL, nombre: null }];
@@ -203,7 +205,7 @@ async function avisoAsunto(sb: SupabaseClient, quien: Quien, id: string, base: s
   const url = `${base}/portal/asuntos/${id}`;
 
   const avisados = await avisarA(
-    await otraParte(sb, quien, asunto.organizacion_id),
+    await otraParte(sb, quien, asunto),
     (d) => ({
       asunto: `${prefijoCodigo(asunto.codigo)}Nuevo asunto de ${empresa}. ${asunto.titulo}`,
       html: plantillaMail({
@@ -231,18 +233,39 @@ async function esDemo(sb: SupabaseClient, organizacionId: string): Promise<boole
   return data?.demo === true;
 }
 
-/** A quién le llega lo que escribe o sube alguien en un asunto: si es de FIRMA, a la empresa; si es del cliente, a FIRMA. */
-async function otraParte(sb: SupabaseClient, quien: Quien, organizacionId: string): Promise<Destinatario[]> {
-  if (await esDemo(sb, organizacionId)) return [];
-  if (quien.rol === 'admin') {
-    return await genteDe(sb, [organizacionId], ['titular', 'csm', 'miembro']);
+/**
+ * Quién de la empresa recibe las novedades de un asunto. Si el asunto es de un
+ * cliente cuyo responsable (su CSM o account manager) tiene cuenta en el
+ * negocio, el titular y ese responsable, que ve los asuntos de su cartera
+ * (migración 0057). Si no, el titular y todos los CSM, como siempre.
+ */
+async function genteDelAsunto(sb: SupabaseClient, asunto: { organizacion_id: string; cliente_id?: string | null }): Promise<Destinatario[]> {
+  const org = asunto.organizacion_id;
+  if (asunto.cliente_id) {
+    const { data: cliente } = await sb.from('crm_clientes').select('responsable_id').eq('id', asunto.cliente_id).eq('organizacion_id', org).maybeSingle();
+    const { data: miembro } = cliente?.responsable_id
+      ? await sb.from('equipo_miembros').select('usuario_id').eq('id', cliente.responsable_id).eq('organizacion_id', org).eq('activo', true).maybeSingle()
+      : { data: null };
+    const usuario = miembro?.usuario_id as string | undefined;
+    if (usuario) {
+      const gente = await genteDe(sb, [org], ['titular', 'csm', 'miembro', 'closer', 'setter']);
+      const responsable = gente.filter((p) => p.id === usuario);
+      if (responsable.length) return [...gente.filter((p) => p.rol === 'titular'), ...responsable];
+    }
   }
+  return await genteDe(sb, [org], ['titular', 'csm', 'miembro']);
+}
+
+/** A quién le llega lo que escribe o sube alguien en un asunto: si es de FIRMA, a la empresa; si es del cliente, a FIRMA. */
+async function otraParte(sb: SupabaseClient, quien: Quien, asunto: { organizacion_id: string; cliente_id?: string | null }): Promise<Destinatario[]> {
+  if (await esDemo(sb, asunto.organizacion_id)) return [];
+  if (quien.rol === 'admin') return await genteDelAsunto(sb, asunto);
   const { data } = await sb.from('perfiles').select('email, nombre').eq('rol', 'admin').eq('activo', true);
   return ((data ?? []) as Destinatario[]).length ? (data as Destinatario[]) : [{ email: FIRMA_MAIL, nombre: null }];
 }
 
 async function datosAsunto(sb: SupabaseClient, asuntoId: string) {
-  const { data: asunto } = await sb.from('asuntos').select('id, codigo, titulo, organizacion_id').eq('id', asuntoId).maybeSingle();
+  const { data: asunto } = await sb.from('asuntos').select('id, codigo, titulo, organizacion_id, cliente_id').eq('id', asuntoId).maybeSingle();
   if (!asunto) return null;
   const { data: org } = await sb.from('organizaciones').select('nombre').eq('id', asunto.organizacion_id).maybeSingle();
   return { ...asunto, empresa: (org?.nombre as string | undefined) ?? 'La empresa' };
@@ -270,7 +293,7 @@ async function avisoMensaje(sb: SupabaseClient, quien: Quien, id: string, base: 
 
   const url = `${base}/portal/asuntos/${asunto.id}`;
   const avisados = await avisarA(
-    await otraParte(sb, quien, asunto.organizacion_id),
+    await otraParte(sb, quien, asunto),
     (d) => ({
       asunto: `${prefijoCodigo(asunto.codigo)}${deFirma ? `FIRMA te escribió sobre ${asunto.titulo}` : `${asunto.empresa} te escribió sobre ${asunto.titulo}`}`,
       html: plantillaMail({
@@ -304,7 +327,7 @@ async function avisoArchivo(sb: SupabaseClient, quien: Quien, id: string, base: 
   const deFirma = quien.rol === 'admin';
 
   const avisados = await avisarA(
-    await otraParte(sb, quien, asunto.organizacion_id),
+    await otraParte(sb, quien, asunto),
     (d) => ({
       asunto: `${prefijoCodigo(asunto.codigo)}Nuevo documento en ${asunto.titulo}`,
       html: plantillaMail({
