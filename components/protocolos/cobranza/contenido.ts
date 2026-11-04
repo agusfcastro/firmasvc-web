@@ -208,12 +208,7 @@ export function secciones(f: Ficha): Seccion[] {
         {
           tipo: 'parrafo',
           texto:
-            'Este protocolo ordena cómo {empresa} cobra lo que factura, desde el recordatorio previo al vencimiento hasta el cierre de cada cuenta, y cómo responde cuando un cliente desconoce un pago ante su tarjeta o su banco. Los datos del negocio se completan una vez en la ficha y se actualizan solos en todas las plantillas.',
-        },
-        {
-          tipo: 'parrafo',
-          texto:
-            'El objetivo es triple. Cobrar en término sin desgastar la relación, recuperar lo vencido con acuerdos realistas y documentados, y ganar las disputas que se pueden ganar porque la prueba se armó antes de necesitarla.',
+            'Cómo {empresa} cobra lo que factura, del recordatorio previo al cierre de cada cuenta, y cómo responde cuando un cliente desconoce un pago ante su tarjeta o su banco. Cobrar en término sin desgastar la relación y ganar las disputas que se pueden ganar, porque la prueba se armó antes.',
         },
         {
           tipo: 'parrafo',
@@ -318,7 +313,7 @@ export function secciones(f: Ficha): Seccion[] {
       id: 'secuencia',
       titulo: 'Secuencia de cobro en seis etapas',
       corto: 'Secuencia de cobro',
-      intro: 'Cada etapa tiene responsable, plazo y objetivo. Los días se cuentan desde el vencimiento de cada pago y el paso de una etapa a otra queda registrado.',
+      intro: 'Los días se cuentan desde el vencimiento de cada pago y cada cambio de etapa queda registrado.',
       bloques: [
         {
           tipo: 'etapas',
@@ -327,87 +322,78 @@ export function secciones(f: Ficha): Seccion[] {
               titulo: 'Antes del vencimiento',
               cuando: 'Responsable {respCobranza} · Entre cinco y tres días antes',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Que el cliente sepa cuánto paga, cuándo y cómo, sin sorpresas.' },
                 {
                   rotulo: 'Qué tiene que pasar',
-                  texto:
-                    'Recordatorio preventivo por {canal} con monto, fecha y enlace o datos de pago. Si el cargo es automático, aviso de la fecha del cargo y de cómo actualizar la tarjeta. Revisión de tarjetas próximas a vencer.',
+                  texto: 'Recordatorio por {canal} con monto, fecha y forma de pago. Si el cargo es automático, aviso de la fecha y de cómo actualizar la tarjeta.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Te recordamos que el [[fecha]] vence tu cuota de {programa}. Te dejamos el enlace para que lo tengas a mano.', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Mandar el primer mensaje cuando el pago ya está atrasado, o un recordatorio sin monto ni forma de pago.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Escribir por primera vez cuando el pago ya está atrasado.', estilo: 'error' },
               ],
             },
             {
               titulo: 'Día del vencimiento',
               cuando: 'Responsable {respCobranza} · El mismo día',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Cobrar en término o detectar el rechazo el mismo día.' },
                 {
                   rotulo: 'Qué tiene que pasar',
-                  texto:
-                    'Conciliación de los pagos del día contra lo facturado. Si un cargo automático fue rechazado, aviso inmediato con un enlace para pagar con otro medio. Si se pagó, confirmación breve.',
+                  texto: 'Conciliación de los pagos del día. Si un cargo automático fue rechazado, aviso inmediato con un enlace para pagar con otro medio.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Hoy vence tu cuota y el cargo no pudo procesarse. Te dejamos un enlace para completarlo con otro medio de pago.', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Revisar los rechazos días después o suponer que el cliente ya se enteró por su banco.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Revisar los rechazos días después o suponer que el banco ya le avisó.', estilo: 'error' },
               ],
             },
             {
               titulo: 'Mora temprana',
               cuando: 'Responsable {respCobranza} · Del día 1 al 15, con {gracia} de gracia',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Recuperar el pago con contacto personal y entender la causa del atraso.' },
                 {
                   rotulo: 'Qué tiene que pasar',
                   texto:
-                    'Durante los días de gracia, recordatorio amable y sin consecuencias. Después, mensaje personal y, si no hay respuesta, una llamada en horario hábil. Se pregunta qué pasó, se registra la causa y toda promesa de pago queda por escrito con monto y fecha.',
+                    'En la gracia, recordatorio amable y sin consecuencias. Después, mensaje personal y, si no responde, una llamada en horario hábil. Se registra la causa del atraso y toda promesa queda por escrito con monto y fecha.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Queremos ayudarte a regularizarlo. ¿Qué fecha te queda cómoda para hacer el pago?', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Repetir el mismo mensaje automático varias veces o insistir por varios canales el mismo día.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Repetir el mismo mensaje automático o insistir por varios canales el mismo día.', estilo: 'error' },
               ],
             },
             {
               titulo: 'Mora media',
               cuando: 'Responsable {respCobranza} · Del día 16 al 30',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Acordar una solución concreta antes de que la deuda se enfríe.' },
                 {
                   rotulo: 'Qué tiene que pasar',
-                  texto: `${conPlanes ? 'Propuesta de plan de pagos dentro de la regla de la ficha, hasta {cuotasMax}, con la primera cuota al aceptar.' : 'Propuesta de una nueva fecha única de pago. Un plan en cuotas solo con autorización de la dirección.'} ${conSuspension ? 'Si no hay acuerdo, aviso de suspensión según el contrato, que se aplica a los {diasSuspension} de mora.' : 'El contrato no prevé suspensión, así que no se menciona.'} Aviso interno a legales de las cuentas que no responden.`,
+                  texto: `${conPlanes ? 'Plan de pagos dentro de la regla de la ficha, hasta {cuotasMax}, con la primera cuota al aceptar.' : 'Nueva fecha única de pago. Un plan en cuotas solo con autorización de la dirección.'} ${conSuspension ? 'Sin acuerdo, aviso de la suspensión que prevé el contrato a los {diasSuspension} de mora.' : 'El contrato no prevé suspensión, así que no se menciona.'} Las cuentas que no responden se avisan a legales.`,
                 },
                 {
                   rotulo: 'Frase ancla',
                   texto: 'Te proponemos regularizarlo en [[cantidad]] pagos, el primero el [[fecha]]. Si te sirve, te mandamos el acuerdo para que lo confirmes por escrito.',
                   estilo: 'frase',
                 },
-                { rotulo: 'Error típico', texto: 'Aceptar promesas vagas, como la semana que viene te pago, sin fecha ni monto, o armar un plan de palabra.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Aceptar un «la semana que viene te pago» sin fecha ni monto, o armar un plan de palabra.', estilo: 'error' },
               ],
             },
             {
               titulo: 'Mora avanzada',
               cuando: 'Responsable {respLegales} · Del día 31 al 60',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Formalizar el reclamo y preservar el crédito.' },
                 {
                   rotulo: 'Qué tiene que pasar',
                   texto:
-                    'Revisión del expediente y de las alertas antes de enviar nada. Intimación formal de pago desde {correoLegales} o por {cartaFormal}, con {diasIntimacion} para pagar. Desde ese momento la cobranza habla con una sola voz, la de legales.',
+                    'Revisión del expediente y de las alertas. Intimación formal desde {correoLegales} o por {cartaFormal}, con {diasIntimacion} para pagar. Desde ahí habla una sola voz, la de legales.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Por la presente lo intimamos a abonar la suma de [[monto]] dentro de {diasIntimacion} de recibida esta comunicación.', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Intimar con tono de amenaza, anunciar un juicio que no se va a iniciar o seguir escribiendo por chat en paralelo.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Amenazar, anunciar un juicio que no se va a iniciar o seguir escribiendo por chat en paralelo.', estilo: 'error' },
               ],
             },
             {
               titulo: 'Cierre',
               cuando: 'Responsables {respLegales} y la dirección · Desde el día 61',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Cerrar cada cuenta por una de tres vías, con la decisión registrada.' },
                 {
                   rotulo: 'Qué tiene que pasar',
                   texto:
-                    'Acuerdo de pago con reconocimiento de deuda, que además interrumpe la prescripción. Gestión legal, con mediación o la vía judicial que corresponda según monto y costo. O pase a incobrable, decidido por la dirección y consultado con el contador para su tratamiento contable y fiscal.',
+                    'Cada cuenta se cierra por una de tres vías. Acuerdo con reconocimiento de deuda, que interrumpe la prescripción. Gestión legal, con mediación o juicio según monto y costo. O incobrable, decidido por la dirección y consultado con el contador.',
                 },
-                { rotulo: 'Frase ancla', texto: 'Registramos el acuerdo firmado el [[fecha]] y su calendario de pagos.', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Dejar cuentas abiertas durante meses sin decisión, hasta que la deuda prescribe o el cliente deja de responder.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Dejar cuentas abiertas sin decisión hasta que la deuda prescribe.', estilo: 'error' },
               ],
             },
           ],
@@ -435,7 +421,7 @@ export function secciones(f: Ficha): Seccion[] {
       titulo: 'Contracargos y disputas',
       corto: 'Contracargos',
       intro:
-        'Un contracargo es la reversión de un pago que el titular pide a su tarjeta o a su banco. El plazo para responder depende de la red de la tarjeta y de {pasarela}, y figura en el aviso de cada disputa. Se contesta siempre, con prueba.',
+        'Un contracargo es la reversión de un pago que el titular pide a su tarjeta o a su banco. El plazo depende de la red y de {pasarela}, y figura en el aviso de cada disputa. Se contesta siempre, con prueba.',
       bloques: [
         {
           tipo: 'etapas',
@@ -444,39 +430,32 @@ export function secciones(f: Ficha): Seccion[] {
               titulo: 'Aviso de disputa',
               cuando: 'Responsable {respCobranza} · El mismo día del aviso',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Registrar la disputa y no perder el plazo.' },
                 {
                   rotulo: 'Qué tiene que pasar',
-                  texto:
-                    'Se registran la fecha límite que informa {pasarela}, el motivo y el monto. Se avisa a legales en el día, se evalúa pausar los cargos automáticos pendientes de ese cliente y se revisa si antes pidió una baja, un arrepentimiento o una devolución.',
+                  texto: `Se registran fecha límite, motivo y monto, se avisa a legales en el día y se evalúa pausar los cargos automáticos de ese cliente. Si el cliente había pedido una baja, un arrepentimiento o una devolución, el caso pasa por ${COMPUERTA}.`,
                 },
-                { rotulo: 'Frase ancla', texto: 'Disputa registrada el [[fecha]], motivo [[motivo]], vence el [[fecha límite]].', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Ver el aviso y dejarlo para después, o aceptar la disputa sin revisar qué prueba hay.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Dejar el aviso para después, o aceptar la disputa sin revisar qué prueba hay.', estilo: 'error' },
               ],
             },
             {
               titulo: 'Armado del paquete de prueba',
               cuando: 'Responsables {respCobranza} y {respLegales} · Con margen antes de la fecha límite',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Reunir la prueba que contesta el motivo concreto de la disputa.' },
                 {
                   rotulo: 'Qué tiene que pasar',
-                  texto:
-                    'Se arma el paquete con la lista de control de este protocolo. Condiciones aceptadas, constancia del pago, prueba de la prestación, comunicaciones y política de cancelación. Cada pieza se elige según el motivo, porque un pago no reconocido se contesta distinto que un servicio no recibido.',
+                  texto: 'Se arma con la lista de control de este protocolo y se elige cada pieza según el motivo, con la tabla de abajo. Un pago no reconocido se contesta distinto que un servicio no recibido.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Cada documento responde una pregunta del banco. Quién pagó, qué compró, qué aceptó y qué recibió.', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Mandar todo lo que hay sin orden, o una carta enojada contra el cliente en lugar de documentos.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Mandar todo sin orden, o una carta enojada en lugar de documentos.', estilo: 'error' },
               ],
             },
             {
               titulo: 'Respuesta en plazo',
               cuando: 'Responsable {respLegales} · Antes de la fecha límite que informa {pasarela}',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Presentar una respuesta completa, clara y en término.' },
                 {
                   rotulo: 'Qué tiene que pasar',
-                  texto:
-                    'Carta de presentación con la estructura de la biblioteca de mensajes, prueba ordenada y legible, y segunda lectura de otra persona. Se presenta completa en un solo envío. Revisá en la documentación de {pasarela} si admite agregar prueba después.',
+                  texto: 'Carta con la estructura de la biblioteca de mensajes, prueba ordenada y legible y segunda lectura de otra persona, en un solo envío, porque no todas las pasarelas dejan sumar prueba después.',
                 },
                 {
                   rotulo: 'Frase ancla',
@@ -490,28 +469,23 @@ export function secciones(f: Ficha): Seccion[] {
               titulo: 'Resultado',
               cuando: 'Responsable {respLegales} · Cuando {pasarela} informa la decisión',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Cerrar el caso y decidir el paso siguiente.' },
                 {
                   rotulo: 'Qué tiene que pasar',
-                  texto:
-                    'Si se gana, se registra y el trato con el cliente sigue normal. Si se pierde, legales evalúa si reclamar la deuda en forma directa es viable y conveniente, con las reglas de la secuencia de cobro. Motivo y resultado van al tablero.',
+                  texto: 'Si se gana, el trato con el cliente sigue normal. Si se pierde, legales evalúa si conviene reclamar la deuda con la secuencia de cobro. Motivo y resultado van al tablero.',
                 },
-                { rotulo: 'Frase ancla', texto: 'Disputa cerrada el [[fecha]] con resultado [[resultado]]. Próximo paso [[paso]].', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Volver a cobrar el mismo importe con la misma tarjeta después de perder, o reclamarle al cliente en tono de revancha.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Volver a cobrar el mismo importe con la misma tarjeta, o reclamar en tono de revancha.', estilo: 'error' },
               ],
             },
             {
               titulo: 'Prevención',
               cuando: 'Responsables administración y legales · Todos los meses',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Que lleguen menos disputas y que las que lleguen se ganen.' },
                 {
                   rotulo: 'Qué tiene que pasar',
-                  texto:
-                    'Nombre de cobro reconocible en el resumen de la tarjeta, aceptación expresa de las condiciones al pagar, aviso previo de cada cargo automático, respuesta rápida a los pedidos de baja y constancias de la prestación. Las causas del mes se revisan en el tablero.',
+                  texto: 'Nombre de cobro reconocible en el resumen, aceptación expresa de las condiciones al pagar, aviso previo de cada cargo automático y respuesta rápida a los pedidos de baja.',
                 },
                 { rotulo: 'Frase ancla', texto: 'El cargo figura en tu resumen como [[nombre del cargo]].', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Un nombre de cobro que el cliente no reconoce, que convierte a un cliente conforme en una disputa por cargo desconocido.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Un nombre de cobro que el cliente no reconoce y que convierte a un cliente conforme en una disputa.', estilo: 'error' },
               ],
             },
           ],
@@ -544,13 +518,12 @@ export function secciones(f: Ficha): Seccion[] {
         },
         {
           tipo: 'plegable',
-          titulo: 'Reglas ante una disputa',
+          titulo: 'Tres reglas ante una disputa',
           bajada: 'Para profundizar',
           bloques: [
             {
               tipo: 'tips',
               items: [
-                { titulo: 'Primero la compuerta', texto: `Si el cliente pidió una baja, un arrepentimiento o una devolución antes de la disputa, el caso pasa por ${COMPUERTA} antes de responder.` },
                 { titulo: 'Una sola respuesta', texto: 'Completa, ordenada por preguntas y con segunda lectura. Lo que no se presentó no lo evalúa nadie.' },
                 { titulo: 'Sin represalias', texto: 'Mientras la disputa está abierta el trato con el cliente sigue siendo normal. Nada de reproches ni de bloqueos que el contrato no prevé.' },
                 { titulo: 'Causa registrada', texto: 'Cada disputa deja su motivo y su resultado en el tablero para corregir la causa, no solo el caso.' },
