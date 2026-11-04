@@ -13,6 +13,9 @@
  *   rechazar    { token, motivo }
  *   verificar   { codigo? , sha256? }      pública, para quien recibe el PDF
  *   resellar    { sobre_id }               reintenta armar el PDF firmado (solo admin, con sesión)
+ *   firmar_recibo { comprobante_id, pdf, lugar, tipo, imagen, acepto }
+ *               el titular firma un recibo del portal con su sesión y recibe el PDF
+ *               firmado en el momento. Sin mail y sin cupo (migración 0055)
  *
  * GET /api/firma/firmar  tarea diaria de Vercel Cron con CRON_SECRET.
  *   Vence los envíos con el plazo cumplido, manda recordatorios cada tres
@@ -22,6 +25,7 @@
 import { createHash, createHmac, randomInt, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { FALTA_SEGUNDO_FACTOR, nivelDe } from '../_lib/nivel.js';
+import { SIN_ACCESO, SIN_CLIENTE_USUARIO, accesoVigente, clienteDelUsuario } from '../_lib/acceso.js';
 import { enviarMail, mailDisponible, plantillaMail } from '../_lib/mail.js';
 import { COLOR, rgb01 } from '../_lib/marca.js';
 import { PDFDocument, StandardFonts, degrees, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
@@ -60,12 +64,26 @@ interface Sobre {
   final_sha256: string | null;
   error_sellado: string | null;
   crm_cliente_id: string | null;
-  /** Por enlace no salen invitaciones y se firma sin código por mail. Sin la migración 0027 no viene. */
-  entrega?: 'mail' | 'enlace';
+  /**
+   * Por enlace no salen invitaciones y se firma sin código por mail. Sin la migración 0027 no viene.
+   * portal es un recibo que firma quien lo emite, con su sesión (migración 0055).
+   */
+  entrega?: 'mail' | 'enlace' | 'portal';
+  /** Dónde va la imagen de la firma dentro del documento, en puntos del PDF. Sin la migración 0055 no viene. */
+  lugar_firma?: LugarFirma | null;
   /** Sello de tiempo en BFA. Sin la migración 0031 no viene. */
   bfa_recibo?: string | null;
   bfa_bloque?: number | null;
   bfa_registrado_en?: string | null;
+}
+
+interface LugarFirma {
+  /** Desde 0. */
+  pagina: number;
+  x: number;
+  y: number;
+  ancho: number;
+  alto: number;
 }
 
 interface Firmante {
@@ -348,6 +366,8 @@ async function firmantesDe(sb: SupabaseClient, sobreId: string): Promise<Firmant
 
 /** Por enlace no se pide código: el enlace lo entregó en mano quien envía. */
 const sinCodigo = (sobre: Sobre) => sobre.entrega === 'enlace';
+/** Recibo que firma quien lo emite, desde el portal (migración 0055). */
+const desdePortal = (sobre: Sobre) => sobre.entrega === 'portal';
 
 function codigoVigente(f: Firmante): boolean {
   return Boolean(f.otp_verificado_en && Date.now() - new Date(f.otp_verificado_en).getTime() < VALIDACION_VIGENCIA_MS);
@@ -556,17 +576,37 @@ async function armarFinal(sb: SupabaseClient, sobre: Sobre, firmantes: Firmante[
     p.drawText(pie, { ...lugar, rotate: degrees(giro), size: tam, font: normal, color: PIEDRA });
   }
 
+  // En los recibos del portal la firma va también sobre la línea «Firma y aclaración».
+  const lugar = desdePortal(sobre) ? sobre.lugar_firma : null;
+  const quienFirma = firmantes.find((f) => f.firma_ruta);
+  if (lugar && quienFirma?.firma_ruta) {
+    const { data: img } = await sb.storage.from(BUCKET).download(quienFirma.firma_ruta);
+    if (!img) throw new Error('No se pudo leer la imagen de la firma.');
+    const bytes = new Uint8Array(await img.arrayBuffer());
+    if (quienFirma.firma_sha256 && sha256(bytes) !== quienFirma.firma_sha256) throw new Error(`La imagen de la firma de ${quienFirma.nombre} no coincide con su hash.`);
+    const png = await doc.embedPng(bytes);
+    const hoja = doc.getPage(Math.min(lugar.pagina, doc.getPageCount() - 1));
+    const escala = Math.min(lugar.ancho / png.width, lugar.alto / png.height);
+    // Centrada a lo ancho y apoyada sobre la línea, como una firma a mano.
+    hoja.drawImage(png, { x: lugar.x + (lugar.ancho - png.width * escala) / 2, y: lugar.y, width: png.width * escala, height: png.height * escala });
+  }
+
   const { data: filas } = await sb.from('firma_eventos').select('*').eq('sobre_id', sobre.id).order('id');
   const eventos = (filas ?? []) as Evento[];
   const nombres = new Map(firmantes.map((f) => [f.id, f.nombre]));
 
   const h = new Hoja(doc, normal, negrita, sobre.codigo);
   h.parrafo('Constancia de firma electrónica', { tam: 20, negrita: true, interlineado: 1.2, despues: 6 });
-  const identidad = sinCodigo(sobre)
-    ? 'Cada una entró con un enlace personal que le entregó directamente quien envió el documento, sin código por mail.'
-    : 'Cada una entró con un enlace personal y confirmó su identidad con un código de un solo uso enviado a su mail.';
+  const identidad = desdePortal(sobre)
+    ? 'Lo firmó quien lo emitió, desde su cuenta del portal de FIRMA y con su sesión iniciada, sin código por mail.'
+    : sinCodigo(sobre)
+      ? 'Cada una entró con un enlace personal que le entregó directamente quien envió el documento, sin código por mail.'
+      : 'Cada una entró con un enlace personal y confirmó su identidad con un código de un solo uso enviado a su mail.';
+  const contenido = lugar
+    ? `Las hojas anteriores son el documento original, sin cambios en su contenido salvo la imagen de la firma, estampada sobre la línea de firma de la hoja ${lugar.pagina + 1}.`
+    : 'Las hojas anteriores son el documento original, sin cambios en su contenido.';
   h.parrafo(
-    `Este documento fue firmado de forma electrónica por las personas que se detallan abajo. ${identidad} Las hojas anteriores son el documento original, sin cambios en su contenido.`,
+    `Este documento fue firmado de forma electrónica por ${desdePortal(sobre) ? 'la persona que se detalla' : 'las personas que se detallan'} abajo. ${identidad} ${contenido}`,
     { color: PIEDRA, despues: 10 },
   );
 
@@ -577,8 +617,11 @@ async function armarFinal(sb: SupabaseClient, sobre: Sobre, firmantes: Firmante[
   h.dato('Código', sobre.codigo);
   h.dato('Creado', fechaHora(sobre.creado_en));
   h.dato('Completado', fechaHora(new Date().toISOString()));
-  h.dato('Orden de firma', sobre.secuencial ? 'Uno después del otro' : 'Todos a la vez');
-  h.dato('Entrega', sinCodigo(sobre) ? 'Enlace compartido por quien envió, sin código por mail' : 'Invitación y código por mail');
+  if (!desdePortal(sobre)) h.dato('Orden de firma', sobre.secuencial ? 'Uno después del otro' : 'Todos a la vez');
+  h.dato(
+    'Entrega',
+    desdePortal(sobre) ? 'Firmado en el portal por quien lo emitió' : sinCodigo(sobre) ? 'Enlace compartido por quien envió, sin código por mail' : 'Invitación y código por mail',
+  );
   h.dato('Verificación', verificar);
 
   h.raya(14);
@@ -614,7 +657,13 @@ async function armarFinal(sb: SupabaseClient, sobre: Sobre, firmantes: Firmante[
     linea('Tipo de firma', f.firma_tipo === 'escrita' ? 'Nombre escrito' : 'Firma dibujada');
     linea(
       'Identidad',
-      validacion ? `Código por mail validado el ${fechaHora(validacion.creado_en)}` : sinCodigo(sobre) ? 'Enlace personal compartido por quien envió' : 'Código por mail',
+      validacion
+        ? `Código por mail validado el ${fechaHora(validacion.creado_en)}`
+        : desdePortal(sobre)
+          ? 'Sesión iniciada en el portal de FIRMA'
+          : sinCodigo(sobre)
+            ? 'Enlace personal compartido por quien envió'
+            : 'Código por mail',
     );
     linea('IP', f.ip || 'Sin dato');
     linea('Dispositivo', (f.user_agent || 'Sin dato').slice(0, 160));
@@ -704,6 +753,9 @@ async function sellar(sb: SupabaseClient, sobreId: string): Promise<string | nul
       .neq('estado_firma', 'Baja');
     if (errCrm) await evento(sb, sobre.id, null, null, 'crm_no_actualizado', null, { motivo: errCrm.message.slice(0, 200) });
   }
+
+  // Quien firma desde el portal lo descarga en el momento: no hace falta el mail.
+  if (desdePortal(sobre)) return null;
 
   // Copia para todos los firmantes y para quien lo mandó.
   const emisor = await nombreEmisor(sb, sobre);
@@ -923,6 +975,158 @@ export async function GET(request: Request): Promise<Response> {
 /* Acciones                                                               */
 /* -------------------------------------------------------------------- */
 
+/* -------------------------------------------------------------------- */
+/* Recibos del portal: firma quien los emite, en un solo paso             */
+/* -------------------------------------------------------------------- */
+
+const RECIBO_MAX_BYTES = 3 * 1024 * 1024;
+
+async function firmarRecibo(sb: SupabaseClient, request: Request, cuerpo: Record<string, unknown>): Promise<Response> {
+  const token = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
+  const { data: u } = token ? await sb.auth.getUser(token) : { data: null };
+  if (!u?.user) return error('Sesión requerida.', 401);
+  const { data: p } = await sb.from('perfiles').select('id, email, nombre, rol, organizacion_id, activo').eq('id', u.user.id).maybeSingle();
+  if (!p?.activo) return error('Tu cuenta no tiene acceso activo.', 403);
+  if (p.rol !== 'titular' && p.rol !== 'admin') return error('Solo el titular firma los recibos.', 403);
+  if (p.rol === 'admin' && nivelDe(token) !== 'aal2') return error(FALTA_SEGUNDO_FACTOR, 403);
+  if (p.rol !== 'admin' && !(await accesoVigente(sb, p.id))) return error(SIN_ACCESO, 403);
+  const db = clienteDelUsuario(request);
+  if (!db) return error(SIN_CLIENTE_USUARIO, 500);
+
+  // El recibo se lee con la sesión de quien firma: si no lo ve en el portal, no lo firma.
+  const comprobanteId = String(cuerpo.comprobante_id || '');
+  if (!UUID.test(comprobanteId)) return error('Recibo inválido.');
+  const { data: c } = await db.from('comprobantes').select('id, organizacion_id, tipo, numero, receptor, anulado_en, sobre_id').eq('id', comprobanteId).maybeSingle();
+  if (!c) return error('No existe ese recibo o no tenés acceso.', 404);
+  if (p.rol !== 'admin' && c.organizacion_id !== p.organizacion_id) return error('No existe ese recibo o no tenés acceso.', 404);
+  if (c.tipo !== 'recibo') return error('Solo se firman los recibos.');
+  if (c.anulado_en) return error('El recibo está anulado. No se firma.');
+  if (c.sobre_id) return error('El recibo ya está firmado. Descargalo desde su detalle.', 409);
+  if (cuerpo.acepto !== true) return error('Tenés que aceptar para firmar.');
+
+  const pdf = Buffer.from(String(cuerpo.pdf || '').replace(/^data:application\/pdf;base64,/, ''), 'base64');
+  if (pdf.length < 100 || pdf.length > RECIBO_MAX_BYTES) return error('No pudimos leer el PDF del recibo.');
+  if (pdf.subarray(0, 5).toString('latin1') !== '%PDF-') return error('No pudimos leer el PDF del recibo.');
+  let paginas: number;
+  let tamanos: { width: number; height: number }[];
+  try {
+    const doc = await PDFDocument.load(pdf, { updateMetadata: false });
+    paginas = doc.getPageCount();
+    tamanos = doc.getPages().map((h) => h.getSize());
+  } catch {
+    return error('No pudimos leer el PDF del recibo.');
+  }
+  const l = (cuerpo.lugar ?? {}) as Record<string, unknown>;
+  const lugar: LugarFirma = { pagina: Number(l.pagina), x: Number(l.x), y: Number(l.y), ancho: Number(l.ancho), alto: Number(l.alto) };
+  const hoja = tamanos[lugar.pagina];
+  if (
+    !Number.isInteger(lugar.pagina) ||
+    !hoja ||
+    ![lugar.x, lugar.y, lugar.ancho, lugar.alto].every(Number.isFinite) ||
+    lugar.ancho < 40 || lugar.ancho > 400 || lugar.alto < 20 || lugar.alto > 150 ||
+    lugar.x < 0 || lugar.y < 0 || lugar.x + lugar.ancho > hoja.width || lugar.y + lugar.alto > hoja.height
+  ) {
+    return error('El lugar de la firma no es válido.');
+  }
+
+  const tipo = cuerpo.tipo === 'escrita' ? 'escrita' : 'dibujada';
+  const imagen = Buffer.from(String(cuerpo.imagen || '').replace(/^data:image\/png;base64,/, ''), 'base64');
+  if (imagen.length < 100 || imagen.length > FIRMA_MAX_BYTES) return error('No pudimos leer tu firma. Probá de nuevo.');
+  if (imagen.subarray(0, 8).toString('hex') !== '89504e470d0a1a0a') return error('La firma tiene que ser una imagen PNG.');
+
+  const numero = String(c.numero).padStart(4, '0');
+  const receptor = String(c.receptor || '').replace(/[\\/:*?"<>|\r\n]/g, ' ').trim().slice(0, 120);
+  const id = randomUUID();
+  const firmanteId = randomUUID();
+  const rutaOriginal = `${id}/original.pdf`;
+  const rutaFirma = `${id}/firmas/${firmanteId}-${randomUUID()}.png`;
+  const hash = sha256(pdf);
+  const hashFirma = sha256(imagen);
+
+  const { error: e1 } = await sb.storage.from(BUCKET).upload(rutaOriginal, pdf, { contentType: 'application/pdf', upsert: false });
+  if (e1) return error('No pudimos guardar el recibo. Probá de nuevo.', 500);
+  const { error: e2 } = await sb.storage.from(BUCKET).upload(rutaFirma, imagen, { contentType: 'image/png', upsert: false });
+  if (e2) {
+    await sb.storage.from(BUCKET).remove([rutaOriginal]);
+    return error('No pudimos guardar tu firma. Probá de nuevo.', 500);
+  }
+
+  const ahora = new Date().toISOString();
+  const titulo = `Recibo ${numero} · ${receptor}`.slice(0, 200);
+  const { error: errSobre } = await sb.from('firma_sobres').insert({
+    id,
+    organizacion_id: c.organizacion_id,
+    emisor: 'cliente',
+    titulo,
+    secuencial: false,
+    vence_en: new Date(Date.now() + 86400000).toISOString(),
+    creado_por: p.id,
+    original_ruta: rutaOriginal,
+    original_nombre: `Recibo ${numero} - ${receptor}.pdf`,
+    original_bytes: pdf.length,
+    original_sha256: hash,
+    original_paginas: paginas,
+    entrega: 'portal',
+    lugar_firma: lugar,
+  });
+  if (errSobre) {
+    await sb.storage.from(BUCKET).remove([rutaOriginal, rutaFirma]);
+    return error(`No pudimos registrar la firma. ${errSobre.message}`.trim(), 500);
+  }
+
+  const nombre = (String(p.nombre || '').trim() || p.email).slice(0, 160);
+  const { error: errFirmante } = await sb.from('firma_firmantes').insert({
+    id: firmanteId,
+    sobre_id: id,
+    orden: 1,
+    nombre: nombre.length >= 2 ? nombre : p.email,
+    email: p.email,
+    pedir_documento: false,
+    estado: 'firmado',
+    firmado_en: ahora,
+    firma_ruta: rutaFirma,
+    firma_tipo: tipo,
+    firma_sha256: hashFirma,
+    ip: ipDe(request),
+    user_agent: agenteDe(request),
+  });
+  if (errFirmante) {
+    await sb.from('firma_sobres').update({ estado: 'anulado', cerrado_en: ahora, motivo_cierre: 'Error al registrar la firma' }).eq('id', id);
+    return error('No pudimos registrar la firma. Probá de nuevo.', 500);
+  }
+
+  await evento(sb, id, null, p.id, 'sobre_creado', request, {
+    titulo,
+    emisor: 'cliente',
+    organizacion_id: c.organizacion_id,
+    entrega: 'portal',
+    comprobante_id: c.id,
+    firmantes: [{ nombre, email: p.email, orden: 1 }],
+  });
+  await evento(sb, id, null, p.id, 'documento_cargado', request, { nombre: `Recibo ${numero}`, bytes: pdf.length, paginas, sha256: hash, lugar_firma: lugar });
+  await evento(sb, id, firmanteId, p.id, 'firma_registrada', request, {
+    tipo,
+    documento: null,
+    firma_sha256: hashFirma,
+    original_sha256: hash,
+    consentimiento: CONSENTIMIENTO,
+    identidad: 'sesion_portal',
+  });
+
+  const { data: atado } = await sb.from('comprobantes').update({ sobre_id: id }).eq('id', c.id).is('sobre_id', null).select('id').maybeSingle();
+  if (!atado) {
+    await sb.from('firma_sobres').update({ estado: 'anulado', cerrado_en: new Date().toISOString(), motivo_cierre: 'El recibo ya tenía otra firma' }).eq('id', id);
+    return error('El recibo ya está firmado. Descargalo desde su detalle.', 409);
+  }
+
+  const fallo = await sellar(sb, id);
+  if (fallo) return error(`La firma quedó registrada, pero el PDF firmado no se pudo armar todavía. Se reintenta solo. ${fallo}`, 500);
+  const { data: s } = await sb.from('firma_sobres').select('codigo, final_ruta').eq('id', id).maybeSingle();
+  const { data: final } = s?.final_ruta ? await sb.storage.from(BUCKET).download(s.final_ruta) : { data: null };
+  if (!s || !final) return error('La firma quedó registrada. Descargá el recibo firmado desde su detalle.', 500);
+  return json({ ok: true, sobre_id: id, codigo: s.codigo, pdf: Buffer.from(await final.arrayBuffer()).toString('base64') });
+}
+
 export async function POST(request: Request): Promise<Response> {
   const sb = clienteServicio();
   if (!sb) return error('El servidor no tiene configuradas las variables de Supabase.', 500);
@@ -952,6 +1156,8 @@ export async function POST(request: Request): Promise<Response> {
       if (fallo) return error(fallo, 500);
       return json({ ok: true });
     }
+
+    if (accion === 'firmar_recibo') return await firmarRecibo(sb, request, cuerpo);
 
     const ctx = await contextoDe(sb, cuerpo.token);
     if (ctx instanceof Response) return ctx;
