@@ -34,6 +34,9 @@ const FirmarApp = lazy(() => import('./components/firma/FirmarApp'));
 const Verificar = lazy(() => import('./components/firma/Verificar'));
 const ConectarFathom = lazy(() => import('./components/portal/crm/ConectarFathom'));
 
+// Generadores de invoices y recibos, gratis y sin indexar: se comparten por enlace.
+const Herramienta = lazy(() => import('./components/comprobantes/Herramienta'));
+
 /** ruta viene solo del prerender del build (entry-server.tsx). En el navegador sale de la dirección. */
 function App({ ruta }: { ruta?: string }) {
   const path = (ruta ?? window.location.pathname).replace(/\/$/, '');
@@ -68,6 +71,13 @@ function App({ ruta }: { ruta?: string }) {
     return (
       <Suspense fallback={<div className="min-h-screen bg-marfil" />}>
         <Verificar codigoInicial={path.slice('/verificar/'.length)} />
+      </Suspense>
+    );
+  }
+  if (path === '/herramientas/invoice' || path === '/herramientas/recibo') {
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-marfil" />}>
+        <Herramienta tipo={path === '/herramientas/invoice' ? 'invoice' : 'recibo'} />
       </Suspense>
     );
   }

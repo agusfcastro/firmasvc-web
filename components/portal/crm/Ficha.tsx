@@ -11,6 +11,7 @@ import { CampoVariable, sinVacios } from './variablesPropias';
 import { CAMPOS_CASO, VALORES_CASO } from './reglasCasos';
 import { CasosCliente } from './Casos';
 import { AsuntosCliente } from './AsuntosCliente';
+import { ComprobantesCliente } from './ComprobantesCliente';
 import { PerfilCliente } from './PerfilCliente';
 import { registrarLectura } from '../lecturas';
 import { ContratoFirma } from './contratoFirma';
@@ -474,6 +475,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
           </fieldset>
         </section>
 
+        <ComprobantesCliente clienteId={id} soloLectura={soloLectura} />
         {verCasos && <CasosCliente clienteId={id} moneda={moneda} soloLectura={soloLectura} alContar={setCasosAbiertos} />}
         {verCasos && <AsuntosCliente clienteId={id} soloLectura={soloLectura} esFirma={esAdmin && !soloLectura} />}
         {verCasos && <PerfilCliente clienteId={id} soloLectura={soloLectura} mostrarPlan={puedeGestionar} />}

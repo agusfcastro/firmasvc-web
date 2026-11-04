@@ -12,6 +12,7 @@ import {
   Kanban,
   LogOut,
   Menu,
+  ReceiptText,
   ScrollText,
   ShieldCheck,
   Wallet,
@@ -58,7 +59,7 @@ async function salir() {
 /* ------------------------------------------------------------------ */
 /* Secciones del portal según el rol                                   */
 /* ------------------------------------------------------------------ */
-type ClaveSeccion = 'inicio' | 'asuntos' | 'firmas' | 'documentos' | 'protocolos' | 'crm' | 'agenda' | 'pagos' | 'bitacora' | 'admin';
+type ClaveSeccion = 'inicio' | 'asuntos' | 'firmas' | 'documentos' | 'protocolos' | 'crm' | 'comprobantes' | 'agenda' | 'pagos' | 'bitacora' | 'admin';
 
 interface Seccion {
   clave: ClaveSeccion;
@@ -81,7 +82,12 @@ function seccionesDe(perfil: Perfil, permisos: Permisos, ruta: string): Seccion[
       ? [s('documentos', '/portal/documentos', 'Documentos', 'Documentos', FileText, 'expediente', ruta.startsWith('/portal/documentos') || ruta.startsWith('/portal/pedidos'))]
       : []),
     s('protocolos', '/portal/protocolos', 'Protocolos', 'Protocolos', BookOpen, 'expediente', ruta === '/portal/protocolos'),
-    ...(permisos.crm ? [s('crm', '/portal/crm', 'Clientes', 'Clientes', Kanban, 'negocio', ruta.startsWith('/portal/crm'))] : []),
+    ...(permisos.crm
+      ? [
+          s('crm', '/portal/crm', 'Clientes', 'Clientes', Kanban, 'negocio', ruta.startsWith('/portal/crm') && !ruta.startsWith('/portal/crm/comprobantes')),
+          s('comprobantes', '/portal/crm/comprobantes', 'Invoices y recibos', 'Recibos', ReceiptText, 'negocio', ruta.startsWith('/portal/crm/comprobantes')),
+        ]
+      : []),
     ...(permisos.agenda ? [s('agenda', '/portal/agenda', 'Agenda', 'Agenda', CalendarDays, 'negocio', ruta === '/portal/agenda')] : []),
     // Pagos solo para titulares y FIRMA. El resto del equipo no ve nada de pagos.
     ...(permisos.gestion ? [s('pagos', '/portal/pagos', 'Pagos', 'Pagos', Wallet, 'negocio', ruta === '/portal/pagos')] : []),
