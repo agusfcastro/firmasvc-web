@@ -6,6 +6,8 @@
 insert into public.equipo_miembros (id, organizacion_id, nombre, rol_comercial, email) values
   ('e0000000-0000-0000-0000-00000000000a', 'aaaaaaaa-0000-0000-0000-000000000000', 'Closer de A', 'closer', 'closer@a.test'),
   ('e0000000-0000-0000-0000-00000000000b', 'bbbbbbbb-0000-0000-0000-000000000000', 'Closer de B', 'closer', 'closer@b.test');
+-- 0056 une la ficha a la cuenta del closer por el mail. Hasta el autoservicio, más abajo, se prueba sin unir.
+update public.equipo_miembros set usuario_id = null where id = 'e0000000-0000-0000-0000-00000000000a';
 create temporary table tokens (nombre text primary key, token text);
 grant all on tokens to anon, authenticated, service_role;
 

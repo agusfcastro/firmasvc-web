@@ -57,7 +57,8 @@ end;
 $$;
 
 drop trigger if exists equipo_miembros_usuario on public.equipo_miembros;
-create trigger equipo_miembros_usuario before insert or update of nombre, email, usuario_id on public.equipo_miembros
+-- Si alguien deja a un integrante sin usuario a propósito, no se vuelve a unir hasta que cambie su nombre o mail.
+create trigger equipo_miembros_usuario before insert or update of nombre, email on public.equipo_miembros
   for each row execute function public.equipo_miembros_usuario();
 
 -- Al entrar alguien al portal (o cambiar su nombre o mail), se une a quien lo espera en el equipo.

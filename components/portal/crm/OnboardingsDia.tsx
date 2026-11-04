@@ -165,7 +165,8 @@ export const OnboardingsDia: React.FC<{ orgId: string }> = ({ orgId }) => {
       const x = new Date(primero.getFullYear(), primero.getMonth() + n, 1);
       setMes(`${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}`);
     };
-    const tituloMes = primero.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+    const nombreMes = primero.toLocaleDateString('es-AR', { month: 'long' });
+    const tituloMes = `${nombreMes.charAt(0).toUpperCase()}${nombreMes.slice(1)} ${primero.getFullYear()}`;
     return (
       <section className="p-tarjeta">
         {cabeza}
@@ -174,7 +175,7 @@ export const OnboardingsDia: React.FC<{ orgId: string }> = ({ orgId }) => {
             <button type="button" className={claseFlecha} aria-label="Mes anterior" onClick={() => moverMes(-1)}>
               <ChevronLeft size={16} aria-hidden="true" />
             </button>
-            <span className="font-medium capitalize">{tituloMes}</span>
+            <span className="font-medium">{tituloMes}</span>
             <button type="button" className={claseFlecha} aria-label="Mes siguiente" onClick={() => moverMes(1)}>
               <ChevronRight size={16} aria-hidden="true" />
             </button>
