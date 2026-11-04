@@ -10,6 +10,7 @@ import { Servicios } from './Servicios';
 import { Equipo } from './Equipo';
 import { Variables } from './Variables';
 import { Llamadas } from './Llamadas';
+import { Comprobantes } from './Comprobantes';
 import { registrarLectura } from '../lecturas';
 
 /**
@@ -21,6 +22,7 @@ import { registrarLectura } from '../lecturas';
  *   /portal/crm/equipo         closers, setters, account managers y CSM de la empresa
  *   /portal/crm/variables      variables propias de la empresa para los contratos modelo
  *   /portal/crm/llamadas       Fathom de cada integrante y llamadas recibidas (un closer ve solo las suyas)
+ *   /portal/crm/comprobantes   invoices y recibos a los clientes, con numeración correlativa
  *   /portal/crm/<id>           ficha del cliente final
  */
 export const CrmApp: React.FC<{ perfil: Perfil; organizacion: Organizacion | null; ruta: string }> = ({ perfil, organizacion, ruta }) => {
@@ -127,6 +129,8 @@ export const CrmApp: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
         <Variables orgId={orgId} orgNombre={orgActual?.nombre ?? ''} puedeGestionar={puedeGestionar} />
       ) : sub === 'llamadas' ? (
         <Llamadas orgId={orgId} orgNombre={orgActual?.nombre ?? ''} puedeGestionar={puedeGestionar} verTodo={verCasos} />
+      ) : sub === 'comprobantes' || sub.startsWith('comprobantes/') ? (
+        <Comprobantes orgId={orgId} orgNombre={orgActual?.nombre ?? ''} ruta={ruta} puedeGestionar={puedeGestionar} selector={selector} />
       ) : sub === 'casos' ? (
         <Casos orgId={orgId} orgNombre={orgActual?.nombre ?? ''} puedeGestionar={puedeGestionar} selector={selector} cambiarOrg={esAdmin ? setOrgId : undefined} />
       ) : sub ? (

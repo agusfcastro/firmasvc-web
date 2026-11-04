@@ -5,6 +5,7 @@ Disallow: /firmar/
 Disallow: /verificar
 Disallow: /planes
 Disallow: /protocolo-llamadas
+Disallow: /herramientas
 Disallow: /api/
 
 Sitemap: https://www.firmasvc.com/sitemap.xml

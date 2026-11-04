@@ -119,7 +119,7 @@ function fechaLargaIso(iso: string): string {
   return `${d} de ${MESES[m - 1]} de ${y}`;
 }
 
-const NOMBRE_MONEDA: Record<string, string> = {
+export const NOMBRE_MONEDA: Record<string, string> = {
   USD: 'DÓLARES ESTADOUNIDENSES',
   ARS: 'PESOS ARGENTINOS',
   EUR: 'EUROS',
