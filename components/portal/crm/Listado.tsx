@@ -201,7 +201,7 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
 
   return (
     <>
-      <Encabezado tutorial="crm"
+      <Encabezado
         eyebrow="CRM legal"
         titulo={
           <>

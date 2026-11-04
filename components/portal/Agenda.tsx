@@ -45,7 +45,7 @@ export const Agenda: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
 
   return (
     <Marco perfil={perfil}>
-      <Encabezado tutorial="agenda"
+      <Encabezado
         eyebrow="Agenda"
         titulo={
           <>

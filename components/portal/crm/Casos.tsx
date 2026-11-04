@@ -497,7 +497,7 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
 
   return (
     <>
-      <Encabezado tutorial="casos"
+      <Encabezado
         eyebrow={
           <Enlace a="/portal/crm" className="inline-flex items-center gap-1.5 hover:text-bosque">
             <ArrowLeft size={13} aria-hidden="true" /> {orgNombre || 'CRM'}

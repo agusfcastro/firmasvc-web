@@ -439,7 +439,6 @@ const InicioCliente: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
   return (
     <Marco perfil={perfil}>
       <Encabezado
-        tutorial="inicio"
         grande
         eyebrow={`${organizacion?.nombre ?? ''} · ${cargoDe(perfil!)}`}
         titulo={
@@ -595,7 +594,6 @@ const InicioFirma: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
   return (
     <Marco perfil={perfil}>
       <Encabezado
-        tutorial="inicio"
         grande
         eyebrow="FIRMA · Administración"
         titulo={

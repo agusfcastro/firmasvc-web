@@ -568,7 +568,7 @@ export const Pagos: React.FC<{ perfil: Perfil; organizacion: Organizacion | null
 
   return (
     <Marco perfil={perfil}>
-      <Encabezado tutorial="pagos"
+      <Encabezado
         eyebrow={esAdmin ? 'Pagos · Todas las empresas' : 'Pagos'}
         titulo={
           esAdmin ? (

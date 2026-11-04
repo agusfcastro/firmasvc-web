@@ -280,7 +280,7 @@ const Lista: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
 
   return (
     <Marco perfil={perfil}>
-      <Encabezado tutorial="asuntos"
+      <Encabezado
         eyebrow={esFirma ? 'Asuntos · Todas las empresas' : 'Asuntos'}
         titulo={
           esFirma ? (

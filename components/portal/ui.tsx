@@ -26,7 +26,6 @@ import { salirVistaPrevia, useVistaPrevia } from './vistaPrevia';
 import { useLogoOrg } from './logos';
 import { ROTULO_ROL, cargoDe, permisosDe, type Perfil, type Permisos } from './tipos';
 import { ROTULO_PLAN, type Plan } from './planes';
-import { BotonTutorial, type ClaveTutorial } from './tutoriales';
 
 import simboloClaro from '../../assets/brand/simbolo-claro.png';
 import simboloOscuro from '../../assets/brand/simbolo-oscuro.png';
@@ -511,9 +510,7 @@ export const Encabezado: React.FC<{
   bajada?: React.ReactNode;
   acciones?: React.ReactNode;
   grande?: boolean;
-  /** Muestra Ver tutorial si la sección tiene video grabado. */
-  tutorial?: ClaveTutorial;
-}> = ({ eyebrow, titulo, bajada, acciones, grande, tutorial }) => (
+}> = ({ eyebrow, titulo, bajada, acciones, grande }) => (
   <section className="wrap pt-8 pb-2 desk:pt-12">
     <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
       <div className="flex flex-col gap-3 min-w-0 max-w-[820px]">
@@ -521,10 +518,9 @@ export const Encabezado: React.FC<{
         <h1 className={grande ? 'p-titulo-grande' : 'p-titulo'}>{titulo}</h1>
         {bajada && <p className="text-piedra text-[16px] leading-[1.5] max-w-[62ch]">{bajada}</p>}
       </div>
-      {(acciones || tutorial) && (
+      {acciones && (
         // En el celular las acciones van en una fila que se desliza, así no empujan el contenido hacia abajo.
         <div className="relative flex flex-nowrap tab:flex-wrap items-center gap-2.5 max-w-full overflow-x-auto scrollbar-hide -mx-4 px-4 tab:mx-0 tab:px-0 [&>*]:shrink-0 max-tab:[&>.bg-bosque]:-order-1">
-          {tutorial && <BotonTutorial clave={tutorial} />}
           {acciones}
         </div>
       )}
