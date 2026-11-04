@@ -37,3 +37,6 @@ public/video/*.mp4
 
 # Build local para revisar el portal
 .preview-build
+
+# Entregables y respaldos de las sesiones de Claude (no van al sitio)
+Claude outputs/
