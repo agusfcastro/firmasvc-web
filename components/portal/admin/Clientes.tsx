@@ -75,8 +75,8 @@ export const Clientes: React.FC = () => {
       prefijo_crm: borrador.prefijo_crm?.trim().toUpperCase() || null,
       seguimiento_cobranza: Boolean(borrador.seguimiento_cobranza),
       drive_carpeta_revision: borrador.drive_carpeta_revision?.trim() || null,
-      // Solo si hay plan o ya tenía uno: así guarda aunque la migración 0022 no esté corrida.
-      ...(borrador.plan || borrador.plan === null ? { plan: borrador.plan || null } : {}),
+      // El plan es obligatorio (0054). Sin elegir, la base pone Eminent.
+      ...(borrador.plan ? { plan: borrador.plan } : {}),
     };
     const { data: fila, error: err } = borrador.id
       ? await supabase.from('organizaciones').update(datos).eq('id', borrador.id).select('id').single()
@@ -187,9 +187,11 @@ export const Clientes: React.FC = () => {
               )}
             </div>
           </Campo>
-          <Campo etiqueta="Plan" ayuda={borrador.plan ? INCLUYE_PLAN[borrador.plan] : 'A medida: sin límites de agenda ni de firmas en el portal.'}>
-            <select className={claseInput} value={borrador.plan ?? ''} onChange={(e) => setBorrador({ ...borrador, plan: (e.target.value || null) as Plan | null })}>
-              <option value="">A medida</option>
+          <Campo etiqueta="Plan" ayuda={borrador.plan ? INCLUYE_PLAN[borrador.plan] : 'Gold, Black o Eminent. Si el cliente paga otro monto, se ajusta en su abono.'}>
+            <select required className={claseInput} value={borrador.plan ?? ''} onChange={(e) => setBorrador({ ...borrador, plan: (e.target.value || null) as Plan | null })}>
+              <option value="" disabled>
+                Elegí el plan
+              </option>
               {(Object.keys(ROTULO_PLAN) as Plan[]).map((p) => (
                 <option key={p} value={p}>
                   {ROTULO_PLAN[p]}
@@ -302,7 +304,7 @@ export const Clientes: React.FC = () => {
                     </div>
                   </div>
                 </td>
-                <td>{o.plan ? ROTULO_PLAN[o.plan] : <span className="text-piedra">A medida</span>}</td>
+                <td>{o.plan ? ROTULO_PLAN[o.plan] : <span className="text-piedra">Sin plan</span>}</td>
                 <td>{PAISES[o.pais] ?? o.pais}</td>
                 <td>{conteo[o.id] ?? 0}</td>
                 <td>{o.seguimiento_cobranza ? <Etiqueta tono="bosque">Con seguimiento</Etiqueta> : <Etiqueta>Solo plan</Etiqueta>}</td>

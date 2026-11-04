@@ -466,7 +466,7 @@ export const Abonos: React.FC = () => {
   }
 
   const cambiarMoneda = (moneda: MonedaAbono) => borrador && setBorrador({ ...borrador, moneda });
-  /** Plan de /planes que coincide con el borrador, o vacío si es un abono a medida. */
+  /** Plan de /planes que coincide con el borrador, o vacío si el monto es especial. */
   const planElegido = (b: Borrador) =>
     PLANES_ABONO.find((p) => p.concepto === b.concepto && Number(b.monto) === p.monto && p.moneda === b.moneda && p.periodo === b.periodo)?.id ?? '';
   function elegirPlan(id: string) {
@@ -599,9 +599,9 @@ export const Abonos: React.FC = () => {
               ))}
             </select>
           </Campo>
-          <Campo etiqueta="Plan" ayuda="Completa concepto, monto, moneda y periodicidad con los de /planes. Después los podés ajustar.">
+          <Campo etiqueta="Plan" ayuda="Completa concepto, monto, moneda y periodicidad con los de /planes. Si el cliente paga otro monto, cambialo: el plan de la empresa se elige en Clientes.">
             <select className={claseInput} value={planElegido(borrador)} onChange={(e) => elegirPlan(e.target.value)}>
-              <option value="">A medida</option>
+              <option value="">Monto especial</option>
               {PLANES_ABONO.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.titulo}

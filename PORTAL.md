@@ -498,19 +498,18 @@ Para activarlo, corré `0034_pedidos_contrato.sql` y después `0035_esquemas_con
 
 ## Planes, agenda y firmas
 
-El plan de cada empresa se elige en Administración › Clientes › Editar: Gold, Black, Eminent o A medida.
+El plan de cada empresa se elige en Administración › Clientes › Editar: Gold, Black o Eminent. Es obligatorio y no hay planes a medida. Lo único que puede salir de la norma es el monto, que se ajusta en el abono (Administración › Abonos, opción Monto especial).
 
 | Plan | Agenda | Documentos firmados |
 |---|---|---|
 | Gold | 60 minutos por mes calendario | 20 por mes calendario |
 | Black | 60 minutos por semana, de lunes a domingo | 50 por mes calendario |
 | Eminent | Sin límite | Sin límite |
-| A medida | Sin límite | Sin límite |
 
 - **Agenda.** Después de cada reunión cargá los minutos en Administración › Agendas › Tiempo de reuniones. El cliente ve la barra en Agenda. Una reunión puede pasarse del saldo: el exceso se le muestra como tiempo recibido de más. Con el tiempo agotado deja de ver los enlaces de reserva hasta que se renueva el período y se le ofrece escribir por WhatsApp. Un consumo cargado por error se borra desde la misma lista y vuelve al saldo.
 - **Firmas.** Ocupan el cupo los envíos de la empresa firmados en el mes, incluidos los contratos del CRM, y los que siguen en curso, que reservan su lugar. Así el tope no se pasa. Un envío anulado o vencido libera el lugar. Los envíos de FIRMA no cuentan. Al llegar al límite no puede crear envíos nuevos, ni desde la pantalla ni por la API, y se le ofrece escribir por WhatsApp.
 
-Para activarlo, corré `0022_planes_agenda_firmas.sql` y `0025_higiene_y_cupo_firmas.sql`. Las fechas son de Buenos Aires.
+Para activarlo, corré `0022_planes_agenda_firmas.sql` y `0025_higiene_y_cupo_firmas.sql`. `0054_plan_obligatorio.sql` pasa a Eminent las empresas que estaban sin plan (antes "a medida": sin límites pero sin lo que trae Eminent, como las llamadas de Fathom) y deja el plan obligatorio. Las fechas son de Buenos Aires.
 
 ## Borrar datos de prueba
 

@@ -485,7 +485,7 @@ const InicioCliente: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
               <Tarjeta titulo="Tu plan" enlace={{ a: '/portal/pagos', texto: 'Ver pagos' }}>
                 <div className="px-5 desk:px-6 py-5 flex flex-col gap-4">
                   <div className="flex items-baseline justify-between gap-4">
-                    <span className="font-extrabold text-[24px] tracking-[-0.03em]">{plan ? ROTULO_PLAN[plan] : r.abono?.concepto ?? 'A medida'}</span>
+                    <span className="font-extrabold text-[24px] tracking-[-0.03em]">{plan ? ROTULO_PLAN[plan] : r.abono?.concepto ?? ''}</span>
                     {r.abono && (
                       <span className="text-[13px] text-piedra tabular-nums">
                         {r.abono.moneda} {Math.round(Number(r.abono.monto)).toLocaleString('es-AR')} {r.abono.periodo_meses === 1 ? 'por mes' : `cada ${r.abono.periodo_meses} meses`}
