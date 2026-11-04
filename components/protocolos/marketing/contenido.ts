@@ -527,12 +527,7 @@ export function secciones(f: Ficha): Seccion[] {
         {
           tipo: 'parrafo',
           texto:
-            'Este protocolo ordena cómo {empresa} crea, revisa, aprueba, publica y archiva sus piezas de marketing en {canales}. Vale para anuncios, páginas de venta, publicaciones, historias, videos, vivos, correos, mensajes y todo lo que influencers o afiliados publiquen en su nombre. Los datos del negocio se completan una vez en la ficha y se actualizan solos en todas las plantillas.',
-        },
-        {
-          tipo: 'parrafo',
-          texto:
-            'El objetivo es vender sin prometer de más. Que cada afirmación tenga respaldo, que cada testimonio esté autorizado, que la urgencia sea real y que la publicidad se identifique como tal. Lo que se publica integra la oferta, así que un error en una pieza se paga después en reclamos, devoluciones y sanciones.',
+            'Cómo {empresa} crea, revisa, aprueba, publica y archiva sus piezas en {canales}, incluido lo que publiquen influencers o afiliados en su nombre. El objetivo es vender sin prometer de más, porque lo que se publica integra la oferta y un error se paga después en reclamos, devoluciones y sanciones.',
         },
         { tipo: 'leyenda' },
         {
@@ -548,7 +543,7 @@ export function secciones(f: Ficha): Seccion[] {
         {
           tipo: 'aclaracion',
           texto:
-            'Este protocolo trabaja junto con otros tres. El de llamadas de venta, porque lo que promete una pieza y lo que se dice en la llamada tienen que coincidir. El de conflictos, para los reclamos que citan una pieza. Y el de datos personales, para formularios y bases de contactos.',
+            'Trabaja junto con los protocolos de llamadas, porque la pieza y la llamada tienen que decir lo mismo, de conflictos, para los reclamos que citan una pieza, y de datos personales, para formularios y bases.',
         },
       ],
     },
@@ -635,7 +630,7 @@ export function secciones(f: Ficha): Seccion[] {
       titulo: 'El recorrido de una pieza',
       corto: 'Recorrido',
       intro:
-        'Cada pieza pasa por siete etapas, con responsable y plazo. Las piezas chicas, como una historia o un mensaje de difusión, recorren las mismas etapas en menos tiempo, pero no se saltean ninguna.',
+        'Las piezas chicas, como una historia o un mensaje de difusión, recorren las mismas etapas en menos tiempo, pero no se saltean ninguna.',
       bloques: [
         {
           tipo: 'etapas',
@@ -644,11 +639,10 @@ export function secciones(f: Ficha): Seccion[] {
               titulo: 'Brief',
               cuando: 'Responsable {respMarketing} · Antes de producir',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Definir qué se quiere decir, a quién y con qué respaldo, antes de escribir una línea.' },
                 {
                   rotulo: 'Qué tiene que pasar',
                   texto:
-                    'Objetivo de la pieza, público, canal, oferta vigente y sus bases, afirmaciones que se van a usar y dónde está su respaldo, testimonios disponibles con autorización y reglas del nicho. Si una afirmación no tiene respaldo, se cambia la afirmación, no se busca el respaldo después.',
+                    'Público, canal, oferta y sus bases, afirmaciones con su respaldo y testimonios autorizados. Si una afirmación no tiene respaldo, se cambia la afirmación.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Cada afirmación de esta pieza tiene que poder mostrarse con un documento.', estilo: 'frase' },
                 { rotulo: 'Error típico', texto: 'Arrancar por el gancho y buscar el respaldo cuando la pieza ya está hecha.', estilo: 'error' },
@@ -658,25 +652,23 @@ export function secciones(f: Ficha): Seccion[] {
               titulo: 'Redacción',
               cuando: 'Responsable {respMarketing} · Según el calendario de contenidos',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Escribir para vender sin prometer de más.' },
                 {
                   rotulo: 'Qué tiene que pasar',
                   texto:
-                    'Se usan las frases de reemplazo, el aviso de resultados donde corresponde y la identificación publicitaria en las colaboraciones. Los guiones de video, los vivos y los textos de anuncios siguen las mismas reglas que una página de venta.',
+                    'Frases de reemplazo, aviso de resultados donde corresponde e identificación publicitaria en las colaboraciones. Un vivo o un guion de video siguen las mismas reglas que una página de venta.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Mostramos lo que hicieron otros, con su contexto, y explicamos qué depende de cada uno.', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Improvisar en una historia o en un vivo porque dura poco. Lo dicho ahí también integra la oferta.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Improvisar en una historia o en un vivo porque dura poco.', estilo: 'error' },
               ],
             },
             {
               titulo: 'Revisión de afirmaciones y respaldo',
               cuando: 'Responsable {respAprobacion} · Dentro de {diasRevision}',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Que cada afirmación tenga su prueba y cada señal de riesgo se corrija.' },
                 {
                   rotulo: 'Qué tiene que pasar',
                   texto:
-                    'La pieza pasa por el revisor, se marca cada afirmación objetiva y se coteja con su respaldo, como contratos, facturación, capturas fechadas o autorizaciones. Lo que no tiene respaldo se reescribe o se quita.',
+                    'La pieza pasa por el revisor y cada afirmación se coteja con su respaldo. Lo que no tiene respaldo se reescribe o se quita.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Si no lo podemos mostrar, no lo afirmamos.', estilo: 'frase' },
                 { rotulo: 'Error típico', texto: 'Aprobar porque una pieza parecida ya se publicó antes y no pasó nada.', estilo: 'error' },
@@ -686,25 +678,23 @@ export function secciones(f: Ficha): Seccion[] {
               titulo: 'Aprobación',
               cuando: 'Responsable {respAprobacion} · Antes de publicar',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Que una sola persona apruebe por escrito la versión final.' },
                 {
                   rotulo: 'Qué tiene que pasar',
                   texto:
-                    'La aprobación se da sobre la versión final, no sobre un borrador. Si el revisor dio rojo, si la pieza es de salud o de finanzas, o si incluye menores o un sorteo, pasa antes por legales. Cualquier cambio posterior vuelve a revisión.',
+                    'Sobre la versión final, no sobre un borrador. Con rojo en el revisor, salud, finanzas, menores o un sorteo, pasa antes por legales. Todo cambio posterior vuelve a revisión.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Aprobado en esta versión, para estos canales y hasta esta fecha.', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Aprobar con un audio o un pulgar en el chat, sin dejar constancia de qué versión se aprobó.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Aprobar con un pulgar en el chat, sin constancia de qué versión.', estilo: 'error' },
               ],
             },
             {
               titulo: 'Publicación',
               cuando: 'Responsable {respMarketing} · En la fecha y los canales aprobados',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Publicar exactamente lo aprobado.' },
                 {
                   rotulo: 'Qué tiene que pasar',
                   texto:
-                    'Se publica la versión aprobada en los canales aprobados, con la etiqueta de colaboración pagada cuando corresponde, y se programa su baja si la oferta tiene vencimiento.',
+                    'La versión aprobada, en los canales aprobados, con la etiqueta de colaboración pagada si corresponde y la baja programada si la oferta vence.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Publicamos la versión aprobada el [[fecha]] en [[canal]].', estilo: 'frase' },
                 { rotulo: 'Error típico', texto: 'Retocar el texto al publicar, o dejar activo un anuncio cuya promoción ya venció.', estilo: 'error' },
@@ -714,11 +704,10 @@ export function secciones(f: Ficha): Seccion[] {
               titulo: 'Archivo',
               cuando: 'Responsable {respMarketing} · El mismo día de la publicación',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Poder mostrar qué se publicó, cuándo y con qué respaldo.' },
                 {
                   rotulo: 'Qué tiene que pasar',
                   texto:
-                    'Se guarda la versión publicada con captura fechada, enlace, canales, período de circulación, respaldo de cada afirmación, autorizaciones y bases de la promoción. Se conserva mientras pueda existir un reclamo.',
+                    'Versión publicada con captura fechada, canales, período, respaldo, autorizaciones y bases. Se conserva mientras pueda haber un reclamo.',
                 },
                 { rotulo: 'Frase ancla', texto: 'La pieza del [[fecha]] quedó archivada con su respaldo.', estilo: 'frase' },
                 { rotulo: 'Error típico', texto: 'Confiar en que la plataforma guarda el historial. Los anuncios se editan y las historias desaparecen.', estilo: 'error' },
@@ -728,14 +717,13 @@ export function secciones(f: Ficha): Seccion[] {
               titulo: 'Monitoreo de comentarios',
               cuando: 'Responsable {respMarketing} · Mientras la pieza circula',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Detectar a tiempo confusiones, reclamos y usos indebidos.' },
                 {
                   rotulo: 'Qué tiene que pasar',
                   texto:
-                    'Se revisan comentarios y mensajes, se responde por privado lo que es un caso individual, se registran las preguntas que muestran que la pieza se entiende mal y los reclamos se derivan según el protocolo de conflictos.',
+                    'Lo individual se responde por privado, las preguntas que muestran que la pieza se entiende mal se registran y los reclamos van al protocolo de conflictos.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Gracias por escribir. Te respondemos por mensaje privado para ver tu caso en detalle.', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Discutir en los comentarios, borrar críticas legítimas o prometer en público una solución.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Discutir en los comentarios o borrar críticas legítimas.', estilo: 'error' },
               ],
             },
           ],
