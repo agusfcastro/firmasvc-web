@@ -153,29 +153,35 @@ export function secciones(f: Ficha): Seccion[] {
             },
           ],
         },
-        { tipo: 'subtitulo', texto: 'Cómo se ve en la práctica' },
         {
-          tipo: 'tarjetas',
-          items: [
+          tipo: 'plegable',
+          titulo: 'Cómo se ve en la práctica',
+          bajada: 'Un ejemplo por principio',
+          bloques: [
             {
-              titulo: 'Una sola voz',
-              texto: 'El cliente ya derivado le escribe por privado al encargado de su cuenta. La respuesta correcta no explica, no opina y no consuela. Es una sola línea.',
-              cita: 'Entiendo tu situación, pero este tema lo está manejando legales y todo pasa por el correo. Ahí te van a responder.',
-            },
-            {
-              titulo: 'Por escrito o no existe',
-              texto: 'Terminó una llamada en la que el cliente aceptó reprogramar. Antes de cerrar el día sale este mensaje por el canal oficial.',
-              cita: 'Como hablamos recién por teléfono, te confirmo que reprogramamos las sesiones de [[fechas]] para [[fechas nuevas]]. Avisame si entendí algo mal.',
-            },
-            {
-              titulo: 'Nunca en caliente',
-              texto:
-                'El cliente manda tres mensajes en doce minutos, cada uno con más tono y un plazo de 24 horas. No se responde ninguno todavía. Se deja terminar la ráfaga, se redacta una única respuesta que conteste todo, otra persona la revisa y sale al día siguiente. El silencio de unas horas no es debilidad, es control del ritmo.',
-            },
-            {
-              titulo: 'Del hecho a la experiencia',
-              texto: 'En lugar de una disculpa que admite una demora, se reconoce la vivencia del cliente y se deja constancia del dato.',
-              cita: 'Lamentamos que hayas sentido que la respuesta tardó. Revisamos el canal y tu consulta fue respondida dentro de los plazos previstos.',
+              tipo: 'tarjetas',
+              items: [
+                {
+                  titulo: 'Una sola voz',
+                  texto: 'El cliente ya derivado le escribe por privado al encargado de su cuenta. La respuesta correcta no explica, no opina y no consuela. Es una sola línea.',
+                  cita: 'Entiendo tu situación, pero este tema lo está manejando legales y todo pasa por el correo. Ahí te van a responder.',
+                },
+                {
+                  titulo: 'Por escrito o no existe',
+                  texto: 'Terminó una llamada en la que el cliente aceptó reprogramar. Antes de cerrar el día sale este mensaje por el canal oficial.',
+                  cita: 'Como hablamos recién por teléfono, te confirmo que reprogramamos las sesiones de [[fechas]] para [[fechas nuevas]]. Avisame si entendí algo mal.',
+                },
+                {
+                  titulo: 'Nunca en caliente',
+                  texto:
+                    'El cliente manda tres mensajes en doce minutos, cada uno con más tono y un plazo de 24 horas. No se responde ninguno todavía. Se deja terminar la ráfaga, se redacta una única respuesta que conteste todo, otra persona la revisa y sale al día siguiente. El silencio de unas horas no es debilidad, es control del ritmo.',
+                },
+                {
+                  titulo: 'Del hecho a la experiencia',
+                  texto: 'En lugar de una disculpa que admite una demora, se reconoce la vivencia del cliente y se deja constancia del dato.',
+                  cita: 'Lamentamos que hayas sentido que la respuesta tardó. Revisamos el canal y tu consulta fue respondida dentro de los plazos previstos.',
+                },
+              ],
             },
           ],
         },
@@ -360,43 +366,55 @@ export function secciones(f: Ficha): Seccion[] {
             },
           ],
         },
-        { tipo: 'subtitulo', texto: 'Las cuatro reglas de la respuesta legal' },
         {
-          tipo: 'tips',
-          items: [
-            { titulo: 'Segunda lectura', texto: 'Ninguna respuesta sale sin que otra persona la lea. Un error de tipeo en una comunicación legal queda como evidencia permanente.' },
-            { titulo: 'Una por día hábil', texto: 'Máximo una respuesta por día hábil al mismo reclamante, salvo plazos formales. Los intercambios cada cinco minutos escalan el tono.' },
+          tipo: 'plegable',
+          titulo: 'Las cuatro reglas de la respuesta legal',
+          bajada: 'Para legales',
+          bloques: [
             {
-              titulo: 'Suma o cierra',
-              texto: 'Cada respuesta agrega algo o cierra la instancia. Si el cliente repite lo ya contestado, alcanza con una línea que remite a la comunicación anterior.',
-            },
-            { titulo: 'Tono sereno', texto: 'Cuanto más agresivo el cliente, más neutra la respuesta. Cada correo puede terminar leído por un tercero.' },
-          ],
-        },
-        { tipo: 'subtitulo', texto: 'Arquitectura de la respuesta de rechazo' },
-        {
-          tipo: 'tarjetas',
-          items: [
-            {
-              titulo: 'Seis partes, en este orden',
-              numerada: true,
-              lista: [
-                '**Identificación** del reclamo y anuncio de la decisión.',
-                '**Encuadre contractual**, con fecha y modalidad de firma, validación electrónica y disponibilidad previa del texto.',
-                '**Prestación efectiva**, con el detalle de lo puesto a disposición y remisión a las constancias.',
-                '**Responsabilidades del cliente** según el contrato, cuando aplique.',
-                '**Alternativas ofrecidas** de buena voluntad y su rechazo, aclarando que no importan reconocimiento de deficiencia.',
-                '**Conclusión y reserva de derechos**, dejando constancia de que la respuesta no importa reconocimiento de hecho ni de derecho.',
+              tipo: 'tips',
+              items: [
+                { titulo: 'Segunda lectura', texto: 'Ninguna respuesta sale sin que otra persona la lea. Un error de tipeo en una comunicación legal queda como evidencia permanente.' },
+                { titulo: 'Una por día hábil', texto: 'Máximo una respuesta por día hábil al mismo reclamante, salvo plazos formales. Los intercambios cada cinco minutos escalan el tono.' },
+                {
+                  titulo: 'Suma o cierra',
+                  texto: 'Cada respuesta agrega algo o cierra la instancia. Si el cliente repite lo ya contestado, alcanza con una línea que remite a la comunicación anterior.',
+                },
+                { titulo: 'Tono sereno', texto: 'Cuanto más agresivo el cliente, más neutra la respuesta. Cada correo puede terminar leído por un tercero.' },
               ],
             },
+          ],
+        },
+        {
+          tipo: 'plegable',
+          titulo: 'Arquitectura de la respuesta de rechazo',
+          bajada: 'Para legales',
+          bloques: [
             {
-              titulo: 'Antes de enviarla',
-              check: true,
-              lista: [
-                'La compuerta legal está registrada y no dio rojo.',
-                'La evaluación de riesgo está escrita y firmada por legales.',
-                'Se adjunta de una vez la copia del contrato firmado con su constancia de integridad.',
-                'La respuesta salió de {correoLegales} y quedó en el expediente.',
+              tipo: 'tarjetas',
+              items: [
+                {
+                  titulo: 'Seis partes, en este orden',
+                  numerada: true,
+                  lista: [
+                    '**Identificación** del reclamo y anuncio de la decisión.',
+                    '**Encuadre contractual**, con fecha y modalidad de firma, validación electrónica y disponibilidad previa del texto.',
+                    '**Prestación efectiva**, con el detalle de lo puesto a disposición y remisión a las constancias.',
+                    '**Responsabilidades del cliente** según el contrato, cuando aplique.',
+                    '**Alternativas ofrecidas** de buena voluntad y su rechazo, aclarando que no importan reconocimiento de deficiencia.',
+                    '**Conclusión y reserva de derechos**, dejando constancia de que la respuesta no importa reconocimiento de hecho ni de derecho.',
+                  ],
+                },
+                {
+                  titulo: 'Antes de enviarla',
+                  check: true,
+                  lista: [
+                    'La compuerta legal está registrada y no dio rojo.',
+                    'La evaluación de riesgo está escrita y firmada por legales.',
+                    'Se adjunta de una vez la copia del contrato firmado con su constancia de integridad.',
+                    'La respuesta salió de {correoLegales} y quedó en el expediente.',
+                  ],
+                },
               ],
             },
           ],
@@ -458,15 +476,21 @@ export function secciones(f: Ficha): Seccion[] {
             },
           ],
         },
-        { tipo: 'subtitulo', texto: 'Errores típicos con el MAAN' },
         {
-          tipo: 'tips',
-          items: [
-            { titulo: 'Sobreestimar el propio', texto: 'Por optimismo o por orgullo. Se mide con la documentación en la mano, no con la convicción.' },
-            { titulo: 'Confundirlo con la posición', texto: 'No devolver nunca no es un MAAN, es un dogma.' },
+          tipo: 'plegable',
+          titulo: 'Errores típicos con el MAAN',
+          bajada: 'Para profundizar',
+          bloques: [
             {
-              titulo: 'Medir el ajeno por lo que dice',
-              texto: 'Se evalúa por lo que al cliente le conviene y puede hacer. Quien amenaza con todas las acciones en 24 horas casi nunca tiene un MAAN a la altura de su amenaza.',
+              tipo: 'tips',
+              items: [
+                { titulo: 'Sobreestimar el propio', texto: 'Por optimismo o por orgullo. Se mide con la documentación en la mano, no con la convicción.' },
+                { titulo: 'Confundirlo con la posición', texto: 'No devolver nunca no es un MAAN, es un dogma.' },
+                {
+                  titulo: 'Medir el ajeno por lo que dice',
+                  texto: 'Se evalúa por lo que al cliente le conviene y puede hacer. Quien amenaza con todas las acciones en 24 horas casi nunca tiene un MAAN a la altura de su amenaza.',
+                },
+              ],
             },
           ],
         },
@@ -549,40 +573,6 @@ export function secciones(f: Ficha): Seccion[] {
             };
           },
           nota: 'Herramienta orientativa para ordenar la decisión. Los porcentajes son estimaciones de legales y la decisión final se toma según la matriz de autorizaciones.',
-        },
-      ],
-    },
-    {
-      id: 'autorizaciones',
-      titulo: 'Matriz de autorizaciones',
-      corto: 'Autorizaciones',
-      intro: 'Quién puede ofrecer qué y hasta dónde. Toda alternativa se ofrece por escrito y se registra la respuesta del cliente.',
-      bloques: [
-        {
-          tipo: 'tabla',
-          aria: 'Matriz de autorizaciones',
-          columnas: [
-            { rotulo: 'Alternativa', ancho: '1.15fr', estilo: 'fuerte' },
-            { rotulo: 'Quién la ofrece', ancho: '0.9fr' },
-            { rotulo: 'Tope', ancho: '0.9fr' },
-            { rotulo: 'Condición', ancho: '1.2fr', estilo: 'porque' },
-          ],
-          filas: [
-            ['Reprogramación de sesiones o entregas', '{respAcomp}', 'Dentro del plazo del programa', 'Confirmación escrita en el canal oficial.'],
-            ['Reasignación del equipo de acompañamiento', '{respAcomp}', 'Sin costo adicional', 'Se ofrece como ajuste del servicio, no como reconocimiento.'],
-            ['Sesión adicional de seguimiento', '{respAcomp}', 'Una por caso', 'Se registra como gesto de buena voluntad.'],
-            ['Extensión del plazo del servicio', 'Líder del área', 'La que permita el contrato', 'Acuerdo escrito con la nueva fecha de cierre.'],
-            ['Pausa o congelamiento', 'Líder del área', 'La que permita el contrato', 'Mensaje de pausa acordada con fecha de reactivación.'],
-            ['Conversión del saldo en otro producto', 'Líder del área', 'Hasta el valor no utilizado', 'Aceptación expresa y por escrito del cliente.'],
-            ['Concesión económica parcial', 'Líder del área', 'Hasta {topeLider}', 'Única, por escrito y condicionada al acuerdo transaccional.'],
-            ['Concesión económica mayor', '{respLegales}', 'Hasta {topeLegales}', 'Evaluación de riesgo escrita y acuerdo transaccional.'],
-            ['Concesión por encima de los topes', 'Dirección', 'Sin tope', 'Decisión registrada en el expediente con su fundamento.'],
-            ['Devolución por arrepentimiento legal', '{respLegales}', 'Lo que fije la ley', 'No se condiciona a ningún acuerdo ni a confidencialidad.'],
-          ],
-        },
-        {
-          tipo: 'aclaracion',
-          texto: 'Los topes se calculan sobre el precio de referencia, {precio}. Nadie del equipo ofrece montos fuera de esta tabla, ni siquiera como posibilidad.',
         },
       ],
     },
@@ -794,11 +784,13 @@ export function secciones(f: Ficha): Seccion[] {
       ],
     },
     {
-      id: 'derivacion',
-      titulo: 'Disparadores de derivación',
-      corto: 'Derivación',
-      intro: 'Ante cualquiera de estas señales el caso pasa a legales en el día. Nadie del equipo decide quedárselo.',
+      id: 'alertas',
+      titulo: 'Alertas y escalamiento',
+      corto: 'Alertas',
+      intro: 'Cuándo el caso pasa a legales y quién autoriza cada alternativa. Nadie del equipo decide quedarse un caso ni ofrecer algo fuera de la matriz.',
       bloques: [
+        { tipo: 'subtitulo', texto: 'Disparadores de derivación' },
+        { tipo: 'parrafo', texto: 'Ante cualquiera de estas señales el caso pasa a legales en el día.' },
         {
           tipo: 'tabla',
           aria: 'Disparadores de derivación',
@@ -822,6 +814,34 @@ export function secciones(f: Ficha): Seccion[] {
           tipo: 'aclaracion',
           texto:
             'Una sola voz no es un solo canal. El traspaso al correo ordena la conversación, pero un pedido de baja o de arrepentimiento que llega por otro medio es válido y se procesa igual.',
+        },
+        { tipo: 'subtitulo', texto: 'Matriz de autorizaciones' },
+        { tipo: 'parrafo', texto: 'Quién puede ofrecer qué y hasta dónde. Toda alternativa se ofrece por escrito y se registra la respuesta del cliente.' },
+        {
+          tipo: 'tabla',
+          aria: 'Matriz de autorizaciones',
+          columnas: [
+            { rotulo: 'Alternativa', ancho: '1.15fr', estilo: 'fuerte' },
+            { rotulo: 'Quién la ofrece', ancho: '0.9fr' },
+            { rotulo: 'Tope', ancho: '0.9fr' },
+            { rotulo: 'Condición', ancho: '1.2fr', estilo: 'porque' },
+          ],
+          filas: [
+            ['Reprogramación de sesiones o entregas', '{respAcomp}', 'Dentro del plazo del programa', 'Confirmación escrita en el canal oficial.'],
+            ['Reasignación del equipo de acompañamiento', '{respAcomp}', 'Sin costo adicional', 'Se ofrece como ajuste del servicio, no como reconocimiento.'],
+            ['Sesión adicional de seguimiento', '{respAcomp}', 'Una por caso', 'Se registra como gesto de buena voluntad.'],
+            ['Extensión del plazo del servicio', 'Líder del área', 'La que permita el contrato', 'Acuerdo escrito con la nueva fecha de cierre.'],
+            ['Pausa o congelamiento', 'Líder del área', 'La que permita el contrato', 'Mensaje de pausa acordada con fecha de reactivación.'],
+            ['Conversión del saldo en otro producto', 'Líder del área', 'Hasta el valor no utilizado', 'Aceptación expresa y por escrito del cliente.'],
+            ['Concesión económica parcial', 'Líder del área', 'Hasta {topeLider}', 'Única, por escrito y condicionada al acuerdo transaccional.'],
+            ['Concesión económica mayor', '{respLegales}', 'Hasta {topeLegales}', 'Evaluación de riesgo escrita y acuerdo transaccional.'],
+            ['Concesión por encima de los topes', 'Dirección', 'Sin tope', 'Decisión registrada en el expediente con su fundamento.'],
+            ['Devolución por arrepentimiento legal', '{respLegales}', 'Lo que fije la ley', 'No se condiciona a ningún acuerdo ni a confidencialidad.'],
+          ],
+        },
+        {
+          tipo: 'aclaracion',
+          texto: 'Los topes se calculan sobre el precio de referencia, {precio}. Nadie del equipo ofrece montos fuera de esta tabla, ni siquiera como posibilidad.',
         },
       ],
     },
@@ -978,29 +998,40 @@ export function secciones(f: Ficha): Seccion[] {
           ],
         },
         {
-          tipo: 'calculadora',
-          id: 'tableroMes',
-          titulo: 'Tablero rápido del mes',
-          intro: 'Cargá los números del mes y obtené los indicadores principales.',
-          entradas: [
-            { id: 'ventas', rotulo: 'Ventas del mes', unidad: 'ventas' },
-            { id: 'reclamos', rotulo: 'Reclamos abiertos', unidad: 'casos' },
-            { id: 'cerrados', rotulo: 'Casos cerrados', unidad: 'casos' },
-            { id: 'sinLegales', rotulo: 'Cerrados sin derivación', unidad: 'casos' },
-            { id: 'concedido', rotulo: 'Monto concedido', unidad: 'moneda' },
-            { id: 'facturacion', rotulo: 'Facturación del mes', unidad: 'moneda' },
-            { id: 'transacciones', rotulo: 'Transacciones con tarjeta', unidad: 'pagos' },
-            { id: 'contracargos', rotulo: 'Contracargos recibidos', unidad: 'casos' },
-            { id: 'ganados', rotulo: 'Contracargos ganados', unidad: 'casos' },
+          tipo: 'aclaracion',
+          texto: 'En el portal de FIRMA estos indicadores se calculan solos con los casos cargados en CRM › Casos de conflicto. La calculadora de abajo es para quien todavía lleva los casos a mano.',
+        },
+        {
+          tipo: 'plegable',
+          titulo: 'Tablero rápido a mano',
+          bajada: 'Para quien no carga los casos en el CRM de FIRMA',
+          bloques: [
+            {
+              tipo: 'calculadora',
+              id: 'tableroMes',
+              titulo: 'Tablero rápido del mes',
+              intro: 'Cargá los números del mes y obtené los indicadores principales.',
+              entradas: [
+                { id: 'ventas', rotulo: 'Ventas del mes', unidad: 'ventas' },
+                { id: 'reclamos', rotulo: 'Reclamos abiertos', unidad: 'casos' },
+                { id: 'cerrados', rotulo: 'Casos cerrados', unidad: 'casos' },
+                { id: 'sinLegales', rotulo: 'Cerrados sin derivación', unidad: 'casos' },
+                { id: 'concedido', rotulo: 'Monto concedido', unidad: 'moneda' },
+                { id: 'facturacion', rotulo: 'Facturación del mes', unidad: 'moneda' },
+                { id: 'transacciones', rotulo: 'Transacciones con tarjeta', unidad: 'pagos' },
+                { id: 'contracargos', rotulo: 'Contracargos recibidos', unidad: 'casos' },
+                { id: 'ganados', rotulo: 'Contracargos ganados', unidad: 'casos' },
+              ],
+              salidas: [
+                { id: 'tasa', rotulo: 'Reclamos cada 100 ventas', formato: 'num', destacada: true, calcular: (v) => (v.ventas ? (n0(v.reclamos) / v.ventas) * 100 : null) },
+                { id: 'antes', rotulo: 'Resueltos antes de legales', formato: 'pct', calcular: (v) => (v.cerrados ? (n0(v.sinLegales) / v.cerrados) * 100 : null) },
+                { id: 'costo', rotulo: 'Costo de concesiones', formato: 'pct', calcular: (v) => (v.facturacion ? (n0(v.concedido) / v.facturacion) * 100 : null) },
+                { id: 'cc', rotulo: 'Tasa de contracargos', formato: 'pct', calcular: (v) => (v.transacciones ? (n0(v.contracargos) / v.transacciones) * 100 : null) },
+                { id: 'ganadosPct', rotulo: 'Contracargos ganados', formato: 'pct', calcular: (v) => (v.contracargos ? (n0(v.ganados) / v.contracargos) * 100 : null) },
+              ],
+              nota: 'Si el negocio usa el CRM del portal de FIRMA, el registro de casos calcula estos números con los datos reales de cada cliente.',
+            },
           ],
-          salidas: [
-            { id: 'tasa', rotulo: 'Reclamos cada 100 ventas', formato: 'num', destacada: true, calcular: (v) => (v.ventas ? (n0(v.reclamos) / v.ventas) * 100 : null) },
-            { id: 'antes', rotulo: 'Resueltos antes de legales', formato: 'pct', calcular: (v) => (v.cerrados ? (n0(v.sinLegales) / v.cerrados) * 100 : null) },
-            { id: 'costo', rotulo: 'Costo de concesiones', formato: 'pct', calcular: (v) => (v.facturacion ? (n0(v.concedido) / v.facturacion) * 100 : null) },
-            { id: 'cc', rotulo: 'Tasa de contracargos', formato: 'pct', calcular: (v) => (v.transacciones ? (n0(v.contracargos) / v.transacciones) * 100 : null) },
-            { id: 'ganadosPct', rotulo: 'Contracargos ganados', formato: 'pct', calcular: (v) => (v.contracargos ? (n0(v.ganados) / v.contracargos) * 100 : null) },
-          ],
-          nota: 'Si el negocio usa el CRM del portal de FIRMA, el registro de casos calcula estos números con los datos reales de cada cliente.',
         },
       ],
     },

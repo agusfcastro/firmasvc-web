@@ -461,35 +461,41 @@ export function secciones(f: Ficha): Seccion[] {
             },
           ],
         },
-        { tipo: 'subtitulo', texto: 'Cómo se ve en la práctica' },
         {
-          tipo: 'tarjetas',
-          items: [
+          tipo: 'plegable',
+          titulo: 'Cómo se ve en la práctica',
+          bajada: 'Un ejemplo por principio',
+          bloques: [
             {
-              titulo: 'Solo lo necesario',
-              texto:
-                'El formulario de agenda pide nombre, correo, teléfono y una pregunta de calificación. El domicilio y los datos fiscales se piden recién al contratar, porque recién ahí hacen falta para facturar. Las comunicaciones van en una casilla aparte.',
-              cita: 'Quiero recibir novedades, contenidos y promociones de {empresa} por correo. Puedo darme de baja cuando quiera.',
-            },
-            {
-              titulo: 'Avisar antes de registrar',
-              texto: 'Es la primera frase de cada llamada, antes de entrar en tema, igual que en el protocolo de llamadas de venta.',
-              cita: 'Antes de arrancar, te cuento que la llamada queda registrada así tenemos respaldo de todo lo que hablemos. ¿Estás de acuerdo?',
-            },
-            {
-              titulo: 'Cada dato tiene un plazo',
-              texto: 'Una vez por trimestre se suprime lo vencido en cada herramienta y se deja constancia en el registro.',
-              cita: 'Supresión trimestral hecha el [[fecha]]. Se eliminaron [[cantidad]] registros vencidos en {crm}, {registro} y {correoMasivo}.',
-            },
-            {
-              titulo: 'Acceso mínimo y temporal',
-              texto: 'El día que un setter termina su colaboración se revocan sus accesos y sale este mensaje.',
-              cita: 'Hola [[nombre]]. Hoy termina tu colaboración con {empresa}. Ya revocamos tus accesos a {crm} y {registro}. Te pedimos que elimines cualquier dato de interesados o clientes que tengas en tus dispositivos y nos confirmes por este medio que lo hiciste.',
-            },
-            {
-              titulo: 'Un incidente se informa en el día',
-              texto: 'Un closer manda por error a un interesado el resumen de la llamada de otra persona. No espera ni intenta arreglarlo solo. Avisa enseguida.',
-              cita: 'Posible incidente de datos. Hoy a las [[hora]] mandé por error [[qué]] a [[destinatario]]. Ya le pedí que lo borre. Te lo paso para que lo evalúes.',
+              tipo: 'tarjetas',
+              items: [
+                {
+                  titulo: 'Solo lo necesario',
+                  texto:
+                    'El formulario de agenda pide nombre, correo, teléfono y una pregunta de calificación. El domicilio y los datos fiscales se piden recién al contratar, porque recién ahí hacen falta para facturar. Las comunicaciones van en una casilla aparte.',
+                  cita: 'Quiero recibir novedades, contenidos y promociones de {empresa} por correo. Puedo darme de baja cuando quiera.',
+                },
+                {
+                  titulo: 'Avisar antes de registrar',
+                  texto: 'Es la primera frase de cada llamada, antes de entrar en tema, igual que en el protocolo de llamadas de venta.',
+                  cita: 'Antes de arrancar, te cuento que la llamada queda registrada así tenemos respaldo de todo lo que hablemos. ¿Estás de acuerdo?',
+                },
+                {
+                  titulo: 'Cada dato tiene un plazo',
+                  texto: 'Una vez por trimestre se suprime lo vencido en cada herramienta y se deja constancia en el registro.',
+                  cita: 'Supresión trimestral hecha el [[fecha]]. Se eliminaron [[cantidad]] registros vencidos en {crm}, {registro} y {correoMasivo}.',
+                },
+                {
+                  titulo: 'Acceso mínimo y temporal',
+                  texto: 'El día que un setter termina su colaboración se revocan sus accesos y sale este mensaje.',
+                  cita: 'Hola [[nombre]]. Hoy termina tu colaboración con {empresa}. Ya revocamos tus accesos a {crm} y {registro}. Te pedimos que elimines cualquier dato de interesados o clientes que tengas en tus dispositivos y nos confirmes por este medio que lo hiciste.',
+                },
+                {
+                  titulo: 'Un incidente se informa en el día',
+                  texto: 'Un closer manda por error a un interesado el resumen de la llamada de otra persona. No espera ni intenta arreglarlo solo. Avisa enseguida.',
+                  cita: 'Posible incidente de datos. Hoy a las [[hora]] mandé por error [[qué]] a [[destinatario]]. Ya le pedí que lo borre. Te lo paso para que lo evalúes.',
+                },
+              ],
             },
           ],
         },
@@ -576,25 +582,30 @@ export function secciones(f: Ficha): Seccion[] {
             },
           ],
         },
-        { tipo: 'subtitulo', texto: 'Cuatro reglas para las herramientas' },
         {
-          tipo: 'tips',
-          items: [
-            { titulo: 'Usuario propio', texto: 'Nada de cuentas compartidas. Cada acceso tiene nombre y apellido, y así se sabe quién hizo qué.' },
-            { titulo: 'Doble factor', texto: 'Activado en {crm}, {registro}, {correoMasivo}, {firma} y {pasarela}, sin excepciones.' },
-            { titulo: 'Rol mínimo', texto: 'Cada uno ve lo que su tarea necesita. Un setter no ve contratos ni cobros.' },
-            { titulo: 'Sin copias sueltas', texto: 'Ni descargas, ni planillas paralelas, ni reenvíos a cuentas personales. Lo que sale del circuito no se puede borrar después.' },
+          tipo: 'plegable',
+          titulo: 'Cuatro reglas para las herramientas',
+          bajada: 'Para profundizar',
+          bloques: [
+            {
+              tipo: 'tips',
+              items: [
+                { titulo: 'Usuario propio', texto: 'Nada de cuentas compartidas. Cada acceso tiene nombre y apellido, y así se sabe quién hizo qué.' },
+                { titulo: 'Doble factor', texto: 'Activado en {crm}, {registro}, {correoMasivo}, {firma} y {pasarela}, sin excepciones.' },
+                { titulo: 'Rol mínimo', texto: 'Cada uno ve lo que su tarea necesita. Un setter no ve contratos ni cobros.' },
+                { titulo: 'Sin copias sueltas', texto: 'Ni descargas, ni planillas paralelas, ni reenvíos a cuentas personales. Lo que sale del circuito no se puede borrar después.' },
+              ],
+            },
           ],
         },
       ],
     },
     {
       id: 'pedidos',
-      titulo: 'Pedidos de los titulares e incidentes',
-      corto: 'Pedidos e incidentes',
-      intro: 'Dos flujos con responsable y plazo. Un pedido de un titular y un incidente de seguridad se registran el mismo día en que se conocen.',
+      titulo: 'Pedidos de los titulares',
+      corto: 'Pedidos',
+      intro: 'Cada pedido de un titular se registra el mismo día en que llega, con responsable y plazo.',
       bloques: [
-        { tipo: 'subtitulo', texto: 'Pedidos de los titulares' },
         {
           tipo: 'etapas',
           items: [
@@ -689,7 +700,14 @@ export function secciones(f: Ficha): Seccion[] {
               ? 'El acceso se cuenta en días corridos y el resto en días hábiles. Si el plazo vence sin respuesta completa, el titular puede ir directamente a la acción de hábeas data.'
               : 'Los plazos dependen de la ley aplicable. Hasta que legales los defina, el pedido se responde lo antes posible y siempre por escrito.',
         },
-        { tipo: 'subtitulo', texto: 'Incidentes de seguridad' },
+      ],
+    },
+    {
+      id: 'incidentes',
+      titulo: 'Incidentes de seguridad',
+      corto: 'Incidentes',
+      intro: 'Un incidente de seguridad se registra y se evalúa el mismo día en que se conoce, con responsable y plazo.',
+      bloques: [
         {
           tipo: 'semaforo',
           id: 'incidente',
@@ -829,14 +847,14 @@ export function secciones(f: Ficha): Seccion[] {
           texto:
             'Un incidente no es solo un ataque. También lo es un correo con datos enviado a quien no correspondía, una planilla compartida con un enlace público, un teléfono perdido sin bloqueo o un borrado sin copia.',
         },
-      ],
+],
     },
     {
       id: 'herramientas',
       titulo: 'Mapa de datos y plazos',
       corto: 'Mapa y plazos',
-      intro:
-        'Tres herramientas. El mapa de datos dice qué hay, para qué y dónde, la calculadora dice cuándo vence cada plazo y la autoevaluación marca por dónde empezar.',
+      parte: 'recorrido',
+      intro: 'El mapa de datos dice qué hay, para qué y dónde, y la calculadora dice cuándo vence cada plazo.',
       bloques: [
         { tipo: 'subtitulo', texto: 'Mapa de datos' },
         {
@@ -910,6 +928,15 @@ export function secciones(f: Ficha): Seccion[] {
           intro: 'Para no dejar vencer nada. Elegí el plazo y la fecha desde la que corre.',
           opciones: opcionesPlazos,
         },
+      ],
+    },
+    {
+      id: 'autoevaluacion',
+      titulo: 'Autoevaluación de cumplimiento',
+      corto: 'Autoevaluación',
+      parte: 'medir',
+      intro: 'Marca por dónde empezar. Se repite cada trimestre, junto con el control.',
+      bloques: [
         {
           tipo: 'evaluacion',
           id: 'autoevaluacion',
@@ -1278,62 +1305,69 @@ export function secciones(f: Ficha): Seccion[] {
       intro: 'Pedidos e incidentes se miran todos los meses y el resto una vez por trimestre. Lo que no se mide se acumula, y con datos lo que se acumula es riesgo.',
       bloques: [
         {
-          tipo: 'kpis',
-          items: [
+          tipo: 'plegable',
+          titulo: 'Cómo se calcula cada indicador',
+          bajada: 'Fórmula, lectura y meta',
+          bloques: [
             {
-              nombre: 'Pedidos respondidos en plazo',
-              formula: 'Pedidos respondidos dentro del plazo legal, dividido pedidos con vencimiento en el mes, por cien.',
-              lectura: 'Es una obligación legal, no una meta comercial. Un pedido fuera de plazo habilita {viaReclamo}.',
-              meta: 'Todos dentro del plazo',
-              frecuencia: 'Mensual',
-              fuente: 'Registro de pedidos',
-            },
-            {
-              nombre: 'Tiempo de respuesta',
-              formula: 'Días entre la entrada y la respuesta de cada pedido, en promedio y el máximo del mes.',
-              lectura: 'El promedio muestra la rutina y el máximo muestra el riesgo. Un máximo cerca del vencimiento avisa que el circuito depende de una sola persona.',
-              frecuencia: 'Mensual',
-              fuente: 'Registro de pedidos',
-            },
-            {
-              nombre: 'Incidentes',
-              formula: 'Incidentes registrados en el mes por tipo, y horas entre la detección y el aviso a {contacto}.',
-              lectura: 'Que aparezcan incidentes menores registrados es buena señal, porque muestra que el equipo avisa. Lo preocupante es el aviso tardío.',
-              meta: 'Aviso en el día',
-              frecuencia: 'Mensual',
-              fuente: 'Registro de incidentes',
-            },
-            {
-              nombre: 'Proveedores con acuerdo de tratamiento',
-              formula: 'Proveedores con acuerdo guardado, dividido proveedores que alojan o acceden a datos, por cien.',
-              lectura: 'Cada proveedor sin acuerdo es un tratamiento sin instrucciones ni deber de confidencialidad documentados.',
-              meta: 'Todos',
-              frecuencia: 'Trimestral',
-              fuente: 'Mapa de datos',
-            },
-            {
-              nombre: 'Colaboradores con confidencialidad firmada',
-              formula: 'Colaboradores con compromiso firmado, dividido colaboradores con acceso a datos, por cien.',
-              lectura: 'Se controla en cada alta. El compromiso se firma antes del primer acceso, no después.',
-              meta: 'Todos',
-              frecuencia: 'Mensual',
-              fuente: 'Legajos del equipo',
-            },
-            {
-              nombre: 'Registros eliminados según el plazo',
-              formula: 'Registros suprimidos, dividido registros con plazo vencido en el período, por cien.',
-              lectura: 'Mide si los plazos de la ficha se aplican en la práctica. Si baja, los datos se acumulan y cada pedido o incidente alcanza a más personas.',
-              meta: 'Todos los vencidos',
-              frecuencia: 'Trimestral',
-              fuente: '{crm}, {registro} y {correoMasivo}',
-            },
-            {
-              nombre: 'Accesos revocados a tiempo',
-              formula: 'Salidas del equipo con accesos revocados el mismo día, dividido salidas del período, por cien.',
-              lectura: 'Un acceso vivo de alguien que ya no está es una de las puertas de incidente más fáciles de cerrar.',
-              meta: 'Todas en el día',
-              frecuencia: 'Mensual',
-              fuente: 'Registro de accesos',
+              tipo: 'kpis',
+              items: [
+                {
+                  nombre: 'Pedidos respondidos en plazo',
+                  formula: 'Pedidos respondidos dentro del plazo legal, dividido pedidos con vencimiento en el mes, por cien.',
+                  lectura: 'Es una obligación legal, no una meta comercial. Un pedido fuera de plazo habilita {viaReclamo}.',
+                  meta: 'Todos dentro del plazo',
+                  frecuencia: 'Mensual',
+                  fuente: 'Registro de pedidos',
+                },
+                {
+                  nombre: 'Tiempo de respuesta',
+                  formula: 'Días entre la entrada y la respuesta de cada pedido, en promedio y el máximo del mes.',
+                  lectura: 'El promedio muestra la rutina y el máximo muestra el riesgo. Un máximo cerca del vencimiento avisa que el circuito depende de una sola persona.',
+                  frecuencia: 'Mensual',
+                  fuente: 'Registro de pedidos',
+                },
+                {
+                  nombre: 'Incidentes',
+                  formula: 'Incidentes registrados en el mes por tipo, y horas entre la detección y el aviso a {contacto}.',
+                  lectura: 'Que aparezcan incidentes menores registrados es buena señal, porque muestra que el equipo avisa. Lo preocupante es el aviso tardío.',
+                  meta: 'Aviso en el día',
+                  frecuencia: 'Mensual',
+                  fuente: 'Registro de incidentes',
+                },
+                {
+                  nombre: 'Proveedores con acuerdo de tratamiento',
+                  formula: 'Proveedores con acuerdo guardado, dividido proveedores que alojan o acceden a datos, por cien.',
+                  lectura: 'Cada proveedor sin acuerdo es un tratamiento sin instrucciones ni deber de confidencialidad documentados.',
+                  meta: 'Todos',
+                  frecuencia: 'Trimestral',
+                  fuente: 'Mapa de datos',
+                },
+                {
+                  nombre: 'Colaboradores con confidencialidad firmada',
+                  formula: 'Colaboradores con compromiso firmado, dividido colaboradores con acceso a datos, por cien.',
+                  lectura: 'Se controla en cada alta. El compromiso se firma antes del primer acceso, no después.',
+                  meta: 'Todos',
+                  frecuencia: 'Mensual',
+                  fuente: 'Legajos del equipo',
+                },
+                {
+                  nombre: 'Registros eliminados según el plazo',
+                  formula: 'Registros suprimidos, dividido registros con plazo vencido en el período, por cien.',
+                  lectura: 'Mide si los plazos de la ficha se aplican en la práctica. Si baja, los datos se acumulan y cada pedido o incidente alcanza a más personas.',
+                  meta: 'Todos los vencidos',
+                  frecuencia: 'Trimestral',
+                  fuente: '{crm}, {registro} y {correoMasivo}',
+                },
+                {
+                  nombre: 'Accesos revocados a tiempo',
+                  formula: 'Salidas del equipo con accesos revocados el mismo día, dividido salidas del período, por cien.',
+                  lectura: 'Un acceso vivo de alguien que ya no está es una de las puertas de incidente más fáciles de cerrar.',
+                  meta: 'Todas en el día',
+                  frecuencia: 'Mensual',
+                  fuente: 'Registro de accesos',
+                },
+              ],
             },
           ],
         },

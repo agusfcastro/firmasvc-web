@@ -739,6 +739,16 @@
   line-height: 1.06;
 }
 
+/* Plegable de consulta. Lo de adentro va con el mismo espaciado que una sección. */
+
+.plegable {
+  padding-top: 4px;
+}
+
+.plegable > .bloque[data-bloque='subtitulo']:first-child h3 {
+  margin-top: 0;
+}
+
 /* Video arriba de una sección */
 
 .videoSeccion {

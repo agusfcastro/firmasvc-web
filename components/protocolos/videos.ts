@@ -45,7 +45,7 @@ export const VIDEOS: Record<string, VideosProtocolo> = {
   },
   '/protocolo-datos': {
     presentacion: '',
-    secciones: { pedidos: '' },
+    secciones: { incidentes: '' },
   },
 };
 

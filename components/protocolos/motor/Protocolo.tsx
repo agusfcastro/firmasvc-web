@@ -568,6 +568,18 @@ function RenderBloque({
           ))}
         </div>
       );
+    case 'plegable':
+      return (
+        <Acordeon titulo={b.titulo} subtitulo={b.bajada ?? 'Para profundizar'}>
+          <div className={m.plegable}>
+            {b.bloques.map((x, i) => (
+              <div key={i} className={m.bloque} data-bloque={x.tipo}>
+                <RenderBloque b={x} ficha={ficha} defFicha={defFicha} actualizar={actualizar} guardado={guardado} faltan={faltan} onEjemplo={onEjemplo} onLimpiar={onLimpiar} />
+              </div>
+            ))}
+          </div>
+        </Acordeon>
+      );
     case 'repaso':
       return <Repaso apertura={b.apertura} cierre={b.cierre} items={b.items} listo={b.listo} nota={b.nota} />;
     case 'checklist':

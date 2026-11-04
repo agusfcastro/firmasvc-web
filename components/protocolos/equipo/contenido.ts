@@ -186,43 +186,49 @@ export function secciones(f: Ficha): Seccion[] {
             },
           ],
         },
-        { tipo: 'subtitulo', texto: 'Cómo se ve en la práctica' },
         {
-          tipo: 'tarjetas',
-          items: [
-            ind
-              ? {
-                  titulo: 'Resultados, no horas',
-                  texto: 'Un closer independiente no aparece conectado a la mañana. No se le pregunta dónde estaba. Se mira si cumplió lo acordado y se coordina lo que viene.',
-                  cita: '[[Nombre]], para esta semana hay [[cantidad]] agendas disponibles. Contame qué franjas vas a abrir y el setter las carga en {crm}.',
-                }
-              : {
-                  titulo: 'Resultados, no horas',
-                  texto: 'Una integrante cumple su jornada pero sus llamadas no convierten. La conversación no es sobre horas sino sobre resultados.',
-                  cita: '[[Nombre]], tu jornada está bien organizada. Quiero que miremos juntos tus resultados del mes y veamos qué ajustar en las llamadas.',
-                },
+          tipo: 'plegable',
+          titulo: 'Cómo se ve en la práctica',
+          bajada: 'Un ejemplo por principio',
+          bloques: [
             {
-              titulo: 'Lo que se acuerda se escribe',
-              texto: 'En una llamada se acordó un cambio en el porcentaje de comisión. Antes de terminar el día sale este mensaje.',
-              cita: 'Como hablamos recién, te confirmo que desde el [[fecha]] tu comisión pasa a ser del [[porcentaje]] sobre las ventas cobradas desde esa fecha. Si estás de acuerdo, respondé este mensaje y lo dejamos firmado como adenda.',
-            },
-            {
-              titulo: 'El acceso es prestado',
-              texto: 'Un setter pide exportar la base de prospectos para trabajar desde su teléfono.',
-              cita: 'Por seguridad, los datos de clientes no salen de {crm}. Decime qué necesitás y lo resolvemos dentro del sistema.',
-            },
-            ind
-              ? {
-                  titulo: 'Práctica y contrato',
-                  texto:
-                    'Un líder quiere descontarle a un colaborador independiente la reunión a la que faltó. La respuesta correcta frena la práctica y la reemplaza por lo que sí prevé el contrato.',
-                  cita: 'Con independientes no hay descuentos por ausencias. Pasale el resumen escrito y, si el resultado del mes no llega, lo vemos en la revisión de objetivos.',
-                }
-              : {
-                  titulo: 'Práctica y contrato',
-                  texto: 'Un líder quiere descontarle a un empleado una llegada tarde. La ley laboral no permite multas y las sanciones siguen sus propias reglas.',
-                  cita: 'No se descuenta. Si la demora se repite, hablalo con dirección y se evalúa con el abogado qué corresponde.',
+              tipo: 'tarjetas',
+              items: [
+                ind
+                  ? {
+                      titulo: 'Resultados, no horas',
+                      texto: 'Un closer independiente no aparece conectado a la mañana. No se le pregunta dónde estaba. Se mira si cumplió lo acordado y se coordina lo que viene.',
+                      cita: '[[Nombre]], para esta semana hay [[cantidad]] agendas disponibles. Contame qué franjas vas a abrir y el setter las carga en {crm}.',
+                    }
+                  : {
+                      titulo: 'Resultados, no horas',
+                      texto: 'Una integrante cumple su jornada pero sus llamadas no convierten. La conversación no es sobre horas sino sobre resultados.',
+                      cita: '[[Nombre]], tu jornada está bien organizada. Quiero que miremos juntos tus resultados del mes y veamos qué ajustar en las llamadas.',
+                    },
+                {
+                  titulo: 'Lo que se acuerda se escribe',
+                  texto: 'En una llamada se acordó un cambio en el porcentaje de comisión. Antes de terminar el día sale este mensaje.',
+                  cita: 'Como hablamos recién, te confirmo que desde el [[fecha]] tu comisión pasa a ser del [[porcentaje]] sobre las ventas cobradas desde esa fecha. Si estás de acuerdo, respondé este mensaje y lo dejamos firmado como adenda.',
                 },
+                {
+                  titulo: 'El acceso es prestado',
+                  texto: 'Un setter pide exportar la base de prospectos para trabajar desde su teléfono.',
+                  cita: 'Por seguridad, los datos de clientes no salen de {crm}. Decime qué necesitás y lo resolvemos dentro del sistema.',
+                },
+                ind
+                  ? {
+                      titulo: 'Práctica y contrato',
+                      texto:
+                        'Un líder quiere descontarle a un colaborador independiente la reunión a la que faltó. La respuesta correcta frena la práctica y la reemplaza por lo que sí prevé el contrato.',
+                      cita: 'Con independientes no hay descuentos por ausencias. Pasale el resumen escrito y, si el resultado del mes no llega, lo vemos en la revisión de objetivos.',
+                    }
+                  : {
+                      titulo: 'Práctica y contrato',
+                      texto: 'Un líder quiere descontarle a un empleado una llegada tarde. La ley laboral no permite multas y las sanciones siguen sus propias reglas.',
+                      cita: 'No se descuenta. Si la demora se repite, hablalo con dirección y se evalúa con el abogado qué corresponde.',
+                    },
+              ],
+            },
           ],
         },
       ],
@@ -423,30 +429,36 @@ export function secciones(f: Ficha): Seccion[] {
             },
           ],
         },
-        { tipo: 'subtitulo', texto: 'Qué hacer con cada señal' },
         {
-          tipo: 'tarjetas',
-          items: [
+          tipo: 'plegable',
+          titulo: 'Qué hacer con cada señal',
+          bajada: 'Cómo corregir las señales más comunes',
+          bloques: [
             {
-              titulo: 'Cómo corregir las señales más comunes',
-              leads: [
-                { lead: 'Horario.', texto: 'Reemplazalo por franjas que ofrece el colaborador y por objetivos de resultado.' },
-                { lead: 'Sanciones y descuentos.', texto: 'Eliminalos. Si hay incumplimiento, se aplica lo que prevé el contrato.' },
-                { lead: 'Permisos.', texto: 'Pasá a avisos de disponibilidad con una anticipación razonable.' },
-                { lead: 'Factura.', texto: 'Sin factura no se paga. Se pide antes de cada pago.' },
-                { lead: 'Jefatura.', texto: 'Un referente de coordinación en lugar de un jefe, fuera del organigrama de empleados.' },
-                { lead: 'Exclusividad.', texto: 'Limitala a lo necesario, como confidencialidad y no captación de clientes.' },
-              ],
-            },
-            {
-              titulo: 'Lo que no es señal de dependencia',
-              check: true,
-              lista: [
-                'Pedir resultados medibles y estándares de calidad.',
-                'Exigir las reglas legales de comunicación con clientes.',
-                'Coordinar agendas y prioridades del servicio.',
-                'Dar acceso a {crm} para cargar las ventas del servicio.',
-                'Pactar confidencialidad, cuidado de datos y no captación.',
+              tipo: 'tarjetas',
+              items: [
+                {
+                  titulo: 'Cómo corregir las señales más comunes',
+                  leads: [
+                    { lead: 'Horario.', texto: 'Reemplazalo por franjas que ofrece el colaborador y por objetivos de resultado.' },
+                    { lead: 'Sanciones y descuentos.', texto: 'Eliminalos. Si hay incumplimiento, se aplica lo que prevé el contrato.' },
+                    { lead: 'Permisos.', texto: 'Pasá a avisos de disponibilidad con una anticipación razonable.' },
+                    { lead: 'Factura.', texto: 'Sin factura no se paga. Se pide antes de cada pago.' },
+                    { lead: 'Jefatura.', texto: 'Un referente de coordinación en lugar de un jefe, fuera del organigrama de empleados.' },
+                    { lead: 'Exclusividad.', texto: 'Limitala a lo necesario, como confidencialidad y no captación de clientes.' },
+                  ],
+                },
+                {
+                  titulo: 'Lo que no es señal de dependencia',
+                  check: true,
+                  lista: [
+                    'Pedir resultados medibles y estándares de calidad.',
+                    'Exigir las reglas legales de comunicación con clientes.',
+                    'Coordinar agendas y prioridades del servicio.',
+                    'Dar acceso a {crm} para cargar las ventas del servicio.',
+                    'Pactar confidencialidad, cuidado de datos y no captación.',
+                  ],
+                },
               ],
             },
           ],
@@ -518,59 +530,66 @@ export function secciones(f: Ficha): Seccion[] {
           nota: 'Simulación orientativa. Lo que manda es el contrato de cada persona. El tratamiento impositivo del recupero, por ejemplo si corresponde una nota de crédito, lo define el contador.',
         },
         {
-          tipo: 'tarjetas',
-          items: [
+          tipo: 'plegable',
+          titulo: 'Reglas de la liquidación y del recupero',
+          bajada: 'Para profundizar',
+          bloques: [
             {
-              titulo: 'Reglas de la liquidación',
-              check: true,
-              lista: [
-                ind ? 'La base es lo cobrado, no lo vendido.' : 'La base sigue la política de comisiones y la ley laboral.',
-                'Cada liquidación lleva detalle por venta, con fecha, cliente y monto.',
-                'Se envía por escrito desde {correoAdmin}, {liquidacion}.',
-                'La persona revisa el detalle antes de facturar o de cobrar y puede objetarlo por escrito.',
-                'Ningún pago se retiene como forma de presión.',
-                'Los cambios de porcentaje van por adenda firmada y rigen hacia adelante.',
+              tipo: 'tarjetas',
+              items: [
+                {
+                  titulo: 'Reglas de la liquidación',
+                  check: true,
+                  lista: [
+                    ind ? 'La base es lo cobrado, no lo vendido.' : 'La base sigue la política de comisiones y la ley laboral.',
+                    'Cada liquidación lleva detalle por venta, con fecha, cliente y monto.',
+                    'Se envía por escrito desde {correoAdmin}, {liquidacion}.',
+                    'La persona revisa el detalle antes de facturar o de cobrar y puede objetarlo por escrito.',
+                    'Ningún pago se retiene como forma de presión.',
+                    'Los cambios de porcentaje van por adenda firmada y rigen hacia adelante.',
+                  ],
+                },
+                ...(conRecupero
+                  ? [
+                      {
+                        titulo: 'Cómo funciona el recupero pactado',
+                        numerada: true,
+                        lista: [
+                          'Solo alcanza ventas propias con reembolso o contracargo dentro de los {ventana} siguientes al cobro.',
+                          'Se recupera la comisión de esa venta y nunca más que eso.',
+                          'Se avisa por escrito, con el comprobante, antes de compensar.',
+                          'Se compensa contra comisiones futuras y no contra otros pagos.',
+                          'Si la relación termina con saldo pendiente, se pide por escrito y, si no se paga, decide legales.',
+                        ],
+                      },
+                    ]
+                  : ind
+                    ? [
+                        {
+                          titulo: 'Antes de activar el recupero',
+                          numerada: true,
+                          lista: [
+                            'Tiene que estar en el contrato de forma expresa, con ventana fija y base de cálculo.',
+                            'Rige solo para ventas posteriores a la firma de la cláusula.',
+                            'Se revisa con el abogado y con el contador antes de aplicarlo.',
+                          ],
+                        },
+                      ]
+                    : []),
+                ...(dep
+                  ? [
+                      {
+                        titulo: 'Con personal en relación de dependencia',
+                        lista: [
+                          'La comisión es remuneración y se liquida con el recibo de sueldo.',
+                          'Se rige por la política escrita de comisiones y por {normaLaboral}.',
+                          'No se descuentan reembolsos ni contracargos sin revisión legal previa ({normaComision}).',
+                        ],
+                      },
+                    ]
+                  : []),
               ],
             },
-            ...(conRecupero
-              ? [
-                  {
-                    titulo: 'Cómo funciona el recupero pactado',
-                    numerada: true,
-                    lista: [
-                      'Solo alcanza ventas propias con reembolso o contracargo dentro de los {ventana} siguientes al cobro.',
-                      'Se recupera la comisión de esa venta y nunca más que eso.',
-                      'Se avisa por escrito, con el comprobante, antes de compensar.',
-                      'Se compensa contra comisiones futuras y no contra otros pagos.',
-                      'Si la relación termina con saldo pendiente, se pide por escrito y, si no se paga, decide legales.',
-                    ],
-                  },
-                ]
-              : ind
-                ? [
-                    {
-                      titulo: 'Antes de activar el recupero',
-                      numerada: true,
-                      lista: [
-                        'Tiene que estar en el contrato de forma expresa, con ventana fija y base de cálculo.',
-                        'Rige solo para ventas posteriores a la firma de la cláusula.',
-                        'Se revisa con el abogado y con el contador antes de aplicarlo.',
-                      ],
-                    },
-                  ]
-                : []),
-            ...(dep
-              ? [
-                  {
-                    titulo: 'Con personal en relación de dependencia',
-                    lista: [
-                      'La comisión es remuneración y se liquida con el recibo de sueldo.',
-                      'Se rige por la política escrita de comisiones y por {normaLaboral}.',
-                      'No se descuentan reembolsos ni contracargos sin revisión legal previa ({normaComision}).',
-                    ],
-                  },
-                ]
-              : []),
           ],
         },
         {
@@ -586,12 +605,19 @@ export function secciones(f: Ficha): Seccion[] {
       intro: 'Quién hace cada tarea y con qué ritmo se encuentra el equipo. Cada fila tiene una sola A, que es quien decide y responde.',
       bloques: [
         {
-          tipo: 'tips',
-          items: [
-            { titulo: 'R · Responsable', texto: 'Hace la tarea. Puede haber más de una persona.' },
-            { titulo: 'A · Aprueba', texto: 'Decide y responde por el resultado. Hay una sola por tarea.' },
-            { titulo: 'C · Consultado', texto: 'Aporta antes de decidir. Su opinión se pide, no se supone.' },
-            { titulo: 'I · Informado', texto: 'Se entera del resultado, por escrito y a tiempo.' },
+          tipo: 'plegable',
+          titulo: 'Cómo se lee la matriz',
+          bajada: 'Responsable, aprueba, consultado e informado',
+          bloques: [
+            {
+              tipo: 'tips',
+              items: [
+                { titulo: 'R · Responsable', texto: 'Hace la tarea. Puede haber más de una persona.' },
+                { titulo: 'A · Aprueba', texto: 'Decide y responde por el resultado. Hay una sola por tarea.' },
+                { titulo: 'C · Consultado', texto: 'Aporta antes de decidir. Su opinión se pide, no se supone.' },
+                { titulo: 'I · Informado', texto: 'Se entera del resultado, por escrito y a tiempo.' },
+              ],
+            },
           ],
         },
         {
@@ -875,100 +901,107 @@ export function secciones(f: Ficha): Seccion[] {
       corto: 'Tablero',
       intro: 'Se mide por rol y por equipo, una vez por mes, con datos de {crm} y de administración. Cada persona ve sus números antes de la revisión.',
       bloques: [
-        { tipo: 'subtitulo', texto: 'Por rol' },
         {
-          tipo: 'kpis',
-          items: [
+          tipo: 'plegable',
+          titulo: 'Cómo se calcula cada indicador',
+          bajada: 'Por rol y del equipo',
+          bloques: [
+            { tipo: 'subtitulo', texto: 'Por rol' },
             {
-              nombre: 'Agendas calificadas · setter',
-              formula: 'Agendas que cumplen los criterios de calificación, dividido agendas generadas, por cien.',
-              lectura: 'Mide la calidad del trabajo del setter. Las agendas sin calificar consumen tiempo de los closers.',
-              meta: 'Subir mes a mes',
-              frecuencia: 'Mensual',
-              fuente: '{crm}',
+              tipo: 'kpis',
+              items: [
+                {
+                  nombre: 'Agendas calificadas · setter',
+                  formula: 'Agendas que cumplen los criterios de calificación, dividido agendas generadas, por cien.',
+                  lectura: 'Mide la calidad del trabajo del setter. Las agendas sin calificar consumen tiempo de los closers.',
+                  meta: 'Subir mes a mes',
+                  frecuencia: 'Mensual',
+                  fuente: '{crm}',
+                },
+                {
+                  nombre: 'Asistencia a llamadas · setter',
+                  formula: 'Llamadas realizadas, dividido llamadas agendadas, por cien.',
+                  lectura: 'Si baja, revisá la calificación y la confirmación previa de cada agenda.',
+                  meta: 'Subir mes a mes',
+                  frecuencia: 'Mensual',
+                  fuente: '{crm}',
+                },
+                {
+                  nombre: 'Tasa de cierre · closer',
+                  formula: 'Ventas, dividido llamadas realizadas, por cien.',
+                  lectura: 'Se lee junto con los reembolsos. Un cierre alto con reembolsos altos indica promesas de más.',
+                  meta: 'Estable o en alza, con reembolsos en baja',
+                  frecuencia: 'Mensual',
+                  fuente: '{crm}',
+                },
+                {
+                  nombre: 'Cobro efectivo · closer',
+                  formula: 'Monto cobrado, dividido monto vendido, por cien.',
+                  lectura: 'La venta que no se cobra no existe y es la base de la comisión.',
+                  meta: 'Subir mes a mes',
+                  frecuencia: 'Mensual',
+                  fuente: 'Administración',
+                },
+                {
+                  nombre: 'Reembolsos de sus ventas · closer',
+                  formula: 'Monto reembolsado o en contracargo, dividido monto cobrado, por cien.',
+                  lectura: 'Mide la calidad de la venta. Se cruza con el protocolo de llamadas y con el de conflictos.',
+                  meta: 'Bajar mes a mes',
+                  frecuencia: 'Mensual',
+                  fuente: 'Administración',
+                },
+                {
+                  nombre: 'Hitos cumplidos · acompañamiento',
+                  formula: 'Hitos confirmados por escrito en plazo, dividido hitos previstos, por cien.',
+                  lectura: 'Mide la prestación real y construye la prueba frente a reclamos.',
+                  meta: 'Subir mes a mes',
+                  frecuencia: 'Mensual',
+                  fuente: '{gestor}',
+                },
+              ],
             },
+            { tipo: 'subtitulo', texto: 'Del equipo' },
             {
-              nombre: 'Asistencia a llamadas · setter',
-              formula: 'Llamadas realizadas, dividido llamadas agendadas, por cien.',
-              lectura: 'Si baja, revisá la calificación y la confirmación previa de cada agenda.',
-              meta: 'Subir mes a mes',
-              frecuencia: 'Mensual',
-              fuente: '{crm}',
+              tipo: 'kpis',
+              items: [
+                {
+                  nombre: 'Rotación',
+                  formula: 'Salidas del período, dividido promedio de integrantes, por cien.',
+                  lectura: 'Separá las salidas por decisión propia de las decididas por la empresa. Cada salida tiene su causa registrada.',
+                  meta: 'Bajar o mantener',
+                  frecuencia: 'Trimestral',
+                  fuente: 'Legajos',
+                },
+                {
+                  nombre: 'Tiempo hasta la productividad',
+                  formula: 'Días entre el ingreso y [[el primer hito acordado, por ejemplo la primera venta cobrada]].',
+                  lectura: 'Mide la calidad de la incorporación y de los materiales.',
+                  meta: 'Bajar trimestre a trimestre',
+                  frecuencia: 'Por ingreso',
+                  fuente: '{crm}',
+                },
+                {
+                  nombre: 'Liquidaciones sin diferencias',
+                  formula: 'Liquidaciones sin reclamo, dividido liquidaciones enviadas, por cien.',
+                  lectura: 'Mide la claridad de las reglas de comisión.',
+                  meta: 'Subir mes a mes',
+                  frecuencia: 'Mensual',
+                  fuente: 'Administración',
+                },
+                ...(ind
+                  ? [
+                      {
+                        nombre: 'Encuadre en verde',
+                        formula: 'Independientes con el semáforo en verde, dividido total de independientes, por cien.',
+                        lectura: 'Es el indicador legal del tablero. Cada ámbar o rojo tiene un plan con fecha.',
+                        meta: 'Todos en verde',
+                        frecuencia: 'Trimestral',
+                        fuente: 'Semáforo de independencia',
+                      },
+                    ]
+                  : []),
+              ],
             },
-            {
-              nombre: 'Tasa de cierre · closer',
-              formula: 'Ventas, dividido llamadas realizadas, por cien.',
-              lectura: 'Se lee junto con los reembolsos. Un cierre alto con reembolsos altos indica promesas de más.',
-              meta: 'Estable o en alza, con reembolsos en baja',
-              frecuencia: 'Mensual',
-              fuente: '{crm}',
-            },
-            {
-              nombre: 'Cobro efectivo · closer',
-              formula: 'Monto cobrado, dividido monto vendido, por cien.',
-              lectura: 'La venta que no se cobra no existe y es la base de la comisión.',
-              meta: 'Subir mes a mes',
-              frecuencia: 'Mensual',
-              fuente: 'Administración',
-            },
-            {
-              nombre: 'Reembolsos de sus ventas · closer',
-              formula: 'Monto reembolsado o en contracargo, dividido monto cobrado, por cien.',
-              lectura: 'Mide la calidad de la venta. Se cruza con el protocolo de llamadas y con el de conflictos.',
-              meta: 'Bajar mes a mes',
-              frecuencia: 'Mensual',
-              fuente: 'Administración',
-            },
-            {
-              nombre: 'Hitos cumplidos · acompañamiento',
-              formula: 'Hitos confirmados por escrito en plazo, dividido hitos previstos, por cien.',
-              lectura: 'Mide la prestación real y construye la prueba frente a reclamos.',
-              meta: 'Subir mes a mes',
-              frecuencia: 'Mensual',
-              fuente: '{gestor}',
-            },
-          ],
-        },
-        { tipo: 'subtitulo', texto: 'Del equipo' },
-        {
-          tipo: 'kpis',
-          items: [
-            {
-              nombre: 'Rotación',
-              formula: 'Salidas del período, dividido promedio de integrantes, por cien.',
-              lectura: 'Separá las salidas por decisión propia de las decididas por la empresa. Cada salida tiene su causa registrada.',
-              meta: 'Bajar o mantener',
-              frecuencia: 'Trimestral',
-              fuente: 'Legajos',
-            },
-            {
-              nombre: 'Tiempo hasta la productividad',
-              formula: 'Días entre el ingreso y [[el primer hito acordado, por ejemplo la primera venta cobrada]].',
-              lectura: 'Mide la calidad de la incorporación y de los materiales.',
-              meta: 'Bajar trimestre a trimestre',
-              frecuencia: 'Por ingreso',
-              fuente: '{crm}',
-            },
-            {
-              nombre: 'Liquidaciones sin diferencias',
-              formula: 'Liquidaciones sin reclamo, dividido liquidaciones enviadas, por cien.',
-              lectura: 'Mide la claridad de las reglas de comisión.',
-              meta: 'Subir mes a mes',
-              frecuencia: 'Mensual',
-              fuente: 'Administración',
-            },
-            ...(ind
-              ? [
-                  {
-                    nombre: 'Encuadre en verde',
-                    formula: 'Independientes con el semáforo en verde, dividido total de independientes, por cien.',
-                    lectura: 'Es el indicador legal del tablero. Cada ámbar o rojo tiene un plan con fecha.',
-                    meta: 'Todos en verde',
-                    frecuencia: 'Trimestral',
-                    fuente: 'Semáforo de independencia',
-                  },
-                ]
-              : []),
           ],
         },
         {

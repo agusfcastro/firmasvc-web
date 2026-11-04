@@ -101,29 +101,35 @@ export function secciones(f: Ficha): Seccion[] {
             },
           ],
         },
-        { tipo: 'subtitulo', texto: 'Cómo se ve en la práctica' },
         {
-          tipo: 'tarjetas',
-          items: [
+          tipo: 'plegable',
+          titulo: 'Cómo se ve en la práctica',
+          bajada: 'Un ejemplo por principio',
+          bloques: [
             {
-              titulo: 'Por resultados',
-              texto: 'El perfil no pide años de experiencia. Dice qué tiene que haber pasado a los 90 días.',
-              cita: 'A los 90 días, la persona en el puesto [[resultado medible, por ejemplo cierra un número de ventas por mes con el guion aprobado]] y [[segundo resultado]].',
-            },
-            {
-              titulo: 'Misma vara',
-              texto: 'Antes de la puesta en común, cada entrevistador carga su puntaje y su evidencia. Recién después se discute.',
-              cita: 'Antes de hablar del candidato, cada uno carga su rúbrica en {herramienta}. Después comparamos y decidimos con la evidencia a la vista.',
-            },
-            {
-              titulo: 'Nada de trabajo gratis',
-              texto: 'Alguien del equipo propone que la prueba resuelva un caso real del negocio. La respuesta es una sola línea.',
-              cita: 'La prueba mide una habilidad, no resuelve un pendiente. Si queremos ese trabajo, lo contratamos y lo pagamos aparte.',
-            },
-            {
-              titulo: 'Datos prestados',
-              texto: 'Al cerrar la búsqueda, quien no quedó recibe el pedido de consentimiento. Sin respuesta, su postulación se elimina.',
-              cita: 'Si querés que tengamos en cuenta tu postulación para futuras búsquedas, respondé que sí y la conservamos por {meses}. Si no, la eliminamos.',
+              tipo: 'tarjetas',
+              items: [
+                {
+                  titulo: 'Por resultados',
+                  texto: 'El perfil no pide años de experiencia. Dice qué tiene que haber pasado a los 90 días.',
+                  cita: 'A los 90 días, la persona en el puesto [[resultado medible, por ejemplo cierra un número de ventas por mes con el guion aprobado]] y [[segundo resultado]].',
+                },
+                {
+                  titulo: 'Misma vara',
+                  texto: 'Antes de la puesta en común, cada entrevistador carga su puntaje y su evidencia. Recién después se discute.',
+                  cita: 'Antes de hablar del candidato, cada uno carga su rúbrica en {herramienta}. Después comparamos y decidimos con la evidencia a la vista.',
+                },
+                {
+                  titulo: 'Nada de trabajo gratis',
+                  texto: 'Alguien del equipo propone que la prueba resuelva un caso real del negocio. La respuesta es una sola línea.',
+                  cita: 'La prueba mide una habilidad, no resuelve un pendiente. Si queremos ese trabajo, lo contratamos y lo pagamos aparte.',
+                },
+                {
+                  titulo: 'Datos prestados',
+                  texto: 'Al cerrar la búsqueda, quien no quedó recibe el pedido de consentimiento. Sin respuesta, su postulación se elimina.',
+                  cita: 'Si querés que tengamos en cuenta tu postulación para futuras búsquedas, respondé que sí y la conservamos por {meses}. Si no, la eliminamos.',
+                },
+              ],
             },
           ],
         },
@@ -252,43 +258,55 @@ export function secciones(f: Ficha): Seccion[] {
             },
           ],
         },
-        { tipo: 'subtitulo', texto: 'El perfil del puesto en una página' },
         {
-          tipo: 'tarjetas',
-          items: [
+          tipo: 'plegable',
+          titulo: 'El perfil del puesto en una página',
+          bajada: 'Qué lleva y qué no',
+          bloques: [
             {
-              titulo: 'Qué lleva',
-              check: true,
-              lista: [
-                'Resultados esperados a 90 días, medibles.',
-                'Tres a cinco tareas principales.',
-                'Requisitos imprescindibles, cada uno justificado por una tarea.',
-                'Requisitos deseables, que suman pero no descartan.',
-                'Modalidad {modalidadTexto} y formato {formatoTexto}.',
-                'Rango y, si hay variable, su regla de cálculo por escrito.',
-                'Criterios y pesos de la rúbrica.',
-              ],
-            },
-            {
-              titulo: 'Qué no lleva',
-              lista: [
-                'Edad, sexo, estado civil, nacionalidad o religión.',
-                'Foto o buena presencia.',
-                'Títulos o años de experiencia que el puesto no necesita.',
-                'Residencia en una zona determinada si el puesto es remoto.',
-                'Disponibilidad total si el puesto no la requiere.',
+              tipo: 'tarjetas',
+              items: [
+                {
+                  titulo: 'Qué lleva',
+                  check: true,
+                  lista: [
+                    'Resultados esperados a 90 días, medibles.',
+                    'Tres a cinco tareas principales.',
+                    'Requisitos imprescindibles, cada uno justificado por una tarea.',
+                    'Requisitos deseables, que suman pero no descartan.',
+                    'Modalidad {modalidadTexto} y formato {formatoTexto}.',
+                    'Rango y, si hay variable, su regla de cálculo por escrito.',
+                    'Criterios y pesos de la rúbrica.',
+                  ],
+                },
+                {
+                  titulo: 'Qué no lleva',
+                  lista: [
+                    'Edad, sexo, estado civil, nacionalidad o religión.',
+                    'Foto o buena presencia.',
+                    'Títulos o años de experiencia que el puesto no necesita.',
+                    'Residencia en una zona determinada si el puesto es remoto.',
+                    'Disponibilidad total si el puesto no la requiere.',
+                  ],
+                },
               ],
             },
           ],
         },
-        { tipo: 'subtitulo', texto: 'Lo que se registra en cada etapa' },
         {
-          tipo: 'tips',
-          items: [
-            { titulo: 'Una sola fuente', texto: 'Cada postulación vive en {herramienta}, con su estado, sus fechas y su fuente. Nada en chats sueltos.' },
-            { titulo: 'Motivo de cada descarte', texto: 'Se anota con los criterios del perfil. Si el motivo no está en el perfil, no es un motivo válido.' },
-            { titulo: 'Notas sin datos personales', texto: 'Las notas describen lo que la persona dijo o hizo. Nada sobre su vida privada, su aspecto o su salud.' },
-            { titulo: 'Plazos visibles', texto: 'Cada etapa tiene fecha de respuesta. Nadie queda más de {diasRespuesta} sin novedades.' },
+          tipo: 'plegable',
+          titulo: 'Lo que se registra en cada etapa',
+          bajada: 'Para profundizar',
+          bloques: [
+            {
+              tipo: 'tips',
+              items: [
+                { titulo: 'Una sola fuente', texto: 'Cada postulación vive en {herramienta}, con su estado, sus fechas y su fuente. Nada en chats sueltos.' },
+                { titulo: 'Motivo de cada descarte', texto: 'Se anota con los criterios del perfil. Si el motivo no está en el perfil, no es un motivo válido.' },
+                { titulo: 'Notas sin datos personales', texto: 'Las notas describen lo que la persona dijo o hizo. Nada sobre su vida privada, su aspecto o su salud.' },
+                { titulo: 'Plazos visibles', texto: 'Cada etapa tiene fecha de respuesta. Nadie queda más de {diasRespuesta} sin novedades.' },
+              ],
+            },
           ],
         },
       ],
@@ -301,12 +319,19 @@ export function secciones(f: Ficha): Seccion[] {
         'La entrevista estructurada compara a todos con la misma vara. Mismas preguntas, mismo orden, puntaje individual con evidencia y recién después la puesta en común.',
       bloques: [
         {
-          tipo: 'tips',
-          items: [
-            { titulo: 'Puntaje individual', texto: 'Cada entrevistador puntúa solo y carga su evaluación antes de hablar con el resto.' },
-            { titulo: 'Evidencia, no impresión', texto: 'Cada puntaje se apoya en algo que la persona dijo o hizo. Sin ejemplo concreto, el puntaje no pasa de 2.' },
-            { titulo: 'Un criterio que frena', texto: 'Un 1 en Ética y cuidado del cliente frena el avance aunque el promedio dé verde.' },
-            { titulo: 'Calibración', texto: 'Al cerrar cada búsqueda se compara el puntaje de ingreso con la calidad a 90 días y se ajustan preguntas y anclas.' },
+          tipo: 'plegable',
+          titulo: 'Cómo se puntúa',
+          bajada: 'Cuatro reglas para que la rúbrica sea justa',
+          bloques: [
+            {
+              tipo: 'tips',
+              items: [
+                { titulo: 'Puntaje individual', texto: 'Cada entrevistador puntúa solo y carga su evaluación antes de hablar con el resto.' },
+                { titulo: 'Evidencia, no impresión', texto: 'Cada puntaje se apoya en algo que la persona dijo o hizo. Sin ejemplo concreto, el puntaje no pasa de 2.' },
+                { titulo: 'Un criterio que frena', texto: 'Un 1 en Ética y cuidado del cliente frena el avance aunque el promedio dé verde.' },
+                { titulo: 'Calibración', texto: 'Al cerrar cada búsqueda se compara el puntaje de ingreso con la calidad a 90 días y se ajustan preguntas y anclas.' },
+              ],
+            },
           ],
         },
         { tipo: 'subtitulo', texto: 'Banco de preguntas por criterio' },
@@ -547,25 +572,32 @@ export function secciones(f: Ficha): Seccion[] {
           nota: 'Herramienta orientativa. Las conversiones se comparan con búsquedas anteriores del mismo puesto, no con promedios de otros negocios.',
         },
         {
-          tipo: 'tarjetas',
-          items: [
+          tipo: 'plegable',
+          titulo: 'Cómo leer el embudo',
+          bajada: 'Para profundizar',
+          bloques: [
             {
-              titulo: 'Cómo leer el embudo',
-              lista: [
-                'Si entran muchas postulaciones y pocas pasan el filtro, revisá si el aviso explica bien requisitos, modalidad y rango.',
-                'Si muchos preseleccionados no llegan a la entrevista, revisá los tiempos de respuesta y la invitación.',
-                'Si muchas personas abandonan en la prueba, revisá su duración, la claridad de la consigna y si se paga.',
-                'Si se rechazan ofertas, preguntá el motivo a cada persona y registralo antes de cambiar el rango.',
-              ],
-            },
-            {
-              titulo: 'Antes de cargar los números',
-              check: true,
-              lista: [
-                'Cada postulación tiene su estado actualizado en {herramienta}.',
-                'Las horas del equipo están valorizadas con un mismo criterio en todas las búsquedas.',
-                'Los días se cuentan desde la apertura del aviso, no desde la primera entrevista.',
-                'Las ofertas rechazadas tienen su motivo registrado.',
+              tipo: 'tarjetas',
+              items: [
+                {
+                  titulo: 'Cómo leer el embudo',
+                  lista: [
+                    'Si entran muchas postulaciones y pocas pasan el filtro, revisá si el aviso explica bien requisitos, modalidad y rango.',
+                    'Si muchos preseleccionados no llegan a la entrevista, revisá los tiempos de respuesta y la invitación.',
+                    'Si muchas personas abandonan en la prueba, revisá su duración, la claridad de la consigna y si se paga.',
+                    'Si se rechazan ofertas, preguntá el motivo a cada persona y registralo antes de cambiar el rango.',
+                  ],
+                },
+                {
+                  titulo: 'Antes de cargar los números',
+                  check: true,
+                  lista: [
+                    'Cada postulación tiene su estado actualizado en {herramienta}.',
+                    'Las horas del equipo están valorizadas con un mismo criterio en todas las búsquedas.',
+                    'Los días se cuentan desde la apertura del aviso, no desde la primera entrevista.',
+                    'Las ofertas rechazadas tienen su motivo registrado.',
+                  ],
+                },
               ],
             },
           ],
@@ -981,70 +1013,77 @@ export function secciones(f: Ficha): Seccion[] {
       intro: 'Lo que no se mide se repite. Se revisa al cerrar cada búsqueda y una vez por trimestre, y alimenta los ajustes al perfil, al aviso y a la rúbrica.',
       bloques: [
         {
-          tipo: 'kpis',
-          items: [
+          tipo: 'plegable',
+          titulo: 'Cómo se calcula cada indicador',
+          bajada: 'Fórmula, lectura y meta',
+          bloques: [
             {
-              nombre: 'Tiempo de cobertura',
-              formula: 'Días corridos entre la apertura de la búsqueda y la aceptación de la oferta.',
-              lectura: 'Una búsqueda larga consume horas del equipo y deja más tiempo para que los mejores candidatos acepten otra propuesta.',
-              meta: 'Hasta {diasObjetivo}',
-              frecuencia: 'Por búsqueda',
-              fuente: '{herramienta}',
-            },
-            {
-              nombre: 'Costo por contratación',
-              formula: 'Costo total del proceso, con avisos, herramientas, pruebas pagas y horas del equipo valorizadas, dividido contrataciones aceptadas.',
-              lectura: 'Se mira junto con la calidad a 90 días. Bajarlo a costa de contratar peor sale más caro.',
-              meta: 'Bajar búsqueda a búsqueda sin perder calidad',
-              frecuencia: 'Por búsqueda',
-              fuente: 'Administración',
-            },
-            {
-              nombre: 'Aceptación de ofertas',
-              formula: 'Ofertas aceptadas, dividido ofertas emitidas, por cien.',
-              lectura: 'Si baja, revisá la oferta, los tiempos y si lo conversado en las entrevistas coincidió con lo ofrecido por escrito.',
-              meta: 'Subir búsqueda a búsqueda',
-              frecuencia: 'Por búsqueda',
-              fuente: 'Ofertas enviadas',
-            },
-            {
-              nombre: 'Conversión por etapa',
-              formula: 'Personas que pasan a la etapa siguiente, dividido personas que entraron a la etapa, por cien, en cada etapa.',
-              lectura: 'Muestra dónde se pierde gente. Se compara con búsquedas anteriores del mismo puesto.',
-              frecuencia: 'Por búsqueda',
-              fuente: '{herramienta}',
-            },
-            {
-              nombre: 'Calidad a 90 días',
-              formula: 'Ingresos que a los 90 días alcanzan los resultados del perfil, dividido ingresos del período, por cien.',
-              lectura: 'Valida todo el proceso. Se mide contra los resultados escritos en el perfil, no contra impresiones.',
-              meta: 'Subir trimestre a trimestre',
-              frecuencia: 'Trimestral',
-              fuente: 'Revisión de 90 días',
-            },
-            {
-              nombre: 'Rotación temprana',
-              formula: 'Bajas, voluntarias o no, dentro de los primeros 90 días, dividido ingresos del período, por cien.',
-              lectura:
-                'Cada baja temprana se analiza con su causa. Revisá primero si el perfil estaba bien definido y si lo prometido en la selección coincidió con el trabajo real.',
-              meta: 'Bajar trimestre a trimestre',
-              frecuencia: 'Trimestral',
-              fuente: 'Administración',
-            },
-            {
-              nombre: 'Fuente de los mejores candidatos',
-              formula: 'Contrataciones que superaron la revisión de 90 días, agrupadas por la fuente de su postulación.',
-              lectura: 'Indica dónde invertir en la próxima búsqueda. Una fuente con muchas postulaciones y ninguna buena contratación es un gasto, no un canal.',
-              frecuencia: 'Semestral',
-              fuente: '{herramienta}',
-            },
-            {
-              nombre: 'Respuesta en plazo',
-              formula: 'Candidatos que recibieron respuesta dentro de {diasRespuesta}, dividido candidatos que la esperaban, por cien.',
-              lectura: 'Cuida la reputación del negocio como empleador y deja constancia de un trato igual para todos.',
-              meta: 'Todos los candidatos',
-              frecuencia: 'Mensual',
-              fuente: '{herramienta}',
+              tipo: 'kpis',
+              items: [
+                {
+                  nombre: 'Tiempo de cobertura',
+                  formula: 'Días corridos entre la apertura de la búsqueda y la aceptación de la oferta.',
+                  lectura: 'Una búsqueda larga consume horas del equipo y deja más tiempo para que los mejores candidatos acepten otra propuesta.',
+                  meta: 'Hasta {diasObjetivo}',
+                  frecuencia: 'Por búsqueda',
+                  fuente: '{herramienta}',
+                },
+                {
+                  nombre: 'Costo por contratación',
+                  formula: 'Costo total del proceso, con avisos, herramientas, pruebas pagas y horas del equipo valorizadas, dividido contrataciones aceptadas.',
+                  lectura: 'Se mira junto con la calidad a 90 días. Bajarlo a costa de contratar peor sale más caro.',
+                  meta: 'Bajar búsqueda a búsqueda sin perder calidad',
+                  frecuencia: 'Por búsqueda',
+                  fuente: 'Administración',
+                },
+                {
+                  nombre: 'Aceptación de ofertas',
+                  formula: 'Ofertas aceptadas, dividido ofertas emitidas, por cien.',
+                  lectura: 'Si baja, revisá la oferta, los tiempos y si lo conversado en las entrevistas coincidió con lo ofrecido por escrito.',
+                  meta: 'Subir búsqueda a búsqueda',
+                  frecuencia: 'Por búsqueda',
+                  fuente: 'Ofertas enviadas',
+                },
+                {
+                  nombre: 'Conversión por etapa',
+                  formula: 'Personas que pasan a la etapa siguiente, dividido personas que entraron a la etapa, por cien, en cada etapa.',
+                  lectura: 'Muestra dónde se pierde gente. Se compara con búsquedas anteriores del mismo puesto.',
+                  frecuencia: 'Por búsqueda',
+                  fuente: '{herramienta}',
+                },
+                {
+                  nombre: 'Calidad a 90 días',
+                  formula: 'Ingresos que a los 90 días alcanzan los resultados del perfil, dividido ingresos del período, por cien.',
+                  lectura: 'Valida todo el proceso. Se mide contra los resultados escritos en el perfil, no contra impresiones.',
+                  meta: 'Subir trimestre a trimestre',
+                  frecuencia: 'Trimestral',
+                  fuente: 'Revisión de 90 días',
+                },
+                {
+                  nombre: 'Rotación temprana',
+                  formula: 'Bajas, voluntarias o no, dentro de los primeros 90 días, dividido ingresos del período, por cien.',
+                  lectura:
+                    'Cada baja temprana se analiza con su causa. Revisá primero si el perfil estaba bien definido y si lo prometido en la selección coincidió con el trabajo real.',
+                  meta: 'Bajar trimestre a trimestre',
+                  frecuencia: 'Trimestral',
+                  fuente: 'Administración',
+                },
+                {
+                  nombre: 'Fuente de los mejores candidatos',
+                  formula: 'Contrataciones que superaron la revisión de 90 días, agrupadas por la fuente de su postulación.',
+                  lectura: 'Indica dónde invertir en la próxima búsqueda. Una fuente con muchas postulaciones y ninguna buena contratación es un gasto, no un canal.',
+                  frecuencia: 'Semestral',
+                  fuente: '{herramienta}',
+                },
+                {
+                  nombre: 'Respuesta en plazo',
+                  formula: 'Candidatos que recibieron respuesta dentro de {diasRespuesta}, dividido candidatos que la esperaban, por cien.',
+                  lectura: 'Cuida la reputación del negocio como empleador y deja constancia de un trato igual para todos.',
+                  meta: 'Todos los candidatos',
+                  frecuencia: 'Mensual',
+                  fuente: '{herramienta}',
+                },
+              ],
             },
           ],
         },

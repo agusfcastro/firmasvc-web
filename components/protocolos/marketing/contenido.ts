@@ -595,30 +595,36 @@ export function secciones(f: Ficha): Seccion[] {
             },
           ],
         },
-        { tipo: 'subtitulo', texto: 'Cómo se ve en la práctica' },
         {
-          tipo: 'tarjetas',
-          items: [
+          tipo: 'plegable',
+          titulo: 'Cómo se ve en la práctica',
+          bajada: 'Un ejemplo por principio',
+          bloques: [
             {
-              titulo: 'Toda pieza es una oferta',
-              texto:
-                'Un anuncio dice acceso de por vida a la comunidad y el contrato dice doce meses. Frente a un consumidor puede valer lo que dice el anuncio, así que la pieza se corrige antes de publicarse.',
-              cita: 'Acceso a la comunidad durante doce meses desde tu inscripción.',
-            },
-            {
-              titulo: 'Resultados con contexto',
-              texto: 'En lugar de una cifra suelta, el caso se cuenta con su punto de partida y su esfuerzo.',
-              cita: '[[Nombre]] facturó [[monto]] en su tercer mes, con un negocio que ya vendía y dedicando [[horas]] por semana. Es su caso. Tus resultados dependen de tu punto de partida y de tu implementación.',
-            },
-            {
-              titulo: 'La urgencia tiene que ser real',
-              texto: 'La promoción cerraba el viernes y hace falta más tiempo. No se inventa un cupo liberado. Se anuncia la extensión, con su motivo y una sola vez.',
-              cita: 'Extendimos la inscripción hasta el [[fecha]] porque [[motivo real]]. Después de esa fecha no hay prórroga.',
-            },
-            {
-              titulo: 'La publicidad se identifica',
-              texto: 'La identificación va al principio del texto y con la etiqueta de la plataforma, no perdida al final de los hashtags.',
-              cita: 'Publicidad. Colaboración pagada con {empresa}.',
+              tipo: 'tarjetas',
+              items: [
+                {
+                  titulo: 'Toda pieza es una oferta',
+                  texto:
+                    'Un anuncio dice acceso de por vida a la comunidad y el contrato dice doce meses. Frente a un consumidor puede valer lo que dice el anuncio, así que la pieza se corrige antes de publicarse.',
+                  cita: 'Acceso a la comunidad durante doce meses desde tu inscripción.',
+                },
+                {
+                  titulo: 'Resultados con contexto',
+                  texto: 'En lugar de una cifra suelta, el caso se cuenta con su punto de partida y su esfuerzo.',
+                  cita: '[[Nombre]] facturó [[monto]] en su tercer mes, con un negocio que ya vendía y dedicando [[horas]] por semana. Es su caso. Tus resultados dependen de tu punto de partida y de tu implementación.',
+                },
+                {
+                  titulo: 'La urgencia tiene que ser real',
+                  texto: 'La promoción cerraba el viernes y hace falta más tiempo. No se inventa un cupo liberado. Se anuncia la extensión, con su motivo y una sola vez.',
+                  cita: 'Extendimos la inscripción hasta el [[fecha]] porque [[motivo real]]. Después de esa fecha no hay prórroga.',
+                },
+                {
+                  titulo: 'La publicidad se identifica',
+                  texto: 'La identificación va al principio del texto y con la etiqueta de la plataforma, no perdida al final de los hashtags.',
+                  cita: 'Publicidad. Colaboración pagada con {empresa}.',
+                },
+              ],
             },
           ],
         },
@@ -734,44 +740,56 @@ export function secciones(f: Ficha): Seccion[] {
             },
           ],
         },
-        { tipo: 'subtitulo', texto: 'Las cuatro reglas del respaldo' },
         {
-          tipo: 'tips',
-          items: [
+          tipo: 'plegable',
+          titulo: 'Las cuatro reglas del respaldo',
+          bajada: 'Para profundizar',
+          bloques: [
             {
-              titulo: 'Documento, no memoria',
-              texto: 'El respaldo es un archivo que se puede mostrar, como un contrato, una factura, una captura fechada o una autorización. Lo que alguien recuerda no cuenta.',
-            },
-            {
-              titulo: 'Del mismo alcance',
-              texto: 'Si la pieza dice más de cien alumnos, el respaldo muestra más de cien alumnos. Un respaldo parcial no sostiene una afirmación general.',
-            },
-            { titulo: 'Vigente', texto: 'Los datos envejecen. Una cifra del año pasado se publica con su fecha o no se publica.' },
-            { titulo: 'Junto a la pieza', texto: 'El respaldo se archiva con la versión publicada. Buscarlo cuando llega un reclamo suele ser tarde.' },
-          ],
-        },
-        { tipo: 'subtitulo', texto: 'Qué se archiva de cada pieza' },
-        {
-          tipo: 'tarjetas',
-          items: [
-            {
-              titulo: 'Archivo de la pieza',
-              check: true,
-              lista: [
-                'Versión publicada, con captura fechada y enlace.',
-                'Canales, fechas de circulación y segmentación de los anuncios.',
-                'Aprobación escrita, con nombre y fecha.',
-                'Bases de la promoción, si la hubo.',
+              tipo: 'tips',
+              items: [
+                {
+                  titulo: 'Documento, no memoria',
+                  texto: 'El respaldo es un archivo que se puede mostrar, como un contrato, una factura, una captura fechada o una autorización. Lo que alguien recuerda no cuenta.',
+                },
+                {
+                  titulo: 'Del mismo alcance',
+                  texto: 'Si la pieza dice más de cien alumnos, el respaldo muestra más de cien alumnos. Un respaldo parcial no sostiene una afirmación general.',
+                },
+                { titulo: 'Vigente', texto: 'Los datos envejecen. Una cifra del año pasado se publica con su fecha o no se publica.' },
+                { titulo: 'Junto a la pieza', texto: 'El respaldo se archiva con la versión publicada. Buscarlo cuando llega un reclamo suele ser tarde.' },
               ],
             },
+          ],
+        },
+        {
+          tipo: 'plegable',
+          titulo: 'Qué se archiva de cada pieza',
+          bajada: 'Para profundizar',
+          bloques: [
             {
-              titulo: 'Respaldo de las afirmaciones',
-              check: true,
-              lista: [
-                'Documento que prueba cada cifra o dato.',
-                'Autorizaciones de testimonios, imágenes y voces.',
-                'Licencias de música, imágenes y contenidos de terceros.',
-                'Contexto de cada caso de éxito que se muestra.',
+              tipo: 'tarjetas',
+              items: [
+                {
+                  titulo: 'Archivo de la pieza',
+                  check: true,
+                  lista: [
+                    'Versión publicada, con captura fechada y enlace.',
+                    'Canales, fechas de circulación y segmentación de los anuncios.',
+                    'Aprobación escrita, con nombre y fecha.',
+                    'Bases de la promoción, si la hubo.',
+                  ],
+                },
+                {
+                  titulo: 'Respaldo de las afirmaciones',
+                  check: true,
+                  lista: [
+                    'Documento que prueba cada cifra o dato.',
+                    'Autorizaciones de testimonios, imágenes y voces.',
+                    'Licencias de música, imágenes y contenidos de terceros.',
+                    'Contexto de cada caso de éxito que se muestra.',
+                  ],
+                },
               ],
             },
           ],
@@ -928,54 +946,60 @@ export function secciones(f: Ficha): Seccion[] {
           ],
           evaluar: evaluarTestimonio,
         },
-        { tipo: 'subtitulo', texto: 'Reglas de los testimonios' },
         {
-          tipo: 'tarjetas',
-          items: [
+          tipo: 'plegable',
+          titulo: 'Reglas de los testimonios',
+          bajada: 'Autorización, edición, revocación y reseñas',
+          bloques: [
             {
-              titulo: 'Qué cuenta como testimonio',
-              lista: [
-                'Reseñas, comentarios, mensajes y capturas de chat.',
-                'Videos, audios y fotos de clientes.',
-                'Casos de éxito contados por el equipo con nombre, cifras o imagen.',
-                'Lo que dicen influencers o afiliados sobre el programa.',
-              ],
-            },
-            {
-              titulo: 'La autorización',
-              texto: 'La imagen y la voz de una persona solo se usan con su consentimiento ({normaImagen}).',
-              check: true,
-              lista: [
-                'Por escrito y antes de publicar.',
-                'Con el material exacto, los usos, los canales y el plazo.',
-                'Con el beneficio recibido, si lo hubo.',
-                'Con la forma y el plazo para retirar el material si se revoca.',
-              ],
-            },
-            {
-              titulo: 'Edición',
-              texto:
-                'Se puede recortar, subtitular o adaptar al formato sin cambiar el sentido. No se suman cifras, no se mezclan testimonios de distintas personas ni se atribuyen frases que la persona no dijo. Una captura se publica completa o indicando que se recortó.',
-            },
-            {
-              titulo: 'Revocación',
-              texto:
-                'La persona puede retirar su autorización en cualquier momento. El material se baja de todos los canales y anuncios activos dentro del plazo que fija la autorización y se le confirma por escrito. Si terceros lo siguen difundiendo, se informa a legales.',
-            },
-            {
-              titulo: 'Reseñas',
-              texto:
-                'Las reseñas no se compran, no se inventan ni se filtran para mostrar solo las favorables como si fueran todas. Si la página muestra reseñas, informa cómo se verifica que provienen de clientes reales.',
-            },
-            {
-              titulo: 'Registro de testimonios',
-              check: true,
-              lista: [
-                'Nombre y contacto de la persona.',
-                'Fecha y alcance de la autorización.',
-                'Piezas y canales donde se usó.',
-                'Respaldo del resultado que menciona.',
-                'Fecha de baja, si la pidió.',
+              tipo: 'tarjetas',
+              items: [
+                {
+                  titulo: 'Qué cuenta como testimonio',
+                  lista: [
+                    'Reseñas, comentarios, mensajes y capturas de chat.',
+                    'Videos, audios y fotos de clientes.',
+                    'Casos de éxito contados por el equipo con nombre, cifras o imagen.',
+                    'Lo que dicen influencers o afiliados sobre el programa.',
+                  ],
+                },
+                {
+                  titulo: 'La autorización',
+                  texto: 'La imagen y la voz de una persona solo se usan con su consentimiento ({normaImagen}).',
+                  check: true,
+                  lista: [
+                    'Por escrito y antes de publicar.',
+                    'Con el material exacto, los usos, los canales y el plazo.',
+                    'Con el beneficio recibido, si lo hubo.',
+                    'Con la forma y el plazo para retirar el material si se revoca.',
+                  ],
+                },
+                {
+                  titulo: 'Edición',
+                  texto:
+                    'Se puede recortar, subtitular o adaptar al formato sin cambiar el sentido. No se suman cifras, no se mezclan testimonios de distintas personas ni se atribuyen frases que la persona no dijo. Una captura se publica completa o indicando que se recortó.',
+                },
+                {
+                  titulo: 'Revocación',
+                  texto:
+                    'La persona puede retirar su autorización en cualquier momento. El material se baja de todos los canales y anuncios activos dentro del plazo que fija la autorización y se le confirma por escrito. Si terceros lo siguen difundiendo, se informa a legales.',
+                },
+                {
+                  titulo: 'Reseñas',
+                  texto:
+                    'Las reseñas no se compran, no se inventan ni se filtran para mostrar solo las favorables como si fueran todas. Si la página muestra reseñas, informa cómo se verifica que provienen de clientes reales.',
+                },
+                {
+                  titulo: 'Registro de testimonios',
+                  check: true,
+                  lista: [
+                    'Nombre y contacto de la persona.',
+                    'Fecha y alcance de la autorización.',
+                    'Piezas y canales donde se usó.',
+                    'Respaldo del resultado que menciona.',
+                    'Fecha de baja, si la pidió.',
+                  ],
+                },
               ],
             },
           ],
@@ -1178,163 +1202,177 @@ export function secciones(f: Ficha): Seccion[] {
         'Lo que no se mide se repite. Se revisa una vez por mes junto con el tablero comercial, y cada reclamo vinculado a una pieza vuelve al principio del recorrido.',
       bloques: [
         {
-          tipo: 'kpis',
-          items: [
+          tipo: 'plegable',
+          titulo: 'Cómo se calcula cada indicador',
+          bajada: 'Fórmula, lectura y meta',
+          bloques: [
             {
-              nombre: 'Costo por lead',
-              formula: 'Inversión del período dividido leads obtenidos.',
-              lectura: 'Mide la eficiencia de los anuncios. Si baja a costa de piezas que prometen de más, después sube el costo de los reclamos.',
-              meta: 'Estable o en baja, sin bajar el estándar de las piezas',
-              frecuencia: 'Semanal',
-              fuente: 'Plataformas de anuncios y CRM',
-            },
-            {
-              nombre: 'Conversión por etapa',
-              formula: 'Llamadas agendadas sobre leads, llamadas realizadas sobre agendadas y ventas sobre llamadas realizadas, cada una por cien.',
-              lectura:
-                'Muestra dónde se corta el recorrido. Una caída en la asistencia suele indicar una pieza que atrajo a quien no correspondía o prometió algo distinto de lo que se ofrece en la llamada.',
-              meta: 'Subir mes a mes',
-              frecuencia: 'Semanal',
-              fuente: 'CRM',
-            },
-            {
-              nombre: 'CAC',
-              formula: 'Inversión en adquisición del período, con o sin las comisiones del equipo comercial, dividido ventas nuevas.',
-              lectura: 'Cuánto cuesta conseguir un cliente. Se mira siempre junto con el valor de vida, nunca solo.',
-              meta: 'Bajar mes a mes',
-              frecuencia: 'Mensual',
-              fuente: 'Administración y CRM',
-            },
-            {
-              nombre: 'ROAS',
-              formula: 'Ingresos de las ventas atribuidas a la publicidad dividido inversión en publicidad.',
-              lectura: 'Cuántas veces vuelve lo invertido. Si es menor que cien dividido el margen bruto en porcentaje, el margen de esas ventas no cubre la inversión.',
-              meta: 'Por encima del ROAS de equilibrio',
-              frecuencia: 'Mensual',
-              fuente: 'Plataformas de anuncios y administración',
-            },
-            {
-              nombre: 'Relación entre valor de vida y CAC',
-              formula: 'Ticket promedio por margen bruto por meses de permanencia, dividido CAC.',
-              lectura: 'Si es menor que uno, cada cliente nuevo cuesta más de lo que deja. Cuanto más alta, más margen para invertir, siempre con las mismas reglas de piezas.',
-              meta: 'Mayor que uno y en alza',
-              frecuencia: 'Trimestral',
-              fuente: 'Administración',
-            },
-            {
-              nombre: 'Piezas aprobadas sin cambios',
-              formula: 'Piezas aprobadas en la primera revisión dividido piezas revisadas, por cien.',
-              lectura: 'Mide si el equipo incorporó el protocolo. Si baja, hace falta capacitación o un mejor brief.',
-              meta: 'Subir mes a mes',
-              frecuencia: 'Mensual',
-              fuente: 'Archivo de piezas',
-            },
-            {
-              nombre: 'Reclamos vinculados a publicidad',
-              formula: 'Reclamos, pedidos de devolución o denuncias que citan una pieza, cada cien ventas.',
-              lectura: 'Es el costo oculto de prometer de más. Cada caso se vincula con la pieza que lo originó para corregirla o retirarla.',
-              meta: 'Bajar mes a mes',
-              frecuencia: 'Mensual',
-              fuente: 'Expedientes de reclamos',
+              tipo: 'kpis',
+              items: [
+                {
+                  nombre: 'Costo por lead',
+                  formula: 'Inversión del período dividido leads obtenidos.',
+                  lectura: 'Mide la eficiencia de los anuncios. Si baja a costa de piezas que prometen de más, después sube el costo de los reclamos.',
+                  meta: 'Estable o en baja, sin bajar el estándar de las piezas',
+                  frecuencia: 'Semanal',
+                  fuente: 'Plataformas de anuncios y CRM',
+                },
+                {
+                  nombre: 'Conversión por etapa',
+                  formula: 'Llamadas agendadas sobre leads, llamadas realizadas sobre agendadas y ventas sobre llamadas realizadas, cada una por cien.',
+                  lectura:
+                    'Muestra dónde se corta el recorrido. Una caída en la asistencia suele indicar una pieza que atrajo a quien no correspondía o prometió algo distinto de lo que se ofrece en la llamada.',
+                  meta: 'Subir mes a mes',
+                  frecuencia: 'Semanal',
+                  fuente: 'CRM',
+                },
+                {
+                  nombre: 'CAC',
+                  formula: 'Inversión en adquisición del período, con o sin las comisiones del equipo comercial, dividido ventas nuevas.',
+                  lectura: 'Cuánto cuesta conseguir un cliente. Se mira siempre junto con el valor de vida, nunca solo.',
+                  meta: 'Bajar mes a mes',
+                  frecuencia: 'Mensual',
+                  fuente: 'Administración y CRM',
+                },
+                {
+                  nombre: 'ROAS',
+                  formula: 'Ingresos de las ventas atribuidas a la publicidad dividido inversión en publicidad.',
+                  lectura: 'Cuántas veces vuelve lo invertido. Si es menor que cien dividido el margen bruto en porcentaje, el margen de esas ventas no cubre la inversión.',
+                  meta: 'Por encima del ROAS de equilibrio',
+                  frecuencia: 'Mensual',
+                  fuente: 'Plataformas de anuncios y administración',
+                },
+                {
+                  nombre: 'Relación entre valor de vida y CAC',
+                  formula: 'Ticket promedio por margen bruto por meses de permanencia, dividido CAC.',
+                  lectura: 'Si es menor que uno, cada cliente nuevo cuesta más de lo que deja. Cuanto más alta, más margen para invertir, siempre con las mismas reglas de piezas.',
+                  meta: 'Mayor que uno y en alza',
+                  frecuencia: 'Trimestral',
+                  fuente: 'Administración',
+                },
+                {
+                  nombre: 'Piezas aprobadas sin cambios',
+                  formula: 'Piezas aprobadas en la primera revisión dividido piezas revisadas, por cien.',
+                  lectura: 'Mide si el equipo incorporó el protocolo. Si baja, hace falta capacitación o un mejor brief.',
+                  meta: 'Subir mes a mes',
+                  frecuencia: 'Mensual',
+                  fuente: 'Archivo de piezas',
+                },
+                {
+                  nombre: 'Reclamos vinculados a publicidad',
+                  formula: 'Reclamos, pedidos de devolución o denuncias que citan una pieza, cada cien ventas.',
+                  lectura: 'Es el costo oculto de prometer de más. Cada caso se vincula con la pieza que lo originó para corregirla o retirarla.',
+                  meta: 'Bajar mes a mes',
+                  frecuencia: 'Mensual',
+                  fuente: 'Expedientes de reclamos',
+                },
+              ],
             },
           ],
         },
         {
-          tipo: 'calculadora',
-          id: 'metricas',
+          tipo: 'plegable',
           titulo: 'Métricas de adquisición',
-          intro:
-            'Cargá los números de un mismo período y obtené costo por lead, costo por llamada, CAC, ROAS y la relación entre valor de vida y CAC. Los montos se expresan en la moneda de la ficha.',
-          entradas: [
+          bajada: 'Costo por cliente, conversión y retorno',
+          bloques: [
             {
-              id: 'inversion',
-              rotulo: 'Inversión del período',
-              unidad: 'moneda',
-              ayuda: 'Anuncios, influencers y herramientas. Para el CAC completo, sumá las comisiones del equipo comercial.',
+              tipo: 'calculadora',
+              id: 'metricas',
+              titulo: 'Métricas de adquisición',
+              intro:
+                'Cargá los números de un mismo período y obtené costo por lead, costo por llamada, CAC, ROAS y la relación entre valor de vida y CAC. Los montos se expresan en la moneda de la ficha.',
+              entradas: [
+                {
+                  id: 'inversion',
+                  rotulo: 'Inversión del período',
+                  unidad: 'moneda',
+                  ayuda: 'Anuncios, influencers y herramientas. Para el CAC completo, sumá las comisiones del equipo comercial.',
+                },
+                { id: 'leads', rotulo: 'Leads obtenidos', unidad: 'leads' },
+                { id: 'agendadas', rotulo: 'Llamadas agendadas', unidad: 'llamadas' },
+                { id: 'realizadas', rotulo: 'Llamadas realizadas', unidad: 'llamadas' },
+                { id: 'ventas', rotulo: 'Ventas cerradas', unidad: 'ventas' },
+                { id: 'ticket', rotulo: 'Ticket promedio', unidad: 'moneda', ayuda: 'Lo que cobra cada venta. Si el cobro es mensual, el ingreso promedio por mes.' },
+                { id: 'margen', rotulo: 'Margen bruto', unidad: '%', ayuda: 'Lo que queda de cada venta después de los costos directos de prestar el servicio.' },
+                { id: 'meses', rotulo: 'Meses promedio de permanencia', unidad: 'meses', ayuda: 'Si se cobra una sola vez, cargá 1.' },
+              ],
+              salidas: [
+                { id: 'cpl', rotulo: 'Costo por lead', formato: 'monto', calcular: (v) => div(v.inversion, v.leads) },
+                { id: 'agenda', rotulo: 'De lead a llamada agendada', formato: 'pct', calcular: (v) => pct(v.agendadas, v.leads) },
+                { id: 'asistencia', rotulo: 'Asistencia a las llamadas', formato: 'pct', calcular: (v) => pct(v.realizadas, v.agendadas) },
+                { id: 'cierre', rotulo: 'Cierre sobre llamadas realizadas', formato: 'pct', calcular: (v) => pct(v.ventas, v.realizadas) },
+                { id: 'cpll', rotulo: 'Costo por llamada realizada', formato: 'monto', calcular: (v) => div(v.inversion, v.realizadas) },
+                { id: 'cac', rotulo: 'CAC, costo de adquirir un cliente', formato: 'monto', destacada: true, calcular: (v) => div(v.inversion, v.ventas) },
+                {
+                  id: 'roas',
+                  rotulo: 'ROAS del período',
+                  formato: 'veces',
+                  calcular: (v) => roas(v),
+                  ayuda: 'Ingresos de las ventas sobre la inversión. Con cobro mensual, mide solo el primer mes.',
+                },
+                {
+                  id: 'equilibrio',
+                  rotulo: 'ROAS de equilibrio',
+                  formato: 'veces',
+                  calcular: (v) => div(100, v.margen),
+                  ayuda: 'Por debajo de este número, el margen de las ventas no cubre lo invertido.',
+                },
+                { id: 'ltv', rotulo: 'Valor de vida aproximado', formato: 'monto', calcular: (v) => valorVida(v), ayuda: 'Ticket por margen bruto por meses de permanencia.' },
+                {
+                  id: 'ratio',
+                  rotulo: 'Relación entre valor de vida y CAC',
+                  formato: 'veces',
+                  destacada: true,
+                  calcular: (v) => div(valorVida(v), div(v.inversion, v.ventas)),
+                },
+              ],
+              barra: (v, r) => {
+                if (r.cac === null || r.ltv === null) return null;
+                const primer = v.ticket !== null && v.margen !== null ? v.ticket * (v.margen / 100) : null;
+                const tope = Math.max(r.cac, r.ltv, primer ?? 0) * 1.1 || 1;
+                const marcas = [{ valor: r.cac, rotulo: 'CAC' }];
+                if (primer !== null) marcas.push({ valor: primer, rotulo: 'Margen del primer cobro' });
+                marcas.push({ valor: r.ltv, rotulo: 'Valor de vida aproximado' });
+                return {
+                  min: 0,
+                  max: tope,
+                  zona: r.ltv > r.cac ? [r.cac, r.ltv] : undefined,
+                  zonaRotulo: r.ltv > r.cac ? 'Margen que deja cada cliente después de pagar su adquisición' : undefined,
+                  marcas,
+                };
+              },
+              conclusion: (v, r) => {
+                if (v.inversion === null || v.ventas === null) return null;
+                if (v.ventas === 0) {
+                  return {
+                    nivel: 'rojo',
+                    texto: 'Sin ventas en el período no hay CAC. Antes de sumar inversión, mirá en qué etapa se corta el recorrido, desde el lead hasta el cierre.',
+                  };
+                }
+                if (r.ratio === null) return { nivel: 'info', texto: 'Cargá ticket, margen bruto y meses de permanencia para comparar el valor de vida con el CAC.' };
+                if (r.ratio < 1) {
+                  return {
+                    nivel: 'rojo',
+                    texto:
+                      'Cada cliente nuevo cuesta más de lo que deja en margen durante su permanencia. Revisá conversión, precio y permanencia antes de subir la inversión. La presión por los números no justifica publicar una pieza en rojo.',
+                  };
+                }
+                if (r.roas !== null && r.equilibrio !== null && r.roas < r.equilibrio) {
+                  return {
+                    nivel: 'ambar',
+                    texto:
+                      'El valor de vida cubre el CAC, pero el primer cobro no recupera lo invertido. El negocio financia la adquisición hasta que el cliente permanece, así que cuidá la caja y la retención antes de escalar.',
+                  };
+                }
+                return {
+                  nivel: 'verde',
+                  texto:
+                    'El primer cobro ya recupera lo invertido en margen y el valor de vida supera el CAC. Si se escala la inversión, se escala con las mismas reglas de piezas, testimonios y promociones.',
+                };
+              },
+              nota: 'Herramienta orientativa. Usá el mismo período para todos los datos y una sola regla para atribuir ventas a la publicidad. Ninguna mejora de estos números justifica publicar una pieza en rojo.',
             },
-            { id: 'leads', rotulo: 'Leads obtenidos', unidad: 'leads' },
-            { id: 'agendadas', rotulo: 'Llamadas agendadas', unidad: 'llamadas' },
-            { id: 'realizadas', rotulo: 'Llamadas realizadas', unidad: 'llamadas' },
-            { id: 'ventas', rotulo: 'Ventas cerradas', unidad: 'ventas' },
-            { id: 'ticket', rotulo: 'Ticket promedio', unidad: 'moneda', ayuda: 'Lo que cobra cada venta. Si el cobro es mensual, el ingreso promedio por mes.' },
-            { id: 'margen', rotulo: 'Margen bruto', unidad: '%', ayuda: 'Lo que queda de cada venta después de los costos directos de prestar el servicio.' },
-            { id: 'meses', rotulo: 'Meses promedio de permanencia', unidad: 'meses', ayuda: 'Si se cobra una sola vez, cargá 1.' },
           ],
-          salidas: [
-            { id: 'cpl', rotulo: 'Costo por lead', formato: 'monto', calcular: (v) => div(v.inversion, v.leads) },
-            { id: 'agenda', rotulo: 'De lead a llamada agendada', formato: 'pct', calcular: (v) => pct(v.agendadas, v.leads) },
-            { id: 'asistencia', rotulo: 'Asistencia a las llamadas', formato: 'pct', calcular: (v) => pct(v.realizadas, v.agendadas) },
-            { id: 'cierre', rotulo: 'Cierre sobre llamadas realizadas', formato: 'pct', calcular: (v) => pct(v.ventas, v.realizadas) },
-            { id: 'cpll', rotulo: 'Costo por llamada realizada', formato: 'monto', calcular: (v) => div(v.inversion, v.realizadas) },
-            { id: 'cac', rotulo: 'CAC, costo de adquirir un cliente', formato: 'monto', destacada: true, calcular: (v) => div(v.inversion, v.ventas) },
-            {
-              id: 'roas',
-              rotulo: 'ROAS del período',
-              formato: 'veces',
-              calcular: (v) => roas(v),
-              ayuda: 'Ingresos de las ventas sobre la inversión. Con cobro mensual, mide solo el primer mes.',
-            },
-            {
-              id: 'equilibrio',
-              rotulo: 'ROAS de equilibrio',
-              formato: 'veces',
-              calcular: (v) => div(100, v.margen),
-              ayuda: 'Por debajo de este número, el margen de las ventas no cubre lo invertido.',
-            },
-            { id: 'ltv', rotulo: 'Valor de vida aproximado', formato: 'monto', calcular: (v) => valorVida(v), ayuda: 'Ticket por margen bruto por meses de permanencia.' },
-            {
-              id: 'ratio',
-              rotulo: 'Relación entre valor de vida y CAC',
-              formato: 'veces',
-              destacada: true,
-              calcular: (v) => div(valorVida(v), div(v.inversion, v.ventas)),
-            },
-          ],
-          barra: (v, r) => {
-            if (r.cac === null || r.ltv === null) return null;
-            const primer = v.ticket !== null && v.margen !== null ? v.ticket * (v.margen / 100) : null;
-            const tope = Math.max(r.cac, r.ltv, primer ?? 0) * 1.1 || 1;
-            const marcas = [{ valor: r.cac, rotulo: 'CAC' }];
-            if (primer !== null) marcas.push({ valor: primer, rotulo: 'Margen del primer cobro' });
-            marcas.push({ valor: r.ltv, rotulo: 'Valor de vida aproximado' });
-            return {
-              min: 0,
-              max: tope,
-              zona: r.ltv > r.cac ? [r.cac, r.ltv] : undefined,
-              zonaRotulo: r.ltv > r.cac ? 'Margen que deja cada cliente después de pagar su adquisición' : undefined,
-              marcas,
-            };
-          },
-          conclusion: (v, r) => {
-            if (v.inversion === null || v.ventas === null) return null;
-            if (v.ventas === 0) {
-              return {
-                nivel: 'rojo',
-                texto: 'Sin ventas en el período no hay CAC. Antes de sumar inversión, mirá en qué etapa se corta el recorrido, desde el lead hasta el cierre.',
-              };
-            }
-            if (r.ratio === null) return { nivel: 'info', texto: 'Cargá ticket, margen bruto y meses de permanencia para comparar el valor de vida con el CAC.' };
-            if (r.ratio < 1) {
-              return {
-                nivel: 'rojo',
-                texto:
-                  'Cada cliente nuevo cuesta más de lo que deja en margen durante su permanencia. Revisá conversión, precio y permanencia antes de subir la inversión. La presión por los números no justifica publicar una pieza en rojo.',
-              };
-            }
-            if (r.roas !== null && r.equilibrio !== null && r.roas < r.equilibrio) {
-              return {
-                nivel: 'ambar',
-                texto:
-                  'El valor de vida cubre el CAC, pero el primer cobro no recupera lo invertido. El negocio financia la adquisición hasta que el cliente permanece, así que cuidá la caja y la retención antes de escalar.',
-              };
-            }
-            return {
-              nivel: 'verde',
-              texto:
-                'El primer cobro ya recupera lo invertido en margen y el valor de vida supera el CAC. Si se escala la inversión, se escala con las mismas reglas de piezas, testimonios y promociones.',
-            };
-          },
-          nota: 'Herramienta orientativa. Usá el mismo período para todos los datos y una sola regla para atribuir ventas a la publicidad. Ninguna mejora de estos números justifica publicar una pieza en rojo.',
         },
         {
           tipo: 'calculadora',

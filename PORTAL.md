@@ -341,6 +341,8 @@ Plantillas de trabajo para los clientes, públicas y sin indexar, con índice en
 5. Todas las secciones se ordenan en las mismas partes, en el orden en que se usan, y el índice las agrupa así. Cada sección puede declarar su `parte`; si no, el motor la deduce de su id (`PARTE_POR_ID` en `motor/Protocolo.tsx`).
 6. La ficha va plegada y se abre sola mientras le falten datos. El anexo jurídico muestra solo el país del mercado de la ficha (con «Otro», todos).
 7. `meta.resalte` dice qué parte del título va en la caja de resalte.
+8. Lo que es de consulta y no hace falta para actuar (ejemplos de los principios, reglas de apoyo, fórmulas de los indicadores) va en un bloque `plegable`, cerrado en pantalla y abierto al imprimir. Así el recorrido se lee rápido sin perder contenido.
+9. Las variables que con una ficha no hacen falta, como las cuotas cuando no se ofrecen, se declaran en `opcionales` de la ficha y no cuentan como faltantes.
 
 | Parte | Pregunta | Secciones típicas |
 |---|---|---|

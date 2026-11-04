@@ -279,30 +279,36 @@ export function secciones(f: Ficha): Seccion[] {
             },
           ],
         },
-        { tipo: 'subtitulo', texto: 'Cómo se ve en la práctica' },
         {
-          tipo: 'tarjetas',
-          items: [
+          tipo: 'plegable',
+          titulo: 'Cómo se ve en la práctica',
+          bajada: 'Un ejemplo por principio',
+          bloques: [
             {
-              titulo: 'Recordar antes de reclamar',
-              texto: 'Tres días antes del vencimiento sale un mensaje breve con monto, fecha y enlace de pago. No menciona atrasos ni consecuencias.',
-              cita: 'Hola [[nombre]], te recordamos que el [[fecha]] vence la cuota [[número]] de {programa}, por [[monto]]. Podés pagarla desde [[enlace]]. Cualquier duda, escribinos por acá.',
-            },
-            {
-              titulo: 'Firmes y amables',
-              texto:
-                'El cliente pide pagar la mitad este mes y el resto más adelante. No se acepta ni se rechaza en el momento. Se agradece el aviso y se responde con una propuesta concreta dentro de la regla de la ficha.',
-              cita: 'Gracias por avisarnos con tiempo, [[nombre]]. Lo revisamos y mañana te escribimos con una propuesta concreta para regularizarlo.',
-            },
-            {
-              titulo: 'Sin apariencia de juicio',
-              texto: 'En lugar de un mensaje que imita una notificación judicial, se informa el hecho y la consecuencia pactada, sin adornos.',
-              cita: 'Te recordamos que la cuota del [[fecha]] sigue pendiente. Según el contrato, si no se regulariza antes del [[fecha]], [[consecuencia pactada]].',
-            },
-            {
-              titulo: 'Prueba desde la venta',
-              texto:
-                'Cada vez que el cliente acepta las condiciones, accede a la plataforma, asiste a una sesión o recibe un entregable, queda una constancia con fecha. Esa constancia es la que después gana una disputa.',
+              tipo: 'tarjetas',
+              items: [
+                {
+                  titulo: 'Recordar antes de reclamar',
+                  texto: 'Tres días antes del vencimiento sale un mensaje breve con monto, fecha y enlace de pago. No menciona atrasos ni consecuencias.',
+                  cita: 'Hola [[nombre]], te recordamos que el [[fecha]] vence la cuota [[número]] de {programa}, por [[monto]]. Podés pagarla desde [[enlace]]. Cualquier duda, escribinos por acá.',
+                },
+                {
+                  titulo: 'Firmes y amables',
+                  texto:
+                    'El cliente pide pagar la mitad este mes y el resto más adelante. No se acepta ni se rechaza en el momento. Se agradece el aviso y se responde con una propuesta concreta dentro de la regla de la ficha.',
+                  cita: 'Gracias por avisarnos con tiempo, [[nombre]]. Lo revisamos y mañana te escribimos con una propuesta concreta para regularizarlo.',
+                },
+                {
+                  titulo: 'Sin apariencia de juicio',
+                  texto: 'En lugar de un mensaje que imita una notificación judicial, se informa el hecho y la consecuencia pactada, sin adornos.',
+                  cita: 'Te recordamos que la cuota del [[fecha]] sigue pendiente. Según el contrato, si no se regulariza antes del [[fecha]], [[consecuencia pactada]].',
+                },
+                {
+                  titulo: 'Prueba desde la venta',
+                  texto:
+                    'Cada vez que el cliente acepta las condiciones, accede a la plataforma, asiste a una sesión o recibe un entregable, queda una constancia con fecha. Esa constancia es la que después gana una disputa.',
+                },
+              ],
             },
           ],
         },
@@ -406,14 +412,20 @@ export function secciones(f: Ficha): Seccion[] {
             },
           ],
         },
-        { tipo: 'subtitulo', texto: 'Cuatro reglas de la secuencia' },
         {
-          tipo: 'tips',
-          items: [
-            { titulo: 'Un canal, un horario', texto: 'Los contactos salen por {canal}, en días y horarios hábiles. Nada de mensajes de madrugada ni varios contactos el mismo día.' },
-            { titulo: 'Una promesa, una fecha', texto: 'Toda promesa de pago se registra con monto y fecha. Si se incumple, la cuenta pasa a la etapa siguiente sin nuevas prórrogas de palabra.' },
-            { titulo: 'Lo pactado, nada más', texto: 'Intereses, suspensiones y gastos se aplican solo si están en el contrato y como están en el contrato.' },
-            { titulo: 'Freno ante una alerta', texto: 'Si aparece una señal de la tabla de alertas, la secuencia se detiene hasta que decide legales.' },
+          tipo: 'plegable',
+          titulo: 'Cuatro reglas de la secuencia',
+          bajada: 'Para profundizar',
+          bloques: [
+            {
+              tipo: 'tips',
+              items: [
+                { titulo: 'Un canal, un horario', texto: 'Los contactos salen por {canal}, en días y horarios hábiles. Nada de mensajes de madrugada ni varios contactos el mismo día.' },
+                { titulo: 'Una promesa, una fecha', texto: 'Toda promesa de pago se registra con monto y fecha. Si se incumple, la cuenta pasa a la etapa siguiente sin nuevas prórrogas de palabra.' },
+                { titulo: 'Lo pactado, nada más', texto: 'Intereses, suspensiones y gastos se aplican solo si están en el contrato y como están en el contrato.' },
+                { titulo: 'Freno ante una alerta', texto: 'Si aparece una señal de la tabla de alertas, la secuencia se detiene hasta que decide legales.' },
+              ],
+            },
           ],
         },
       ],
@@ -531,12 +543,19 @@ export function secciones(f: Ficha): Seccion[] {
           ],
         },
         {
-          tipo: 'tips',
-          items: [
-            { titulo: 'Primero la compuerta', texto: `Si el cliente pidió una baja, un arrepentimiento o una devolución antes de la disputa, el caso pasa por ${COMPUERTA} antes de responder.` },
-            { titulo: 'Una sola respuesta', texto: 'Completa, ordenada por preguntas y con segunda lectura. Lo que no se presentó no lo evalúa nadie.' },
-            { titulo: 'Sin represalias', texto: 'Mientras la disputa está abierta el trato con el cliente sigue siendo normal. Nada de reproches ni de bloqueos que el contrato no prevé.' },
-            { titulo: 'Causa registrada', texto: 'Cada disputa deja su motivo y su resultado en el tablero para corregir la causa, no solo el caso.' },
+          tipo: 'plegable',
+          titulo: 'Reglas ante una disputa',
+          bajada: 'Para profundizar',
+          bloques: [
+            {
+              tipo: 'tips',
+              items: [
+                { titulo: 'Primero la compuerta', texto: `Si el cliente pidió una baja, un arrepentimiento o una devolución antes de la disputa, el caso pasa por ${COMPUERTA} antes de responder.` },
+                { titulo: 'Una sola respuesta', texto: 'Completa, ordenada por preguntas y con segunda lectura. Lo que no se presentó no lo evalúa nadie.' },
+                { titulo: 'Sin represalias', texto: 'Mientras la disputa está abierta el trato con el cliente sigue siendo normal. Nada de reproches ni de bloqueos que el contrato no prevé.' },
+                { titulo: 'Causa registrada', texto: 'Cada disputa deja su motivo y su resultado en el tablero para corregir la causa, no solo el caso.' },
+              ],
+            },
           ],
         },
       ],
@@ -978,63 +997,70 @@ export function secciones(f: Ficha): Seccion[] {
       intro: 'Lo que no se mide se repite. Se revisa una vez por mes y alimenta los ajustes a la secuencia, a la venta y a los contratos.',
       bloques: [
         {
-          tipo: 'kpis',
-          items: [
+          tipo: 'plegable',
+          titulo: 'Cómo se calcula cada indicador',
+          bajada: 'Fórmula, lectura y meta',
+          bloques: [
             {
-              nombre: 'Días de cobro, DSO',
-              formula: 'Saldo por cobrar al cierre, dividido facturación del período, por los días del período.',
-              lectura: 'Cuántos días tarda en promedio en cobrarse lo facturado. Si sube, la cobranza se atrasa aunque las ventas crezcan.',
-              meta: 'Bajar mes a mes',
-              frecuencia: 'Mensual',
-              fuente: 'Administración',
-            },
-            {
-              nombre: 'Cartera vencida por tramo',
-              formula: 'Vencido de 1 a 30, de 31 a 60, de 61 a 90 y de más de 90 días, cada uno dividido el saldo total, por cien.',
-              lectura: 'Muestra dónde se acumula la deuda. Lo que pasa de un tramo al siguiente sin acción es una cuenta que se está perdiendo.',
-              meta: 'Que los tramos altos bajen mes a mes',
-              frecuencia: 'Mensual',
-              fuente: 'Administración',
-            },
-            {
-              nombre: 'Tasa de recupero',
-              formula: 'Vencido cobrado en el mes, dividido vencido al inicio del mes, por cien.',
-              lectura: 'Mide la eficacia de la secuencia sobre lo que ya estaba atrasado.',
-              meta: 'Subir mes a mes',
-              frecuencia: 'Mensual',
-              fuente: 'Administración',
-            },
-            {
-              nombre: 'Tasa de contracargos',
-              formula: 'Contracargos recibidos, dividido transacciones con tarjeta del mismo período, por cien.',
-              lectura: 'Las redes de tarjetas siguen de cerca a los comercios con muchas disputas. Si sube, revisá el nombre de cobro, los avisos previos y la política de cancelación.',
-              meta: 'Bajar mes a mes',
-              frecuencia: 'Mensual',
-              fuente: '{pasarela}',
-            },
-            {
-              nombre: 'Contracargos ganados',
-              formula: 'Disputas resueltas a favor, dividido disputas resueltas, por cien.',
-              lectura: 'Mide la calidad del paquete de prueba. Si baja, mirá qué no se registró durante la venta o la prestación.',
-              meta: 'Subir mes a mes',
-              frecuencia: 'Mensual',
-              fuente: '{pasarela}',
-            },
-            {
-              nombre: 'Costo de cobranza',
-              formula: 'Costo de la gestión de cobro del mes, con horas del equipo, honorarios, comisiones y gastos de disputas, dividido monto recuperado, por cien.',
-              lectura: 'Cuánto cuesta recuperar lo vencido. Ayuda a decidir cuándo conviene un acuerdo y cuándo la gestión legal.',
-              meta: 'Bajar mes a mes',
-              frecuencia: 'Mensual',
-              fuente: 'Administración',
-            },
-            {
-              nombre: 'Promesas de pago cumplidas',
-              formula: 'Promesas cumplidas en fecha, dividido promesas registradas, por cien.',
-              lectura: 'Si es baja, hay promesas sin fecha concreta o planes que el cliente no puede pagar.',
-              meta: 'Subir mes a mes',
-              frecuencia: 'Mensual',
-              fuente: 'Registro de cobranza',
+              tipo: 'kpis',
+              items: [
+                {
+                  nombre: 'Días de cobro, DSO',
+                  formula: 'Saldo por cobrar al cierre, dividido facturación del período, por los días del período.',
+                  lectura: 'Cuántos días tarda en promedio en cobrarse lo facturado. Si sube, la cobranza se atrasa aunque las ventas crezcan.',
+                  meta: 'Bajar mes a mes',
+                  frecuencia: 'Mensual',
+                  fuente: 'Administración',
+                },
+                {
+                  nombre: 'Cartera vencida por tramo',
+                  formula: 'Vencido de 1 a 30, de 31 a 60, de 61 a 90 y de más de 90 días, cada uno dividido el saldo total, por cien.',
+                  lectura: 'Muestra dónde se acumula la deuda. Lo que pasa de un tramo al siguiente sin acción es una cuenta que se está perdiendo.',
+                  meta: 'Que los tramos altos bajen mes a mes',
+                  frecuencia: 'Mensual',
+                  fuente: 'Administración',
+                },
+                {
+                  nombre: 'Tasa de recupero',
+                  formula: 'Vencido cobrado en el mes, dividido vencido al inicio del mes, por cien.',
+                  lectura: 'Mide la eficacia de la secuencia sobre lo que ya estaba atrasado.',
+                  meta: 'Subir mes a mes',
+                  frecuencia: 'Mensual',
+                  fuente: 'Administración',
+                },
+                {
+                  nombre: 'Tasa de contracargos',
+                  formula: 'Contracargos recibidos, dividido transacciones con tarjeta del mismo período, por cien.',
+                  lectura: 'Las redes de tarjetas siguen de cerca a los comercios con muchas disputas. Si sube, revisá el nombre de cobro, los avisos previos y la política de cancelación.',
+                  meta: 'Bajar mes a mes',
+                  frecuencia: 'Mensual',
+                  fuente: '{pasarela}',
+                },
+                {
+                  nombre: 'Contracargos ganados',
+                  formula: 'Disputas resueltas a favor, dividido disputas resueltas, por cien.',
+                  lectura: 'Mide la calidad del paquete de prueba. Si baja, mirá qué no se registró durante la venta o la prestación.',
+                  meta: 'Subir mes a mes',
+                  frecuencia: 'Mensual',
+                  fuente: '{pasarela}',
+                },
+                {
+                  nombre: 'Costo de cobranza',
+                  formula: 'Costo de la gestión de cobro del mes, con horas del equipo, honorarios, comisiones y gastos de disputas, dividido monto recuperado, por cien.',
+                  lectura: 'Cuánto cuesta recuperar lo vencido. Ayuda a decidir cuándo conviene un acuerdo y cuándo la gestión legal.',
+                  meta: 'Bajar mes a mes',
+                  frecuencia: 'Mensual',
+                  fuente: 'Administración',
+                },
+                {
+                  nombre: 'Promesas de pago cumplidas',
+                  formula: 'Promesas cumplidas en fecha, dividido promesas registradas, por cien.',
+                  lectura: 'Si es baja, hay promesas sin fecha concreta o planes que el cliente no puede pagar.',
+                  meta: 'Subir mes a mes',
+                  frecuencia: 'Mensual',
+                  fuente: 'Registro de cobranza',
+                },
+              ],
             },
           ],
         },

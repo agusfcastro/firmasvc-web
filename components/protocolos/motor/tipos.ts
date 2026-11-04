@@ -245,7 +245,9 @@ export type Bloque =
   | { tipo: 'plazos'; id: string; titulo: string; intro?: string; opciones: OpcionPlazo[] }
   /** Repaso que se lee punto por punto y se tilda con cada sí. Apertura y cierre van antes y después. */
   | { tipo: 'repaso'; apertura: string; cierre: string; items: { id: string; titulo: string; texto: string }[]; listo?: string; nota?: string }
-  | { tipo: 'componente'; componente: ComponentType<{ ficha: Ficha }> };
+  | { tipo: 'componente'; componente: ComponentType<{ ficha: Ficha }> }
+  /** Material de consulta que no hace falta para actuar. Va cerrado y se imprime abierto. */
+  | { tipo: 'plegable'; titulo: string; bajada?: string; bloques: Bloque[] };
 
 /**
  * Las partes en que se ordena todo protocolo, en el orden en que se usan.
