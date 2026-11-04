@@ -15,12 +15,7 @@ import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { TermsOfService } from './components/TermsOfService';
 import { RUTAS_MOTOR } from './components/protocolos/rutas';
 
-// El protocolo de llamadas se carga aparte para no sumar peso a la home.
-const ProtocoloLlamadas = lazy(() =>
-  import('./components/ProtocoloLlamadas').then((m) => ({ default: m.ProtocoloLlamadas })),
-);
-
-// El resto de los protocolos y su índice comparten un motor que también se carga aparte.
+// Los protocolos y su índice comparten un motor que se carga aparte para no sumar peso a la home.
 const PaginaProtocolo = lazy(() => import('./components/protocolos/PaginaProtocolo'));
 
 // Planes de abono, privados. Se comparten solo en llamadas de venta.
@@ -78,13 +73,6 @@ function App({ ruta }: { ruta?: string }) {
     return (
       <Suspense fallback={<div className="min-h-screen bg-marfil" />}>
         <Herramienta tipo={path === '/herramientas/invoice' ? 'invoice' : 'recibo'} />
-      </Suspense>
-    );
-  }
-  if (path === '/protocolo-llamadas') {
-    return (
-      <Suspense fallback={<div className="min-h-screen bg-marfil" />}>
-        <ProtocoloLlamadas />
       </Suspense>
     );
   }

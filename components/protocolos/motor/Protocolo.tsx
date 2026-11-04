@@ -5,10 +5,10 @@
  * y encima el diseño del portal (motor.module.css). Las secciones se agrupan en las partes de PARTES.
  */
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
-import s from '../../sop-llamadas-venta/sop.module.css';
+import s from './base.module.css';
 import m from './motor.module.css';
 import { enlaceConfigurado, guardarLocal, leerFichaInicial, limpiarHash } from './ficha';
-import { Calculadora, Checklist, Evaluacion, Plazos, Rubrica, Semaforo } from './herramientas';
+import { Calculadora, Checklist, Evaluacion, Plazos, Repaso, Rubrica, Semaforo } from './herramientas';
 import { Acordeon, BotonCopiar, IconoAlerta, IconoChevron, IconoEnlace, IconoImprimir, TextoCtx, Tx, usePlano, type ContextoTexto } from './piezas';
 import type { Bloque, BloqueGuion, CampoFicha, DefFicha, DefProtocolo, Ficha, Guion, ItemBolsillo, Parte, Seccion as DefSeccion } from './tipos';
 import { opcion } from './ficha';
@@ -102,7 +102,10 @@ export default function Protocolo({ def, theme = 'light', marca = 'FIRMA', ficha
     [secciones],
   );
   const numeroDe = (id: string) => String(secciones.findIndex((x) => x.id === id) + 1).padStart(2, '0');
-  const faltan = useMemo(() => Object.values(ctx.valores).filter((v) => v === null).length, [ctx]);
+  const faltan = useMemo(() => {
+    const opcionales = new Set(def.ficha.opcionales?.(ficha) ?? []);
+    return Object.entries(ctx.valores).filter(([k, v]) => v === null && !opcionales.has(k)).length;
+  }, [ctx, def, ficha]);
   const ocultoDelAnexo = ANEXO_POR_MERCADO[opcion(ficha, 'mercado')];
   const presentacion = presentacionDe(def.ruta);
   const prefijo = useId().replace(/[^a-zA-Z0-9]/g, '');
@@ -565,6 +568,8 @@ function RenderBloque({
           ))}
         </div>
       );
+    case 'repaso':
+      return <Repaso apertura={b.apertura} cierre={b.cierre} items={b.items} listo={b.listo} nota={b.nota} />;
     case 'checklist':
       return <Checklist titulo={b.titulo} items={b.items} textoConforme={b.textoConforme} textoNoConforme={b.textoNoConforme} />;
     case 'kpis':
@@ -810,6 +815,16 @@ function BloqueGuionVista({ b }: { b: BloqueGuion }) {
             ))}
           </ul>
         </div>
+      );
+    case 'lista':
+      return (
+        <ul className={s.listaPuntos}>
+          {b.textos.map((t) => (
+            <li key={t}>
+              <Tx t={t} />
+            </li>
+          ))}
+        </ul>
       );
     default:
       return null;

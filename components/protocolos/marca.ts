@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react';
 
 // Paleta y tipografía del portal aplicadas a los protocolos. Tinta en vez del verde, Archivo
 // variable en pesada para los títulos, tarjetas de 20 px, botones y campos de 12 px y estados en pastilla.
-// La usan el motor, el índice de /protocolos y el protocolo de llamadas.
+// La usan el motor y el índice de /protocolos.
 export const MARCA_FIRMA = {
   '--sop-bg': 'var(--color-marfil)',
   '--sop-surface': 'var(--color-papel)',

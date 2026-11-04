@@ -1,4 +1,5 @@
-// Ficha del cliente. Todo lo que cambia de un cliente a otro vive acá.
+// Ficha del protocolo de llamadas. Tipos y cálculos sobre los datos del cliente.
+// La forma de la ficha, la persistencia y el enlace los resuelve el motor (ficha.ts).
 
 export type Perfil = 'B2B' | 'B2C';
 export type Variante = 'A' | 'B' | 'C';
@@ -238,85 +239,4 @@ export function avisosDeFicha(c: ConfigSop): Aviso[] {
     });
   }
   return avisos;
-}
-
-// Persistencia. Hash de la URL para compartir, almacenamiento local como comodidad.
-
-const CLAVE_LOCAL = 'firma-sop-llamadas:v1';
-const PREFIJO_HASH = '#ficha=';
-
-function aBase64Url(texto: string): string {
-  const bytes = new TextEncoder().encode(texto);
-  let binario = '';
-  bytes.forEach((b) => {
-    binario += String.fromCharCode(b);
-  });
-  return btoa(binario).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-function deBase64Url(codigo: string): string {
-  const base = codigo.replace(/-/g, '+').replace(/_/g, '/');
-  const relleno = base + '==='.slice((base.length + 3) % 4);
-  const binario = atob(relleno);
-  const bytes = Uint8Array.from(binario, (ch) => ch.charCodeAt(0));
-  return new TextDecoder().decode(bytes);
-}
-
-function normalizar(parcial: unknown): ConfigSop | null {
-  if (!parcial || typeof parcial !== 'object') return null;
-  const base: ConfigSop = { ...CONFIG_VACIA };
-  const p = parcial as Record<string, unknown>;
-  (Object.keys(base) as (keyof ConfigSop)[]).forEach((k) => {
-    const actual = base[k];
-    const nuevo = p[k];
-    if (typeof actual === 'boolean' && typeof nuevo === 'boolean') {
-      (base[k] as boolean) = nuevo;
-    } else if (typeof actual === 'string' && typeof nuevo === 'string') {
-      (base[k] as string) = nuevo.slice(0, 200);
-    }
-  });
-  if (!['B2B', 'B2C'].includes(base.perfil)) base.perfil = 'B2B';
-  if (!['A', 'B', 'C'].includes(base.variante)) base.variante = 'A';
-  if (!['AR', 'ES', 'OTRO'].includes(base.mercado)) base.mercado = 'AR';
-  if (!['USD', 'ARS', 'EUR'].includes(base.moneda)) base.moneda = 'USD';
-  if (!['ninguno', 'salud', 'finanzas', 'inmobiliario'].includes(base.nicho)) base.nicho = 'ninguno';
-  return base;
-}
-
-export function leerConfigInicial(preset?: Partial<ConfigSop>): ConfigSop {
-  const conPreset = { ...CONFIG_VACIA, ...(preset ?? {}) };
-  if (typeof window === 'undefined') return conPreset;
-  try {
-    const hash = window.location.hash;
-    if (hash.startsWith(PREFIJO_HASH)) {
-      const desdeHash = normalizar(JSON.parse(deBase64Url(hash.slice(PREFIJO_HASH.length))));
-      if (desdeHash) return desdeHash;
-    }
-  } catch {
-    // Enlace dañado, se ignora.
-  }
-  try {
-    const guardado = window.localStorage.getItem(CLAVE_LOCAL);
-    if (guardado) {
-      const desdeLocal = normalizar(JSON.parse(guardado));
-      if (desdeLocal) return desdeLocal;
-    }
-  } catch {
-    // Almacenamiento bloqueado, se ignora.
-  }
-  return conPreset;
-}
-
-export function guardarLocal(c: ConfigSop): boolean {
-  try {
-    window.localStorage.setItem(CLAVE_LOCAL, JSON.stringify(c));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-export function enlaceConfigurado(c: ConfigSop): string {
-  const { origin, pathname, search } = window.location;
-  return `${origin}${pathname}${search}${PREFIJO_HASH}${aBase64Url(JSON.stringify(c))}`;
 }

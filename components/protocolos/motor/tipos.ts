@@ -57,6 +57,8 @@ export interface DefFicha {
   /** Textos que dependen de la ficha y se expanden antes de resaltar variables. */
   macros?: (f: Ficha) => Record<string, string>;
   avisos?: (f: Ficha) => Aviso[];
+  /** Variables que con esta ficha no hacen falta, por ejemplo las de un interruptor apagado. No cuentan como faltantes. */
+  opcionales?: (f: Ficha) => string[];
   /** Resumen que se imprime en lugar del formulario. */
   resumen: { rotulo: string; texto: string }[];
 }
@@ -67,7 +69,8 @@ export type BloqueGuion =
   | { tipo: 'decir'; etiqueta: string; texto: string; condicion?: string }
   | { tipo: 'nota'; etiqueta: string; texto: string }
   | { tipo: 'porque'; texto: string }
-  | { tipo: 'nunca'; textos: string[] };
+  | { tipo: 'nunca'; textos: string[] }
+  | { tipo: 'lista'; textos: string[] };
 
 export interface Guion {
   id: string;
@@ -240,6 +243,8 @@ export type Bloque =
   | { tipo: 'rubrica'; id: string; titulo: string; intro?: string; criterios: CriterioRubrica[]; niveles: NivelEvaluacion[] }
   | { tipo: 'evaluacion'; id: string; titulo: string; intro?: string; items: { id: string; texto: string; peso: number }[]; niveles: NivelEvaluacion[] }
   | { tipo: 'plazos'; id: string; titulo: string; intro?: string; opciones: OpcionPlazo[] }
+  /** Repaso que se lee punto por punto y se tilda con cada sí. Apertura y cierre van antes y después. */
+  | { tipo: 'repaso'; apertura: string; cierre: string; items: { id: string; titulo: string; texto: string }[]; listo?: string; nota?: string }
   | { tipo: 'componente'; componente: ComponentType<{ ficha: Ficha }> };
 
 /**

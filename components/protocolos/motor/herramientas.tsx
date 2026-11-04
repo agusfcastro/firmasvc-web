@@ -2,7 +2,7 @@
 // no guardan datos y se reinician con un botón.
 
 import { useId, useMemo, useState, type ReactNode } from 'react';
-import s from '../../sop-llamadas-venta/sop.module.css';
+import s from './base.module.css';
 import m from './motor.module.css';
 import { formatearMonto, monedaDe } from './ficha';
 import { BotonCopiar, Tx, usePlano } from './piezas';
@@ -479,6 +479,72 @@ export function Checklist({ titulo, items, textoConforme, textoNoConforme }: { t
           Reiniciar
         </button>
       </div>
+    </div>
+  );
+}
+
+// Repaso de cierre
+
+export function Repaso({
+  apertura,
+  cierre,
+  items,
+  listo = 'Repaso completo.',
+  nota,
+}: {
+  apertura: string;
+  cierre: string;
+  items: { id: string; titulo: string; texto: string }[];
+  listo?: string;
+  nota?: string;
+}) {
+  const [marcados, setMarcados] = useState<Record<string, boolean>>({});
+  const plano = usePlano();
+  const hechos = items.filter((it) => marcados[it.id]).length;
+  const completo = hechos === items.length;
+  const copiarTodo = () => [plano(apertura), ...items.map((it) => plano(it.texto)), plano(cierre)].join('\n');
+  return (
+    <div className={`${s.tarjeta} ${s.repaso}`}>
+      <div className={s.repasoCabecera}>
+        <p className={s.repasoProgreso} data-completo={completo} aria-live="polite">
+          {completo ? listo : `${hechos} de ${items.length} confirmados`}
+        </p>
+        <div className={`${s.repasoAcciones} ${s.noImprimir}`}>
+          <BotonCopiar texto={copiarTodo} etiqueta="Copiar repaso" variante="texto" />
+          <button type="button" className={s.boton} onClick={() => setMarcados({})}>
+            Reiniciar
+          </button>
+        </div>
+      </div>
+      <p className={s.repasoLinea}>
+        <span className={s.repasoRotulo}>Abrir</span>
+        <Tx t={apertura} />
+      </p>
+      <ol className={s.repasoLista}>
+        {items.map((it) => (
+          <li key={it.id} className={s.repasoItem} data-marcado={!!marcados[it.id]}>
+            <label>
+              <input type="checkbox" checked={!!marcados[it.id]} onChange={(e) => setMarcados((mm) => ({ ...mm, [it.id]: e.target.checked }))} />
+              <span className={s.repasoCaja} aria-hidden="true" />
+              <span className={s.repasoContenido}>
+                <span className={s.repasoTitulo}>{it.titulo}</span>
+                <span className={s.repasoTexto}>
+                  <Tx t={it.texto} />
+                </span>
+              </span>
+            </label>
+          </li>
+        ))}
+      </ol>
+      <p className={s.repasoLinea}>
+        <span className={s.repasoRotulo}>Cerrar</span>
+        <Tx t={cierre} />
+      </p>
+      {nota && (
+        <p className={s.aclaracion}>
+          <Tx t={nota} />
+        </p>
+      )}
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Logo } from '../Logo';
 import { Footer } from '../Footer';
-import s from '../sop-llamadas-venta/sop.module.css';
+import s from './motor/base.module.css';
 import m from './motor/motor.module.css';
 import Protocolo from './motor/Protocolo';
 import type { DefProtocolo } from './motor/tipos';
@@ -18,6 +18,7 @@ import { VIDEO_GENERAL } from './videos';
  */
 
 const CARGADORES: Record<string, () => Promise<{ default: DefProtocolo }>> = {
+  '/protocolo-llamadas': () => import('./llamadas'),
   '/protocolo-conflictos': () => import('./conflictos'),
   '/protocolo-onboarding': () => import('./onboarding'),
   '/protocolo-cobranza': () => import('./cobranza'),

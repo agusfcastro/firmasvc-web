@@ -5,7 +5,7 @@ import retrato from '../../assets/brand/retrato.jpg';
 /**
  * Videos de los protocolos. El visor se abre sobre la página y la tarjeta tiene el diseño de los
  * posteos de @agustin.legales: fondo tinta, volanta en pastilla, título en Archivo pesada, firma de
- * Agustín y el círculo de play. Lo usan el motor, el protocolo de llamadas y el portal.
+ * Agustín y el círculo de play. Lo usan el motor y el portal.
  */
 
 /** Dirección para incrustar un video de YouTube, Vimeo o Loom, o el mp4 tal cual. null si el enlace no es un video. */

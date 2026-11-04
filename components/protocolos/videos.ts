@@ -1,5 +1,5 @@
-// Videos de los protocolos FIRMA. Archivo liviano, lo leen el motor, el protocolo
-// de llamadas y las tarjetas del portal sin cargar el contenido de cada protocolo.
+// Videos de los protocolos FIRMA. Archivo liviano, lo leen el motor y las tarjetas
+// del portal sin cargar el contenido de cada protocolo.
 //
 // Sirven enlaces de YouTube (también ocultos), Vimeo, Loom o un mp4. Un enlace vacío
 // no muestra nada, así se carga cada video cuando está listo.

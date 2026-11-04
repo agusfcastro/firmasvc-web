@@ -1,5 +1,5 @@
 import { createContext, useContext, useId, useState, type ReactNode } from 'react';
-import s from '../../sop-llamadas-venta/sop.module.css';
+import s from './base.module.css';
 
 // Contexto con los valores de la ficha para resaltar variables en cualquier texto.
 

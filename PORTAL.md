@@ -313,11 +313,11 @@ Registro de reclamos y pedidos de reembolso de cada cliente final, en `firmasvc.
 
 ## Protocolos
 
-Plantillas de trabajo para los clientes, públicas y sin indexar, con índice en `firmasvc.com/protocolos`. Cada protocolo tiene ficha configurable, herramientas interactivas, tarjeta de bolsillo e impresión, y combina tres capas, la legal, la de gestión y la de medición.
+Plantillas de trabajo para los clientes, públicas y sin indexar, con índice en `firmasvc.com/protocolos`. Cada protocolo tiene ficha configurable, herramientas interactivas, videos, tarjeta de bolsillo e impresión, y combina tres capas, la legal, la de gestión y la de medición. Siguen el diseño del portal: portada tinta con la volanta en pastilla y la palabra clave del título en caja, títulos en Archivo pesada, tarjetas de 20 px y botones de 12 px.
 
 | Ruta | Protocolo |
 |---|---|
-| `/protocolo-llamadas` | Comunicación legal en llamadas de venta (componente propio) |
+| `/protocolo-llamadas` | Comunicación legal en llamadas de venta |
 | `/protocolo-conflictos` | Conflictos y pedidos de reembolso |
 | `/protocolo-onboarding` | Onboarding de clientes |
 | `/protocolo-cobranza` | Cobranza y contracargos |
@@ -334,16 +334,43 @@ Plantillas de trabajo para los clientes, públicas y sin indexar, con índice en
 
 ### Cómo está armado
 
-1. `components/protocolos/motor` es el motor común. Recibe la definición de un protocolo y arma la página con índice, ficha, bloques de contenido, herramientas (semáforo, calculadora, rúbrica, evaluación por señales, plazos y listas de control), impresión y tarjeta de bolsillo. Usa los estilos del protocolo de llamadas.
+1. `components/protocolos/motor` es el motor común. Recibe la definición de un protocolo y arma la página con índice, ficha, bloques de contenido, herramientas (semáforo, calculadora, rúbrica, evaluación por señales, plazos y listas de control), impresión y tarjeta de bolsillo. Los estilos base están en `motor/base.module.css` y el diseño del portal encima, en `motor/motor.module.css`. Los ocho protocolos, llamadas incluido, usan el motor.
 2. Cada protocolo vive en su carpeta con `ficha.ts` (datos del negocio, valores y avisos), `contenido.ts` (secciones y bloques) e `index.ts` (definición).
 3. Para sumar uno nuevo se crea la carpeta, se agrega su ruta en `components/protocolos/rutas.ts` y su carga en `components/protocolos/PaginaProtocolo.tsx`.
 4. Regla de estilo de los textos, sin dos puntos ni rayas, y registro en lugar de grabación.
+5. Todas las secciones se ordenan en las mismas partes, en el orden en que se usan, y el índice las agrupa así. Cada sección puede declarar su `parte`; si no, el motor la deduce de su id (`PARTE_POR_ID` en `motor/Protocolo.tsx`).
+6. La ficha va plegada y se abre sola mientras le falten datos. El anexo jurídico muestra solo el país del mercado de la ficha (con «Otro», todos).
+7. `meta.resalte` dice qué parte del título va en la caja de resalte.
+
+| Parte | Pregunta | Secciones típicas |
+|---|---|---|
+| Antes de empezar | ¿De qué se trata y para quién es? | Cómo usarlo, ficha |
+| Principios | ¿Qué no se negocia? | Cinco principios |
+| Recorrido | ¿Qué hago y cuándo? | Etapas y la herramienta de decisión de cada protocolo |
+| Qué decir | ¿Cómo lo digo? | Mensajes, plantillas, frases prohibidas |
+| Escalar | ¿Cuándo no lo resuelvo yo? | Alertas, derivación, autorizaciones |
+| Controlar y medir | ¿Lo hicimos bien? | Listas de control, tablero, calculadoras |
+| Respaldo legal | ¿Por qué es así? | Anexo jurídico |
+| Para llevar | ¿Qué tengo que recordar? | Tarjeta de bolsillo |
+
+### Videos
+
+Se cargan en `components/protocolos/videos.ts`. Sirven YouTube (también oculto), Vimeo, Loom o un mp4. Un enlace vacío no muestra nada, así cada video se suma cuando está listo.
+
+| Campo | Dónde se ve |
+|---|---|
+| `VIDEO_GENERAL` | Arriba del catálogo de `/protocolos` |
+| `presentacion` | En la portada del protocolo y en su tarjeta de **Protocolos** del portal, que pasa a reproducir el video y suma «Abrir el protocolo» |
+| `secciones` | Arriba de la sección con ese id |
 
 | Archivo | Para qué |
 |---|---|
 | `components/protocolos/rutas.ts` | Catálogo y rutas que resuelve el motor |
 | `components/protocolos/PaginaProtocolo.tsx` | Página contenedora e índice de protocolos |
-| `components/protocolos/motor/*` | Tipos, ficha, renderizador, herramientas y estilos del motor |
+| `components/protocolos/motor/*` | Tipos, ficha, renderizador, partes, herramientas y estilos del motor |
+| `components/protocolos/videos.ts` | Enlaces de los videos de cada protocolo |
+| `components/protocolos/Video.tsx` | Tarjeta de video y visor, compartidos con el portal |
+| `components/protocolos/marca.ts` | Paleta y tipografía del portal aplicadas a los protocolos |
 | `supabase/migrations/0008_protocolos.sql` | Alta de los protocolos en Documentos |
 
 ## Pagos con tarjeta
@@ -726,7 +753,7 @@ El portal va en negro, como los posteos de @agustin.legales, con una escala de a
 | Botones | `Marco` envuelve todo en `DensidadBotones` compacta: botones de 36 a 48 px, el principal en negro y el secundario sobre papel. La landing sigue igual |
 | Campos | `claseInput` con borde `borde` (3,6 a 1), foco de 2 px en tinta, etiquetas de 13 px (`Campo`). El foco visible de teclado vale para todo el sitio |
 | Estados | `Etiqueta` en pastilla de 12 px. `bosque` es negra llena (activo, firmado), `tinta` con borde (finalizado, en pausa), `piedra` gris niebla (en espera) y `alerta` roja |
-| Protocolos | Portada «Un contrato no es desconfianza. Es claridad.» y cada protocolo como la tarjeta de video del posteo (`TarjetaProtocolo.tsx`). Si el enlace es de YouTube, Vimeo, Loom o un mp4, el círculo es play y el video se abre en el portal; si es un archivo, descarga; si es otro enlace, lo abre |
+| Protocolos | Portada «Un contrato no es desconfianza. Es claridad.» y cada protocolo como la tarjeta de video del posteo (`TarjetaProtocolo.tsx`). Si el enlace es de YouTube, Vimeo, Loom o un mp4, el círculo es play y el video se abre en el portal; si es un archivo, descarga; si es otro enlace, lo abre. Si es un protocolo del sitio con video de presentación en `videos.ts`, reproduce ese video y debajo ofrece «Abrir el protocolo» |
 
 El inicio (`Inicio.tsx`) muestra lo que la persona tiene que resolver, con datos reales: firmas que le faltan firmar o vencen en tres días, asuntos que esperan su respuesta o vencen en una semana, pedidos de contrato sin enviar, problemas con el débito y, para el closer, clientes del CRM con la firma pendiente. Arriba van las cifras y al costado el plan, la agenda y los accesos. FIRMA ve un inicio propio con los problemas de cobro, los errores de sellado, los pedidos nuevos y los asuntos que vencen en la semana.
 

@@ -1,4 +1,4 @@
-// Contenido del protocolo.
+// Textos y datos del protocolo de llamadas. contenido.ts los arma en secciones del motor.
 // Convenciones de los textos
 //   {clave}      variable de la ficha del cliente (se resalta)
 //   [[texto]]    dato que el closer completa en vivo durante la llamada

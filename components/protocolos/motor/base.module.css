@@ -1,4 +1,4 @@
-/* Protocolo de comunicación legal en llamadas de venta.
+/* Estilos base de los protocolos. Nacieron con el de llamadas de venta y hoy los usa el motor.
    Estilos aislados por CSS Modules. Para adaptarlo al sitio, alcanza con
    sobrescribir las variables --sop-* desde un contenedor padre o desde :root.
    Fuentes: --sop-font-body y --sop-font-display (si no se definen, se heredan).

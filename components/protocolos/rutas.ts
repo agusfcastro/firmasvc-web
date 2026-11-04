@@ -69,4 +69,4 @@ export const CATALOGO: EntradaCatalogo[] = [
 ];
 
 /** Rutas que resuelve el motor de protocolos, incluido el índice. */
-export const RUTAS_MOTOR: string[] = ['/protocolos', ...CATALOGO.filter((c) => c.ruta !== '/protocolo-llamadas').map((c) => c.ruta)];
+export const RUTAS_MOTOR: string[] = ['/protocolos', ...CATALOGO.map((c) => c.ruta)];
