@@ -79,7 +79,7 @@ export const Equipo: React.FC<{ orgId: string; orgNombre: string; puedeGestionar
             Equipo de <span className="text-bosque">{orgNombre}</span>
           </>
         }
-        bajada="Quién vende y quién acompaña a cada cliente. No hace falta que tengan cuenta en el portal."
+        bajada="Quién vende y quién acompaña a cada cliente. No hace falta que tengan cuenta en el portal: si la tienen o la abren después, se unen solos por mail o por nombre."
         acciones={
           !soloLectura && !borrador ? (
             <Button size="lg" onClick={() => setBorrador({ ...VACIO })} className="self-end">
@@ -132,6 +132,7 @@ export const Equipo: React.FC<{ orgId: string; orgNombre: string; puedeGestionar
               <tr>
                 <th>Persona</th>
                 <th>Rol</th>
+                <th>Portal</th>
                 <th>Estado</th>
                 <th />
               </tr>
@@ -139,7 +140,7 @@ export const Equipo: React.FC<{ orgId: string; orgNombre: string; puedeGestionar
             <tbody>
               {lista.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="p-6 text-piedra">
+                  <td colSpan={5} className="p-6 text-piedra">
                     Todavía no hay nadie cargado.
                   </td>
                 </tr>
@@ -151,6 +152,7 @@ export const Equipo: React.FC<{ orgId: string; orgNombre: string; puedeGestionar
                     {m.email && <div className="text-xs text-piedra">{m.email}</div>}
                   </td>
                   <td>{ROL_COMERCIAL[m.rol_comercial]}</td>
+                  <td className="text-piedra text-sm">{m.usuario_id ? 'Con cuenta' : 'Sin cuenta'}</td>
                   <td>{m.activo ? <Etiqueta tono="bosque">Activo</Etiqueta> : <Etiqueta>Inactivo</Etiqueta>}</td>
                   <td className="text-right">
                     {!soloLectura && (

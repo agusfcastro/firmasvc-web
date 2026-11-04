@@ -5,7 +5,7 @@ import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
 import { Aviso, Cifras, Encabezado, Etiqueta, Monto, Pestanas, claseInput } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
-import { TONO_FIRMA, dinero, fecha, hoyISO, type ClienteResumen } from './tipos';
+import { TONO_FIRMA, dinero, fecha, hoyISO, type ClienteResumen, type IntegranteEquipo } from './tipos';
 
 type Filtro = 'todos' | 'vencidas' | 'revisar' | 'Pendiente' | 'En firma' | 'Firmado' | 'Baja';
 
@@ -19,7 +19,7 @@ const FILTROS: { clave: Filtro; titulo: string }[] = [
   { clave: 'revisar', titulo: 'A revisar' },
 ];
 
-function csv(filas: ClienteResumen[]): string {
+function csv(filas: ClienteResumen[], nombre: (id: string | null | undefined) => string | null): string {
   const cols: [string, (c: ClienteResumen) => unknown][] = [
     ['Código', (c) => c.codigo],
     ['Nombre o razón social', (c) => c.nombre],
@@ -38,7 +38,8 @@ function csv(filas: ClienteResumen[]): string {
     ['Monto próxima cuota', (c) => c.proxima_cuota_monto],
     ['Por cobrar en 30 días', (c) => c.por_cobrar_30_dias],
     ['Estado firma', (c) => c.estado_firma],
-    ['Responsable', (c) => c.responsable],
+    ['Responsable', (c) => nombre(c.responsable_id) ?? c.responsable],
+    ['Closer', (c) => nombre(c.closer_id)],
     ['Onboarding', (c) => c.fecha_onboarding?.slice(0, 16).replace('T', ' ')],
     ['Notas', (c) => c.notas],
   ];
@@ -117,6 +118,18 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
     };
   }, [orgId]);
 
+  // Closer y responsable salen del equipo comercial (migración del equipo). El texto libre queda de respaldo.
+  const [equipo, setEquipo] = useState<IntegranteEquipo[]>([]);
+  useEffect(() => {
+    if (!supabase) return;
+    supabase
+      .from('equipo_miembros')
+      .select('*')
+      .eq('organizacion_id', orgId)
+      .then(({ data }) => setEquipo((data as IntegranteEquipo[]) ?? []));
+  }, [orgId]);
+  const nombreEquipo = (id: string | null | undefined) => (id ? equipo.find((m) => m.id === id)?.nombre ?? null : null);
+
   const cobranzaRef = cobranza;
   useEffect(() => {
     if (!supabase) return;
@@ -153,9 +166,9 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
       if (filtro === 'revisar' && !f.revisar_pagos) return false;
       if ((filtro === 'Pendiente' || filtro === 'En firma' || filtro === 'Firmado' || filtro === 'Baja') && f.estado_firma !== filtro) return false;
       if (!q) return true;
-      return [f.codigo, f.nombre, f.representante, f.id_fiscal, f.email, f.dni, f.responsable].some((v) => (v ?? '').toLowerCase().includes(q));
+      return [f.codigo, f.nombre, f.representante, f.id_fiscal, f.email, f.dni, f.responsable, nombreEquipo(f.responsable_id), nombreEquipo(f.closer_id)].some((v) => (v ?? '').toLowerCase().includes(q));
     });
-  }, [filas, filtro, busqueda]);
+  }, [filas, filtro, busqueda, equipo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Paginación de la tabla. Vuelve a la primera página al cambiar el filtro o la búsqueda.
   useEffect(() => {
@@ -176,7 +189,7 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
   }
 
   function descargar() {
-    const blob = new Blob(['\ufeff' + csv(visibles)], { type: 'text/csv;charset=utf-8' });
+    const blob = new Blob(['\ufeff' + csv(visibles, nombreEquipo)], { type: 'text/csv;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `crm-${hoyISO()}.csv`;
@@ -344,7 +357,10 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
                           {f.estado_firma === 'Pendiente' && envioFallido[f.id] && <Etiqueta tono="alerta">{ENVIO_FALLIDO[envioFallido[f.id]]}</Etiqueta>}
                         </div>
                       </td>
-                      <td className="text-piedra">{f.responsable ?? '·'}</td>
+                      <td className="text-piedra">
+                        <div>{nombreEquipo(f.responsable_id) ?? f.responsable ?? '·'}</div>
+                        {nombreEquipo(f.closer_id) && <div className="text-xs mt-0.5">Closer {nombreEquipo(f.closer_id)}</div>}
+                      </td>
                     </tr>
                   );
                 })}

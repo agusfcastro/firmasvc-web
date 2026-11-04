@@ -26,6 +26,7 @@ import { cargoDe, permisosDe, type Permisos } from './tipos';
 import { COLUMNAS_FIRMANTE, type Firmante, type Sobre } from './firmas/api';
 import type { Asunto, Novedad } from './asuntos';
 import type { Abono } from './abonos';
+import { OnboardingsDia } from './crm/OnboardingsDia';
 import { ROTULO_PLAN, duracion, firmasOcupadas, usoAgenda, usoFirmas, type Plan, type UsoAgenda, type UsoFirmas } from './planes';
 
 /* ------------------------------------------------------------------ */
@@ -463,6 +464,7 @@ const InicioCliente: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
 
         <div className="grid grid-cols-1 wide:grid-cols-[minmax(0,1fr)_340px] gap-6 items-start">
           <div className="flex flex-col gap-6 min-w-0">
+            {permisos.crm && orgId && <OnboardingsDia orgId={orgId} />}
             {(permisos.casos || permisos.documentosLegales || permisos.crm) && (
               <Tarjeta titulo="Para hoy" cuenta={pendientes.length}>
                 <ListaPendientes items={pendientes} cargando={cargando} vacio="Cuando algo necesite tu respuesta o esté por vencer, aparece acá." />

@@ -6,8 +6,11 @@ import { navegar } from '../navegacion';
 import { Aviso, Campo, Encabezado, Enlace, TituloSeccion, claseInput } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
 import { generarContratoFirma } from './contratoFirma';
-import { dinero, hoyISO, type Servicio, type TipoCliente } from './tipos';
+import { ROL_COMERCIAL, dinero, hoyISO, type IntegranteEquipo, type Servicio, type TipoCliente } from './tipos';
 import { DatosCliente, filaIdentidad } from './DatosCliente';
+
+/** Valor de la lista para asignar a alguien que todavía no está en Equipo. */
+const NUEVO = '__nuevo__';
 
 const FECHA_VALIDA = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -45,9 +48,10 @@ function repartir(saldo: number, cantidad: number, primera: string): Cuota[] {
 
 export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre: string; cobranza: boolean }> = ({ orgId, esAdmin, orgNombre }) => {
   const [servicios, setServicios] = useState<Servicio[]>([]);
+  const [equipo, setEquipo] = useState<IntegranteEquipo[]>([]);
   const [f, setF] = useState({
     tipo: 'persona' as TipoCliente, nombre: '', id_fiscal: '', representante: '', cargo: '', dni: '', email: '', telefono: '', domicilio: '', servicio: '', monto_total: '', modalidad: 'Cuotas' as 'Cuotas' | 'PIF',
-    fecha_onboarding: '', responsable: '', notas: '', condiciones: '', anticipo: '', cantidad: '2', primera: hoyISO(),
+    fecha_onboarding: '', closer_id: '', responsable_id: '', closer_nuevo: '', responsable_nuevo: '', notas: '', condiciones: '', anticipo: '', cantidad: '2', primera: hoyISO(),
   });
   const [cuotas, setCuotas] = useState<Cuota[]>([]);
   const [manual, setManual] = useState(false);
@@ -63,6 +67,13 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
       .eq('activo', true)
       .order('clave')
       .then(({ data }) => setServicios((data as Servicio[]) ?? []));
+    supabase
+      ?.from('equipo_miembros')
+      .select('*')
+      .eq('organizacion_id', orgId)
+      .eq('activo', true)
+      .order('nombre')
+      .then(({ data }) => setEquipo((data as IntegranteEquipo[]) ?? []));
   }, [orgId]);
 
   const total = aCentavos(f.monto_total);
@@ -118,6 +129,20 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
     if (!valido) return setError(problema);
     setEtapa('guardando');
     setError(null);
+    // Quien todavía no está en Equipo se suma ahora. Si ya hay alguien con ese nombre, se usa ese.
+    const asignados: Record<'closer_id' | 'responsable_id', string | null> = { closer_id: f.closer_id || null, responsable_id: f.responsable_id || null };
+    for (const [campo, nuevo, rol] of [
+      ['closer_id', f.closer_nuevo, 'closer'],
+      ['responsable_id', f.responsable_nuevo, 'csm'],
+    ] as const) {
+      if (f[campo] !== NUEVO) continue;
+      const { data: idNuevo, error: eq } = await supabase.rpc('equipo_sumar', { org: orgId, nombre: nuevo.trim(), rol });
+      if (eq || !idNuevo) {
+        setEtapa('');
+        return setError(eq?.message ?? 'No se pudo sumar a la persona al equipo.');
+      }
+      asignados[campo] = idNuevo as string;
+    }
     const { data, error: e1 } = await supabase
       .from('crm_clientes')
       .insert({
@@ -127,7 +152,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
         monto_total: total / 100,
         modalidad: f.modalidad,
         fecha_onboarding: f.fecha_onboarding ? new Date(f.fecha_onboarding).toISOString() : null,
-        responsable: f.responsable.trim() || null,
+        ...asignados,
         notas: f.notas.trim() || null,
         condiciones: f.condiciones.trim() || null,
       })
@@ -220,10 +245,63 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
         <Campo etiqueta="Onboarding">
           <input type="datetime-local" className={claseInput} value={f.fecha_onboarding} onChange={(e) => set('fecha_onboarding', e.target.value)} />
         </Campo>
-        <Campo etiqueta="Responsable (CSM o AM)">
-          <input className={claseInput} value={f.responsable} onChange={(e) => set('responsable', e.target.value)} />
-        </Campo>
+        {(
+          [
+            ['closer_id', 'Closer', ['closer']],
+            ['responsable_id', 'Responsable (CSM o AM)', ['csm', 'account_manager']],
+          ] as const
+        ).map(([campo, etiqueta, roles]) => {
+          // Primero los de ese rol; si no hay ninguno, cualquiera del equipo con su rol al lado.
+          const delRol = equipo.filter((m) => (roles as readonly string[]).includes(m.rol_comercial));
+          const otros = equipo.filter((m) => !delRol.includes(m));
+          const campoNuevo = campo === 'closer_id' ? 'closer_nuevo' : 'responsable_nuevo';
+          return (
+            <Campo key={campo} etiqueta={etiqueta}>
+              <div className="flex flex-col gap-2">
+                <select className={claseInput} value={f[campo]} onChange={(e) => set(campo, e.target.value)}>
+                  <option value="">Sin asignar</option>
+                  {delRol.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.nombre}
+                    </option>
+                  ))}
+                  {otros.length > 0 && (
+                    <optgroup label="Otros del equipo">
+                      {otros.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.nombre} · {ROL_COMERCIAL[m.rol_comercial]}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  <option value={NUEVO}>+ Alguien que no está en el equipo</option>
+                </select>
+                {f[campo] === NUEVO && (
+                  <input
+                    required
+                    autoFocus
+                    className={claseInput}
+                    maxLength={120}
+                    placeholder="Nombre y apellido"
+                    aria-label={`Nombre del ${etiqueta.toLowerCase()}`}
+                    value={f[campoNuevo]}
+                    onChange={(e) => set(campoNuevo, e.target.value)}
+                  />
+                )}
+              </div>
+            </Campo>
+          );
+        })}
       </div>
+      {(f.closer_id === NUEVO || f.responsable_id === NUEVO) && (
+        <p className="text-sm text-piedra -mt-6">
+          Al crear el cliente, la persona queda en{' '}
+          <Enlace a="/portal/crm/equipo" className="underline underline-offset-4 hover:text-bosque">
+            Equipo
+          </Enlace>
+          . Si ya tiene cuenta en el portal o la abre después, se une sola por el nombre.
+        </p>
+      )}
 
       <fieldset className="flex flex-col gap-6 pt-8 min-w-0 border-t border-tinta/15">
         <TituloSeccion eyebrow="Paso 2" titulo="Plan de pagos" />

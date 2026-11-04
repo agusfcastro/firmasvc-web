@@ -162,8 +162,9 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
     }
     const { error } = await supabase.from('crm_clientes').update(cambios).eq('id', id);
     setGuardando(false);
-    setMensaje(error ? { tipo: 'error', texto: error.message } : { tipo: 'ok', texto: 'Cambios guardados.' });
-    if (!error) void cargar();
+    // Guardado, se vuelve al listado del CRM. Con error, se queda en la ficha para corregir.
+    if (error) return setMensaje({ tipo: 'error', texto: error.message });
+    navegar('/portal/crm');
   }
 
   async function borrarCliente() {
