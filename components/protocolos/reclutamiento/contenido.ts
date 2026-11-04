@@ -34,12 +34,7 @@ export function secciones(f: Ficha): Seccion[] {
         {
           tipo: 'parrafo',
           texto:
-            'Este protocolo ordena cómo {empresa} busca, evalúa y contrata personas, desde el perfil del puesto hasta la oferta firmada y el cierre con quienes no quedaron. Los datos de la búsqueda se completan una vez en la ficha y se actualizan solos en el aviso, las plantillas y las herramientas.',
-        },
-        {
-          tipo: 'parrafo',
-          texto:
-            'El objetivo es triple. Contratar mejor porque se decide con evidencia, evitar reclamos por discriminación o por un encuadre mal hecho, y cuidar los datos de cada candidato como lo que son, datos prestados para una búsqueda concreta.',
+            'Cómo {empresa} busca, evalúa y contrata, del perfil del puesto a la oferta firmada y el cierre con quienes no quedaron. Contratar mejor porque se decide con evidencia, evitar reclamos por discriminación o por un encuadre mal hecho y cuidar los datos de cada candidato, que son prestados para esta búsqueda.',
         },
         { tipo: 'leyenda' },
         {
@@ -54,7 +49,7 @@ export function secciones(f: Ficha): Seccion[] {
         {
           tipo: 'aclaracion',
           texto:
-            'La materia laboral cambia según el país y el caso. Ante una duda de encuadre, de período de prueba o de contratación en otro país, el protocolo deriva al análisis con el abogado, y con el contador si hay temas impositivos.',
+            'Una duda de encuadre, de período de prueba o de contratación en otro país se analiza con el abogado, y con el contador si hay temas impositivos.',
         },
       ],
     },
@@ -139,7 +134,7 @@ export function secciones(f: Ficha): Seccion[] {
       id: 'etapas',
       titulo: 'El recorrido en ocho etapas',
       corto: 'Ocho etapas',
-      intro: 'Cada etapa tiene responsable, plazo y objetivo. El paso de una a otra queda registrado en {herramienta}.',
+      intro: 'El paso de una etapa a otra queda registrado en {herramienta}.',
       bloques: [
         {
           tipo: 'etapas',
@@ -148,11 +143,10 @@ export function secciones(f: Ficha): Seccion[] {
               titulo: 'Perfil del puesto por resultados',
               cuando: 'Responsable {decisor} · Antes de publicar',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Saber qué se busca antes de buscar.' },
                 {
                   rotulo: 'Qué tiene que pasar',
                   texto:
-                    'Resultados esperados a 90 días, tareas principales, requisitos imprescindibles y deseables, modalidad {modalidadTexto}, formato {formatoTexto}, rango y criterios de la rúbrica. Cada requisito se justifica por una tarea del puesto.',
+                    'Resultados a 90 días, tareas, requisitos, modalidad {modalidadTexto}, formato {formatoTexto}, rango y criterios de la rúbrica. Cada requisito se justifica por una tarea.',
                 },
                 { rotulo: 'Frase ancla', texto: '¿Qué tiene que haber logrado esta persona a los 90 días para que digamos que fue una buena contratación?', estilo: 'frase' },
                 { rotulo: 'Error típico', texto: 'Copiar el aviso de otra empresa o pedir años de experiencia y títulos que el puesto no necesita.', estilo: 'error' },
@@ -162,11 +156,10 @@ export function secciones(f: Ficha): Seccion[] {
               titulo: 'Aviso y difusión',
               cuando: 'Responsable {reclutador} · Antes de abrir la búsqueda',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Atraer a quien puede hacer el trabajo, sin excluir por motivos que no importan.' },
                 {
                   rotulo: 'Qué tiene que pasar',
                   texto:
-                    'Aviso con resultados, modalidad real, formato, rango y aviso de privacidad, revisado contra la tabla de preguntas prohibidas. Difusión en más de una fuente y registro de la fuente de cada postulación.',
+                    'Aviso con resultados, modalidad real, rango y aviso de privacidad, revisado contra las preguntas prohibidas. Más de una fuente, y la fuente de cada postulación registrada.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Buscamos una persona para {puesto} que logre [[resultado principal]]. Ofrecemos {remuneracion}.', estilo: 'frase' },
                 { rotulo: 'Error típico', texto: 'Pedir edad, sexo, foto o buena presencia, o publicar como independiente un puesto con horario fijo y jefe.', estilo: 'error' },
@@ -176,11 +169,10 @@ export function secciones(f: Ficha): Seccion[] {
               titulo: 'Filtro de postulaciones',
               cuando: 'Responsable {reclutador} · Dentro de {diasRespuesta} desde cada postulación',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Separar a quienes cumplen los requisitos imprescindibles, con el mismo criterio para todos.' },
                 {
                   rotulo: 'Qué tiene que pasar',
                   texto:
-                    'Acuse a cada postulación, filtro solo con los requisitos del perfil y registro del motivo de cada descarte. Si se usa una herramienta automática, una persona revisa los descartes.',
+                    'Acuse a cada postulación, filtro solo con los requisitos del perfil y motivo de cada descarte registrado. Si filtra una herramienta automática, una persona revisa los descartes.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Revisamos todas las postulaciones con los mismos criterios y te escribimos antes del [[fecha]].', estilo: 'frase' },
                 { rotulo: 'Error típico', texto: 'Descartar por la universidad, el barrio, la edad que surge del currículum o la foto.', estilo: 'error' },
@@ -190,11 +182,10 @@ export function secciones(f: Ficha): Seccion[] {
               titulo: 'Entrevista estructurada',
               cuando: 'Responsables entrevistadores · Dentro de {diasRespuesta} desde el filtro',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Obtener evidencia comparable sobre cada criterio de la rúbrica.' },
                 {
                   rotulo: 'Qué tiene que pasar',
                   texto:
-                    'Mismas preguntas en el mismo orden, pedido de ejemplos concretos y puntaje individual con evidencia antes de cualquier conversación entre entrevistadores. Si el rango no se informó antes, se informa acá.',
+                    'Mismas preguntas en el mismo orden, ejemplos concretos y puntaje individual antes de hablar con los otros entrevistadores. Si el rango no se informó, se informa acá.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Contame una situación concreta en la que [[logro del perfil]]. ¿Qué hiciste vos y cuál fue el resultado?', estilo: 'frase' },
                 { rotulo: 'Error típico', texto: 'Charlar sin guion, preguntar por la vida personal o decidir en los primeros minutos.', estilo: 'error' },
@@ -204,11 +195,10 @@ export function secciones(f: Ficha): Seccion[] {
               titulo: 'Prueba práctica',
               cuando: 'Responsable {reclutador} · Solo con finalistas',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Ver la habilidad clave en acción, sin aprovechar trabajo ajeno.' },
                 {
                   rotulo: 'Qué tiene que pasar',
                   texto:
-                    'Consigna escrita con alcance, tiempo estimado de {horasPrueba}, criterios de evaluación, pago si corresponde y uso del material. Se evalúa con la rúbrica, no con la sensación.',
+                    'Consigna escrita con alcance, {horasPrueba} como máximo, criterios, pago si corresponde y uso del material. Se evalúa con la rúbrica.',
                 },
                 { rotulo: 'Frase ancla', texto: 'La prueba lleva {horasPrueba} como máximo y se evalúa con estos criterios. {pagoConsigna}', estilo: 'frase' },
                 { rotulo: 'Error típico', texto: 'Pedir un trabajo real del negocio, sin límite de tiempo ni pago, y usarlo después.', estilo: 'error' },
@@ -218,11 +208,10 @@ export function secciones(f: Ficha): Seccion[] {
               titulo: 'Referencias',
               cuando: 'Responsable {reclutador} · Con autorización del finalista',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Confirmar evidencia, no buscar rumores.' },
                 {
                   rotulo: 'Qué tiene que pasar',
                   texto:
-                    'Pedido de autorización al candidato, contacto solo con las personas que indicó y preguntas sobre desempeño y resultados. Lo que no se relaciona con el trabajo no se registra.',
+                    'Con autorización del candidato y solo con las personas que indicó, sobre desempeño y resultados. Lo que no se relaciona con el trabajo no se registra.',
                 },
                 { rotulo: 'Frase ancla', texto: '¿En qué resultados concretos trabajó [[nombre]] con vos y cómo los logró?', estilo: 'frase' },
                 { rotulo: 'Error típico', texto: 'Llamar al empleador actual sin permiso o preguntar por salud, embarazo o vida privada.', estilo: 'error' },
@@ -232,28 +221,26 @@ export function secciones(f: Ficha): Seccion[] {
               titulo: 'Decisión y oferta',
               cuando: 'Responsable {decisor} · Dentro de {diasRespuesta} desde la última etapa',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Decidir con la rúbrica y ofrecer por escrito lo mismo que se conversó.' },
                 {
                   rotulo: 'Qué tiene que pasar',
                   texto:
-                    'Puesta en común con los puntajes ya cargados, decisión registrada con su fundamento, oferta escrita con modalidad, retribución, variable, fecha de inicio y período de prueba, y alta o contrato firmado antes del primer día.',
+                    'Puesta en común con los puntajes ya cargados y decisión fundada. Oferta escrita con modalidad, retribución, variable, inicio y período de prueba, y alta o contrato firmado antes del primer día.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Te enviamos la oferta por escrito. Revisala con tiempo y cualquier duda la vemos antes de que respondas.', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Ofrecer por teléfono condiciones que después no figuran en el contrato, o dejar que la persona empiece sin alta.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Ofrecer por teléfono lo que el contrato no dice, o dejar empezar sin alta.', estilo: 'error' },
               ],
             },
             {
               titulo: 'Cierre con no seleccionados y datos',
               cuando: 'Responsable {reclutador} · Dentro de {diasRespuesta} desde la decisión',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Cerrar con respeto y dejar los datos en orden.' },
                 {
                   rotulo: 'Qué tiene que pasar',
                   texto:
-                    'Respuesta a cada persona que participó, pedido de consentimiento para conservar postulaciones, eliminación del resto y archivo de rúbricas según la política de conservación. Se registra la fuente de la contratación para el tablero.',
+                    'Respuesta a cada persona que participó, consentimiento para conservar postulaciones, eliminación del resto y rúbricas archivadas según la política de conservación.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Gracias por tu tiempo en el proceso. En esta oportunidad avanzamos con otra persona.', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'No responder nunca, explicar el descarte con rasgos personales o guardar los currículums sin plazo.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'No responder, explicar el descarte con rasgos personales o guardar currículums sin plazo.', estilo: 'error' },
               ],
             },
           ],
