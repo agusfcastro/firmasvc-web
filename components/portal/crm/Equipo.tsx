@@ -8,7 +8,8 @@ import { ROL_COMERCIAL, type IntegranteEquipo, type RolComercial } from './tipos
 
 /**
  * Equipo comercial de la empresa: closers, setters, account managers y CSM,
- * tengan o no cuenta en el portal. Lo carga el titular (o FIRMA) y lo ve todo
+ * tengan o no cuenta en el portal. Los usuarios de la empresa entran solos
+ * (migración 0058); el resto lo carga el titular (o FIRMA) y lo ve todo
  * el equipo. Cada cliente del CRM puede llevar su closer, su setter y su
  * responsable. Más adelante, las llamadas de Fathom se atribuyen por el mail.
  * Nadie se borra: se desactiva y deja de aparecer al asignar clientes.
@@ -79,7 +80,7 @@ export const Equipo: React.FC<{ orgId: string; orgNombre: string; puedeGestionar
             Equipo de <span className="text-bosque">{orgNombre}</span>
           </>
         }
-        bajada="Quién vende y quién acompaña a cada cliente. No hace falta que tengan cuenta en el portal: si la tienen o la abren después, se unen solos por mail o por nombre."
+        bajada="Quién vende y quién acompaña a cada cliente. Los usuarios de la empresa en el portal aparecen solos; acá podés ajustar su rol y sumar a quien no tiene cuenta."
         acciones={
           !soloLectura && !borrador ? (
             <Button size="lg" onClick={() => setBorrador({ ...VACIO })} className="self-end">

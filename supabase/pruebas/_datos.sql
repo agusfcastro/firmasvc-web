@@ -52,3 +52,8 @@ insert into public.perfiles (id, email, rol, organizacion_id) values
   ('00000000-0000-0000-0000-0000000000c1', 'multi@ab.test', 'csm', 'aaaaaaaa-0000-0000-0000-000000000000');
 insert into public.membresias (usuario_id, organizacion_id, rol) values
   ('00000000-0000-0000-0000-0000000000c1', 'bbbbbbbb-0000-0000-0000-000000000000', 'closer');
+
+-- Los usuarios de cada negocio entran solos al equipo (0058). Las pruebas
+-- arrancan con el equipo vacío para cargarlo a su medida; esas altas
+-- automáticas se prueban en equipo_desde_usuarios.sql.
+delete from public.equipo_miembros;
