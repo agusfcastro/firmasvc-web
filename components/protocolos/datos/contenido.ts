@@ -394,12 +394,7 @@ export function secciones(f: Ficha): Seccion[] {
         {
           tipo: 'parrafo',
           texto:
-            'Este protocolo ordena cómo {empresa} pide, usa, guarda y elimina los datos personales de interesados, clientes y colaboradores, y cómo responde cuando un titular pide algo o cuando algo sale mal. Los datos del negocio se completan una vez en la ficha y se actualizan solos en todas las plantillas.',
-        },
-        {
-          tipo: 'parrafo',
-          texto:
-            'El objetivo es triple. Que cada dato tenga una finalidad, un lugar y un plazo conocidos, que cada pedido de un titular se responda completo y en plazo, y que un incidente se contenga en horas y no en semanas.',
+            'Cómo {empresa} pide, usa, guarda y elimina los datos de interesados, clientes y colaboradores, y qué hace cuando un titular pide algo o algo sale mal. Que cada dato tenga finalidad, lugar y plazo, que cada pedido se responda en plazo y que un incidente se contenga en horas.',
         },
         { tipo: 'leyenda' },
         {
@@ -505,7 +500,7 @@ export function secciones(f: Ficha): Seccion[] {
       id: 'ciclo',
       titulo: 'El ciclo de vida del dato',
       corto: 'Ciclo de vida',
-      intro: 'Cada dato pasa por cinco etapas. En cada una hay un responsable, un momento y un error que se repite.',
+      intro: 'Cinco etapas, cada una con su responsable y su error típico.',
       bloques: [
         {
           tipo: 'etapas',
@@ -514,14 +509,14 @@ export function secciones(f: Ficha): Seccion[] {
               titulo: 'Captación',
               cuando: 'Responsables marketing y comercial · Antes de recolectar',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Pedir solo lo necesario e informar antes de recolectar.' },
+                { rotulo: 'Objetivo', texto: 'Pedir solo lo necesario e informar antes.' },
                 {
                   rotulo: 'Qué tiene que pasar',
                   texto:
-                    'Formularios con aviso corto, enlace a la política y casilla separada y desmarcada para comunicaciones. En las llamadas, aviso de registro con respuesta afirmativa. Si una base viene de un tercero, origen y consentimiento documentados antes de usarla.',
+                    'Aviso corto con enlace a la política y casilla de comunicaciones aparte y desmarcada. En las llamadas, aviso de registro. Una base de un tercero se usa solo con origen y consentimiento documentados.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Antes de arrancar, te cuento que la llamada queda registrada así tenemos respaldo de todo lo que hablemos. ¿Estás de acuerdo?', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Pedir documento, ingresos o datos de salud por las dudas, o premarcar la casilla de comunicaciones.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Pedir documento, ingresos o salud por las dudas, o premarcar la casilla.', estilo: 'error' },
               ],
             },
             {
@@ -531,24 +526,21 @@ export function secciones(f: Ficha): Seccion[] {
                 { rotulo: 'Objetivo', texto: 'Usar cada dato solo para lo que se informó.' },
                 {
                   rotulo: 'Qué tiene que pasar',
-                  texto:
-                    'Acceso por rol en {crm}, sin planillas paralelas ni reenvíos a cuentas personales. Comunicaciones comerciales solo a quien las aceptó, con enlace de baja. Nada se comparte con socios o terceros sin consentimiento del titular.',
+                  texto: 'Acceso por rol en {crm}, sin planillas paralelas. Promociones solo a quien las aceptó, con enlace de baja. Nada pasa a terceros sin consentimiento.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Este dato lo pedimos para [[finalidad]] y solo lo usamos para eso.', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Sumar a la lista de promociones a quien solo pidió una llamada, o usar la base para otro negocio.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Sumar a las promociones a quien solo pidió una llamada.', estilo: 'error' },
               ],
             },
             {
               titulo: 'Proveedores y transferencias',
               cuando: 'Responsable {contacto} · Antes de cargar datos en una herramienta',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Que cada herramienta trate los datos por cuenta de la empresa, con contrato y en un país habilitado.' },
+                { rotulo: 'Objetivo', texto: 'Que cada herramienta trate los datos con contrato y en un país habilitado.' },
                 {
                   rotulo: 'Qué tiene que pasar',
-                  texto:
-                    'Acuerdo de tratamiento guardado, país de alojamiento identificado, garantía de transferencia si está fuera, como {mecanismoTransferencia}, y doble factor activado antes de cargar datos reales.',
+                  texto: 'Acuerdo de tratamiento guardado, país de alojamiento conocido, garantía si está afuera, como {mecanismoTransferencia}, y doble factor antes de cargar datos reales.',
                 },
-                { rotulo: 'Frase ancla', texto: 'Antes de cargar datos necesitamos su acuerdo de tratamiento y saber dónde se alojan.', estilo: 'frase' },
                 { rotulo: 'Error típico', texto: 'Probar una herramienta nueva subiendo la base real de clientes.', estilo: 'error' },
               ],
             },
@@ -560,21 +552,20 @@ export function secciones(f: Ficha): Seccion[] {
                 {
                   rotulo: 'Qué tiene que pasar',
                   texto:
-                    'Llamadas sin venta, {mesesLlamadas}. Interesados que no compraron, {mesesInteresados} desde el último contacto. Clientes, {aniosClientes} desde que termina el contrato. La documentación contable y tributaria, el plazo que fije el contador. Una vez por trimestre se revisan los vencidos.',
+                    'Llamadas sin venta, {mesesLlamadas}. Interesados, {mesesInteresados} desde el último contacto. Clientes, {aniosClientes} desde que termina el contrato. Lo contable y tributario, lo que fije el contador. Cada trimestre se revisan los vencidos.',
                 },
                 { rotulo: 'Frase ancla', texto: '¿Para qué lo seguimos guardando y hasta cuándo?', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Guardar todo por las dudas, con copias en descargas, correos y planillas viejas.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Guardar todo por las dudas, con copias en descargas y planillas viejas.', estilo: 'error' },
               ],
             },
             {
               titulo: 'Supresión',
               cuando: 'Responsable {contacto} · Al vencer el plazo o dentro del plazo de un pedido',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Eliminar de verdad, en todas las copias, y dejar constancia.' },
+                { rotulo: 'Objetivo', texto: 'Eliminar en todas las copias y dejar constancia.' },
                 {
                   rotulo: 'Qué tiene que pasar',
-                  texto:
-                    'Borrado en {crm}, {registro}, {correoMasivo}, planillas y descargas, pedido de borrado a los proveedores y registro de qué se eliminó y cuándo. Lo que la ley obliga a conservar queda {bloqueoTexto}.',
+                  texto: 'Borrado en {crm}, {registro}, {correoMasivo}, planillas y descargas, y pedido de borrado a los proveedores. Lo que la ley obliga a conservar queda {bloqueoTexto}.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Suprimido en todas las herramientas el [[fecha]]. Queda conservado solo [[dato]] por [[obligación legal]].', estilo: 'frase' },
                 { rotulo: 'Error típico', texto: 'Borrar del CRM y olvidar la herramienta de correo o el registro de llamadas.', estilo: 'error' },
@@ -604,7 +595,7 @@ export function secciones(f: Ficha): Seccion[] {
       id: 'pedidos',
       titulo: 'Pedidos de los titulares',
       corto: 'Pedidos',
-      intro: 'Cada pedido de un titular se registra el mismo día en que llega, con responsable y plazo.',
+      intro: 'Cada pedido se registra el mismo día en que llega, por el canal que llegue.',
       bloques: [
         {
           tipo: 'etapas',
@@ -613,69 +604,46 @@ export function secciones(f: Ficha): Seccion[] {
               titulo: 'Recepción',
               cuando: 'Responsable quien lo recibe · En el día',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Que ningún pedido se pierda ni se demore por el canal en que llegó.' },
                 {
                   rotulo: 'Qué tiene que pasar',
-                  texto:
-                    'Un pedido de acceso, rectificación, supresión, oposición o baja vale por cualquier canal, sea correo, chat, llamada o redes. Se registran la fecha y el canal y se deriva a {contacto} el mismo día.',
+                  texto: 'Vale por correo, chat, llamada o redes. Se registran fecha y canal y se deriva a {contacto} el mismo día.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Recibimos tu pedido. Lo pasamos al área de privacidad, que te responde por escrito.', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Ignorarlo porque llegó por WhatsApp, o pedir que lo repita por otra vía para empezar a contar el plazo.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Pedir que lo repita por otra vía para empezar a contar el plazo.', estilo: 'error' },
               ],
             },
             {
               titulo: 'Verificación de identidad',
               cuando: 'Responsable {contacto} · Al día hábil siguiente',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Confirmar que pide el titular, sin pedir más datos de los necesarios.' },
                 {
                   rotulo: 'Qué tiene que pasar',
-                  texto:
-                    'Si escribe desde el correo o el teléfono registrados, alcanza. Si no, se le pide responder desde ese canal o un dato que solo el titular conoce. Copia de documento solo si es imprescindible, y se borra al cerrar el pedido.',
+                  texto: 'Si escribe desde el correo o el teléfono registrados, alcanza. Si no, se le pide confirmar desde ese canal. Copia de documento solo si es imprescindible, y se borra al cerrar.',
                 },
-                { rotulo: 'Frase ancla', texto: 'Para proteger tus datos, confirmanos el pedido respondiendo desde el correo con el que te registraste.', estilo: 'frase' },
                 { rotulo: 'Error típico', texto: 'Pedir foto del documento de entrada, o entregar datos a un tercero que dice ser el titular.', estilo: 'error' },
               ],
             },
             {
-              titulo: 'Búsqueda y decisión',
-              cuando: 'Responsables {contacto} y legales · Dentro del plazo',
+              titulo: 'Búsqueda y respuesta',
+              cuando: 'Responsables {contacto} y legales · Respuesta en {plazosPedidos}',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Encontrar todos los datos y decidir qué procede.' },
                 {
                   rotulo: 'Qué tiene que pasar',
                   texto:
-                    'Búsqueda en cada herramienta del mapa de datos, {crm}, {registro}, {correoMasivo}, {firma}, {pasarela}, planillas y correo. Legales define si algo debe conservarse por una obligación legal o por un reclamo en curso.',
-                },
-                { rotulo: 'Frase ancla', texto: 'Revisamos todas las herramientas del mapa, no solo el CRM.', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Responder mirando una sola herramienta y olvidar el registro de llamadas o la lista de correo.', estilo: 'error' },
-              ],
-            },
-            {
-              titulo: 'Respuesta',
-              cuando: 'Responsable {contacto} · Respuesta en {plazosPedidos}',
-              datos: [
-                { rotulo: 'Objetivo', texto: 'Responder una sola vez, completo y en plazo.' },
-                {
-                  rotulo: 'Qué tiene que pasar',
-                  texto:
-                    'Respuesta escrita desde {canalDerechos} con la plantilla que corresponda, en lenguaje claro. Si el pedido no procede, total o parcialmente, se explica el motivo y la vía de reclamo ante {autoridad}.',
+                    'Se busca en cada herramienta del mapa de datos, no solo en {crm}. Legales define si algo se conserva por obligación legal o reclamo en curso. Se responde una sola vez, por escrito desde {canalDerechos}, y si no procede se explica el motivo y la vía de reclamo ante {autoridad}.',
                 },
                 { rotulo: 'Frase ancla', texto: 'En respuesta a su pedido del [[fecha]], le confirmamos [[resultado]].', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Contestar fuera de plazo, o en partes que obligan a nuevos intercambios.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Mirar una sola herramienta, o contestar en partes y fuera de plazo.', estilo: 'error' },
               ],
             },
             {
               titulo: 'Cierre y registro',
               cuando: 'Responsable {contacto} · El mismo día de la respuesta',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Poder probar que se respondió bien y a tiempo.' },
                 {
                   rotulo: 'Qué tiene que pasar',
-                  texto:
-                    'El registro de pedidos guarda fecha de entrada, canal, tipo, verificación, respuesta, fecha de salida y constancia de envío. Si hubo rectificación o supresión, se avisa a los proveedores y a quienes hayan recibido el dato.',
+                  texto: 'El registro guarda entrada, canal, tipo, respuesta, salida y constancia de envío. Si hubo rectificación o supresión, se avisa a los proveedores que tengan el dato.',
                 },
-                { rotulo: 'Frase ancla', texto: 'Pedido [[número]] cerrado el [[fecha]], respondido en [[días]].', estilo: 'frase' },
                 { rotulo: 'Error típico', texto: 'No dejar constancia y no poder probar el plazo cuando llega un reclamo.', estilo: 'error' },
               ],
             },
@@ -695,10 +663,10 @@ export function secciones(f: Ficha): Seccion[] {
         {
           tipo: 'aclaracion',
           texto: esES
-            ? 'El plazo de un mes se puede prorrogar dos meses más por complejidad o número de pedidos, avisando al titular dentro del primer mes. El pedido no se rechaza porque llegó por un canal distinto de {canalDerechos}.'
+            ? 'El plazo de un mes se puede prorrogar dos meses más por complejidad o número de pedidos, avisando al titular dentro del primer mes.'
             : esAR
-              ? 'El acceso se cuenta en días corridos y el resto en días hábiles. Si el plazo vence sin respuesta completa, el titular puede ir directamente a la acción de hábeas data.'
-              : 'Los plazos dependen de la ley aplicable. Hasta que legales los defina, el pedido se responde lo antes posible y siempre por escrito.',
+              ? 'El acceso se cuenta en días corridos y el resto en días hábiles. Vencido el plazo sin respuesta completa, el titular puede ir a la acción de hábeas data.'
+              : 'Los plazos dependen de la ley aplicable. Hasta que legales los defina, se responde lo antes posible y por escrito.',
         },
       ],
     },
@@ -706,7 +674,8 @@ export function secciones(f: Ficha): Seccion[] {
       id: 'incidentes',
       titulo: 'Incidentes de seguridad',
       corto: 'Incidentes',
-      intro: 'Un incidente de seguridad se registra y se evalúa el mismo día en que se conoce, con responsable y plazo.',
+      intro:
+        'Un incidente no es solo un ataque. También lo es un correo con datos enviado a quien no correspondía, una planilla con enlace público o un teléfono perdido sin bloqueo. Se avisa y se evalúa el mismo día.',
       bloques: [
         {
           tipo: 'semaforo',
@@ -763,13 +732,10 @@ export function secciones(f: Ficha): Seccion[] {
               titulo: 'Detección y aviso interno',
               cuando: 'Responsable quien lo detecta · En el día',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Que {contacto} lo sepa el mismo día.' },
                 {
                   rotulo: 'Qué tiene que pasar',
-                  texto:
-                    'Quien detecta un acceso, una pérdida, un envío o un borrado indebido de datos lo avisa con el modelo de aviso interno, aunque falte información y aunque parezca menor. También cuenta lo que le pasa a un proveedor.',
+                  texto: 'Se avisa a {contacto} con el modelo de aviso interno, aunque falte información y aunque parezca menor. También cuenta lo que le pasa a un proveedor.',
                 },
-                { rotulo: 'Frase ancla', texto: 'Posible incidente de datos. Te paso lo que sé hasta ahora.', estilo: 'frase' },
                 { rotulo: 'Error típico', texto: 'Esperar a tener todo claro, o intentar arreglarlo solo para que no se note.', estilo: 'error' },
               ],
             },
@@ -777,26 +743,22 @@ export function secciones(f: Ficha): Seccion[] {
               titulo: 'Contención',
               cuando: 'Responsable {contacto} · De inmediato',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Cortar el daño sin borrar la evidencia.' },
                 {
                   rotulo: 'Qué tiene que pasar',
-                  texto:
-                    'Se guardan capturas y registros de acceso. Después se cambian claves, se revocan accesos, se cierran enlaces públicos, se pide el borrado a quien recibió datos por error y se pide su informe al proveedor.',
+                  texto: 'Primero se guardan capturas y registros de acceso. Después se cambian claves, se revocan accesos, se cierran enlaces y se pide el borrado a quien recibió datos por error.',
                 },
                 { rotulo: 'Frase ancla', texto: 'Te pedimos que elimines el correo recibido por error y nos confirmes que lo hiciste.', estilo: 'frase' },
-                { rotulo: 'Error típico', texto: 'Restaurar o borrar todo apurado y perder el rastro de qué pasó y a quién afectó.', estilo: 'error' },
+                { rotulo: 'Error típico', texto: 'Borrar todo apurado y perder el rastro de qué pasó y a quién afectó.', estilo: 'error' },
               ],
             },
             {
               titulo: 'Evaluación',
               cuando: 'Responsables {contacto} y legales · Dentro de las 24 horas del aviso',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Medir el riesgo para las personas, no para la empresa.' },
                 {
                   rotulo: 'Qué tiene que pasar',
-                  texto: 'Qué datos, de cuántas personas, si eran legibles, quién pudo verlos y si ya está contenido. Se completa la evaluación de esta sección y legales decide por escrito.',
+                  texto: 'Se completa la evaluación de arriba y legales decide por escrito. Lo que se mide es el riesgo para las personas, no para la empresa.',
                 },
-                { rotulo: 'Frase ancla', texto: '¿Qué le puede pasar a una persona cuyos datos quedaron expuestos?', estilo: 'frase' },
                 { rotulo: 'Error típico', texto: 'Decidir por el impacto en la imagen y no por el riesgo para los titulares.', estilo: 'error' },
               ],
             },
@@ -804,9 +766,7 @@ export function secciones(f: Ficha): Seccion[] {
               titulo: 'Notificación',
               cuando: 'Responsable legales · {plazoBrecha}',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Avisar a quien corresponda, en plazo y solo con hechos verificados.' },
                 { rotulo: 'Qué tiene que pasar', texto: pasoNotificacion },
-                { rotulo: 'Frase ancla', texto: 'Le escribimos para informarle un incidente de seguridad que afectó datos personales suyos.', estilo: 'frase' },
                 { rotulo: 'Error típico', texto: 'Prometer que no pasó nada antes de terminar la evaluación, o comunicar suposiciones.', estilo: 'error' },
               ],
             },
@@ -814,112 +774,118 @@ export function secciones(f: Ficha): Seccion[] {
               titulo: 'Cierre y aprendizaje',
               cuando: 'Responsable {contacto} · Al cerrar el incidente',
               datos: [
-                { rotulo: 'Objetivo', texto: 'Que no se repita.' },
                 {
                   rotulo: 'Qué tiene que pasar',
                   texto:
-                    'Registro del incidente con hechos, efectos, medidas y decisiones, causa raíz identificada y ajuste del protocolo, de un permiso o de un proveedor. En España el registro es obligatorio para toda brecha, también las que no se notifican.',
+                    'Registro con hechos, efectos, medidas, causa y el ajuste que evita que se repita. En España el registro es obligatorio para toda brecha, también las que no se notifican.',
                 },
-                { rotulo: 'Frase ancla', texto: 'Incidente [[número]] cerrado. Causa [[causa]]. Ajuste [[medida]].', estilo: 'frase' },
                 { rotulo: 'Error típico', texto: 'Cerrar sin registrar porque al final no fue grave.', estilo: 'error' },
               ],
             },
           ],
         },
         {
-          tipo: 'correo',
-          titulo: 'Aviso interno de incidente',
-          asunto: 'Posible incidente de datos, [[fecha]]',
-          cuerpo: [
-            'Hola {contacto}.',
-            'Te aviso de un posible incidente con datos personales.',
-            'Qué pasó. [[descripción en pocas líneas]].',
-            'Cuándo. Lo detecté hoy a las [[hora]]. Pudo haber empezado [[fecha estimada, si se sabe]].',
-            'Qué datos y de quiénes. [[tipo de datos y cantidad aproximada de personas]].',
-            'Qué hice hasta ahora. [[medidas tomadas, por ejemplo cambio de clave o pedido de borrado]].',
-            'Quedo atento a lo que necesites.',
-            '[[Nombre y rol]]',
+          tipo: 'plegable',
+          titulo: 'Modelo de aviso interno',
+          bajada: 'Para copiar y mandar en el día',
+          bloques: [
+            {
+              tipo: 'correo',
+              titulo: 'Aviso interno de incidente',
+              asunto: 'Posible incidente de datos, [[fecha]]',
+              cuerpo: [
+                'Hola {contacto}.',
+                'Te aviso de un posible incidente con datos personales.',
+                'Qué pasó. [[descripción en pocas líneas]].',
+                'Cuándo. Lo detecté hoy a las [[hora]]. Pudo haber empezado [[fecha estimada, si se sabe]].',
+                'Qué datos y de quiénes. [[tipo de datos y cantidad aproximada de personas]].',
+                'Qué hice hasta ahora. [[medidas tomadas, por ejemplo cambio de clave o pedido de borrado]].',
+                'Quedo atento a lo que necesites.',
+                '[[Nombre y rol]]',
+              ],
+              nota: 'Se manda aunque falte información. Lo importante es que {contacto} lo sepa en el día, y en España el plazo de 72 horas corre desde que la empresa tuvo constancia.',
+            },
           ],
-          nota: 'Se manda aunque falte información. Lo importante es que {contacto} lo sepa en el día, y en España el plazo de 72 horas corre desde que la empresa tuvo constancia.',
         },
-        {
-          tipo: 'aclaracion',
-          texto:
-            'Un incidente no es solo un ataque. También lo es un correo con datos enviado a quien no correspondía, una planilla compartida con un enlace público, un teléfono perdido sin bloqueo o un borrado sin copia.',
-        },
-],
+      ],
     },
     {
       id: 'herramientas',
       titulo: 'Mapa de datos y plazos',
       corto: 'Mapa y plazos',
       parte: 'recorrido',
-      intro: 'El mapa de datos dice qué hay, para qué y dónde, y la calculadora dice cuándo vence cada plazo.',
+      intro: 'La calculadora dice cuándo vence cada plazo. El mapa de datos, que es la base de la política de privacidad, dice dónde buscar.',
       bloques: [
-        { tipo: 'subtitulo', texto: 'Mapa de datos' },
         {
-          tipo: 'tabla',
-          aria: 'Mapa de datos',
-          columnas: [
-            { rotulo: 'Dato', ancho: '0.75fr', estilo: 'fuerte' },
-            { rotulo: 'Finalidad', ancho: '1.1fr' },
-            { rotulo: 'Base legal', ancho: '1.2fr', estilo: 'porque' },
-            { rotulo: 'Herramienta', ancho: '0.85fr' },
-            { rotulo: 'Conservación', ancho: '1fr' },
-            { rotulo: 'Quién accede', ancho: '0.85fr' },
+          tipo: 'plegable',
+          titulo: 'Mapa de datos modelo',
+          bajada: 'Qué hay, para qué, dónde y hasta cuándo',
+          bloques: [
+            {
+              tipo: 'tabla',
+              aria: 'Mapa de datos',
+              columnas: [
+                { rotulo: 'Dato', ancho: '0.75fr', estilo: 'fuerte' },
+                { rotulo: 'Finalidad', ancho: '1.1fr' },
+                { rotulo: 'Base legal', ancho: '1.2fr', estilo: 'porque' },
+                { rotulo: 'Herramienta', ancho: '0.85fr' },
+                { rotulo: 'Conservación', ancho: '1fr' },
+                { rotulo: 'Quién accede', ancho: '0.85fr' },
+              ],
+              filas: [
+                [
+                  'Interesados',
+                  'Responder la consulta, agendar y hacer la llamada de venta. Enviar novedades solo si las aceptó.',
+                  base.leads,
+                  '{crm} y {correoMasivo}',
+                  '{mesesInteresados} desde el último contacto. La lista de novedades, hasta la baja.',
+                  'Comercial y setters asignados',
+                ],
+                ['Llamadas de venta', 'Respaldo de lo conversado y acordado, y control de calidad.', base.llamadas, '{registro}, con enlace en {crm}', 'Sin venta, {mesesLlamadas}. Con venta, el plazo de clientes.', 'Líder comercial y legales'],
+                [
+                  'Clientes',
+                  'Prestar el servicio, comunicarse durante el programa y atender reclamos.',
+                  base.clientes,
+                  '{crm} y el canal del programa',
+                  '{aniosClientes} desde que termina el contrato.',
+                  'Acompañamiento asignado, legales y dirección',
+                ],
+                [
+                  'Cobros',
+                  'Cobrar, facturar, gestionar contracargos y cumplir obligaciones contables.',
+                  base.cobros,
+                  '{pasarela}. Los datos de tarjeta quedan en la pasarela.',
+                  'El que fijen las normas contables y tributarias, según el contador.',
+                  'Administración',
+                ],
+                ['Firma de contratos', 'Celebrar el contrato y conservar la prueba de la firma.', base.firma, '{firma}', 'El plazo de clientes.', 'Legales y administración'],
+                [
+                  'Equipo',
+                  'Contratar, pagar y dar o quitar accesos a closers, setters y acompañamiento.',
+                  base.equipo,
+                  'Legajo del equipo y herramienta de pagos',
+                  'Durante la relación y lo que exijan las normas laborales y tributarias, según el abogado laboral y el contador.',
+                  'Dirección y administración',
+                ],
+                [
+                  'Pedidos e incidentes',
+                  'Probar que cada pedido se respondió en plazo y documentar cada incidente.',
+                  base.registro,
+                  'Registro de pedidos e incidentes',
+                  'Mientras pueda haber un reclamo o una inspección, según legales.',
+                  '{contacto} y legales',
+                ],
+              ],
+            },
+            {
+              tipo: 'aclaracion',
+              texto: exterior
+                ? esES
+                  ? 'Las herramientas alojadas fuera del Espacio Económico Europeo necesitan {mecanismoTransferencia}. El mapa es la base del registro de actividades que exige el RGPD y se actualiza el mismo día en que se suma o cambia una herramienta.'
+                  : 'Las herramientas alojadas en el exterior necesitan {mecanismoTransferencia}. El mapa es la base de la inscripción de la base de datos y de la política de privacidad, y se actualiza el mismo día en que se suma o cambia una herramienta.'
+                : 'El mapa es la base de la política de privacidad, de la inscripción de la base en Argentina y del registro de actividades en España. Se actualiza el mismo día en que se suma o cambia una herramienta.',
+            },
           ],
-          filas: [
-            [
-              'Interesados',
-              'Responder la consulta, agendar y hacer la llamada de venta. Enviar novedades solo si las aceptó.',
-              base.leads,
-              '{crm} y {correoMasivo}',
-              '{mesesInteresados} desde el último contacto. La lista de novedades, hasta la baja.',
-              'Comercial y setters asignados',
-            ],
-            ['Llamadas de venta', 'Respaldo de lo conversado y acordado, y control de calidad.', base.llamadas, '{registro}, con enlace en {crm}', 'Sin venta, {mesesLlamadas}. Con venta, el plazo de clientes.', 'Líder comercial y legales'],
-            [
-              'Clientes',
-              'Prestar el servicio, comunicarse durante el programa y atender reclamos.',
-              base.clientes,
-              '{crm} y el canal del programa',
-              '{aniosClientes} desde que termina el contrato.',
-              'Acompañamiento asignado, legales y dirección',
-            ],
-            [
-              'Cobros',
-              'Cobrar, facturar, gestionar contracargos y cumplir obligaciones contables.',
-              base.cobros,
-              '{pasarela}. Los datos de tarjeta quedan en la pasarela.',
-              'El que fijen las normas contables y tributarias, según el contador.',
-              'Administración',
-            ],
-            ['Firma de contratos', 'Celebrar el contrato y conservar la prueba de la firma.', base.firma, '{firma}', 'El plazo de clientes.', 'Legales y administración'],
-            [
-              'Equipo',
-              'Contratar, pagar y dar o quitar accesos a closers, setters y acompañamiento.',
-              base.equipo,
-              'Legajo del equipo y herramienta de pagos',
-              'Durante la relación y lo que exijan las normas laborales y tributarias, según el abogado laboral y el contador.',
-              'Dirección y administración',
-            ],
-            [
-              'Pedidos e incidentes',
-              'Probar que cada pedido se respondió en plazo y documentar cada incidente.',
-              base.registro,
-              'Registro de pedidos e incidentes',
-              'Mientras pueda haber un reclamo o una inspección, según legales.',
-              '{contacto} y legales',
-            ],
-          ],
-        },
-        {
-          tipo: 'aclaracion',
-          texto: exterior
-            ? esES
-              ? 'Las herramientas alojadas fuera del Espacio Económico Europeo necesitan {mecanismoTransferencia}. El mapa es la base del registro de actividades que exige el RGPD y se actualiza el mismo día en que se suma o cambia una herramienta.'
-              : 'Las herramientas alojadas en el exterior necesitan {mecanismoTransferencia}. El mapa es la base de la inscripción de la base de datos y de la política de privacidad, y se actualiza el mismo día en que se suma o cambia una herramienta.'
-            : 'El mapa es la base de la política de privacidad, de la inscripción de la base en Argentina y del registro de actividades en España. Se actualiza el mismo día en que se suma o cambia una herramienta.',
         },
         {
           tipo: 'plazos',
