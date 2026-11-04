@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, Ban, Copy, Download, Plus, Settings } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Ban, Copy, Download, Plus, Settings, ShieldCheck } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
@@ -9,6 +9,8 @@ import { Aviso, Campo, Encabezado, Enlace, Etiqueta, Pestanas, TituloSeccion, cl
 import { Editor } from '../../comprobantes/Editor';
 import { MONEDAS, TITULO_TIPO, datosNuevos, faltantes, formatoMonto, leerDatos, numeroVisible, parteVacia, totales, type DatosComprobante, type Parte, type TipoComprobante } from '../../comprobantes/modelo';
 import { descargar, generarPdf, logoParaPdf, nombreArchivo, type Logo } from '../../comprobantes/pdf';
+import { descargarSobre } from '../firmas/api';
+import { CuadroFirma, firmarYDescargar, type Firma } from './FirmarRecibo';
 
 const Visor = React.lazy(() => import('../../firma/Visor').then((m) => ({ default: m.Visor })));
 
@@ -16,7 +18,9 @@ const Visor = React.lazy(() => import('../../firma/Visor').then((m) => ({ defaul
  * Invoices y recibos que el negocio emite a sus clientes (migración 0053).
  *   /portal/crm/comprobantes                                 lista, datos del emisor y numeración
  *   /portal/crm/comprobantes/nuevo?tipo=invoice&cliente=<id> emitir; desde=<id> copia otro
- *   /portal/crm/comprobantes/<id>                            ver, descargar y anular
+ *   /portal/crm/comprobantes/<id>                            ver, descargar, firmar y anular
+ * El titular firma los recibos con firma electrónica y los descarga firmados
+ * en el mismo paso (migración 0055). La firma va sobre la línea.
  * La numeración la pone la base, correlativa por negocio y por tipo.
  */
 export interface Comprobante {
@@ -33,6 +37,8 @@ export interface Comprobante {
   anulado_en: string | null;
   motivo_anulacion: string | null;
   creado_en: string;
+  /** Envío de firma electrónica del recibo firmado (migración 0055). */
+  sobre_id?: string | null;
 }
 
 interface Emisor {
@@ -106,7 +112,7 @@ function useLogoPdf(orgId: string): Logo | null {
 
 export const Comprobantes: React.FC<{ orgId: string; orgNombre: string; ruta: string; puedeGestionar: boolean; selector?: React.ReactNode }> = ({ orgId, orgNombre, ruta, puedeGestionar, selector }) => {
   const sub = ruta.replace(/^\/portal\/crm\/comprobantes\/?/, '');
-  if (sub === 'nuevo') return <Nuevo orgId={orgId} orgNombre={orgNombre} />;
+  if (sub === 'nuevo') return <Nuevo orgId={orgId} orgNombre={orgNombre} puedeFirmar={puedeGestionar} />;
   if (sub) return <Detalle id={sub} orgId={orgId} puedeGestionar={puedeGestionar} />;
   return <Lista orgId={orgId} orgNombre={orgNombre} puedeGestionar={puedeGestionar} selector={selector} />;
 };
@@ -128,7 +134,7 @@ const Lista: React.FC<{ orgId: string; orgNombre: string; puedeGestionar: boolea
     setLista(null);
     supabase
       .from('comprobantes')
-      .select('id, organizacion_id, tipo, numero, cliente_id, fecha, moneda, total, receptor, anulado_en, motivo_anulacion, creado_en')
+      .select('id, organizacion_id, tipo, numero, cliente_id, fecha, moneda, total, receptor, anulado_en, motivo_anulacion, creado_en, sobre_id')
       .eq('organizacion_id', orgId)
       .order('numero', { ascending: false })
       .limit(1000)
@@ -219,7 +225,7 @@ export const ListaComprobantes: React.FC<{ items: Comprobante[] }> = ({ items })
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
             <span className="font-medium truncate">{c.receptor}</span>
             <span className="text-[13px] text-piedra">{new Date(`${c.fecha}T12:00:00`).toLocaleDateString('es-AR')}</span>
-            {c.anulado_en && <Etiqueta tono="alerta">Anulado</Etiqueta>}
+            {c.anulado_en ? <Etiqueta tono="alerta">Anulado</Etiqueta> : c.sobre_id ? <Etiqueta tono="bosque">Firmado</Etiqueta> : null}
           </span>
           <span className={`flex items-center gap-2 tabular-nums font-medium ${c.anulado_en ? 'line-through text-piedra' : ''}`}>
             {formatoMonto(Number(c.total), c.moneda, 'es')} <ArrowRight size={14} aria-hidden="true" className="text-bosque" />
@@ -311,7 +317,7 @@ const Ajustes: React.FC<{ orgId: string; soloLectura: boolean }> = ({ orgId, sol
 /* ------------------------------------------------------------------ */
 /* Emitir                                                              */
 /* ------------------------------------------------------------------ */
-const Nuevo: React.FC<{ orgId: string; orgNombre: string }> = ({ orgId, orgNombre }) => {
+const Nuevo: React.FC<{ orgId: string; orgNombre: string; puedeFirmar: boolean }> = ({ orgId, orgNombre, puedeFirmar }) => {
   const q = new URLSearchParams(window.location.search);
   const tipo: TipoComprobante = q.get('tipo') === 'recibo' ? 'recibo' : 'invoice';
   const soloLectura = Boolean(useVistaPrevia());
@@ -362,10 +368,13 @@ const Nuevo: React.FC<{ orgId: string; orgNombre: string }> = ({ orgId, orgNombr
     setDatos((d) => ({ ...d, receptor: c ? parteDeCliente(c) : parteVacia(), moneda: c && MONEDAS.includes(c.moneda) ? c.moneda : d.moneda }));
   }, [clienteId, clientes, listo]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function emitir() {
-    if (!supabase || faltantes(datos).length) return;
-    setEmitiendo(true);
-    setError(null);
+  const [cuadro, setCuadro] = useState(false);
+  const [errorFirma, setErrorFirma] = useState<string | null>(null);
+  // Si la firma falla después de emitir, el recibo ya existe: se reintenta sobre ese, sin emitir otro.
+  const [emitido, setEmitido] = useState<{ id: string; numero: string } | null>(null);
+
+  async function insertar(): Promise<{ id: string; numero: string } | null> {
+    if (!supabase) return null;
     const { data, error: e } = await supabase
       .from('comprobantes')
       .insert({
@@ -381,17 +390,42 @@ const Nuevo: React.FC<{ orgId: string; orgNombre: string }> = ({ orgId, orgNombr
       })
       .select('id, numero')
       .single();
-    if (e || !data) {
+    if (e || !data) return null;
+    return { id: (data as { id: string }).id, numero: numeroVisible((data as { numero: number }).numero) };
+  }
+
+  async function emitirYFirmar(firma: Firma) {
+    if (faltantes(datos).length) return;
+    setEmitiendo(true);
+    setErrorFirma(null);
+    const r = emitido ?? (await insertar());
+    if (!r) {
+      setEmitiendo(false);
+      return setErrorFirma('No pudimos emitirlo. Revisá los datos e intentá de nuevo.');
+    }
+    setEmitido(r);
+    const fallo = await firmarYDescargar(r.id, datos, r.numero, logo, firma).catch(() => 'No pudimos firmarlo. Probá de nuevo.');
+    setEmitiendo(false);
+    if (fallo) return setErrorFirma(`El recibo ${r.numero} quedó emitido, pero sin firmar. ${fallo}`);
+    navegar(`/portal/crm/comprobantes/${r.id}`);
+  }
+
+  async function emitir() {
+    if (faltantes(datos).length) return;
+    setEmitiendo(true);
+    setError(null);
+    const r = await insertar();
+    if (!r) {
       setEmitiendo(false);
       return setError('No pudimos emitirlo. Revisá los datos e intentá de nuevo.');
     }
-    const numero = numeroVisible((data as { numero: number }).numero);
+    const { numero } = r;
     try {
       descargar(await generarPdf(datos, { numero, logo }), nombreArchivo(datos, numero));
     } catch {
       /* Se puede descargar desde el detalle */
     }
-    navegar(`/portal/crm/comprobantes/${(data as { id: string }).id}`);
+    navegar(`/portal/crm/comprobantes/${r.id}`);
   }
 
   return (
@@ -435,12 +469,27 @@ const Nuevo: React.FC<{ orgId: string; orgNombre: string }> = ({ orgId, orgNombr
             }
             logo={logo}
             acciones={
-              <Button type="button" onClick={() => void emitir()} disabled={soloLectura || emitiendo || faltantes(datos).length > 0}>
-                <Download size={17} /> {emitiendo ? 'Emitiendo' : `Emitir y descargar`}
-              </Button>
+              <>
+                {tipo === 'recibo' && puedeFirmar && (
+                  <Button type="button" onClick={() => setCuadro(true)} disabled={soloLectura || emitiendo || faltantes(datos).length > 0}>
+                    <ShieldCheck size={17} /> Firmar y descargar
+                  </Button>
+                )}
+                <Button type="button" variant={tipo === 'recibo' && puedeFirmar ? 'ghost' : 'primary'} onClick={() => void emitir()} disabled={soloLectura || emitiendo || faltantes(datos).length > 0}>
+                  <Download size={17} /> {emitiendo && !cuadro ? 'Emitiendo' : tipo === 'recibo' && puedeFirmar ? 'Descargar sin firmar' : 'Emitir y descargar'}
+                </Button>
+              </>
             }
           />
         )}
+        <CuadroFirma
+          abierto={cuadro}
+          nombre=""
+          ocupado={emitiendo}
+          error={errorFirma}
+          alCerrar={() => (emitido ? navegar(`/portal/crm/comprobantes/${emitido.id}`) : setCuadro(false))}
+          alFirmar={(f) => void emitirYFirmar(f)}
+        />
       </div>
     </>
   );
@@ -456,6 +505,31 @@ const Detalle: React.FC<{ id: string; orgId: string; puedeGestionar: boolean }> 
   const [url, setUrl] = useState<string | null>(null);
   const [anulando, setAnulando] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [sobre, setSobre] = useState<{ codigo: string; estado: string } | null>(null);
+  const [cuadro, setCuadro] = useState(false);
+  const [firmando, setFirmando] = useState(false);
+  const [errorFirma, setErrorFirma] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!supabase || !c?.sobre_id) return setSobre(null);
+    supabase
+      .from('firma_sobres')
+      .select('codigo, estado')
+      .eq('id', c.sobre_id)
+      .maybeSingle()
+      .then(({ data }) => setSobre((data as { codigo: string; estado: string } | null) ?? null));
+  }, [c?.sobre_id]);
+
+  async function firmar(f: Firma) {
+    if (!c || !datos) return;
+    setFirmando(true);
+    setErrorFirma(null);
+    const fallo = await firmarYDescargar(c.id, datos, numero, logo, f).catch(() => 'No pudimos firmarlo. Probá de nuevo.');
+    setFirmando(false);
+    if (fallo) return setErrorFirma(fallo);
+    setCuadro(false);
+    await cargar();
+  }
 
   async function cargar() {
     if (!supabase) return;
@@ -486,6 +560,12 @@ const Detalle: React.FC<{ id: string; orgId: string; puedeGestionar: boolean }> 
 
   async function bajar() {
     if (!c || !datos) return;
+    // Firmado, se baja el PDF con la firma y la constancia, el mismo que quedó registrado.
+    if (c.sobre_id && sobre?.estado === 'completado') {
+      const fallo = await descargarSobre(c.sobre_id, 'final');
+      if (fallo) setError(fallo);
+      return;
+    }
     descargar(await generarPdf(datos, { numero, logo, anulado: Boolean(c.anulado_en) }), nombreArchivo(datos, numero));
   }
 
@@ -516,13 +596,19 @@ const Detalle: React.FC<{ id: string; orgId: string; puedeGestionar: boolean }> 
         acciones={
           <>
             {c.anulado_en && <Etiqueta tono="alerta">Anulado</Etiqueta>}
+            {sobre?.estado === 'completado' && <Etiqueta tono="bosque">Firmado</Etiqueta>}
             {!soloLectura && (
               <Button variant="ghost" size="lg" onClick={() => navegar(`/portal/crm/comprobantes/nuevo?tipo=${c.tipo}&desde=${c.id}`)}>
                 <Copy size={17} /> Emitir uno igual
               </Button>
             )}
-            <Button size="lg" onClick={() => void bajar()}>
-              <Download size={17} /> Descargar PDF
+            {c.tipo === 'recibo' && !c.sobre_id && !c.anulado_en && puedeGestionar && !soloLectura && (
+              <Button size="lg" onClick={() => setCuadro(true)}>
+                <ShieldCheck size={17} /> Firmar y descargar
+              </Button>
+            )}
+            <Button size="lg" variant={c.tipo === 'recibo' && !c.sobre_id && !c.anulado_en && puedeGestionar && !soloLectura ? 'ghost' : 'primary'} onClick={() => void bajar()}>
+              <Download size={17} /> {sobre?.estado === 'completado' ? 'Descargar firmado' : 'Descargar PDF'}
             </Button>
           </>
         }
@@ -537,6 +623,21 @@ const Detalle: React.FC<{ id: string; orgId: string; puedeGestionar: boolean }> 
         </div>
         <aside className="flex flex-col gap-6">
           {error && <Aviso tipo="error">{error}</Aviso>}
+          {sobre && (
+            <Aviso tipo={sobre.estado === 'completado' ? 'ok' : 'info'}>
+              {sobre.estado === 'completado' ? (
+                <>
+                  Firmado electrónicamente. Código <strong className="font-mono">{sobre.codigo}</strong>.{' '}
+                  <a href={`/verificar/${sobre.codigo}`} target="_blank" rel="noreferrer" className="underline underline-offset-2">
+                    Verificar
+                  </a>
+                  {c.anulado_en ? '. El PDF firmado no lleva la marca de anulado.' : ''}
+                </>
+              ) : (
+                'La firma quedó registrada y el PDF firmado se está armando. Se reintenta solo; si no aparece, avisanos.'
+              )}
+            </Aviso>
+          )}
           {c.cliente_id && (
             <Enlace a={`/portal/crm/${c.cliente_id}`} className="inline-flex items-center gap-1.5 text-[14px] font-medium hover:text-bosque">
               Ver la ficha del cliente <ArrowRight size={14} aria-hidden="true" />
@@ -571,6 +672,7 @@ const Detalle: React.FC<{ id: string; orgId: string; puedeGestionar: boolean }> 
           )}
         </aside>
       </div>
+      <CuadroFirma abierto={cuadro} nombre="" ocupado={firmando} error={errorFirma} alCerrar={() => setCuadro(false)} alFirmar={(f) => void firmar(f)} />
     </>
   );
 };

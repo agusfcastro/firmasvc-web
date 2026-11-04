@@ -36,7 +36,22 @@ const ALTO = 841.89;
 const M = 50;
 const PIE = 70;
 
+/** Lugar de la firma sobre la línea del recibo, en puntos del PDF. La hoja cuenta desde 0. */
+export interface LugarFirma {
+  pagina: number;
+  x: number;
+  y: number;
+  ancho: number;
+  alto: number;
+}
+
 export async function generarPdf(d: DatosComprobante, op: OpcionesPdf): Promise<Uint8Array> {
+  return (await generarPdfConLugar(d, op)).bytes;
+}
+
+/** Como generarPdf, y en los recibos también dónde va la firma (api/firma/firmar, firmar_recibo). */
+export async function generarPdfConLugar(d: DatosComprobante, op: OpcionesPdf): Promise<{ bytes: Uint8Array; lugar: LugarFirma | null }> {
+  let lugar: LugarFirma | null = null;
   const doc = await PDFDocument.create();
   const t = TEXTOS[d.idioma];
   const titulo = d.tipo === 'invoice' ? t.invoice : t.recibo;
@@ -244,9 +259,11 @@ export async function generarPdf(d: DatosComprobante, op: OpcionesPdf): Promise<
 
   /* Firma del recibo ------------------------------------------------ */
   if (d.tipo === 'recibo') {
-    asegurar(80);
-    y = Math.min(y - 40, M + PIE + 120);
+    asegurar(110);
+    // Lugar arriba de la línea para la firma, dibujada a mano o electrónica.
+    y = Math.min(y - 72, M + PIE + 120);
     const xF = ANCHO - M - 220;
+    lugar = { pagina: doc.getPageCount() - 1, x: xF, y: y + 3, ancho: 220, alto: 52 };
     pagina.drawLine({ start: { x: xF, y }, end: { x: ANCHO - M, y }, thickness: 0.75, color: TINTA });
     texto(t.firma, xF, y - 13, { size: 8.5, color: PIEDRA });
     texto(d.emisor.nombre, xF, y - 26, { size: 9.5, font: negrita });
@@ -279,7 +296,7 @@ export async function generarPdf(d: DatosComprobante, op: OpcionesPdf): Promise<
     }
   });
 
-  return doc.save();
+  return { bytes: await doc.save(), lugar };
 }
 
 /**

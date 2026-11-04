@@ -67,8 +67,22 @@ interface Sobre {
   final_sha256: string | null;
   error_sellado: string | null;
   crm_cliente_id: string | null;
-  /** Por enlace no salen invitaciones y se firma sin código por mail. Sin la migración 0027 no viene. */
-  entrega?: 'mail' | 'enlace';
+  /**
+   * Por enlace no salen invitaciones y se firma sin código por mail. Sin la migración 0027 no viene.
+   * portal es un recibo que firma quien lo emite, con su sesión (migración 0055).
+   */
+  entrega?: 'mail' | 'enlace' | 'portal';
+  /** Dónde va la imagen de la firma dentro del documento, en puntos del PDF. Sin la migración 0055 no viene. */
+  lugar_firma?: LugarFirma | null;
+}
+
+interface LugarFirma {
+  /** Desde 0. */
+  pagina: number;
+  x: number;
+  y: number;
+  ancho: number;
+  alto: number;
 }
 
 interface Firmante {
@@ -343,8 +357,8 @@ async function identificar(sb: SupabaseClient, request: Request): Promise<Quien 
 function puedeOperar(q: Quien, s: Sobre): boolean {
   if (q.rol === 'admin') return true;
   if (!s.organizacion_id || s.organizacion_id !== q.organizacion_id) return false;
-  // Los contratos del CRM los sigue todo el equipo que ve al cliente.
-  return q.rol === 'titular' || s.creado_por === q.id || Boolean(s.crm_cliente_id);
+  // Los contratos del CRM y los recibos firmados los sigue todo el equipo que usa el CRM.
+  return q.rol === 'titular' || s.creado_por === q.id || Boolean(s.crm_cliente_id) || s.entrega === 'portal';
 }
 
 async function cargarSobre(sb: SupabaseClient, q: Quien, id: unknown): Promise<Sobre | Response> {

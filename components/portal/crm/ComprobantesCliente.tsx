@@ -15,7 +15,7 @@ export const ComprobantesCliente: React.FC<{ clienteId: string; soloLectura: boo
     let vigente = true;
     supabase
       .from('comprobantes')
-      .select('id, organizacion_id, tipo, numero, cliente_id, fecha, moneda, total, receptor, anulado_en, motivo_anulacion, creado_en')
+      .select('id, organizacion_id, tipo, numero, cliente_id, fecha, moneda, total, receptor, anulado_en, motivo_anulacion, creado_en, sobre_id')
       .eq('cliente_id', clienteId)
       .order('creado_en', { ascending: false })
       .then(({ data }) => {

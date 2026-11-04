@@ -32,7 +32,7 @@ export interface Sobre {
   final_sha256: string | null;
   error_sellado: string | null;
   /** Sin la migración 0027 no viene y se toma como mail. */
-  entrega?: 'mail' | 'enlace';
+  entrega?: 'mail' | 'enlace' | 'portal';
   /** Sello de tiempo en BFA. Sin la migración 0031 no viene. */
   bfa_recibo?: string | null;
   bfa_bloque?: number | null;
