@@ -2,7 +2,7 @@
 
 Son unas 450 palabras habladas, a ritmo tranquilo. Entre corchetes van las indicaciones de cámara y de texto en pantalla. Los datos marcados con ⚠️ hay que confirmarlos antes de grabar.
 
-**Promesa (igual que el hero):** «Escalá a USD 50k por mes delegando en tu equipo, sin perder plata en el camino. El sistema legal que utilizan los negocios de alta facturación.» Público: dueños de negocios que ya venden.
+**Promesa (igual que el hero):** «Escalá a USD 50.000 por mes delegando en tu equipo sin perder dinero en reembolsos y morosos. El sistema legal que utilizan los negocios de alta facturación.» Público: dueño de negocio que vende.
 
 ---
 

@@ -27,9 +27,8 @@ export const VideoVSL: React.FC = () => {
   };
 
   return (
-    // El ancho sale del alto de la pantalla: titular, video y botón de agendar tienen que entrar sin scroll.
-    // El video manda: ocupa el alto que dejan header, banner, volanta, titular y bajada, más la firma y el botón de agendar (560px), entre 560 y 1000px de ancho.
-    <div className="w-full mx-auto" style={{ maxWidth: 'min(1000px, max(560px, calc((100svh - 560px) * 16 / 9)))' }}>
+    // Ocupa el ancho de su columna: en desktop va al costado de la promesa y en celular debajo.
+    <div className="w-full mx-auto">
       <div className="relative aspect-video bg-carbon overflow-hidden rounded-[24px] shadow-relieve">
         {/* En el HTML del prerender va solo el recuadro: el reproductor carga una vez, en el navegador. */}
         {typeof window !== 'undefined' && (
