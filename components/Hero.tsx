@@ -13,9 +13,15 @@ import { openCalendly } from '../lib/calendly';
 export const Hero: React.FC = () => (
   <section id="top" className="relative overflow-hidden text-center pt-8 desk:pt-9 pb-16 desk:pb-20">
     <div className="wrap relative flex flex-col items-center gap-6">
-      <h1 className="font-extrabold leading-[1.02] tracking-[-0.045em]" style={{ fontSize: 'clamp(34px, 3.7vw, 54px)', textWrap: 'balance' }}>
-        Blindamos legalmente <span className="inline-block bg-tinta text-marfil px-[0.12em] pb-[0.04em]">tu negocio digital.</span>
-      </h1>
+      <div className="flex flex-col items-center gap-3">
+        <p className="eyebrow text-piedra">Para dueños de negocios que ya venden</p>
+        <h1 className="font-extrabold leading-[1.04] tracking-[-0.045em] max-w-[32ch]" style={{ fontSize: 'clamp(32px, 3vw, 46px)', textWrap: 'balance' }}>
+          Escalá a <span className="inline-block bg-tinta text-marfil px-[0.12em] pb-[0.04em]">USD 50k por mes</span> delegando en tu equipo, sin perder plata en el camino.
+        </h1>
+        <p className="text-piedra max-w-[34em]" style={{ fontSize: 'clamp(17px,1.9vw,21px)', lineHeight: 1.4, textWrap: 'balance' }}>
+          El sistema legal que utilizan los negocios de alta facturación.
+        </p>
+      </div>
 
       <VideoVSL />
 
@@ -27,10 +33,6 @@ export const Hero: React.FC = () => (
           Conocer servicios
         </Button>
       </div>
-
-      <p className="text-piedra max-w-[30em]" style={{ fontSize: 'clamp(17px,1.9vw,21px)', lineHeight: 1.45, textWrap: 'balance' }}>
-        Soluciones estratégicas que evitan que reembolsos, morosos y tu equipo se coman tu facturación.
-      </p>
 
       <Counter />
     </div>

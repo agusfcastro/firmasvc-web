@@ -2,7 +2,7 @@
 
 Son unas 450 palabras habladas, a ritmo tranquilo. Entre corchetes van las indicaciones de cámara y de texto en pantalla. Los datos marcados con ⚠️ hay que confirmarlos antes de grabar.
 
-**Promesa:** escalar a [X] por mes delegando en tu equipo, con sistemas legales que evitan que pierdas plata en el camino.
+**Promesa (igual que el hero):** «Escalá a USD 50k por mes delegando en tu equipo, sin perder plata en el camino. El sistema legal que utilizan los negocios de alta facturación.» Público: dueños de negocios que ya venden.
 
 ---
 
@@ -24,7 +24,7 @@ El problema no es tu equipo. Es que tu equipo trabaja sin reglas escritas, sin c
 
 [Fotos de la época de la agencia, en blanco y negro.]
 
-Soy Agustín Castro, abogado de la UBA. Antes tuve una agencia y cometí todos esos errores. Armé equipos sin nada firmado, perseguí pagos y tuve socios que se bajaron del barco. Por eso fundé FIRMA. Hoy los negocios que acompañamos facturan más de [⚠️ USD 1.000.000] y lo hacen delegando.
+Soy Agustín Castro, abogado de la UBA. Antes tuve una agencia y cometí todos esos errores. Armé equipos sin nada firmado, perseguí pagos y tuve socios que se bajaron del barco. Por eso fundé FIRMA. Hoy los negocios que acompañamos facturan en promedio USD 50.000 por mes, y lo hacen delegando.
 
 ## 1:05 a 1:55 · El sistema
 
