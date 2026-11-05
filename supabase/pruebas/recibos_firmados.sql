@@ -11,7 +11,7 @@ values
   ('f0000000-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000000', 'cliente', 'Contrato', 'completado', now() + interval '1 day',
    '00000000-0000-0000-0000-0000000000a1', 'f2/original.pdf', 'Contrato.pdf', 1000, repeat('c', 64), 1, 'f2/final.pdf', repeat('d', 64), now(), 'mail', null);
 
-update public.organizaciones set plan = 'gold' where id = 'aaaaaaaa-0000-0000-0000-000000000000';
+update public.organizaciones set plan = 'starter' where id = 'aaaaaaaa-0000-0000-0000-000000000000';
 select pruebas.como_servicio();
 select pruebas.ok((select usados from public.firmas_uso('aaaaaaaa-0000-0000-0000-000000000000')) = 1, 'el recibo firmado no ocupa cupo');
 select pruebas.como_postgres();

@@ -6,14 +6,13 @@ import { supabase } from './supabase';
  * agenda_uso y firmas_uso, así la pantalla y las reglas dicen lo mismo.
  */
 
-export type Plan = 'gold' | 'black' | 'eminent';
+export type Plan = 'starter' | 'eminent';
 
-export const ROTULO_PLAN: Record<Plan, string> = { gold: 'Gold', black: 'Black', eminent: 'Eminent' };
+export const ROTULO_PLAN: Record<Plan, string> = { starter: 'Starter', eminent: 'Eminent' };
 
 /** Lo que incluye cada plan, para el panel de FIRMA. */
 export const INCLUYE_PLAN: Record<Plan, string> = {
-  gold: '60 minutos de agenda por mes y 20 documentos firmados por mes',
-  black: '60 minutos de agenda por semana y 50 documentos firmados por mes',
+  starter: '60 minutos de agenda por semana y 20 documentos firmados por mes',
   eminent: 'Agenda y firmas sin límite',
 };
 
@@ -69,7 +68,7 @@ export function diaYMes(d: string | null): string {
 }
 
 /** «este mes» o «esta semana», según el plan. */
-export const periodoAgenda = (plan: Plan | null): string => (plan === 'black' ? 'esta semana' : 'este mes');
+export const periodoAgenda = (plan: Plan | null): string => (plan === 'starter' ? 'esta semana' : 'este mes');
 
 /** 90 minutos como 1 h 30 min. */
 export function duracion(min: number): string {

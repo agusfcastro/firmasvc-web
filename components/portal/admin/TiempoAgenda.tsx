@@ -24,7 +24,7 @@ interface Consumo {
 const hoy = (): string => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date());
 
 export const TiempoAgenda: React.FC<{ orgs: Organizacion[] }> = ({ orgs }) => {
-  const conPlan = orgs.filter((o) => o.plan === 'gold' || o.plan === 'black');
+  const conPlan = orgs.filter((o) => o.plan === 'starter');
   const [orgId, setOrgId] = useState('');
   const [uso, setUso] = useState<UsoAgenda | null>(null);
   const [consumos, setConsumos] = useState<Consumo[]>([]);
@@ -79,7 +79,7 @@ export const TiempoAgenda: React.FC<{ orgs: Organizacion[] }> = ({ orgs }) => {
     return (
       <section className="bg-marfil-oscuro p-6 desk:p-8 max-w-[820px] flex flex-col gap-2">
         <h2 className="h3">Tiempo de reuniones</h2>
-        <p className="text-sm text-piedra">Ninguna empresa tiene plan Gold o Black. El plan se elige en Clientes › Editar.</p>
+        <p className="text-sm text-piedra">Ninguna empresa tiene plan Starter. El plan se elige en Clientes › Editar.</p>
       </section>
     );
   }
@@ -91,14 +91,14 @@ export const TiempoAgenda: React.FC<{ orgs: Organizacion[] }> = ({ orgs }) => {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-1">
           <h2 className="h3">Tiempo de reuniones</h2>
-          <p className="text-sm text-piedra">Cargá lo que duró cada reunión. Gold incluye 60 minutos por mes y Black 60 por semana.</p>
+          <p className="text-sm text-piedra">Cargá lo que duró cada reunión. Starter incluye 60 minutos por semana.</p>
         </div>
         <label className="block">
           <span className="sr-only">Empresa</span>
           <select className={`${claseInput} min-w-[220px]`} value={orgId} onChange={(e) => setOrgId(e.target.value)}>
             {conPlan.map((o) => (
               <option key={o.id} value={o.id}>
-                {o.nombre} · {ROTULO_PLAN[o.plan as 'gold' | 'black']}
+                {o.nombre} · {ROTULO_PLAN.starter}
               </option>
             ))}
           </select>

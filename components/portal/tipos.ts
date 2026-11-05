@@ -46,8 +46,8 @@ export interface Organizacion {
   seguimiento_cobranza?: boolean;
   logo_url?: string | null;
   drive_carpeta_revision?: string | null;
-  /** gold, black o eminent. Obligatorio desde la migración 0054; lo que sale de la norma es el monto del abono. */
-  plan?: 'gold' | 'black' | 'eminent' | null;
+  /** starter o eminent (0059). Obligatorio desde la migración 0054; lo que sale de la norma es el monto del abono. */
+  plan?: 'starter' | 'eminent' | null;
   /** Empresa ficticia para grabar procesos (migración 0029). No manda mails. */
   demo?: boolean;
 }

@@ -70,7 +70,7 @@ export const Agenda: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
             <div className="p-tarjeta flex flex-col gap-4 max-w-[620px] p-6 desk:p-8">
               <h2 className="font-heading font-semibold text-[18px]">Usaste el tiempo de reuniones {periodoAgenda(uso.plan)}</h2>
               <p className="text-[15px] leading-[1.6] text-piedra">
-                Tu plan incluye {duracion(uso.incluido_min as number)} {uso.plan === 'black' ? 'por semana' : 'por mes'}. La agenda se habilita de nuevo el {diaYMes(uso.hasta)}. Si necesitás
+                Tu plan incluye {duracion(uso.incluido_min as number)} {uso.plan === 'starter' ? 'por semana' : 'por mes'}. La agenda se habilita de nuevo el {diaYMes(uso.hasta)}. Si necesitás
                 hablar antes, escribinos por WhatsApp.
               </p>
               <a

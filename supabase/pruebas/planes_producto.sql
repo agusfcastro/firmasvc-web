@@ -3,11 +3,11 @@
 -- =====================================================================
 
 -- Desde 0054 todo negocio tiene plan de servicio y el que viene por defecto
--- es Eminent, que trae Fathom (0052). Gold sin plan de producto no tiene
+-- es Eminent, que trae Fathom (0052). Starter sin plan de producto no tiene
 -- ninguna funcionalidad nueva.
-update public.organizaciones set plan = 'gold';
-select pruebas.ok(not public.tiene_funcionalidad('aaaaaaaa-0000-0000-0000-000000000000', 'fathom'), 'Gold sin plan de producto no tiene Fathom');
-select pruebas.ok(public.limite_funcionalidad('aaaaaaaa-0000-0000-0000-000000000000', 'fathom') is null, 'Gold sin plan de producto no tiene límite de Fathom');
+update public.organizaciones set plan = 'starter';
+select pruebas.ok(not public.tiene_funcionalidad('aaaaaaaa-0000-0000-0000-000000000000', 'fathom'), 'Starter sin plan de producto no tiene Fathom');
+select pruebas.ok(public.limite_funcionalidad('aaaaaaaa-0000-0000-0000-000000000000', 'fathom') is null, 'Starter sin plan de producto no tiene límite de Fathom');
 
 update public.organizaciones set plan_producto = 'radar' where id = 'aaaaaaaa-0000-0000-0000-000000000000';
 update public.organizaciones set plan_producto = 'blindaje' where id = 'bbbbbbbb-0000-0000-0000-000000000000';
@@ -52,14 +52,14 @@ end $$;
 select pruebas.ok(public.tiene_funcionalidad('aaaaaaaa-0000-0000-0000-000000000000', 'fathom'), 'el titular consulta sus funcionalidades');
 
 -- El plan de servicio Eminent incluye Fathom aunque no tenga plan de producto;
--- Gold no. Una excepción lo puede apagar.
+-- Starter no. Una excepción lo puede apagar.
 select pruebas.como_postgres();
 update public.organizaciones set plan_producto = null, plan = 'eminent' where id = 'aaaaaaaa-0000-0000-0000-000000000000';
-update public.organizaciones set plan_producto = null, plan = 'gold' where id = 'bbbbbbbb-0000-0000-0000-000000000000';
+update public.organizaciones set plan_producto = null, plan = 'starter' where id = 'bbbbbbbb-0000-0000-0000-000000000000';
 delete from public.org_funcionalidades;
 select pruebas.ok(public.tiene_funcionalidad('aaaaaaaa-0000-0000-0000-000000000000', 'fathom'), 'Eminent trae las llamadas de Fathom');
 select pruebas.ok(public.limite_funcionalidad('aaaaaaaa-0000-0000-0000-000000000000', 'fathom') = '{}', 'sin límites');
 select pruebas.ok(not public.tiene_funcionalidad('aaaaaaaa-0000-0000-0000-000000000000', 'puntaje_riesgo'), 'Eminent no trae el resto del plan de producto');
-select pruebas.ok(not public.tiene_funcionalidad('bbbbbbbb-0000-0000-0000-000000000000', 'fathom'), 'Gold no trae Fathom');
+select pruebas.ok(not public.tiene_funcionalidad('bbbbbbbb-0000-0000-0000-000000000000', 'fathom'), 'Starter no trae Fathom');
 insert into public.org_funcionalidades (organizacion_id, funcionalidad, habilitada) values ('aaaaaaaa-0000-0000-0000-000000000000', 'fathom', false);
 select pruebas.ok(not public.tiene_funcionalidad('aaaaaaaa-0000-0000-0000-000000000000', 'fathom'), 'una excepción apaga Fathom en Eminent');

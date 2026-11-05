@@ -187,7 +187,7 @@ export const Clientes: React.FC = () => {
               )}
             </div>
           </Campo>
-          <Campo etiqueta="Plan" ayuda={borrador.plan ? INCLUYE_PLAN[borrador.plan] : 'Gold, Black o Eminent. Si el cliente paga otro monto, se ajusta en su abono.'}>
+          <Campo etiqueta="Plan" ayuda={borrador.plan ? INCLUYE_PLAN[borrador.plan] : 'Starter o Eminent. Si el cliente paga otro monto, se ajusta en su abono.'}>
             <select required className={claseInput} value={borrador.plan ?? ''} onChange={(e) => setBorrador({ ...borrador, plan: (e.target.value || null) as Plan | null })}>
               <option value="" disabled>
                 Elegí el plan
