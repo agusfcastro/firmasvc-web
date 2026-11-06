@@ -218,6 +218,10 @@
     },
     "api/webhooks/fathom.ts": {
       "maxDuration": 60
+    },
+    "api/tina/chat.ts": {
+      "maxDuration": 60,
+      "includeFiles": "docs/TINA_SYSTEM_PROMPT.md"
     }
   },
   "crons": [

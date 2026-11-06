@@ -39,6 +39,8 @@ En el código (`organizaciones.plan`) los planes de servicio son `starter` y `em
 
 Las tablas de Tina están en la migración 0060 (`tina_conversaciones`, `tina_mensajes`, `tina_tickets`, `eventos_cliente`, `push_suscripciones`, las columnas `tina_*` de `documentos` y `organizaciones.responsable_id`). Sus pruebas están en `supabase/pruebas/tina.sql`.
 
+El chat de Tina es `POST /api/tina/chat` (`api/tina/chat.ts`), con las herramientas en `api/_lib/tina/herramientas.ts`, el prompt armado desde `docs/TINA_SYSTEM_PROMPT.md` (`api/_lib/tina/prompt.ts`) y los precios en `api/_lib/tina/precios.ts`. Usa `claude-opus-5-5` con esfuerzo bajo y necesita `ANTHROPIC_API_KEY` en Vercel. Si se cambia el documento del prompt, se cambia lo que dice Tina.
+
 El pago completo suma el cuarto mes sin cargo y la cuota congelada por 12 meses. Precio fundador, para los primeros 5 clientes o hasta el 31/12/2026, es Eminent USD 1500 y Starter USD 800, solo con pago completo. En pesos se cobra al equivalente del dólar MEP.
 
 **Eminent** incluye acceso directo a Agustín, Tina completa con derivaciones, documentos, gestión de conflictos y contacto telefónico en urgencias.
