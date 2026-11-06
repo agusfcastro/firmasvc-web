@@ -26,6 +26,7 @@ import { salirVistaPrevia, useVistaPrevia } from './vistaPrevia';
 import { useLogoOrg } from './logos';
 import { ROTULO_ROL, cargoDe, permisosDe, veAsuntos, type Perfil, type Permisos } from './tipos';
 import { ROTULO_PLAN, type Plan } from './planes';
+import { BurbujaTina } from './tina/BurbujaTina';
 
 import simboloClaro from '../../assets/brand/simbolo-claro.png';
 import simboloOscuro from '../../assets/brand/simbolo-oscuro.png';
@@ -496,6 +497,9 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
         <PanelMenu abierto={menu} alCerrar={() => setMenu(false)}>
           {lateral}
         </PanelMenu>
+
+        {/* Tina atiende a los usuarios de los clientes. FIRMA y la vista previa no la ven. */}
+        {perfil && perfil.rol !== 'admin' && !vista && perfil.organizacion_id && <BurbujaTina nombre={perfil.nombre ?? null} />}
       </div>
     </DensidadBotones.Provider>
   );
