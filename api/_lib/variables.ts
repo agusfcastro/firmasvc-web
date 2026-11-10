@@ -37,7 +37,7 @@ export const VARIABLES: [string, string][] = [
   ['ESQUEMA_PAGOS', 'Esquema de pagos completo, un renglón por pago, en números y en letras. Sirve igual para cuotas y para pago total'],
   ['CONDICIONES', 'Condiciones acordadas en la venta, en texto libre'],
   ['FECHA_ONBOARDING', 'Fecha del onboarding, por ejemplo 20 de octubre de 2026'],
-  ['FECHA', 'Fecha en que se genera el contrato'],
+  ['FECHA', 'Fecha del contrato: la del onboarding o, si no está cargada, la del día en que se genera'],
 ];
 
 /** Las que pueden quedar vacías sin que haga falta avisar. */
@@ -229,7 +229,8 @@ export function valoresDelContrato(c: ClienteContrato, pagos: PagoContrato[], em
     ESQUEMA_PAGOS: renglones.join('\n'),
     CONDICIONES: (c.condiciones || '').trim(),
     FECHA_ONBOARDING: c.fecha_onboarding ? fechaLarga(new Date(c.fecha_onboarding)) : 'a definir',
-    FECHA: fechaLarga(hoy),
+    // El contrato se fecha el día del onboarding, así no cambia si se anula y se vuelve a generar.
+    FECHA: fechaLarga(c.fecha_onboarding ? new Date(c.fecha_onboarding) : hoy),
   };
 }
 
