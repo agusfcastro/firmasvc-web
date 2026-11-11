@@ -142,3 +142,30 @@ export function registrarDescarga(d: Documento) {
     () => undefined,
   );
 }
+
+/** Sube un archivo al bucket con un nombre único. Solo FIRMA. Devuelve la ruta, o el error para mostrar. */
+export async function subirArchivoDocumento(archivo: File, seccion: SeccionDocumento): Promise<{ ruta: string } | { error: string }> {
+  if (!supabase) return { error: 'Portal sin configurar.' };
+  const ext = extension(archivo.name);
+  const formato = FORMATOS[ext];
+  if (!formato) return { error: 'Ese formato no se admite. Subí Word, PDF, Excel, PowerPoint, ODT o RTF.' };
+  if (archivo.size > TAMANO_MAXIMO) return { error: 'El archivo supera los 25 MB.' };
+  const ruta = `${seccion}/${crypto.randomUUID()}.${ext}`;
+  // El tipo tiene que coincidir con los formatos del bucket aunque el sistema no lo detecte.
+  const cuerpo = archivo.type === formato.mime ? archivo : new File([archivo], archivo.name, { type: formato.mime });
+  const { error } = await supabase.storage.from(BUCKET_DOCUMENTOS).upload(ruta, cuerpo, { contentType: formato.mime, upsert: false });
+  return error ? { error: `No se pudo subir el archivo. ${error.message}` } : { ruta };
+}
+
+/**
+ * Deja de marcar como modelo al contrato que lo era, para que el nuevo
+ * ocupe su lugar (hay uno solo por empresa y contrato, migración 0063).
+ * El documento anterior sigue en la sección, ya sin la marca.
+ */
+export async function liberarModeloContrato(orgId: string, modelo: 'closer' | 'setter', salvo?: string): Promise<string | null> {
+  if (!supabase) return 'Portal sin configurar.';
+  let q = supabase.from('documentos').update({ modelo_contrato: null }).eq('organizacion_id', orgId).eq('modelo_contrato', modelo);
+  if (salvo) q = q.neq('id', salvo);
+  const { error } = await q;
+  return error ? error.message : null;
+}

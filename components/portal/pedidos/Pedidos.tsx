@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, ClipboardList, Copy, Lock, Plus, Send, Trash2, TriangleAlert } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ClipboardList, Copy, Download, Plus, Upload, Send, Trash2, TriangleAlert } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
@@ -7,10 +7,13 @@ import { useVistaPrevia } from '../vistaPrevia';
 import { avisarPorMail } from '../asuntos';
 import { Aviso, Encabezado, Enlace, Interruptor, Marco, claseInput } from '../ui';
 import { permisosDe, type Organizacion, type Perfil } from '../tipos';
-import { MODELOS } from './modelos';
+import { MODELOS, modeloDe } from './modelos';
+import { EXTENSIONES_ACEPTADAS, descargarArchivo, liberarModeloContrato, registrarDescarga, subirArchivoDocumento, BUCKET_DOCUMENTOS } from '../descargas';
+import type { Documento } from '../tipos';
 import {
   avance,
   datosPendientes,
+  es,
   esquemaDe,
   faltantes,
   filas,
@@ -18,14 +21,13 @@ import {
   resumen,
   resumenTexto,
   respuestasIniciales,
+  SUMAR,
   texto,
-  valorLegible,
   visible,
   type Fila,
   type Modelo,
   type Pregunta,
   type Respuestas,
-  type Seccion,
   type Valor,
 } from './formulario';
 
@@ -36,9 +38,10 @@ import {
  * pestaña Formulario. Los datos de la persona pueden quedar para después y
  * completarse desde el asunto. Las condiciones se guardan como esquema de
  * la empresa: el próximo pedido arranca con ellas y solo pide los datos
- * de la persona. Si el esquema lo precargó FIRMA, las condiciones quedan
- * fijas y lo distinto va en las notas. Las reglas de la base están en las
- * migraciones 0034, 0035 y 0062.
+ * de la persona. Cuando FIRMA entrega el contrato final queda como modelo
+ * (documentos.modelo_contrato) y cada persona nueva se suma con el
+ * formulario corto (paraSumar): sus datos, honorarios y una nota. Las
+ * reglas de la base están en las migraciones 0034, 0035, 0062 y 0063.
  */
 
 export interface PedidoContrato {
@@ -58,20 +61,16 @@ export interface EsquemaContrato {
   organizacion_id: string;
   modelo: keyof typeof MODELOS;
   respuestas: Respuestas;
-  /** Lo precargó FIRMA (0062): el cliente no cambia las condiciones. */
-  de_firma?: boolean;
   actualizado_en: string;
 }
 
 /** Marca en las respuestas de un pedido que arrancó de un esquema, con su fecha. */
 const DESDE_ESQUEMA = '_esquema';
-/** Marca de un pedido que arrancó de condiciones precargadas por FIRMA. */
-const DE_FIRMA = '_firma';
 
 /** Guarda las condiciones como esquema de la empresa: reemplaza el que hubiera. */
 async function guardarEsquemaDe(modelo: Modelo, orgId: string, r: Respuestas, existente: EsquemaContrato | null): Promise<string | null> {
   if (!supabase) return 'Portal sin configurar.';
-  const { [DESDE_ESQUEMA]: _marca, [DE_FIRMA]: _firma, ...resto } = esquemaDe(modelo, r);
+  const { [DESDE_ESQUEMA]: _marca, [SUMAR]: _sumar, ...resto } = esquemaDe(modelo, r);
   const { error: e } = existente
     ? await supabase.from('esquemas_contrato').update({ respuestas: resto }).eq('id', existente.id)
     : await supabase.from('esquemas_contrato').insert({ organizacion_id: orgId, modelo: modelo.clave, respuestas: resto });
@@ -106,14 +105,16 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
   const [editandoDatos, setEditandoDatos] = useState(() => new URLSearchParams(window.location.search).get('datos') === '1');
   const [nota, setNota] = useState<string | null>(null);
 
-  const modelo: Modelo | null = pedido ? MODELOS[pedido.modelo] : modeloNuevo ? MODELOS[modeloNuevo] : null;
+  const clave = pedido ? pedido.modelo : modeloNuevo;
+  const modelo: Modelo | null = clave ? modeloDe(clave, respuestas) : null;
 
   useEffect(() => {
     if (!supabase) return;
     if (modeloNuevo) {
       const iniciales = respuestasIniciales(MODELOS[modeloNuevo]);
       if (!orgId) {
-        setRespuestas(iniciales);
+        const sumar = new URLSearchParams(window.location.search).get('sumar') === '1';
+        setRespuestas(sumar ? { ...iniciales, [SUMAR]: 'si' } : iniciales);
         setPedido(null);
         return;
       }
@@ -127,8 +128,10 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
         .then(({ data }) => {
           const e = (data as EsquemaContrato | null) ?? null;
           setEsquema(e);
-          setConEsquema(!e);
-          setRespuestas(e ? { ...iniciales, ...e.respuestas, [DESDE_ESQUEMA]: e.actualizado_en, ...(e.de_firma ? { [DE_FIRMA]: 'si' } : {}) } : iniciales);
+          // Sumar a alguien con el contrato modelo: los honorarios arrancan con los del último pedido, si hay.
+          const sumar = new URLSearchParams(window.location.search).get('sumar') === '1';
+          setConEsquema(!e && !sumar);
+          setRespuestas(sumar ? { ...iniciales, ...(e?.respuestas ?? {}), [SUMAR]: 'si' } : e ? { ...iniciales, ...e.respuestas, [DESDE_ESQUEMA]: e.actualizado_en } : iniciales);
           setPedido(null);
         });
       return;
@@ -225,7 +228,7 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
     if (!supabase || !modelo || !orgId) return;
     const sb = supabase;
     // Con condiciones de FIRMA, lo que FIRMA dejó sin responder no frena al cliente.
-    const pendientes = faltantes(modelo, respuestas).filter((f) => !texto(respuestas, DE_FIRMA) || f.seccion.porContrato);
+    const pendientes = faltantes(modelo, respuestas);
     if (pendientes.length) return setError('Faltan respuestas obligatorias. Están marcadas abajo.');
     setEnviando(true);
     setError(null);
@@ -247,7 +250,9 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
       const nombre = texto(respuestas, modelo.claveTitulo).trim();
       await sb.from('asunto_mensajes').insert({
         asunto_id: data.id,
-        texto: `Completé el formulario del ${modelo.titulo.toLowerCase()}${nombre ? ` de ${nombre}` : ''}. Las respuestas están en la pestaña Formulario.`,
+        texto: texto(respuestas, SUMAR)
+          ? `Sumamos un ${modelo.persona} nuevo${nombre ? `, ${nombre},` : ''} con el contrato modelo. ${es(respuestas, 'honorarios_iguales', 'cambian') ? 'Cambian los honorarios.' : 'Cobra igual que en el modelo.'} Las respuestas están en la pestaña Formulario.`
+          : `Completé el formulario del ${modelo.titulo.toLowerCase()}${nombre ? ` de ${nombre}` : ''}. Las respuestas están en la pestaña Formulario.`,
       });
     }
     const asuntoId = asuntoCreado.current;
@@ -316,21 +321,15 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
   const enRevision = paso >= secciones.length;
   const seccion = secciones[Math.min(paso, secciones.length - 1)];
   const { respondidas, total } = avance(modelo, respuestas);
-  const pendientes = faltantes(modelo, respuestas).filter((f) => !texto(respuestas, DE_FIRMA) || f.seccion.porContrato);
+  const pendientes = faltantes(modelo, respuestas);
   const nombre = texto(respuestas, modelo.claveTitulo).trim();
   const desdeEsquema = texto(respuestas, DESDE_ESQUEMA);
   const faltanDatos = datosPendientes(modelo, respuestas);
   const seccionDatos = secciones.find((x) => x.porContrato) ?? null;
-  // Con condiciones de FIRMA, el cliente solo completa los datos de la persona y las notas.
-  const fijo = texto(respuestas, DE_FIRMA) !== '';
-  const conNotas = (s: Seccion) => s.preguntas.some((p) => p.clave === modelo.claveNotas);
-  const editable = (s: Seccion) => !fijo || Boolean(s.porContrato) || conNotas(s);
-  const pasosEditables = secciones.flatMap((s, i) => (editable(s) ? [i] : []));
+  // Sumar a alguien con el contrato modelo: el formulario corto, sin esquema.
+  const sumando = texto(respuestas, SUMAR) !== '';
   // Con esquema, de los datos de la persona se pasa directo a revisar.
-  const siguiente = fijo ? (pasosEditables.find((i) => i > paso) ?? secciones.length) : desdeEsquema && seccion.porContrato ? secciones.length : paso + 1;
-  const anterior = fijo ? [...pasosEditables].reverse().find((i) => i < paso) : paso > 0 ? paso - 1 : undefined;
-  const bloqueada = (p: Pregunta) => fijo && !seccion.porContrato && p.clave !== modelo.claveNotas;
-  const preguntasVisibles = seccion.preguntas.filter((p) => visible(p, respuestas));
+  const siguiente = !sumando && desdeEsquema && seccion.porContrato ? secciones.length : paso + 1;
 
   const encabezado = (
     <Encabezado
@@ -487,8 +486,8 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
                   .
                 </Aviso>
               )}
-              <ListaRespuestas modelo={modelo} respuestas={respuestas} alEditar={(clave) => irA(secciones.findIndex((s) => s.clave === clave))} editable={editable} />
-              {!fijo && (
+              <ListaRespuestas modelo={modelo} respuestas={respuestas} alEditar={(c) => irA(secciones.findIndex((s) => s.clave === c))} />
+              {!sumando && (
                 <div className="bg-marfil-oscuro p-5">
                   <Interruptor
                     activo={conEsquema}
@@ -507,7 +506,7 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
                 <Button type="button" onClick={() => void enviar()} disabled={enviando || prueba || Boolean(enviadoSinEsquema) || pendientes.length > 0}>
                   <Send size={16} aria-hidden="true" /> {enviando ? 'Enviando…' : 'Enviar a FIRMA'}
                 </Button>
-                <Button type="button" variant="ghost" onClick={() => irA(anterior ?? secciones.length - 1)}>
+                <Button type="button" variant="ghost" onClick={() => irA(secciones.length - 1)}>
                   Anterior
                 </Button>
               </div>
@@ -521,40 +520,19 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
                 <h2 className="h3">{seccion.titulo}</h2>
                 <p className="text-piedra text-[15px] leading-[1.6]">{seccion.bajada}</p>
               </div>
-              {fijo && seccion.porContrato && (
+              {sumando && seccion.porContrato && (
                 <Aviso tipo="info">
-                  FIRMA ya cargó las condiciones de tu {modelo.titulo.toLowerCase()}. Completá los datos del {modelo.persona}, o dejalos para después. Si en este caso algo es distinto, lo contás en las notas del último paso.
+                  Sumás un {modelo.persona} nuevo con tu contrato modelo. Completá sus datos, o dejalos para después, y en el paso siguiente elegí si cobra igual que en el modelo.
                 </Aviso>
               )}
-              {fijo && !seccion.porContrato && (
-                <Aviso tipo="info">
-                  <Lock size={14} className="inline -mt-0.5 mr-1.5" aria-hidden="true" />
-                  {conNotas(seccion)
-                    ? 'Estas condiciones las cargó FIRMA. Si en este contrato algo es distinto, como otro monto o plazo, contalo en las notas.'
-                    : 'Estas condiciones las cargó FIRMA y no se cambian acá. Si en este contrato algo es distinto, contalo en las notas del último paso.'}
-                </Aviso>
-              )}
-              {!fijo && desdeEsquema && seccion.porContrato && (
+              {!sumando && desdeEsquema && seccion.porContrato && (
                 <Aviso tipo="info">
                   Arrancamos con el esquema que guardaste el {fecha(desdeEsquema)}: honorarios y demás condiciones ya están cargados. Completá los datos del {modelo.persona}, o dejalos para después, y revisá antes de enviar.
                 </Aviso>
               )}
-              {preguntasVisibles.some(bloqueada) && (
-                <dl className="grid gap-x-8 gap-y-3 tab:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] text-[15px]">
-                  {preguntasVisibles.filter(bloqueada).map((p) => {
-                    const v = valorLegible(p, respuestas);
-                    return (
-                      <React.Fragment key={p.clave}>
-                        <dt className="text-piedra">{p.etiqueta}</dt>
-                        <dd className={`whitespace-pre-line -mt-2 tab:mt-0 mb-2 tab:mb-0 ${v ? '' : 'text-piedra italic'}`}>{v || 'Sin responder'}</dd>
-                      </React.Fragment>
-                    );
-                  })}
-                </dl>
-              )}
               <div className="flex flex-col gap-8">
-                {preguntasVisibles
-                  .filter((p) => !bloqueada(p))
+                {seccion.preguntas
+                  .filter((p) => visible(p, respuestas))
                   .map((p) => (
                     <CampoPregunta key={p.clave} pregunta={p} respuestas={respuestas} alCambiar={cambiar} />
                   ))}
@@ -563,8 +541,8 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
                 <Button type="button" onClick={() => irA(siguiente)} className="mt-4">
                   {siguiente === secciones.length ? 'Revisar' : 'Siguiente'} <ArrowRight size={16} aria-hidden="true" />
                 </Button>
-                {anterior !== undefined && (
-                  <Button type="button" variant="ghost" onClick={() => irA(anterior)} className="mt-4">
+                {paso > 0 && (
+                  <Button type="button" variant="ghost" onClick={() => irA(paso - 1)} className="mt-4">
                     Anterior
                   </Button>
                 )}
@@ -724,12 +702,7 @@ export const CampoPregunta: React.FC<{ pregunta: Pregunta; respuestas: Respuesta
 /* ------------------------------------------------------------------ */
 /* Respuestas, como las lee FIRMA                                       */
 /* ------------------------------------------------------------------ */
-export const ListaRespuestas: React.FC<{ modelo: Modelo; respuestas: Respuestas; alEditar?: (seccion: string) => void; editable?: (s: Seccion) => boolean }> = ({
-  modelo,
-  respuestas,
-  alEditar,
-  editable,
-}) => (
+export const ListaRespuestas: React.FC<{ modelo: Modelo; respuestas: Respuestas; alEditar?: (seccion: string) => void }> = ({ modelo, respuestas, alEditar }) => (
   <div className="flex flex-col gap-8">
     {resumen(modelo, respuestas).map(({ seccion, lineas }, i) => (
       <section key={seccion.clave} className="flex flex-col gap-4">
@@ -738,7 +711,7 @@ export const ListaRespuestas: React.FC<{ modelo: Modelo; respuestas: Respuestas;
             <span className="tabular-nums text-piedra text-sm mr-2">{String(i + 1).padStart(2, '0')}</span>
             {seccion.titulo}
           </h3>
-          {alEditar && (!editable || editable(seccion)) && (
+          {alEditar && (
             <button type="button" onClick={() => alEditar(seccion.clave)} className="text-sm text-bosque underline underline-offset-4 pb-2">
               Editar
             </button>
@@ -761,7 +734,7 @@ export const ListaRespuestas: React.FC<{ modelo: Modelo; respuestas: Respuestas;
 );
 
 /** Pestaña Formulario del asunto. */
-export const FormularioDelAsunto: React.FC<{ pedido: PedidoContrato; empresa: string; puedeCompletar: boolean }> = ({ pedido, empresa, puedeCompletar }) => {
+export const FormularioDelAsunto: React.FC<{ pedido: PedidoContrato; empresa: string; puedeCompletar: boolean; esFirma?: boolean }> = ({ pedido, empresa, puedeCompletar, esFirma }) => {
   const [copiado, setCopiado] = useState(false);
   // Recién enviado: la confirmación se muestra una vez y sale de la dirección.
   const [recienEnviado] = useState(() => {
@@ -771,7 +744,7 @@ export const FormularioDelAsunto: React.FC<{ pedido: PedidoContrato; empresa: st
     window.history.replaceState({}, '', url);
     return true;
   });
-  const modelo = MODELOS[pedido.modelo];
+  const modelo = modeloDe(pedido.modelo, pedido.respuestas);
   async function copiar() {
     const encabezado = `${modelo.tituloAsunto(pedido.respuestas)}${empresa ? ` · ${empresa}` : ''}${pedido.enviado_en ? ` · enviado el ${fecha(pedido.enviado_en)}` : ''}`;
     try {
@@ -815,8 +788,116 @@ export const FormularioDelAsunto: React.FC<{ pedido: PedidoContrato; empresa: st
           Editar datos del {modelo.persona}
         </Enlace>
       )}
+      {esFirma && pedido.enviado_en && <EntregarModelo pedido={pedido} />}
       <ListaRespuestas modelo={modelo} respuestas={pedido.respuestas} />
     </div>
+  );
+};
+
+/**
+ * Solo FIRMA, en la pestaña Formulario del asunto: sube el contrato final
+ * y lo deja como contrato modelo de la empresa en Contratos con tu equipo
+ * (migración 0063). Si había otro modelo, sigue en la sección sin la marca.
+ * Le avisa al cliente por el chat del asunto.
+ */
+const EntregarModelo: React.FC<{ pedido: PedidoContrato }> = ({ pedido }) => {
+  const modelo = MODELOS[pedido.modelo];
+  const [actual, setActual] = useState<Documento | null | undefined>(undefined);
+  const [archivo, setArchivo] = useState<File | null>(null);
+  const [subiendo, setSubiendo] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [ok, setOk] = useState<string | null>(null);
+
+  const cargar = useCallback(() => {
+    if (!supabase) return;
+    void supabase
+      .from('documentos')
+      .select('*')
+      .eq('organizacion_id', pedido.organizacion_id)
+      .eq('modelo_contrato', pedido.modelo)
+      .maybeSingle()
+      .then(({ data, error: e }) => {
+        if (e) setError(`${e.message}. Revisá que la migración 0063_contrato_modelo.sql esté corrida en Supabase.`);
+        setActual((data as Documento | null) ?? null);
+      });
+  }, [pedido.organizacion_id, pedido.modelo]);
+
+  useEffect(cargar, [cargar]);
+
+  async function entregar() {
+    if (!supabase || !archivo) return;
+    const sb = supabase;
+    setSubiendo(true);
+    setError(null);
+    setOk(null);
+    const subida = await subirArchivoDocumento(archivo, 'equipo');
+    if ('error' in subida) {
+      setSubiendo(false);
+      return setError(subida.error);
+    }
+    const fallo = await liberarModeloContrato(pedido.organizacion_id, pedido.modelo);
+    if (fallo) {
+      await sb.storage.from(BUCKET_DOCUMENTOS).remove([subida.ruta]);
+      setSubiendo(false);
+      return setError(fallo);
+    }
+    const { error: e } = await sb.from('documentos').insert({
+      seccion: 'equipo',
+      organizacion_id: pedido.organizacion_id,
+      titulo: modelo.titulo,
+      descripcion: `Tu contrato modelo de ${modelo.persona}. Cada ${modelo.persona} nuevo se suma con él desde esta sección.`,
+      areas: ['direccion'],
+      orden: 0,
+      activo: true,
+      modelo_contrato: pedido.modelo,
+      archivo_ruta: subida.ruta,
+      archivo_nombre: archivo.name,
+      archivo_bytes: archivo.size,
+    });
+    if (e) {
+      await sb.storage.from(BUCKET_DOCUMENTOS).remove([subida.ruta]);
+      setSubiendo(false);
+      return setError(e.message);
+    }
+    if (pedido.asunto_id) {
+      const { data: msj } = await sb
+        .from('asunto_mensajes')
+        .insert({
+          asunto_id: pedido.asunto_id,
+          texto: `Te dejamos el ${modelo.titulo.toLowerCase()} en Documentos › Contratos con tu equipo. Queda como tu modelo: cuando se sume otro ${modelo.persona}, entrá ahí y tocá «Sumar un ${modelo.persona} nuevo».`,
+        })
+        .select('id')
+        .single();
+      if (msj) await avisarPorMail('mensaje', msj.id as string);
+    }
+    setSubiendo(false);
+    setArchivo(null);
+    setOk(`Listo. Quedó como su ${modelo.titulo.toLowerCase()} modelo y le avisamos por el chat.`);
+    cargar();
+  }
+
+  return (
+    <section className="flex flex-col gap-4 bg-marfil-oscuro p-6">
+      <div className="flex flex-col gap-1.5">
+        <h3 className="text-[17px] font-medium">Contrato modelo</h3>
+        <p className="text-[15px] leading-[1.6] text-piedra">
+          {actual
+            ? `Ya tiene su ${modelo.titulo.toLowerCase()} modelo: ${actual.archivo_nombre ?? actual.titulo}, del ${fecha(actual.actualizado_en)}. Si subís otro, lo reemplaza como modelo y el anterior sigue en la sección.`
+            : `Subí el contrato final. Queda en Contratos con tu equipo para que lo bajen, y cada ${modelo.persona} nuevo se suma con él.`}
+        </p>
+      </div>
+      {error && <Aviso tipo="error">{error}</Aviso>}
+      {ok && <Aviso tipo="ok">{ok}</Aviso>}
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="inline-flex items-center gap-2 h-11 px-5 border border-tinta/30 bg-white text-sm font-medium cursor-pointer hover:border-tinta/60">
+          <input type="file" accept={EXTENSIONES_ACEPTADAS} className="sr-only" onChange={(e) => setArchivo(e.target.files?.[0] ?? null)} />
+          {archivo ? archivo.name : 'Elegir archivo'}
+        </label>
+        <Button type="button" onClick={() => void entregar()} disabled={!archivo || subiendo || actual === undefined}>
+          <Upload size={16} aria-hidden="true" /> {subiendo ? 'Subiendo…' : actual ? 'Reemplazar el modelo' : 'Cargar como modelo'}
+        </Button>
+      </div>
+    </section>
   );
 };
 
@@ -830,6 +911,7 @@ const claseAccion =
 export const PedidosEquipo: React.FC<{ orgId: string | null; vistaPrevia: boolean }> = ({ orgId, vistaPrevia }) => {
   const [borradores, setBorradores] = useState<PedidoContrato[]>([]);
   const [esquemas, setEsquemas] = useState<EsquemaContrato[]>([]);
+  const [contratos, setContratos] = useState<Documento[]>([]);
 
   useEffect(() => {
     if (!supabase || !orgId) return;
@@ -850,6 +932,16 @@ export const PedidosEquipo: React.FC<{ orgId: string | null; vistaPrevia: boolea
       .then(({ data }) => {
         if (vivo) setEsquemas((data as EsquemaContrato[]) ?? []);
       });
+    // Sin la migración 0063 la consulta falla y las tarjetas siguen como antes.
+    void supabase
+      .from('documentos')
+      .select('*')
+      .eq('organizacion_id', orgId)
+      .eq('activo', true)
+      .not('modelo_contrato', 'is', null)
+      .then(({ data }) => {
+        if (vivo) setContratos((data as Documento[]) ?? []);
+      });
     return () => {
       vivo = false;
     };
@@ -868,6 +960,7 @@ export const PedidosEquipo: React.FC<{ orgId: string | null; vistaPrevia: boolea
         <TarjetaPedido
           key={modelo.clave}
           modelo={modelo}
+          contrato={contratos.find((d) => d.modelo_contrato === modelo.clave) ?? null}
           esquema={esquemas.find((e) => e.modelo === modelo.clave) ?? null}
           borradores={borradores.filter((b) => b.modelo === modelo.clave)}
           vistaPrevia={vistaPrevia}
@@ -880,64 +973,99 @@ export const PedidosEquipo: React.FC<{ orgId: string | null; vistaPrevia: boolea
 
 const TarjetaPedido: React.FC<{
   modelo: Modelo;
+  /** El contrato final que entregó FIRMA. Con él, la tarjeta pasa a bajarlo y sumar personas. */
+  contrato: Documento | null;
   esquema: EsquemaContrato | null;
   borradores: PedidoContrato[];
   vistaPrevia: boolean;
   alBorrarEsquema: (e: EsquemaContrato) => void;
-}> = ({ modelo, esquema, borradores, vistaPrevia, alBorrarEsquema }) => (
-  <article className="card">
-    <div className="relative flex items-center gap-4">
-      <div className="icon-box">
-        <ClipboardList size={26} strokeWidth={1.8} />
+}> = ({ modelo, contrato, esquema, borradores, vistaPrevia, alBorrarEsquema }) => {
+  const [error, setError] = useState<string | null>(null);
+
+  async function descargar(d: Documento) {
+    setError(null);
+    const fallo = await descargarArchivo(d);
+    if (fallo) return setError(fallo);
+    if (!vistaPrevia) registrarDescarga(d);
+  }
+
+  return (
+    <article className="card">
+      <div className="relative flex items-center gap-4">
+        <div className="icon-box">
+          <ClipboardList size={26} strokeWidth={1.8} />
+        </div>
+        <span className="eyebrow text-[11px] text-calido">{contrato ? 'Contrato listo' : esquema ? 'Formulario · unos 3 minutos' : 'Formulario · unos 10 minutos'}</span>
       </div>
-      <span className="eyebrow text-[11px] text-calido">{esquema ? 'Formulario · unos 3 minutos' : 'Formulario · unos 10 minutos'}</span>
-    </div>
-    <h3 className="h3 relative">Pedir un {modelo.titulo.toLowerCase()}</h3>
-    <p className="relative text-[15px] leading-[1.6] text-calido max-w-[60ch]">{modelo.descripcion}</p>
-    {esquema?.de_firma ? (
-      <p className="relative text-[15px] leading-[1.6] text-marfil">FIRMA ya cargó las condiciones de tu {modelo.titulo.toLowerCase()}: solo completás los datos del {modelo.persona} y, si algo es distinto, lo contás en las notas.</p>
-    ) : esquema ? (
-      <p className="relative text-[15px] leading-[1.6] text-marfil">
-        Tenés un esquema guardado el {fecha(esquema.actualizado_en)}: el próximo contrato solo pide los datos del {modelo.persona}.
-        {!vistaPrevia && (
+      <h3 className="h3 relative">{contrato ? `Tu ${modelo.titulo.toLowerCase()}` : `Pedir un ${modelo.titulo.toLowerCase()}`}</h3>
+      {contrato ? (
+        <p className="relative text-[15px] leading-[1.6] text-calido max-w-[60ch]">
+          Es tu modelo, actualizado el {fecha(contrato.actualizado_en)}. Cuando se sume otro {modelo.persona}, cargá sus datos y si cobra igual o distinto: te preparamos su contrato en el asunto.
+        </p>
+      ) : (
+        <p className="relative text-[15px] leading-[1.6] text-calido max-w-[60ch]">{modelo.descripcion}</p>
+      )}
+      {!contrato && esquema && (
+        <p className="relative text-[15px] leading-[1.6] text-marfil">
+          Tenés un esquema guardado el {fecha(esquema.actualizado_en)}: el próximo contrato solo pide los datos del {modelo.persona}.
+          {!vistaPrevia && (
+            <>
+              {' '}
+              <button type="button" onClick={() => alBorrarEsquema(esquema)} className="text-calido underline underline-offset-4 hover:text-marfil">
+                Borrar esquema
+              </button>
+            </>
+          )}
+        </p>
+      )}
+      {error && <p className="relative text-[14px] text-marfil">{error}</p>}
+      {borradores.length > 0 && (
+        <ul className="relative flex flex-col gap-2 text-[15px]">
+          {borradores.map((b) => {
+            const { respondidas, total } = avance(modeloDe(b.modelo, b.respuestas ?? {}), b.respuestas ?? {});
+            return (
+              <li key={b.id} className="flex flex-wrap items-baseline gap-x-3">
+                <Enlace a={`/portal/pedidos/${b.id}`} className="font-medium text-marfil underline underline-offset-4 decoration-marfil/40 hover:decoration-marfil">
+                  {b.titulo || 'Borrador sin nombre'}
+                </Enlace>
+                <span className="text-[13px] text-calido">
+                  {respondidas} de {total} respondidas · {fecha(b.actualizado_en)}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <div className="relative mt-auto pt-4 flex flex-wrap items-center gap-3">
+        {contrato ? (
           <>
-            {' '}
-            <button type="button" onClick={() => alBorrarEsquema(esquema)} className="text-calido underline underline-offset-4 hover:text-marfil">
-              Borrar esquema
-            </button>
-          </>
-        )}
-      </p>
-    ) : null}
-    {borradores.length > 0 && (
-      <ul className="relative flex flex-col gap-2 text-[15px]">
-        {borradores.map((b) => {
-          const { respondidas, total } = avance(modelo, b.respuestas ?? {});
-          return (
-            <li key={b.id} className="flex flex-wrap items-baseline gap-x-3">
-              <Enlace a={`/portal/pedidos/${b.id}`} className="font-medium text-marfil underline underline-offset-4 decoration-marfil/40 hover:decoration-marfil">
-                {b.titulo || 'Borrador sin nombre'}
-              </Enlace>
-              <span className="text-[13px] text-calido">
-                {respondidas} de {total} respondidas · {fecha(b.actualizado_en)}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-    )}
-    <div className="relative mt-auto pt-4">
-      <Enlace a={`/portal/pedidos/${modelo.clave}`} className={claseAccion}>
-        {vistaPrevia ? (
-          <>
-            <ArrowRight size={16} aria-hidden="true" /> Ver el formulario
+            <Enlace a={`/portal/pedidos/${modelo.clave}?sumar=1`} className={claseAccion}>
+              <Plus size={16} aria-hidden="true" /> Sumar un {modelo.persona} nuevo
+            </Enlace>
+            {contrato.archivo_ruta ? (
+              <button type="button" onClick={() => void descargar(contrato)} className="inline-flex items-center gap-2 h-11 px-4 text-sm font-medium text-marfil underline underline-offset-4 hover:text-white">
+                <Download size={16} aria-hidden="true" /> Descargar
+              </button>
+            ) : contrato.url ? (
+              <a href={contrato.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 h-11 px-4 text-sm font-medium text-marfil underline underline-offset-4 hover:text-white">
+                <Download size={16} aria-hidden="true" /> Abrir
+              </a>
+            ) : null}
           </>
         ) : (
-          <>
-            <Plus size={16} aria-hidden="true" /> {borradores.length ? 'Empezar otro' : 'Completar el formulario'}
-          </>
+          <Enlace a={`/portal/pedidos/${modelo.clave}`} className={claseAccion}>
+            {vistaPrevia ? (
+              <>
+                <ArrowRight size={16} aria-hidden="true" /> Ver el formulario
+              </>
+            ) : (
+              <>
+                <Plus size={16} aria-hidden="true" /> {borradores.length ? 'Empezar otro' : 'Completar el formulario'}
+              </>
+            )}
+          </Enlace>
         )}
-      </Enlace>
-    </div>
-  </article>
-);
+      </div>
+    </article>
+  );
+};

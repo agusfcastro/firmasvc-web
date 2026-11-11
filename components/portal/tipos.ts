@@ -112,6 +112,8 @@ export interface Documento {
   archivo_bytes: number | null;
   url: string | null;
   es_protocolo?: boolean;
+  /** Contrato modelo de closer o setter de la empresa (0063). */
+  modelo_contrato?: 'closer' | 'setter' | null;
   orden: number;
   activo: boolean;
   creado_en: string;

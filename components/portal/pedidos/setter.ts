@@ -19,6 +19,7 @@ export const SETTER: Modelo = {
   descripcion: 'Respondé cómo trabaja el setter: qué agenda, cuándo una agenda cuenta, cómo se le paga, objetivos y plazo. Con eso FIRMA redacta el contrato y lo seguís en Asuntos.',
   claveTitulo: 'setter_nombre',
   claveNotas: 'extra',
+  seccionesHonorarios: ['honorarios'],
   // El mismo texto arma la migración 0062 cuando el cliente completa el nombre después de enviar.
   tituloAsunto: (r) => `Contrato de setter · ${texto(r, 'setter_nombre').trim() || 'datos del setter pendientes'}`,
   secciones: [

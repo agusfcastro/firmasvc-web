@@ -66,8 +66,10 @@ export interface Modelo {
   bajada: string;
   /** Texto de la tarjeta en Contratos con tu equipo. */
   descripcion: string;
-  /** Pregunta abierta del final. Con condiciones precargadas por FIRMA es lo único que el cliente cambia. */
+  /** Pregunta abierta del final. Al sumar a alguien con el contrato modelo es la nota para FIRMA. */
   claveNotas: string;
+  /** Secciones que se pueden cambiar al sumar a alguien con el contrato modelo. */
+  seccionesHonorarios: string[];
   /** Pregunta cuya respuesta nombra al pedido en la lista y en el asunto. */
   claveTitulo: string;
   tituloAsunto: (r: Respuestas) => string;
@@ -195,4 +197,49 @@ export function resumenTexto(m: Modelo, r: Respuestas, encabezado: string): stri
     partes.push('');
   });
   return partes.join('\n').trim();
+}
+
+/** Respuesta que marca un pedido para sumar a alguien con el contrato modelo. */
+export const SUMAR = '_sumar';
+
+/**
+ * El formulario corto para sumar a alguien con el contrato modelo que FIRMA
+ * ya entregó: los datos de la persona, si cobra igual que en el modelo (y
+ * si no, los honorarios) y una nota. El resto ya está en el contrato.
+ */
+export function paraSumar(m: Modelo): Modelo {
+  const cambian = (r: Respuestas) => es(r, 'honorarios_iguales', 'cambian');
+  const honorarios = m.secciones.filter((s) => m.seccionesHonorarios.includes(s.clave)).flatMap((s) => s.preguntas);
+  const notas = m.secciones.flatMap((s) => s.preguntas).find((p) => p.clave === m.claveNotas);
+  return {
+    ...m,
+    secciones: [
+      ...m.secciones.filter((s) => s.porContrato),
+      {
+        clave: 'honorarios',
+        titulo: 'Honorarios',
+        bajada: `Todo lo demás queda como en tu contrato modelo de ${m.persona}. Si a esta persona le pagan distinto, marcá que cambian y completá cómo.`,
+        preguntas: [
+          {
+            clave: 'honorarios_iguales',
+            tipo: 'opcion',
+            etiqueta: `¿Cobra igual que en el contrato modelo?`,
+            opciones: [
+              { valor: 'mismos', texto: 'Sí, los mismos honorarios' },
+              { valor: 'cambian', texto: 'No, cambian' },
+            ],
+            porDefecto: 'mismos',
+            obligatoria: true,
+          },
+          ...honorarios.map((p) => ({ ...p, si: (r: Respuestas) => cambian(r) && visible(p, r) })),
+        ],
+      },
+      {
+        clave: 'notas',
+        titulo: 'Notas',
+        bajada: 'Lo último antes de revisar.',
+        preguntas: notas ? [{ ...notas, etiqueta: '¿Algo más que sea distinto para esta persona?', ayuda: 'Otro plazo, otra tarea, un acuerdo de palabra. Opcional.' }] : [],
+      },
+    ],
+  };
 }

@@ -4,7 +4,8 @@ import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { Aviso, Campo, Etiqueta, Interruptor, Pestanas, claseInput } from '../ui';
 import { avisarPorMail } from '../asuntos';
-import { BUCKET_DOCUMENTOS, EXTENSIONES_ACEPTADAS, FORMATOS, SECCIONES, TAMANO_MAXIMO, descargarArchivo, extension, formatoDe, tamano } from '../descargas';
+import { BUCKET_DOCUMENTOS, EXTENSIONES_ACEPTADAS, FORMATOS, SECCIONES, TAMANO_MAXIMO, descargarArchivo, extension, formatoDe, liberarModeloContrato, tamano } from '../descargas';
+import { MODELOS, type ClaveModelo } from '../pedidos/modelos';
 import { fechaCorta, type Area, type Documento, type Organizacion, type SeccionDocumento } from '../tipos';
 
 type Filtro = 'todas' | SeccionDocumento;
@@ -24,6 +25,8 @@ interface Borrador {
   activo: boolean;
   /** Protocolos y formación: los ven también closers y setters */
   es_protocolo: boolean;
+  /** Contrato modelo de closer o setter de la empresa (0063). Solo en Contratos con tu equipo y para un cliente. */
+  modelo_contrato: '' | ClaveModelo;
 }
 
 /** Los contratos con el equipo arrancan reservados al titular y a Dirección. */
@@ -95,6 +98,7 @@ export const Documentos: React.FC = () => {
       orden: cuenta(seccion) + 1,
       activo: true,
       es_protocolo: false,
+      modelo_contrato: '',
     });
   }
 
@@ -112,6 +116,7 @@ export const Documentos: React.FC = () => {
       orden: d.orden,
       activo: d.activo,
       es_protocolo: Boolean(d.es_protocolo),
+      modelo_contrato: d.modelo_contrato ?? '',
     });
   }
 
@@ -159,7 +164,18 @@ export const Documentos: React.FC = () => {
     if (!borrador.titulo.trim()) return setError('Poné un título.');
     if (!conArchivo && !/^(https:\/\/|\/[^/])/.test(url)) return setError('El enlace tiene que empezar con https:// o ser una ruta del sitio, como /protocolo-llamadas.');
     if (conArchivo && !archivo && !original?.archivo_ruta) return setError('Elegí el archivo que vas a subir.');
+    // El contrato modelo es de un cliente y vive en Contratos con tu equipo.
+    const modeloContrato = borrador.seccion === 'equipo' && borrador.organizacion_id && borrador.modelo_contrato ? borrador.modelo_contrato : null;
     setGuardando(true);
+
+    // 0. Si pasa a ser el contrato modelo, el que lo era deja de serlo.
+    if (modeloContrato && borrador.organizacion_id) {
+      const fallo = await liberarModeloContrato(borrador.organizacion_id, modeloContrato, borrador.id);
+      if (fallo) {
+        setGuardando(false);
+        return setError(`${fallo}. Revisá que la migración 0063_contrato_modelo.sql esté corrida en Supabase.`);
+      }
+    }
 
     // 1. Si hay archivo nuevo, se sube primero con un nombre único.
     let rutaNueva: string | null = null;
@@ -187,6 +203,7 @@ export const Documentos: React.FC = () => {
       orden: Number(borrador.orden) || 0,
       activo: borrador.activo,
       es_protocolo: borrador.es_protocolo,
+      modelo_contrato: modeloContrato,
       url: conArchivo ? null : url,
       archivo_ruta: conArchivo ? (rutaNueva ?? original?.archivo_ruta ?? null) : null,
       archivo_nombre: conArchivo ? (archivo?.name ?? original?.archivo_nombre ?? null) : null,
@@ -272,6 +289,22 @@ export const Documentos: React.FC = () => {
               </select>
             </Campo>
           </div>
+
+          {borrador.seccion === 'equipo' && borrador.organizacion_id && (
+            <Campo
+              etiqueta="¿Es su contrato modelo?"
+              ayuda="El cliente lo baja desde la tarjeta del contrato y cada persona nueva se suma con él. Hay uno por contrato: si ya tenía otro, deja de ser el modelo y sigue en la sección."
+            >
+              <select className={claseInput} value={borrador.modelo_contrato} onChange={(e) => setBorrador({ ...borrador, modelo_contrato: e.target.value as Borrador['modelo_contrato'] })}>
+                <option value="">No</option>
+                {Object.values(MODELOS).map((m) => (
+                  <option key={m.clave} value={m.clave}>
+                    Sí, es su {m.titulo.toLowerCase()}
+                  </option>
+                ))}
+              </select>
+            </Campo>
+          )}
 
           <Campo etiqueta="Título">
             <input required className={claseInput} value={borrador.titulo} onChange={(e) => setBorrador({ ...borrador, titulo: e.target.value })} placeholder="Contrato de consultoría con honorario fijo" />
@@ -429,6 +462,11 @@ export const Documentos: React.FC = () => {
               <tr key={d.id}>
                 <td>
                   <div className="font-heading font-bold text-[16px] leading-tight">{d.titulo}</div>
+                  {d.modelo_contrato && (
+                    <div className="mt-1.5">
+                      <Etiqueta tono="bosque">Modelo · {MODELOS[d.modelo_contrato].titulo.toLowerCase()}</Etiqueta>
+                    </div>
+                  )}
                   <div className="text-xs text-piedra mt-1 break-all">
                     {formatoDe(d)}
                     {d.archivo_bytes ? ` · ${tamano(d.archivo_bytes)}` : ''} · {d.archivo_nombre ?? d.url}

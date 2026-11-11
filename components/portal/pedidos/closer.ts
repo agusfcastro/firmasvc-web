@@ -21,6 +21,7 @@ export const CLOSER: Modelo = {
   descripcion: 'Respondé cómo trabajan con el closer: honorarios, bonos, objetivos, reembolsos, plazo y pago. Con eso FIRMA redacta el contrato y lo seguís en Asuntos.',
   claveTitulo: 'closer_nombre',
   claveNotas: 'extra',
+  seccionesHonorarios: ['honorarios', 'bonos'],
   // El mismo texto arma la migración 0035 cuando el cliente completa el nombre después de enviar.
   tituloAsunto: (r) => `Contrato de closer · ${texto(r, 'closer_nombre').trim() || 'datos del closer pendientes'}`,
   secciones: [
