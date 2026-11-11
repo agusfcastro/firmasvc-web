@@ -1,6 +1,7 @@
 /**
  * Pedidos de contrato: tipos de pregunta y las reglas comunes a todos los
- * modelos. Las preguntas de cada modelo están en su archivo (closer.ts).
+ * modelos. Las preguntas de cada modelo están en su archivo (closer.ts,
+ * setter.ts) y la lista en modelos.ts.
  * Las respuestas se guardan tal cual en pedidos_contrato.respuestas
  * (migración 0034).
  */
@@ -57,9 +58,16 @@ export interface Seccion {
 }
 
 export interface Modelo {
-  clave: 'closer';
+  /** Las claves de los datos de la persona empiezan con <clave>_ (migración 0062). */
+  clave: 'closer' | 'setter';
+  /** Cómo se nombra a la persona en los textos: «los datos del closer». */
+  persona: string;
   titulo: string;
   bajada: string;
+  /** Texto de la tarjeta en Contratos con tu equipo. */
+  descripcion: string;
+  /** Pregunta abierta del final. Con condiciones precargadas por FIRMA es lo único que el cliente cambia. */
+  claveNotas: string;
   /** Pregunta cuya respuesta nombra al pedido en la lista y en el asunto. */
   claveTitulo: string;
   tituloAsunto: (r: Respuestas) => string;

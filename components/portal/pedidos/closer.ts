@@ -15,9 +15,12 @@ const seDescuenta = (r: Respuestas) => !!texto(r, 'reembolso_despues') && !es(r,
 
 export const CLOSER: Modelo = {
   clave: 'closer',
+  persona: 'closer',
   titulo: 'Contrato de closer',
   bajada: 'Contanos cómo trabajan con el closer y redactamos el contrato. Lo que ya viene marcado es lo habitual: cambiá solo lo que en tu caso sea distinto.',
+  descripcion: 'Respondé cómo trabajan con el closer: honorarios, bonos, objetivos, reembolsos, plazo y pago. Con eso FIRMA redacta el contrato y lo seguís en Asuntos.',
   claveTitulo: 'closer_nombre',
+  claveNotas: 'extra',
   // El mismo texto arma la migración 0035 cuando el cliente completa el nombre después de enviar.
   tituloAsunto: (r) => `Contrato de closer · ${texto(r, 'closer_nombre').trim() || 'datos del closer pendientes'}`,
   secciones: [
@@ -383,6 +386,4 @@ export const CLOSER: Modelo = {
     },
   ],
 };
-
-export const MODELOS = { closer: CLOSER } as const;
 

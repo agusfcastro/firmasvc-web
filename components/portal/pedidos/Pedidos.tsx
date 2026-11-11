@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, ClipboardList, Copy, Plus, Send, Trash2, TriangleAlert } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ClipboardList, Copy, Lock, Plus, Send, Trash2, TriangleAlert } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
@@ -7,7 +7,7 @@ import { useVistaPrevia } from '../vistaPrevia';
 import { avisarPorMail } from '../asuntos';
 import { Aviso, Encabezado, Enlace, Interruptor, Marco, claseInput } from '../ui';
 import { permisosDe, type Organizacion, type Perfil } from '../tipos';
-import { MODELOS } from './closer';
+import { MODELOS } from './modelos';
 import {
   avance,
   datosPendientes,
@@ -19,11 +19,13 @@ import {
   resumenTexto,
   respuestasIniciales,
   texto,
+  valorLegible,
   visible,
   type Fila,
   type Modelo,
   type Pregunta,
   type Respuestas,
+  type Seccion,
   type Valor,
 } from './formulario';
 
@@ -31,10 +33,12 @@ import {
  * Pedidos de contrato en /portal/pedidos/<modelo> (nuevo) y /portal/pedidos/<id>.
  * El titular o el CSM responden por pasos y el borrador se guarda solo.
  * Al enviarlo se abre un asunto de tipo Contrato con las respuestas en la
- * pestaña Formulario. Los datos del closer pueden quedar para después y
+ * pestaña Formulario. Los datos de la persona pueden quedar para después y
  * completarse desde el asunto. Las condiciones se guardan como esquema de
  * la empresa: el próximo pedido arranca con ellas y solo pide los datos
- * del closer. Las reglas de la base están en las migraciones 0034 y 0035.
+ * de la persona. Si el esquema lo precargó FIRMA, las condiciones quedan
+ * fijas y lo distinto va en las notas. Las reglas de la base están en las
+ * migraciones 0034, 0035 y 0062.
  */
 
 export interface PedidoContrato {
@@ -54,16 +58,20 @@ export interface EsquemaContrato {
   organizacion_id: string;
   modelo: keyof typeof MODELOS;
   respuestas: Respuestas;
+  /** Lo precargó FIRMA (0062): el cliente no cambia las condiciones. */
+  de_firma?: boolean;
   actualizado_en: string;
 }
 
 /** Marca en las respuestas de un pedido que arrancó de un esquema, con su fecha. */
 const DESDE_ESQUEMA = '_esquema';
+/** Marca de un pedido que arrancó de condiciones precargadas por FIRMA. */
+const DE_FIRMA = '_firma';
 
 /** Guarda las condiciones como esquema de la empresa: reemplaza el que hubiera. */
 async function guardarEsquemaDe(modelo: Modelo, orgId: string, r: Respuestas, existente: EsquemaContrato | null): Promise<string | null> {
   if (!supabase) return 'Portal sin configurar.';
-  const { [DESDE_ESQUEMA]: _marca, ...resto } = esquemaDe(modelo, r);
+  const { [DESDE_ESQUEMA]: _marca, [DE_FIRMA]: _firma, ...resto } = esquemaDe(modelo, r);
   const { error: e } = existente
     ? await supabase.from('esquemas_contrato').update({ respuestas: resto }).eq('id', existente.id)
     : await supabase.from('esquemas_contrato').insert({ organizacion_id: orgId, modelo: modelo.clave, respuestas: resto });
@@ -94,7 +102,7 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
   const [esquema, setEsquema] = useState<EsquemaContrato | null>(null);
   const [conEsquema, setConEsquema] = useState(true);
   const [enviadoSinEsquema, setEnviadoSinEsquema] = useState<string | null>(null);
-  // Pedido enviado: el cliente completa los datos del closer.
+  // Pedido enviado: el cliente completa los datos de la persona.
   const [editandoDatos, setEditandoDatos] = useState(() => new URLSearchParams(window.location.search).get('datos') === '1');
   const [nota, setNota] = useState<string | null>(null);
 
@@ -120,7 +128,7 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
           const e = (data as EsquemaContrato | null) ?? null;
           setEsquema(e);
           setConEsquema(!e);
-          setRespuestas(e ? { ...iniciales, ...e.respuestas, [DESDE_ESQUEMA]: e.actualizado_en } : iniciales);
+          setRespuestas(e ? { ...iniciales, ...e.respuestas, [DESDE_ESQUEMA]: e.actualizado_en, ...(e.de_firma ? { [DE_FIRMA]: 'si' } : {}) } : iniciales);
           setPedido(null);
         });
       return;
@@ -216,7 +224,8 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
   async function enviar() {
     if (!supabase || !modelo || !orgId) return;
     const sb = supabase;
-    const pendientes = faltantes(modelo, respuestas);
+    // Con condiciones de FIRMA, lo que FIRMA dejó sin responder no frena al cliente.
+    const pendientes = faltantes(modelo, respuestas).filter((f) => !texto(respuestas, DE_FIRMA) || f.seccion.porContrato);
     if (pendientes.length) return setError('Faltan respuestas obligatorias. Están marcadas abajo.');
     setEnviando(true);
     setError(null);
@@ -258,7 +267,7 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
     navegar(`/portal/asuntos/${asuntoId}?pestana=formulario&enviado=1`);
   }
 
-  /** Después de enviar: guarda los datos del closer y le avisa a FIRMA por el chat. */
+  /** Después de enviar: guarda los datos de la persona y le avisa a FIRMA por el chat. */
   async function guardarDatos() {
     if (!supabase || !modelo || !pedido?.asunto_id) return;
     const sb = supabase;
@@ -272,14 +281,14 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
     }
     const { data: msj } = await sb
       .from('asunto_mensajes')
-      .insert({ asunto_id: pedido.asunto_id, texto: `Completé los datos del closer${titulo ? `: ${titulo}` : ''}. Están en la pestaña Formulario.` })
+      .insert({ asunto_id: pedido.asunto_id, texto: `Completé los datos del ${modelo.persona}${titulo ? `: ${titulo}` : ''}. Están en la pestaña Formulario.` })
       .select('id')
       .single();
     if (msj) await avisarPorMail('mensaje', msj.id as string);
     setPedido({ ...pedido, titulo, respuestas });
     setEnviando(false);
     setEditandoDatos(false);
-    setNota('Guardamos los datos del closer y le avisamos a FIRMA por el chat del asunto.');
+    setNota(`Guardamos los datos del ${modelo.persona} y le avisamos a FIRMA por el chat del asunto.`);
   }
 
   if (pedido === undefined) {
@@ -307,13 +316,21 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
   const enRevision = paso >= secciones.length;
   const seccion = secciones[Math.min(paso, secciones.length - 1)];
   const { respondidas, total } = avance(modelo, respuestas);
-  const pendientes = faltantes(modelo, respuestas);
+  const pendientes = faltantes(modelo, respuestas).filter((f) => !texto(respuestas, DE_FIRMA) || f.seccion.porContrato);
   const nombre = texto(respuestas, modelo.claveTitulo).trim();
   const desdeEsquema = texto(respuestas, DESDE_ESQUEMA);
   const faltanDatos = datosPendientes(modelo, respuestas);
   const seccionDatos = secciones.find((x) => x.porContrato) ?? null;
-  // Con esquema, de los datos del closer se pasa directo a revisar.
-  const siguiente = desdeEsquema && seccion.porContrato ? secciones.length : paso + 1;
+  // Con condiciones de FIRMA, el cliente solo completa los datos de la persona y las notas.
+  const fijo = texto(respuestas, DE_FIRMA) !== '';
+  const conNotas = (s: Seccion) => s.preguntas.some((p) => p.clave === modelo.claveNotas);
+  const editable = (s: Seccion) => !fijo || Boolean(s.porContrato) || conNotas(s);
+  const pasosEditables = secciones.flatMap((s, i) => (editable(s) ? [i] : []));
+  // Con esquema, de los datos de la persona se pasa directo a revisar.
+  const siguiente = fijo ? (pasosEditables.find((i) => i > paso) ?? secciones.length) : desdeEsquema && seccion.porContrato ? secciones.length : paso + 1;
+  const anterior = fijo ? [...pasosEditables].reverse().find((i) => i < paso) : paso > 0 ? paso - 1 : undefined;
+  const bloqueada = (p: Pregunta) => fijo && !seccion.porContrato && p.clave !== modelo.claveNotas;
+  const preguntasVisibles = seccion.preguntas.filter((p) => visible(p, respuestas));
 
   const encabezado = (
     <Encabezado
@@ -324,8 +341,8 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
       }
       titulo={
         <>
-          {modelo.titulo.replace(/ de closer$/, ' de ')}
-          <span className="text-bosque">{nombre || 'closer'}</span>
+          {modelo.titulo.replace(new RegExp(` de ${modelo.persona}$`), ' de ')}
+          <span className="text-bosque">{nombre || modelo.persona}</span>
         </>
       }
       bajada={
@@ -359,7 +376,7 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
             <section className="flex flex-col gap-6 bg-marfil-oscuro p-6 desk:p-8">
               <div className="flex flex-col gap-2">
                 <h2 className="h3">{seccionDatos.titulo}</h2>
-                <p className="text-piedra text-[15px] leading-[1.6]">Las condiciones ya están en manos de FIRMA. Acá solo se completan los datos del closer, y le avisamos por el chat del asunto.</p>
+                <p className="text-piedra text-[15px] leading-[1.6]">Las condiciones ya están en manos de FIRMA. Acá solo se completan los datos del {modelo.persona}, y le avisamos por el chat del asunto.</p>
               </div>
               {seccionDatos.preguntas
                 .filter((p) => visible(p, respuestas))
@@ -368,7 +385,7 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
                 ))}
               <div className="flex flex-wrap gap-3">
                 <Button type="button" onClick={() => void guardarDatos()} disabled={enviando}>
-                  {enviando ? 'Guardando…' : 'Guardar datos del closer'}
+                  {enviando ? 'Guardando…' : `Guardar datos del ${modelo.persona}`}
                 </Button>
                 <Button
                   type="button"
@@ -384,9 +401,9 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
             </section>
           ) : completaDatos ? (
             <div className="flex flex-wrap items-center justify-between gap-4 bg-marfil-oscuro px-6 py-5">
-              <p className="text-[15px]">{faltanDatos ? 'Faltan datos del closer. Completalos cuando se sume.' : 'Si cambió algún dato del closer, lo podés corregir.'}</p>
+              <p className="text-[15px]">{faltanDatos ? `Faltan datos del ${modelo.persona}. Completalos cuando se sume.` : `Si cambió algún dato del ${modelo.persona}, lo podés corregir.`}</p>
               <Button type="button" size="sm" onClick={() => setEditandoDatos(true)}>
-                {faltanDatos ? 'Completar datos del closer' : 'Editar datos del closer'}
+                {faltanDatos ? `Completar datos del ${modelo.persona}` : `Editar datos del ${modelo.persona}`}
               </Button>
             </div>
           ) : null}
@@ -454,7 +471,7 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
                 </Aviso>
               )}
               {faltanDatos && seccionDatos && (
-                <Aviso tipo="info">Los datos del closer quedan pendientes. Los completás desde el asunto cuando se sume.</Aviso>
+                <Aviso tipo="info">Los datos del {modelo.persona} quedan pendientes. Los completás desde el asunto cuando se sume.</Aviso>
               )}
               {pendientes.length > 0 && (
                 <Aviso tipo="error">
@@ -470,25 +487,27 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
                   .
                 </Aviso>
               )}
-              <ListaRespuestas modelo={modelo} respuestas={respuestas} alEditar={(clave) => irA(secciones.findIndex((s) => s.clave === clave))} />
-              <div className="bg-marfil-oscuro p-5">
-                <Interruptor
-                  activo={conEsquema}
-                  alCambiar={setConEsquema}
-                  deshabilitado={prueba}
-                  etiqueta={esquema ? 'Actualizar el esquema guardado con estas condiciones' : 'Guardar estas condiciones como esquema'}
-                  ayuda={
-                    esquema
-                      ? `El esquema actual es del ${fecha(esquema.actualizado_en)}. Si lo actualizás, los próximos contratos arrancan con lo de este.`
-                      : 'El próximo contrato de closer arranca con honorarios, bonos y demás condiciones cargados. Solo vas a completar los datos del closer.'
-                  }
-                />
-              </div>
+              <ListaRespuestas modelo={modelo} respuestas={respuestas} alEditar={(clave) => irA(secciones.findIndex((s) => s.clave === clave))} editable={editable} />
+              {!fijo && (
+                <div className="bg-marfil-oscuro p-5">
+                  <Interruptor
+                    activo={conEsquema}
+                    alCambiar={setConEsquema}
+                    deshabilitado={prueba}
+                    etiqueta={esquema ? 'Actualizar el esquema guardado con estas condiciones' : 'Guardar estas condiciones como esquema'}
+                    ayuda={
+                      esquema
+                        ? `El esquema actual es del ${fecha(esquema.actualizado_en)}. Si lo actualizás, los próximos contratos arrancan con lo de este.`
+                        : `El próximo contrato de ${modelo.persona} arranca con honorarios y demás condiciones cargados. Solo vas a completar los datos del ${modelo.persona}.`
+                    }
+                  />
+                </div>
+              )}
               <div className="flex flex-wrap gap-3 pt-2">
                 <Button type="button" onClick={() => void enviar()} disabled={enviando || prueba || Boolean(enviadoSinEsquema) || pendientes.length > 0}>
                   <Send size={16} aria-hidden="true" /> {enviando ? 'Enviando…' : 'Enviar a FIRMA'}
                 </Button>
-                <Button type="button" variant="ghost" onClick={() => irA(secciones.length - 1)}>
+                <Button type="button" variant="ghost" onClick={() => irA(anterior ?? secciones.length - 1)}>
                   Anterior
                 </Button>
               </div>
@@ -502,14 +521,40 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
                 <h2 className="h3">{seccion.titulo}</h2>
                 <p className="text-piedra text-[15px] leading-[1.6]">{seccion.bajada}</p>
               </div>
-              {desdeEsquema && seccion.porContrato && (
+              {fijo && seccion.porContrato && (
                 <Aviso tipo="info">
-                  Arrancamos con el esquema que guardaste el {fecha(desdeEsquema)}: honorarios, bonos, reembolsos y demás condiciones ya están cargados. Completá los datos del closer, o dejalos para después, y revisá antes de enviar.
+                  FIRMA ya cargó las condiciones de tu {modelo.titulo.toLowerCase()}. Completá los datos del {modelo.persona}, o dejalos para después. Si en este caso algo es distinto, lo contás en las notas del último paso.
                 </Aviso>
               )}
+              {fijo && !seccion.porContrato && (
+                <Aviso tipo="info">
+                  <Lock size={14} className="inline -mt-0.5 mr-1.5" aria-hidden="true" />
+                  {conNotas(seccion)
+                    ? 'Estas condiciones las cargó FIRMA. Si en este contrato algo es distinto, como otro monto o plazo, contalo en las notas.'
+                    : 'Estas condiciones las cargó FIRMA y no se cambian acá. Si en este contrato algo es distinto, contalo en las notas del último paso.'}
+                </Aviso>
+              )}
+              {!fijo && desdeEsquema && seccion.porContrato && (
+                <Aviso tipo="info">
+                  Arrancamos con el esquema que guardaste el {fecha(desdeEsquema)}: honorarios y demás condiciones ya están cargados. Completá los datos del {modelo.persona}, o dejalos para después, y revisá antes de enviar.
+                </Aviso>
+              )}
+              {preguntasVisibles.some(bloqueada) && (
+                <dl className="grid gap-x-8 gap-y-3 tab:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] text-[15px]">
+                  {preguntasVisibles.filter(bloqueada).map((p) => {
+                    const v = valorLegible(p, respuestas);
+                    return (
+                      <React.Fragment key={p.clave}>
+                        <dt className="text-piedra">{p.etiqueta}</dt>
+                        <dd className={`whitespace-pre-line -mt-2 tab:mt-0 mb-2 tab:mb-0 ${v ? '' : 'text-piedra italic'}`}>{v || 'Sin responder'}</dd>
+                      </React.Fragment>
+                    );
+                  })}
+                </dl>
+              )}
               <div className="flex flex-col gap-8">
-                {seccion.preguntas
-                  .filter((p) => visible(p, respuestas))
+                {preguntasVisibles
+                  .filter((p) => !bloqueada(p))
                   .map((p) => (
                     <CampoPregunta key={p.clave} pregunta={p} respuestas={respuestas} alCambiar={cambiar} />
                   ))}
@@ -518,8 +563,8 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
                 <Button type="button" onClick={() => irA(siguiente)} className="mt-4">
                   {siguiente === secciones.length ? 'Revisar' : 'Siguiente'} <ArrowRight size={16} aria-hidden="true" />
                 </Button>
-                {paso > 0 && (
-                  <Button type="button" variant="ghost" onClick={() => irA(paso - 1)} className="mt-4">
+                {anterior !== undefined && (
+                  <Button type="button" variant="ghost" onClick={() => irA(anterior)} className="mt-4">
                     Anterior
                   </Button>
                 )}
@@ -553,7 +598,7 @@ const Marca: React.FC<{ activa: boolean; redonda?: boolean }> = ({ activa, redon
   </span>
 );
 
-const CampoPregunta: React.FC<{ pregunta: Pregunta; respuestas: Respuestas; alCambiar: (clave: string, valor: Valor) => void }> = ({ pregunta: p, respuestas: r, alCambiar }) => {
+export const CampoPregunta: React.FC<{ pregunta: Pregunta; respuestas: Respuestas; alCambiar: (clave: string, valor: Valor) => void }> = ({ pregunta: p, respuestas: r, alCambiar }) => {
   const id = `p-${p.clave}`;
   const alerta = p.alerta?.(r) ?? null;
   const valor = texto(r, p.clave);
@@ -679,7 +724,12 @@ const CampoPregunta: React.FC<{ pregunta: Pregunta; respuestas: Respuestas; alCa
 /* ------------------------------------------------------------------ */
 /* Respuestas, como las lee FIRMA                                       */
 /* ------------------------------------------------------------------ */
-export const ListaRespuestas: React.FC<{ modelo: Modelo; respuestas: Respuestas; alEditar?: (seccion: string) => void }> = ({ modelo, respuestas, alEditar }) => (
+export const ListaRespuestas: React.FC<{ modelo: Modelo; respuestas: Respuestas; alEditar?: (seccion: string) => void; editable?: (s: Seccion) => boolean }> = ({
+  modelo,
+  respuestas,
+  alEditar,
+  editable,
+}) => (
   <div className="flex flex-col gap-8">
     {resumen(modelo, respuestas).map(({ seccion, lineas }, i) => (
       <section key={seccion.clave} className="flex flex-col gap-4">
@@ -688,7 +738,7 @@ export const ListaRespuestas: React.FC<{ modelo: Modelo; respuestas: Respuestas;
             <span className="tabular-nums text-piedra text-sm mr-2">{String(i + 1).padStart(2, '0')}</span>
             {seccion.titulo}
           </h3>
-          {alEditar && (
+          {alEditar && (!editable || editable(seccion)) && (
             <button type="button" onClick={() => alEditar(seccion.clave)} className="text-sm text-bosque underline underline-offset-4 pb-2">
               Editar
             </button>
@@ -749,20 +799,20 @@ export const FormularioDelAsunto: React.FC<{ pedido: PedidoContrato; empresa: st
         <Aviso tipo="info">
           {puedeCompletar ? (
             <>
-              Faltan datos del closer.{' '}
+              Faltan datos del {modelo.persona}.{' '}
               <Enlace a={`/portal/pedidos/${pedido.id}?datos=1`} className="underline underline-offset-2 font-medium">
                 Completalos acá
               </Enlace>{' '}
               cuando se sume.
             </>
           ) : (
-            'Faltan datos del closer. El cliente los completa cuando se sume y te llega el aviso por el chat.'
+            `Faltan datos del ${modelo.persona}. El cliente los completa cuando se sume y te llega el aviso por el chat.`
           )}
         </Aviso>
       )}
       {puedeCompletar && !datosPendientes(modelo, pedido.respuestas) && (
         <Enlace a={`/portal/pedidos/${pedido.id}?datos=1`} className="self-start text-sm text-bosque underline underline-offset-4">
-          Editar datos del closer
+          Editar datos del {modelo.persona}
         </Enlace>
       )}
       <ListaRespuestas modelo={modelo} respuestas={pedido.respuestas} />
@@ -776,10 +826,10 @@ export const FormularioDelAsunto: React.FC<{ pedido: PedidoContrato; empresa: st
 const claseAccion =
   'inline-flex items-center justify-center gap-2 h-11 px-5 bg-marfil text-tinta text-sm font-medium whitespace-nowrap transition-colors duration-150 hover:bg-white';
 
-/** vistaPrevia: FIRMA o Ver como, que abren el formulario sin guardar. */
+/** vistaPrevia: FIRMA o Ver como, que abren el formulario sin guardar. Una tarjeta por modelo. */
 export const PedidosEquipo: React.FC<{ orgId: string | null; vistaPrevia: boolean }> = ({ orgId, vistaPrevia }) => {
   const [borradores, setBorradores] = useState<PedidoContrato[]>([]);
-  const [esquema, setEsquema] = useState<EsquemaContrato | null>(null);
+  const [esquemas, setEsquemas] = useState<EsquemaContrato[]>([]);
 
   useEffect(() => {
     if (!supabase || !orgId) return;
@@ -797,80 +847,97 @@ export const PedidosEquipo: React.FC<{ orgId: string | null; vistaPrevia: boolea
       .from('esquemas_contrato')
       .select('*')
       .eq('organizacion_id', orgId)
-      .eq('modelo', 'closer')
-      .maybeSingle()
       .then(({ data }) => {
-        if (vivo) setEsquema((data as EsquemaContrato | null) ?? null);
+        if (vivo) setEsquemas((data as EsquemaContrato[]) ?? []);
       });
     return () => {
       vivo = false;
     };
   }, [orgId]);
 
-  const modelo = MODELOS.closer;
-
-  async function borrarEsquema() {
-    if (!supabase || !esquema) return;
+  async function borrarEsquema(esquema: EsquemaContrato) {
+    if (!supabase) return;
     if (!window.confirm('¿Borrar el esquema? El próximo contrato arranca con las preguntas completas.')) return;
     const { error: e } = await supabase.from('esquemas_contrato').delete().eq('id', esquema.id);
-    if (!e) setEsquema(null);
+    if (!e) setEsquemas((xs) => xs.filter((x) => x.id !== esquema.id));
   }
 
   return (
-    <article className="card">
-      <div className="relative flex items-center gap-4">
-        <div className="icon-box">
-          <ClipboardList size={26} strokeWidth={1.8} />
-        </div>
-        <span className="eyebrow text-[11px] text-calido">Formulario · unos 10 minutos</span>
-      </div>
-      <h3 className="h3 relative">Pedir un {modelo.titulo.toLowerCase()}</h3>
-      <p className="relative text-[15px] leading-[1.6] text-calido max-w-[60ch]">
-        Respondé cómo trabajan con el closer: honorarios, bonos, objetivos, reembolsos, plazo y pago. Con eso FIRMA redacta el contrato y lo seguís en Asuntos.
-      </p>
-      {esquema && (
-        <p className="relative text-[15px] leading-[1.6] text-marfil">
-          Tenés un esquema guardado el {fecha(esquema.actualizado_en)}: el próximo contrato solo pide los datos del closer.
-          {!vistaPrevia && (
-            <>
-              {' '}
-              <button type="button" onClick={() => void borrarEsquema()} className="text-calido underline underline-offset-4 hover:text-marfil">
-                Borrar esquema
-              </button>
-            </>
-          )}
-        </p>
-      )}
-      {borradores.length > 0 && (
-        <ul className="relative flex flex-col gap-2 text-[15px]">
-          {borradores.map((b) => {
-            const { respondidas, total } = avance(MODELOS[b.modelo], b.respuestas ?? {});
-            return (
-              <li key={b.id} className="flex flex-wrap items-baseline gap-x-3">
-                <Enlace a={`/portal/pedidos/${b.id}`} className="font-medium text-marfil underline underline-offset-4 decoration-marfil/40 hover:decoration-marfil">
-                  {b.titulo || 'Borrador sin nombre'}
-                </Enlace>
-                <span className="text-[13px] text-calido">
-                  {respondidas} de {total} respondidas · {fecha(b.actualizado_en)}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-      <div className="relative mt-auto pt-4">
-        <Enlace a={`/portal/pedidos/${modelo.clave}`} className={claseAccion}>
-          {vistaPrevia ? (
-            <>
-              <ArrowRight size={16} aria-hidden="true" /> Ver el formulario
-            </>
-          ) : (
-            <>
-              <Plus size={16} aria-hidden="true" /> {borradores.length ? 'Empezar otro' : 'Completar el formulario'}
-            </>
-          )}
-        </Enlace>
-      </div>
-    </article>
+    <div className="grid gap-6 desk:grid-cols-2">
+      {Object.values(MODELOS).map((modelo) => (
+        <TarjetaPedido
+          key={modelo.clave}
+          modelo={modelo}
+          esquema={esquemas.find((e) => e.modelo === modelo.clave) ?? null}
+          borradores={borradores.filter((b) => b.modelo === modelo.clave)}
+          vistaPrevia={vistaPrevia}
+          alBorrarEsquema={borrarEsquema}
+        />
+      ))}
+    </div>
   );
 };
+
+const TarjetaPedido: React.FC<{
+  modelo: Modelo;
+  esquema: EsquemaContrato | null;
+  borradores: PedidoContrato[];
+  vistaPrevia: boolean;
+  alBorrarEsquema: (e: EsquemaContrato) => void;
+}> = ({ modelo, esquema, borradores, vistaPrevia, alBorrarEsquema }) => (
+  <article className="card">
+    <div className="relative flex items-center gap-4">
+      <div className="icon-box">
+        <ClipboardList size={26} strokeWidth={1.8} />
+      </div>
+      <span className="eyebrow text-[11px] text-calido">{esquema ? 'Formulario · unos 3 minutos' : 'Formulario · unos 10 minutos'}</span>
+    </div>
+    <h3 className="h3 relative">Pedir un {modelo.titulo.toLowerCase()}</h3>
+    <p className="relative text-[15px] leading-[1.6] text-calido max-w-[60ch]">{modelo.descripcion}</p>
+    {esquema?.de_firma ? (
+      <p className="relative text-[15px] leading-[1.6] text-marfil">FIRMA ya cargó las condiciones de tu {modelo.titulo.toLowerCase()}: solo completás los datos del {modelo.persona} y, si algo es distinto, lo contás en las notas.</p>
+    ) : esquema ? (
+      <p className="relative text-[15px] leading-[1.6] text-marfil">
+        Tenés un esquema guardado el {fecha(esquema.actualizado_en)}: el próximo contrato solo pide los datos del {modelo.persona}.
+        {!vistaPrevia && (
+          <>
+            {' '}
+            <button type="button" onClick={() => alBorrarEsquema(esquema)} className="text-calido underline underline-offset-4 hover:text-marfil">
+              Borrar esquema
+            </button>
+          </>
+        )}
+      </p>
+    ) : null}
+    {borradores.length > 0 && (
+      <ul className="relative flex flex-col gap-2 text-[15px]">
+        {borradores.map((b) => {
+          const { respondidas, total } = avance(modelo, b.respuestas ?? {});
+          return (
+            <li key={b.id} className="flex flex-wrap items-baseline gap-x-3">
+              <Enlace a={`/portal/pedidos/${b.id}`} className="font-medium text-marfil underline underline-offset-4 decoration-marfil/40 hover:decoration-marfil">
+                {b.titulo || 'Borrador sin nombre'}
+              </Enlace>
+              <span className="text-[13px] text-calido">
+                {respondidas} de {total} respondidas · {fecha(b.actualizado_en)}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    )}
+    <div className="relative mt-auto pt-4">
+      <Enlace a={`/portal/pedidos/${modelo.clave}`} className={claseAccion}>
+        {vistaPrevia ? (
+          <>
+            <ArrowRight size={16} aria-hidden="true" /> Ver el formulario
+          </>
+        ) : (
+          <>
+            <Plus size={16} aria-hidden="true" /> {borradores.length ? 'Empezar otro' : 'Completar el formulario'}
+          </>
+        )}
+      </Enlace>
+    </div>
+  </article>
+);
