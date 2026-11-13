@@ -9,6 +9,9 @@
  *   crear       { borrador_ruta, original_nombre, titulo, mensaje?, secuencial?, vence_dias?, organizacion_id?, crm_cliente_id?, entrega?, firmantes[] }
  *               Con crm_cliente_id el envío queda atado a ese cliente del CRM de la
  *               misma empresa: al firmarse todos, el cliente pasa a Firmado.
+ *               Con equipo_miembro_id queda atado a esa persona del equipo de la misma
+ *               empresa y sale en Documentos › Contratos con tu equipo (migración 0064).
+ *               Lo ata solo quien genera contratos: FIRMA, el titular, Legales u Operaciones.
  *   enlaces     { sobre_id }               enlaces personales para mandar por otro medio
  *   recordar    { firmante_id }            reenvía la invitación
  *   corregir_email { firmante_id, email }  cambia el mail de quien no firmó. El enlace anterior deja de andar
@@ -67,6 +70,8 @@ interface Sobre {
   final_sha256: string | null;
   error_sellado: string | null;
   crm_cliente_id: string | null;
+  /** Persona del equipo de la empresa a la que corresponde el contrato. Sin la migración 0064 no viene. */
+  equipo_miembro_id?: string | null;
   /**
    * Por enlace no salen invitaciones y se firma sin código por mail. Sin la migración 0027 no viene.
    * portal es un recibo que firma quien lo emite, con su sesión (migración 0055).
@@ -330,6 +335,7 @@ interface Quien {
   email: string;
   rol: string;
   organizacion_id: string | null;
+  areas: string[];
   /** Con su token: el envío o el cliente que pide se lee a través de las políticas. */
   db: SupabaseClient;
 }
@@ -344,21 +350,30 @@ async function identificar(sb: SupabaseClient, request: Request): Promise<Quien 
   if (!token) return error('Sesión requerida.', 401);
   const { data, error: e } = await sb.auth.getUser(token);
   if (e || !data?.user) return error('Sesión inválida o vencida.', 401);
-  const { data: p } = await sb.from('perfiles').select('id, email, rol, organizacion_id, activo').eq('id', data.user.id).maybeSingle();
+  const { data: p } = await sb.from('perfiles').select('id, email, rol, organizacion_id, activo, areas').eq('id', data.user.id).maybeSingle();
   if (!p || !p.activo) return error('Tu cuenta no tiene acceso activo.', 403);
   if (!ROLES_CRM.includes(String(p.rol))) return error('Tu rol no tiene acceso a la firma electrónica.', 403);
   if (p.rol === 'admin' && nivelDe(token) !== 'aal2') return error(FALTA_SEGUNDO_FACTOR, 403);
   if (p.rol !== 'admin' && !(await accesoVigente(sb, p.id))) return error(SIN_ACCESO, 403);
   const db = clienteDelUsuario(request);
   if (!db) return error(SIN_CLIENTE_USUARIO, 500);
-  return { id: p.id, email: p.email, rol: p.rol, organizacion_id: p.organizacion_id, db };
+  return { id: p.id, email: p.email, rol: p.rol, organizacion_id: p.organizacion_id, areas: Array.isArray(p.areas) ? (p.areas as string[]) : [], db };
 }
 
+/** Generan contratos y ven los del equipo: FIRMA, el titular y quien tiene el área Legales u Operaciones (CLAUDE.md, regla 1). */
+function generaContratos(q: Quien): boolean {
+  return q.rol === 'admin' || q.rol === 'titular' || q.areas.includes('legales') || q.areas.includes('operaciones');
+}
+
+/** Las mismas reglas que firma_sobre_visible (migración 0064). */
 function puedeOperar(q: Quien, s: Sobre): boolean {
   if (q.rol === 'admin') return true;
   if (!s.organizacion_id || s.organizacion_id !== q.organizacion_id) return false;
+  if (q.rol === 'titular' || s.creado_por === q.id) return true;
+  // Los contratos del equipo traen honorarios y datos personales: no los sigue todo el equipo.
+  if (s.equipo_miembro_id) return generaContratos(q);
   // Los contratos del CRM y los recibos firmados los sigue todo el equipo que usa el CRM.
-  return q.rol === 'titular' || s.creado_por === q.id || Boolean(s.crm_cliente_id) || s.entrega === 'portal';
+  return Boolean(s.crm_cliente_id) || s.entrega === 'portal';
 }
 
 async function cargarSobre(sb: SupabaseClient, q: Quien, id: unknown): Promise<Sobre | Response> {
@@ -593,6 +608,7 @@ async function crmEnviar(sb: SupabaseClient, q: Quien, request: Request, cuerpo:
       { nombre: empresa.nombre.slice(0, 160), email: empresa.email.toLowerCase(), pedir_documento: false, orden: 1 },
     ],
     crm_cliente_id: cliente.id,
+    equipo_miembro_id: null,
     entrega: entregaDe(cuerpo.entrega),
   });
   if (creado instanceof Response) return creado;
@@ -611,6 +627,7 @@ interface DatosSobre {
   emisor: 'firma' | 'cliente';
   firmantes: FirmanteNuevo[];
   crm_cliente_id: string | null;
+  equipo_miembro_id: string | null;
   entrega: 'mail' | 'enlace';
 }
 
@@ -670,6 +687,8 @@ async function crearSobre(sb: SupabaseClient, q: Quien, request: Request, d: Dat
       original_sha256: hash,
       original_paginas: paginas,
       crm_cliente_id: d.crm_cliente_id,
+      // Solo si va atado al equipo, así un envío común no depende de la migración 0064.
+      ...(d.equipo_miembro_id ? { equipo_miembro_id: d.equipo_miembro_id } : {}),
       // Solo si va por enlace, así un envío por mail no depende de la migración 0027.
       ...(d.entrega === 'enlace' ? { entrega: 'enlace' } : {}),
     })
@@ -695,6 +714,7 @@ async function crearSobre(sb: SupabaseClient, q: Quien, request: Request, d: Dat
     emisor: d.emisor,
     organizacion_id: d.organizacion_id,
     crm_cliente_id: d.crm_cliente_id,
+    ...(d.equipo_miembro_id ? { equipo_miembro_id: d.equipo_miembro_id } : {}),
     secuencial: d.secuencial,
     entrega: d.entrega,
     vence_en,
@@ -778,6 +798,19 @@ export async function POST(request: Request): Promise<Response> {
         if (cl.estado_firma === 'Baja') return error('El cliente está dado de baja.', 409);
       }
 
+      // Persona del equipo a la que corresponde el contrato, de la misma empresa y activa.
+      let equipo_miembro_id: string | null = null;
+      if (cuerpo.equipo_miembro_id) {
+        equipo_miembro_id = String(cuerpo.equipo_miembro_id);
+        if (!UUID.test(equipo_miembro_id)) return error('Persona del equipo inválida.');
+        if (!generaContratos(q)) return error('Los contratos con el equipo los mandan el titular y las áreas Legales u Operaciones.', 403);
+        if (!organizacion_id) return error('Un envío propio de FIRMA no se vincula al equipo de un cliente.');
+        if (crm_cliente_id) return error('Vinculá el envío a un cliente del CRM o a alguien del equipo, no a los dos.');
+        const { data: m } = await sb.from('equipo_miembros').select('organizacion_id, activo').eq('id', equipo_miembro_id).maybeSingle();
+        if (!m || m.organizacion_id !== organizacion_id) return error('Esa persona no es del equipo de la empresa del envío.');
+        if (!m.activo) return error('Esa persona está desactivada en el equipo.', 409);
+      }
+
       // El PDF lo subió el navegador a su carpeta de borradores. Acá se valida de verdad.
       const { data: blob, error: errBajar } = await sb.storage.from(BUCKET).download(borrador);
       if (errBajar || !blob) return error('No encontramos el PDF subido. Volvé a cargarlo.');
@@ -792,6 +825,7 @@ export async function POST(request: Request): Promise<Response> {
         emisor: q.rol === 'admin' ? 'firma' : 'cliente',
         firmantes,
         crm_cliente_id,
+        equipo_miembro_id,
         entrega: entregaDe(cuerpo.entrega),
       });
       if (creado instanceof Response) return creado;

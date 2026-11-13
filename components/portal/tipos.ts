@@ -15,6 +15,13 @@ export interface Permisos {
   gestion: boolean;
 }
 
+/**
+ * Genera contratos y ve los del equipo: FIRMA, el titular y quien tiene el área
+ * Legales u Operaciones (CLAUDE.md, regla 1). La base aplica lo mismo (migración 0064).
+ */
+export const generaContratos = (perfil: Pick<Perfil, 'rol' | 'areas'>): boolean =>
+  perfil.rol === 'admin' || perfil.rol === 'titular' || (perfil.areas ?? []).some((a) => a === 'legales' || a === 'operaciones');
+
 /** Ve la sección Asuntos: por su rol o, solo con los de sus clientes, por su cartera (migración 0057). */
 export const veAsuntos = (perfil: Pick<Perfil, 'rol' | 'cartera'>): boolean => permisosDe(perfil.rol).casos || perfil.cartera === true;
 

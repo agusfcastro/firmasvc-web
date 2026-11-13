@@ -5,7 +5,8 @@ import { Aviso, Encabezado, Enlace, Marco } from './ui';
 import { useVistaPrevia } from './vistaPrevia';
 import { PedidosEquipo } from './pedidos/Pedidos';
 import { TarjetaProtocolo } from './TarjetaProtocolo';
-import { permisosDe } from './tipos';
+import { ContratosEquipoFirmados } from './firmas/ContratosEquipo';
+import { generaContratos, permisosDe } from './tipos';
 import { SECCIONES, descargarArchivo, extension, fechaLarga, formatoDe, registrarDescarga, seccionDeRuta, tamano, visibleEnPantalla } from './descargas';
 import type { Documento, Organizacion, Perfil } from './tipos';
 
@@ -188,6 +189,9 @@ export const Documentos: React.FC<{ perfil: Perfil; organizacion: Organizacion |
 
           {/* El pedido de contrato abre un asunto, así que lo completan quienes ven los asuntos. FIRMA lo ve en vista previa. */}
           {!enProtocolos && seccion.clave === 'equipo' && permisosDe(perfil.rol).casos && <PedidosEquipo orgId={orgId} vistaPrevia={esAdmin || Boolean(vista)} />}
+
+          {/* Los contratos del equipo mandados a firmar (0064). Traen honorarios: solo titular, Legales y Operaciones. */}
+          {!enProtocolos && seccion.clave === 'equipo' && orgId && generaContratos(perfil) && <ContratosEquipoFirmados orgId={orgId} puedeEnviar={!vista} />}
 
           {docs === null ? (
             <p className="text-[14px] text-piedra">Cargando documentos…</p>

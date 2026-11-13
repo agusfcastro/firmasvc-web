@@ -31,6 +31,8 @@ export interface Sobre {
   final_ruta: string | null;
   final_sha256: string | null;
   error_sellado: string | null;
+  /** Persona del equipo a la que corresponde el contrato. Sin la migración 0064 no viene. */
+  equipo_miembro_id?: string | null;
   /** Sin la migración 0027 no viene y se toma como mail. */
   entrega?: 'mail' | 'enlace' | 'portal';
   /** Sello de tiempo en BFA. Sin la migración 0031 no viene. */

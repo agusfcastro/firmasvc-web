@@ -7,7 +7,8 @@ import { Aviso, Campo, Cifras, Encabezado, Enlace, Etiqueta, Interruptor, Marco,
 import { useVistaPrevia } from '../vistaPrevia';
 import { BotonCopiar } from '../crm/firma';
 import { ESTADO_FIRMANTE, ESTADO_SOBRE, fechaHora } from '../../firma/comun';
-import type { Organizacion, Perfil } from '../tipos';
+import { generaContratos, type Organizacion, type Perfil } from '../tipos';
+import { ROL_COMERCIAL, type IntegranteEquipo } from '../crm/tipos';
 import { BarraUso } from '../BarraUso';
 import { diaYMes, firmasAgotadas, firmasOcupadas, usoFirmas, whatsapp, type UsoFirmas } from '../planes';
 import { registrarLectura } from '../lecturas';
@@ -282,7 +283,29 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
   const cupo = useCupoFirmas(esAdmin ? null : organizacion?.id);
   const [clientesCrm, setClientesCrm] = useState<ClienteVinculable[]>([]);
   const [clienteCrm, setClienteCrm] = useState('');
+  const [equipo, setEquipo] = useState<IntegranteEquipo[]>([]);
+  const [miembro, setMiembro] = useState('');
   const orgEnvio = esAdmin ? orgId : organizacion?.id ?? '';
+  const puedeEquipo = generaContratos(perfil);
+
+  // Equipo activo de la empresa, para atar el contrato a una persona y que salga en Contratos con tu equipo.
+  useEffect(() => {
+    setMiembro('');
+    if (!supabase || !orgEnvio || !puedeEquipo) return setEquipo([]);
+    let vigente = true;
+    void supabase
+      .from('equipo_miembros')
+      .select('*')
+      .eq('organizacion_id', orgEnvio)
+      .eq('activo', true)
+      .order('nombre')
+      .then(({ data }) => {
+        if (vigente) setEquipo((data ?? []) as IntegranteEquipo[]);
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [orgEnvio, puedeEquipo]);
 
   // Clientes del CRM de la empresa, para vincular el envío y que la ficha pase sola a Firmado.
   useEffect(() => {
@@ -342,11 +365,25 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
       return copia;
     });
 
+  /** Con un solo firmante vacío, se propone a la persona elegida. */
+  function proponer(nombre: string, email: string | null) {
+    if (filas.length === 1 && !filas[0].nombre.trim() && !filas[0].email.trim()) cambiar(filas[0].clave, { nombre, email: email ?? '' });
+  }
+
+  function vincularEquipo(id: string) {
+    setMiembro(id);
+    // Un envío va atado al CRM o al equipo, no a los dos.
+    if (id) setClienteCrm('');
+    const m = equipo.find((x) => x.id === id);
+    if (m) proponer(m.nombre, m.email);
+  }
+
   function vincular(id: string) {
     setClienteCrm(id);
+    if (id) setMiembro('');
     // Con un solo firmante vacío, se propone el cliente elegido.
     const c = clientesCrm.find((x) => x.id === id);
-    if (c && filas.length === 1 && !filas[0].nombre.trim() && !filas[0].email.trim()) cambiar(filas[0].clave, { nombre: c.representante || c.nombre, email: c.email ?? '' });
+    if (c) proponer(c.representante || c.nombre, c.email);
   }
 
   async function enviar(e: React.FormEvent) {
@@ -372,6 +409,7 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
       vence_dias: dias,
       organizacion_id: esAdmin ? orgId || null : undefined,
       crm_cliente_id: clienteCrm || undefined,
+      equipo_miembro_id: miembro || undefined,
       entrega,
       firmantes: lista.map((f) => ({ nombre: f.nombre, email: f.email, pedir_documento: f.pedir_documento })),
     });
@@ -460,6 +498,18 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
                     <option key={c.id} value={c.id}>
                       {c.nombre}
                       {c.codigo ? ` · ${c.codigo}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </Campo>
+            )}
+            {equipo.length > 0 && (
+              <Campo etiqueta="Persona del equipo (opcional)" ayuda="Si es el contrato de alguien de tu equipo, vinculalo. Queda en Documentos › Contratos con tu equipo, con su estado y el PDF firmado.">
+                <select value={miembro} onChange={(e) => vincularEquipo(e.target.value)} className={claseInput}>
+                  <option value="">Sin vincular</option>
+                  {equipo.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.nombre} · {ROL_COMERCIAL[m.rol_comercial]}
                     </option>
                   ))}
                 </select>
