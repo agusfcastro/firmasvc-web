@@ -4,11 +4,17 @@ import { supabase } from './supabase';
  * Abonos con tarjeta, mensuales o trimestrales, cobrados con dLocal Go. Tipos, rótulos,
  * formatos y llamadas a /api/pagos. La tarjeta se carga siempre en la
  * página segura de dLocal Go, este portal nunca la ve.
+ * Desde noviembre de 2026 los abonos de la oferta llevan un esquema (0061):
+ * tres cuotas y después la cuota posterior, o un pago completo que cubre
+ * cuatro meses y después la cuota posterior congelada. En pesos se cobran al
+ * dólar MEP.
  */
 
 export type EstadoAbono = 'borrador' | 'pendiente' | 'activo' | 'pausado' | 'cancelado' | 'con_error';
 export type EstadoPagoAbono = 'aprobado' | 'rechazado' | 'reintegrado' | 'pendiente';
 export type MonedaAbono = 'ARS' | 'USD';
+export type Modalidad = 'cuotas' | 'pago_completo';
+export type PlanServicio = 'starter' | 'eminent';
 
 export interface Abono {
   id: string;
@@ -28,6 +34,24 @@ export interface Abono {
   proximo_cobro: string | null;
   /** Fecha hasta la que rige el abono (AAAA-MM-DD). Informativa: no frena los débitos. */
   vigente_hasta?: string | null;
+  /* Esquema de la oferta (0061). Vacío en los abonos de antes. */
+  plan_servicio?: PlanServicio | null;
+  modalidad?: Modalidad | null;
+  /** Qué monto se cobra ahora: el inicial o el posterior. */
+  etapa?: 'inicial' | 'posterior' | null;
+  cuotas_iniciales?: number | null;
+  monto_inicial?: number | string | null;
+  monto_posterior?: number | string | null;
+  meses_cubiertos?: number | null;
+  congela_meses?: number | null;
+  /** AAAA-MM-DD hasta la que la cuota posterior no cambia. */
+  congelado_hasta?: string | null;
+  precio_fundador?: boolean;
+  /** En pesos al dólar MEP: monto es pesos y monto_usd la referencia en dólares. */
+  al_mep?: boolean;
+  monto_usd?: number | string | null;
+  cotizacion_mep?: number | string | null;
+  cotizado_en?: string | null;
   aceptado_en: string | null;
   aceptado_por: string | null;
   cancelado_en: string | null;
@@ -63,13 +87,90 @@ export type PeriodoAbono = 1 | 3;
 /** "por mes" o "cada 3 meses", para acompañar un monto. */
 export const periodoTexto = (meses: number): string => (meses === 3 ? 'cada 3 meses' : 'por mes');
 
-/** Los planes de /planes, para armar el abono después de la reunión. */
-export const PLANES_ABONO: { id: string; titulo: string; concepto: string; monto: number; moneda: MonedaAbono; periodo: PeriodoAbono }[] = [
-  { id: 'gold', titulo: 'Gold, USD 150 por mes', concepto: 'Plan Gold de FIRMA', monto: 150, moneda: 'USD', periodo: 1 },
-  { id: 'black', titulo: 'Black, USD 300 por mes', concepto: 'Plan Black de FIRMA', monto: 300, moneda: 'USD', periodo: 1 },
-  { id: 'eminent', titulo: 'Eminent, USD 1.000 por mes', concepto: 'Plan Eminent de FIRMA', monto: 1000, moneda: 'USD', periodo: 1 },
-  { id: 'eminent-trimestral', titulo: 'Eminent trimestral, USD 1.500 cada 3 meses', concepto: 'Plan Eminent de FIRMA, trimestral', monto: 1500, moneda: 'USD', periodo: 3 },
+/** Una opción de la oferta de /planes, para armar el abono después de la reunión. Montos en dólares. */
+export interface Oferta {
+  id: string;
+  titulo: string;
+  plan: PlanServicio;
+  modalidad: Modalidad;
+  concepto: string;
+  /** Cuota inicial por mes, o el pago completo. */
+  inicial: number;
+  /** Cuota por mes después de la etapa inicial. */
+  posterior: number;
+  /** Cuotas al monto inicial. Solo en cuotas. */
+  cuotas?: number;
+  /** Meses que cubre el pago completo: los tres pagos más el cuarto sin cargo. */
+  meses?: number;
+  /** Meses que la cuota posterior queda congelada. Solo en pago completo. */
+  congela?: number;
+  fundador?: boolean;
+}
+
+export const OFERTAS: Oferta[] = [
+  { id: 'eminent-cuotas', titulo: 'Eminent en tres cuotas de USD 750, después USD 500', plan: 'eminent', modalidad: 'cuotas', concepto: 'Plan Eminent de FIRMA', inicial: 750, posterior: 500, cuotas: 3 },
+  { id: 'eminent-completo', titulo: 'Eminent con pago completo de USD 1.800, después USD 500', plan: 'eminent', modalidad: 'pago_completo', concepto: 'Plan Eminent de FIRMA', inicial: 1800, posterior: 500, meses: 4, congela: 12 },
+  { id: 'eminent-fundador', titulo: 'Eminent precio fundador, pago completo de USD 1.500, después USD 500', plan: 'eminent', modalidad: 'pago_completo', concepto: 'Plan Eminent de FIRMA, precio fundador', inicial: 1500, posterior: 500, meses: 4, congela: 12, fundador: true },
+  { id: 'starter-cuotas', titulo: 'Starter en tres cuotas de USD 400, después USD 250', plan: 'starter', modalidad: 'cuotas', concepto: 'Plan Starter de FIRMA', inicial: 400, posterior: 250, cuotas: 3 },
+  { id: 'starter-completo', titulo: 'Starter con pago completo de USD 1.000, después USD 250', plan: 'starter', modalidad: 'pago_completo', concepto: 'Plan Starter de FIRMA', inicial: 1000, posterior: 250, meses: 4, congela: 12 },
+  { id: 'starter-fundador', titulo: 'Starter precio fundador, pago completo de USD 800, después USD 250', plan: 'starter', modalidad: 'pago_completo', concepto: 'Plan Starter de FIRMA, precio fundador', inicial: 800, posterior: 250, meses: 4, congela: 12, fundador: true },
 ];
+
+/** Precio fundador: las primeras 5 empresas o hasta el 31/12/2026. La base también lo controla. */
+export const FUNDADOR_CUPO = 5;
+export const FUNDADOR_HASTA = '2026-12-31';
+
+/** Moneda de los montos del esquema: dólares si se cobra en pesos al MEP. */
+export const monedaReferencia = (a: Pick<Abono, 'al_mep' | 'moneda'>): string => (a.al_mep ? 'USD' : a.moneda);
+
+/** Lo que se cobra ahora, en la moneda de referencia. Es lo que acepta el titular. */
+export const montoReferencia = (a: Pick<Abono, 'al_mep' | 'monto_usd' | 'monto'>): number => (a.al_mep ? Number(a.monto_usd) : Number(a.monto));
+
+/** Pago completo todavía sin pagar. */
+export const enPagoUnico = (a: Abono): boolean => a.modalidad === 'pago_completo' && a.etapa === 'inicial';
+
+/** Pago completo ya acreditado y sin débito todavía para la cuota posterior. */
+export const cuotaPorAutorizar = (a: Abono): boolean => a.modalidad === 'pago_completo' && a.etapa === 'posterior' && !a.plan_id && a.estado !== 'cancelado';
+
+/** La cuota posterior del pago completo se autoriza desde una semana antes de que venza lo pagado. */
+export const VENTANA_DIAS = 7;
+export const desdeAutoriza = (a: Abono): string | null =>
+  a.proximo_cobro ? new Date(Date.parse(a.proximo_cobro) - VENTANA_DIAS * 86_400_000).toISOString() : null;
+
+/** Pagos aprobados del abono, para contar las cuotas. */
+export const pagosAprobados = (a: Abono, pagos: PagoAbono[]): number => pagos.filter((p) => p.abono_id === a.id && p.estado === 'aprobado').length;
+
+/** El esquema en una línea. Vacío en los abonos de antes. */
+export function resumenEsquema(a: Abono): string {
+  const m = (n: number | string | null | undefined) => montoTexto(Number(n), monedaReferencia(a));
+  if (a.modalidad === 'cuotas') return `${a.cuotas_iniciales} cuotas de ${m(a.monto_inicial)} y después ${m(a.monto_posterior)} por mes`;
+  if (a.modalidad === 'pago_completo') {
+    const congela = a.congela_meses ? `, congelados ${a.congela_meses} meses` : '';
+    return `Pago completo de ${m(a.monto_inicial)} por ${a.meses_cubiertos} meses y después ${m(a.monto_posterior)} por mes${congela}`;
+  }
+  return '';
+}
+
+/** Pago único del pago completo, en dLocal Go. */
+export const esPagoUnico = (p: PagoAbono): boolean => p.detalle?.procesador === 'dlocalgo_unico';
+
+/** Dólar MEP del día, para mostrar los pesos. null si no se pudo consultar. */
+export async function consultarMep(): Promise<{ valor: number; fuente: string; fecha: string } | null> {
+  const t = await token();
+  if (!t) return null;
+  try {
+    const r = await fetch('/api/pagos/activar?mep=1', { headers: { authorization: `Bearer ${t}` } });
+    if (!r.ok) return null;
+    const j = (await r.json().catch(() => null)) as { valor?: unknown; fuente?: unknown; fecha?: unknown } | null;
+    const v = Number(j?.valor);
+    return Number.isFinite(v) && v > 0 ? { valor: v, fuente: String(j?.fuente ?? ''), fecha: String(j?.fecha ?? '') } : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Dólares a pesos con el MEP, sin centavos. Igual que en el servidor. */
+export const pesosAlMep = (usd: number, mep: number): number => Math.round(usd * mep);
 
 /** Países que dLocal Go habilita por defecto y la moneda en la que paga cada uno. */
 export const PAISES_DLOCALGO: Record<string, { nombre: string; moneda: string }> = {

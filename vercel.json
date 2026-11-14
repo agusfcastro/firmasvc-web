@@ -213,6 +213,9 @@
     "api/portal/resumen.ts": {
       "maxDuration": 60
     },
+    "api/pagos/gestionar.ts": {
+      "maxDuration": 60
+    },
     "api/cola/procesar.ts": {
       "maxDuration": 60
     },

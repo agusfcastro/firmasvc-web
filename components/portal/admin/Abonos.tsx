@@ -7,28 +7,39 @@ import type { Organizacion } from '../tipos';
 import {
   ESTADO_ABONO,
   ESTADO_PAGO,
+  FUNDADOR_CUPO,
+  FUNDADOR_HASTA,
   MEDIO_MANUAL,
+  OFERTAS,
   PAISES_DLOCALGO,
-  PLANES_ABONO,
   PROCESADOR,
   consultarDisponibilidad,
+  consultarMep,
+  cuotaPorAutorizar,
   diagnosticarDlocal,
+  enPagoUnico,
   esPagoManual,
   fechaCorta,
   fechaDia,
   fechaLarga,
   hora,
   llamarPagos,
+  monedaReferencia,
   montoPagado,
   montoTexto,
+  pagosAprobados,
   periodoTexto,
+  pesosAlMep,
+  resumenEsquema,
   sincronizarAbono,
   type Abono,
   type Diagnostico,
   type Disponibilidad,
+  type Modalidad,
   type MonedaAbono,
   type PagoAbono,
   type PeriodoAbono,
+  type PlanServicio,
   vigenciaVencida,
 } from '../abonos';
 
@@ -38,6 +49,10 @@ import {
  * pagador) y lo puede editar hasta que el titular lo activa. Un abono activo
  * no cambia de monto. Para cambiarlo se da de baja y se arma otro. Estado y
  * pagos llegan de dLocal Go y no se editan a mano.
+ * Con la oferta de noviembre de 2026 el abono lleva un esquema: tres cuotas
+ * y después la cuota posterior, o pago completo y después la cuota posterior
+ * congelada. En ese caso el monto sí cambia, solo, cuando termina la etapa
+ * inicial. Se puede cobrar en dólares o en pesos al dólar MEP.
  */
 
 interface Borrador {
@@ -52,7 +67,47 @@ interface Borrador {
   vigente_hasta: string;
   /** La que tenía al abrir el borrador, para no mandar la columna si no cambió. */
   vigenteAntes?: string;
+  /** Opción de OFERTAS, o vacío para un monto especial sin esquema. */
+  oferta: string;
+  plan_servicio: PlanServicio | '';
+  modalidad: Modalidad | '';
+  /** Montos del esquema, en dólares. */
+  inicial: string;
+  posterior: string;
+  cuotas: string;
+  meses: string;
+  congela: string;
+  fundador: boolean;
+  /** Con esquema: en dólares o en pesos al dólar MEP. */
+  cobro: 'USD' | 'MEP';
+  /** Ya tenía esquema: si pasa a monto especial se limpian sus columnas. */
+  teniaEsquema?: boolean;
 }
+
+type Mep = { valor: number; fuente: string; fecha: string };
+
+/** Llena el borrador con una opción de la oferta. */
+function conOferta(b: Borrador, id: string): Borrador {
+  const o = OFERTAS.find((x) => x.id === id);
+  if (!o) return { ...b, oferta: '', plan_servicio: '', modalidad: '', fundador: false };
+  return {
+    ...b,
+    oferta: o.id,
+    concepto: o.concepto,
+    plan_servicio: o.plan,
+    modalidad: o.modalidad,
+    inicial: String(o.inicial),
+    posterior: String(o.posterior),
+    cuotas: String(o.cuotas ?? 3),
+    meses: String(o.meses ?? 4),
+    congela: o.congela ? String(o.congela) : '',
+    fundador: Boolean(o.fundador),
+    periodo: 1,
+  };
+}
+
+/** Número de un campo, con coma o punto. */
+const numero = (v: string): number => Number(String(v).replace(',', '.'));
 
 interface PerfilCorto {
   id: string;
@@ -72,6 +127,11 @@ function errorAmable(mensaje: string): string {
   if (/email_pagador/.test(mensaje)) return 'El mail del pagador no tiene un formato válido.';
   if (/concepto/.test(mensaje)) return 'El concepto tiene que tener entre 3 y 120 caracteres.';
   if (/row-level security|permission denied/i.test(mensaje)) return 'Solo se pueden editar abonos por activar.';
+  if (/precio fundador|5 empresas/i.test(mensaje)) return mensaje;
+  if (/abonos_fundador/.test(mensaje)) return 'El precio fundador es solo con pago completo.';
+  if (/abonos_al_mep/.test(mensaje)) return 'En pesos al MEP falta la cotización del dólar. Probá de nuevo.';
+  if (/abonos_modalidad/.test(mensaje)) return 'Revisá los montos, las cuotas y los meses del esquema.';
+  if (/column .* does not exist|schema cache/i.test(mensaje)) return `${mensaje}. Revisá que la migración 0061_abonos_oferta.sql esté corrida en Supabase.`;
   return mensaje;
 }
 
@@ -102,6 +162,21 @@ const Detalle: React.FC<{
   const [vigencia, setVigencia] = useState<string | null>(null);
   const editable = abono.estado === 'borrador';
   const gestionable = abono.estado !== 'borrador' && abono.estado !== 'cancelado';
+  const aprobados = pagosAprobados(abono, pagos);
+  // En cuotas, con las cuotas iniciales pagas el plan ya tendría que estar en el monto posterior.
+  const cuotaTrabada = abono.modalidad === 'cuotas' && abono.etapa === 'inicial' && Boolean(abono.plan_id) && aprobados >= (abono.cuotas_iniciales ?? 1);
+  const etapaTexto =
+    abono.modalidad === 'cuotas'
+      ? abono.etapa === 'inicial'
+        ? `Etapa inicial, ${aprobados} de ${abono.cuotas_iniciales} cuotas pagas`
+        : 'Rige la cuota posterior'
+      : abono.modalidad === 'pago_completo'
+        ? abono.etapa === 'inicial'
+          ? 'Esperando el pago completo'
+          : cuotaPorAutorizar(abono)
+            ? `Pago completo acreditado, cubre hasta el ${fechaLarga(abono.proximo_cobro)}. Falta que el titular autorice el débito de la cuota`
+            : 'Rige la cuota posterior'
+        : '';
 
   async function actualizar() {
     setOcupado('estado');
@@ -184,7 +259,23 @@ const Detalle: React.FC<{
       <div className="flex flex-col gap-6 min-w-0">
         <dl className="grid gap-x-8 gap-y-4 tab:grid-cols-2 text-sm">
           <Dato titulo="Procesador">{PROCESADOR}</Dato>
-          <Dato titulo="Periodicidad">{abono.periodo_meses === 3 ? 'Cada 3 meses, por adelantado' : 'Mensual'}</Dato>
+          <Dato titulo="Periodicidad">{enPagoUnico(abono) ? 'Pago completo, por única vez' : abono.periodo_meses === 3 ? 'Cada 3 meses, por adelantado' : 'Mensual'}</Dato>
+          {abono.modalidad && (
+            <>
+              <Dato titulo="Esquema">
+                {resumenEsquema(abono)}
+                {abono.precio_fundador ? '. Precio fundador' : ''}
+              </Dato>
+              <Dato titulo="Etapa">{etapaTexto}</Dato>
+            </>
+          )}
+          {abono.congelado_hasta && <Dato titulo="Cuota congelada hasta">{fechaDia(abono.congelado_hasta, true)}</Dato>}
+          {abono.al_mep && (
+            <Dato titulo="Pesos al dólar MEP">
+              {montoTexto(Number(abono.monto_usd), 'USD')} son {montoTexto(abono.monto, 'ARS')} con el MEP a {montoTexto(Number(abono.cotizacion_mep), 'ARS')}
+              {abono.cotizado_en ? `, del ${fechaCorta(abono.cotizado_en)}` : ''}. Se actualiza antes de cada cobro.
+            </Dato>
+          )}
           <Dato titulo="Mail del pagador">{abono.email_pagador}</Dato>
           <Dato titulo="Aceptación del débito">
             {abono.aceptado_en
@@ -336,7 +427,9 @@ const Detalle: React.FC<{
                 <p className="text-xs text-piedra">
                   {abono.plan_id
                     ? 'Queda aprobado en el historial. El débito de dLocal Go sigue como está.'
-                    : `Queda aprobado en el historial y el abono pasa a estar al día por ${abono.periodo_meses === 3 ? 'tres meses' : 'un mes'} más.`}
+                    : enPagoUnico(abono)
+                      ? `Queda aprobado como pago completo y el abono pasa a estar al día por ${abono.meses_cubiertos} meses. Después el titular autoriza el débito de la cuota.`
+                      : `Queda aprobado en el historial y el abono pasa a estar al día por ${abono.periodo_meses === 3 ? 'tres meses' : 'un mes'} más.`}
                 </p>
                 <div className="flex flex-wrap gap-3">
                   <Button type="submit" size="sm" disabled={ocupado !== ''}>
@@ -357,7 +450,17 @@ const Detalle: React.FC<{
             )}
           </div>
         )}
-        {gestionable && <p className="text-sm text-piedra">{SIN_MONTO}</p>}
+        {cuotaTrabada && (
+          <Aviso tipo="error">
+            Las {abono.cuotas_iniciales} cuotas iniciales están pagas pero el plan de dLocal Go sigue en el monto inicial. Tocá Actualizar estado para reintentar y, si no baja, revisá el
+            registro de accesos.
+          </Aviso>
+        )}
+        {gestionable && (
+          <p className="text-sm text-piedra">
+            {abono.modalidad ? 'El monto cambia solo cuando termina la etapa inicial. Para cualquier otro cambio, dalo de baja y armá uno nuevo.' : SIN_MONTO}
+          </p>
+        )}
         {gestionable && (
           <div className="flex flex-col gap-3 pt-2 border-t border-tinta/12">
             {confirmandoBaja ? (
@@ -410,6 +513,7 @@ export const Abonos: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const [mep, setMep] = useState<Mep | null>(null);
 
   const empresa = (id: string) => orgs.find((o) => o.id === id)?.nombre ?? 'Empresa';
   const titularDe = (orgId: string) => perfiles.find((p) => p.organizacion_id === orgId && p.rol === 'titular' && p.activo)?.email ?? '';
@@ -440,17 +544,66 @@ export const Abonos: React.FC = () => {
     void consultarDisponibilidad().then(setDisp);
   }, []);
 
+  // En pesos al MEP, la cotización del día para mostrar y guardar los pesos.
+  const cobroMep = borrador?.oferta && borrador.cobro === 'MEP';
+  useEffect(() => {
+    if (cobroMep && !mep) void consultarMep().then(setMep);
+  }, [cobroMep, mep]);
+
   function nuevo() {
     const orgId = orgs.find((o) => o.activa)?.id ?? orgs[0]?.id ?? '';
     setOk(null);
     setError(null);
-    setBorrador({ organizacion_id: orgId, concepto: '', monto: '', moneda: paisDe(orgId) === 'AR' ? 'ARS' : 'USD', periodo: 1, email_pagador: titularDe(orgId), vigente_hasta: '' });
+    const base: Borrador = {
+      organizacion_id: orgId,
+      concepto: '',
+      monto: '',
+      moneda: paisDe(orgId) === 'AR' ? 'ARS' : 'USD',
+      periodo: 1,
+      email_pagador: titularDe(orgId),
+      vigente_hasta: '',
+      oferta: '',
+      plan_servicio: '',
+      modalidad: '',
+      inicial: '',
+      posterior: '',
+      cuotas: '3',
+      meses: '4',
+      congela: '',
+      fundador: false,
+      cobro: paisDe(orgId) === 'AR' ? 'MEP' : 'USD',
+    };
+    setBorrador(conOferta(base, 'eminent-cuotas'));
   }
 
   function editar(a: Abono) {
     setOk(null);
     setError(null);
-    setBorrador({ id: a.id, organizacion_id: a.organizacion_id, concepto: a.concepto, monto: String(Number(a.monto)), moneda: a.moneda, periodo: a.periodo_meses === 3 ? 3 : 1, email_pagador: a.email_pagador, vigente_hasta: a.vigente_hasta ?? '', vigenteAntes: a.vigente_hasta ?? '' });
+    const oferta = a.modalidad
+      ? (OFERTAS.find((o) => o.plan === a.plan_servicio && o.modalidad === a.modalidad && Boolean(o.fundador) === Boolean(a.precio_fundador))?.id ?? '')
+      : '';
+    setBorrador({
+      id: a.id,
+      organizacion_id: a.organizacion_id,
+      concepto: a.concepto,
+      monto: String(Number(a.monto)),
+      moneda: a.moneda,
+      periodo: a.periodo_meses === 3 ? 3 : 1,
+      email_pagador: a.email_pagador,
+      vigente_hasta: a.vigente_hasta ?? '',
+      vigenteAntes: a.vigente_hasta ?? '',
+      oferta,
+      plan_servicio: a.plan_servicio ?? '',
+      modalidad: a.modalidad ?? '',
+      inicial: a.monto_inicial ? String(Number(a.monto_inicial)) : '',
+      posterior: a.monto_posterior ? String(Number(a.monto_posterior)) : '',
+      cuotas: String(a.cuotas_iniciales ?? 3),
+      meses: String(a.meses_cubiertos ?? 4),
+      congela: a.congela_meses ? String(a.congela_meses) : '',
+      fundador: Boolean(a.precio_fundador),
+      cobro: a.al_mep ? 'MEP' : 'USD',
+      teniaEsquema: Boolean(a.modalidad),
+    });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -466,40 +619,95 @@ export const Abonos: React.FC = () => {
   }
 
   const cambiarMoneda = (moneda: MonedaAbono) => borrador && setBorrador({ ...borrador, moneda });
-  /** Plan de /planes que coincide con el borrador, o vacío si el monto es especial. */
-  const planElegido = (b: Borrador) =>
-    PLANES_ABONO.find((p) => p.concepto === b.concepto && Number(b.monto) === p.monto && p.moneda === b.moneda && p.periodo === b.periodo)?.id ?? '';
-  function elegirPlan(id: string) {
+  function elegirOferta(id: string) {
     if (!borrador) return;
-    const p = PLANES_ABONO.find((x) => x.id === id);
-    if (p) setBorrador({ ...borrador, concepto: p.concepto, monto: String(p.monto), moneda: p.moneda, periodo: p.periodo });
+    setBorrador(conOferta(borrador, id));
   }
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
     if (!supabase || !borrador) return;
-    const monto = Number(borrador.monto.replace(',', '.'));
     const concepto = borrador.concepto.trim();
     const email = borrador.email_pagador.trim().toLowerCase();
     if (!borrador.organizacion_id) return setError('Elegí la empresa.');
     if (concepto.length < 3 || concepto.length > 120) return setError('El concepto tiene que tener entre 3 y 120 caracteres.');
-    if (!Number.isFinite(monto) || monto <= 0) return setError('El monto tiene que ser mayor a cero.');
     if (!EMAIL.test(email)) return setError('El mail del pagador no tiene un formato válido.');
+    // Solo si cambió: así el formulario sigue andando aunque la migración 0021 no esté corrida.
+    const vigencia = borrador.vigente_hasta !== (borrador.vigenteAntes ?? '') ? { vigente_hasta: borrador.vigente_hasta || null } : {};
+    let datos: Record<string, unknown>;
+    if (borrador.oferta) {
+      const inicial = Math.round(numero(borrador.inicial) * 100) / 100;
+      const posterior = Math.round(numero(borrador.posterior) * 100) / 100;
+      const cuotas = Math.round(numero(borrador.cuotas));
+      const meses = Math.round(numero(borrador.meses));
+      const congela = borrador.congela ? Math.round(numero(borrador.congela)) : null;
+      const completo = borrador.modalidad === 'pago_completo';
+      if (!(inicial > 0) || !(posterior > 0)) return setError('Los montos del esquema tienen que ser mayores a cero.');
+      if (!completo && !(cuotas >= 1 && cuotas <= 12)) return setError('Las cuotas iniciales van de 1 a 12.');
+      if (completo && !(meses >= 1 && meses <= 12)) return setError('Los meses que cubre el pago completo van de 1 a 12.');
+      if (congela !== null && !(congela >= 1 && congela <= 36)) return setError('Los meses de cuota congelada van de 1 a 36.');
+      const alMep = borrador.cobro === 'MEP';
+      const cotizacion = alMep ? (mep ?? (await consultarMep())) : null;
+      if (alMep && !cotizacion) return setError('No se pudo traer la cotización del dólar MEP. Probá de nuevo en unos minutos.');
+      datos = {
+        organizacion_id: borrador.organizacion_id,
+        concepto,
+        // En pesos el plan es de Argentina. En dólares va sin país y el checkout de dLocal Go se lo pregunta al cliente.
+        monto: alMep && cotizacion ? pesosAlMep(inicial, cotizacion.valor) : inicial,
+        moneda: alMep ? 'ARS' : 'USD',
+        pais: alMep ? 'AR' : null,
+        periodo_meses: 1,
+        email_pagador: email,
+        plan_servicio: borrador.plan_servicio || null,
+        modalidad: borrador.modalidad,
+        etapa: 'inicial',
+        cuotas_iniciales: completo ? null : cuotas,
+        meses_cubiertos: completo ? meses : null,
+        congela_meses: completo ? congela : null,
+        monto_inicial: inicial,
+        monto_posterior: posterior,
+        precio_fundador: completo && borrador.fundador,
+        al_mep: alMep,
+        monto_usd: alMep ? inicial : null,
+        cotizacion_mep: cotizacion?.valor ?? null,
+        cotizado_en: cotizacion ? new Date().toISOString() : null,
+        ...vigencia,
+      };
+    } else {
+      const monto = numero(borrador.monto);
+      if (!Number.isFinite(monto) || monto <= 0) return setError('El monto tiene que ser mayor a cero.');
+      datos = {
+        organizacion_id: borrador.organizacion_id,
+        concepto,
+        monto: Math.round(monto * 100) / 100,
+        moneda: borrador.moneda,
+        // En pesos el plan es de Argentina. En dólares va sin país y el checkout de dLocal Go se lo pregunta al cliente.
+        pais: borrador.moneda === 'ARS' ? 'AR' : null,
+        periodo_meses: borrador.periodo,
+        email_pagador: email,
+        // Si tenía esquema se limpia. Si no, no se mandan las columnas, así anda aunque la migración 0061 no esté corrida.
+        ...(borrador.teniaEsquema
+          ? {
+              plan_servicio: null,
+              modalidad: null,
+              etapa: null,
+              cuotas_iniciales: null,
+              meses_cubiertos: null,
+              congela_meses: null,
+              monto_inicial: null,
+              monto_posterior: null,
+              precio_fundador: false,
+              al_mep: false,
+              monto_usd: null,
+              cotizacion_mep: null,
+              cotizado_en: null,
+            }
+          : {}),
+        ...vigencia,
+      };
+    }
     setGuardando(true);
     setError(null);
-    // En pesos el plan es de Argentina. En dólares va sin país y el checkout de dLocal Go se lo pregunta al cliente.
-    const pais = borrador.moneda === 'ARS' ? 'AR' : null;
-    const datos = {
-      organizacion_id: borrador.organizacion_id,
-      concepto,
-      monto: Math.round(monto * 100) / 100,
-      moneda: borrador.moneda,
-      pais,
-      periodo_meses: borrador.periodo,
-      email_pagador: email,
-      // Solo si cambió: así el formulario sigue andando aunque la migración 0021 no esté corrida.
-      ...(borrador.vigente_hasta !== (borrador.vigenteAntes ?? '') ? { vigente_hasta: borrador.vigente_hasta || null } : {}),
-    };
     const { error: err } = borrador.id ? await supabase.from('abonos').update(datos).eq('id', borrador.id) : await supabase.from('abonos').insert(datos);
     setGuardando(false);
     if (err) return setError(errorAmable(err.message));
@@ -515,6 +723,24 @@ export const Abonos: React.FC = () => {
     vivos.filter((a) => a.moneda === moneda && a.estado !== 'pausado').reduce((s, a) => s + Number(a.monto) / (a.periodo_meses === 3 ? 3 : 1), 0);
   const conProblemas = lista.filter((a) => a.estado === 'con_error').length;
   const ultimoPago = (id: string) => pagos.find((p) => p.abono_id === id) ?? null;
+  // Precio fundador: empresas que ya lo tienen, sin contar las que se dieron de baja sin pagar.
+  const fundadoras = new Set(
+    lista
+      .filter((a) => a.precio_fundador && (a.estado !== 'cancelado' || pagos.some((p) => p.abono_id === a.id && p.estado === 'aprobado')))
+      .map((a) => a.organizacion_id),
+  );
+  const lugaresFundador = (orgId: string) => FUNDADOR_CUPO - [...fundadoras].filter((o) => o !== orgId).length;
+  const fundadorVigente = hoy() <= FUNDADOR_HASTA;
+  /** Lo que muestra la tabla debajo del monto, según el esquema. */
+  const etapaCorta = (a: Abono): string => {
+    const posterior = montoTexto(Number(a.monto_posterior), monedaReferencia(a));
+    if (a.modalidad === 'cuotas') {
+      const n = a.cuotas_iniciales ?? 0;
+      return a.etapa === 'inicial' ? `Cuota ${Math.min(pagosAprobados(a, pagos) + 1, n)} de ${n}, después ${posterior}` : 'Cuota posterior';
+    }
+    if (a.modalidad === 'pago_completo') return a.etapa === 'inicial' ? `Después ${posterior} por mes` : cuotaPorAutorizar(a) ? 'Falta autorizar la cuota' : 'Cuota posterior';
+    return '';
+  };
   const entorno = disp?.entorno === 'produccion' ? 'producción' : 'sandbox';
 
   async function probarConexion() {
@@ -599,19 +825,82 @@ export const Abonos: React.FC = () => {
               ))}
             </select>
           </Campo>
-          <Campo etiqueta="Plan" ayuda="Completa concepto, monto, moneda y periodicidad con los de /planes. Si el cliente paga otro monto, cambialo: el plan de la empresa se elige en Clientes.">
-            <select className={claseInput} value={planElegido(borrador)} onChange={(e) => elegirPlan(e.target.value)}>
-              <option value="">Monto especial</option>
-              {PLANES_ABONO.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.titulo}
-                </option>
-              ))}
+          <Campo
+            etiqueta="Oferta"
+            ayuda="Completa el concepto y los montos con los de /planes. Si el cliente paga otro monto, cambialo abajo. El plan de la empresa se elige en Clientes."
+          >
+            <select className={claseInput} value={borrador.oferta} onChange={(e) => elegirOferta(e.target.value)}>
+              {OFERTAS.map((o) => {
+                const sinLugar = Boolean(o.fundador) && !(borrador.id && borrador.fundador) && (!fundadorVigente || lugaresFundador(borrador.organizacion_id) <= 0);
+                return (
+                  <option key={o.id} value={o.id} disabled={sinLugar}>
+                    {o.titulo}
+                    {sinLugar ? ' (sin lugares)' : ''}
+                  </option>
+                );
+              })}
+              <option value="">Monto especial, sin esquema</option>
             </select>
           </Campo>
           <Campo etiqueta="Concepto" ayuda="Lo ve el cliente en el portal y en la página de pago. Por ejemplo, Abono mensual de asesoría legal.">
             <input required maxLength={120} className={claseInput} value={borrador.concepto} onChange={(e) => setBorrador({ ...borrador, concepto: e.target.value })} />
           </Campo>
+          {borrador.oferta ? (
+            <>
+              <div className="grid gap-5 tab:grid-cols-2">
+                <Campo
+                  etiqueta={borrador.modalidad === 'pago_completo' ? 'Pago completo, en USD' : 'Cuota inicial, USD por mes'}
+                  ayuda={borrador.modalidad === 'pago_completo' ? 'Un solo pago con tarjeta en dLocal Go.' : 'Se debita cada mes durante las cuotas iniciales.'}
+                >
+                  <input required type="number" inputMode="decimal" step="0.01" min="0.01" className={claseInput} value={borrador.inicial} onChange={(e) => setBorrador({ ...borrador, inicial: e.target.value })} />
+                </Campo>
+                {borrador.modalidad === 'pago_completo' ? (
+                  <Campo etiqueta="Meses que cubre" ayuda="Los tres meses pagos más el cuarto sin cargo.">
+                    <input required type="number" min="1" max="12" step="1" className={claseInput} value={borrador.meses} onChange={(e) => setBorrador({ ...borrador, meses: e.target.value })} />
+                  </Campo>
+                ) : (
+                  <Campo etiqueta="Cuotas iniciales" ayuda="Al aprobarse la última, el plan pasa solo a la cuota posterior.">
+                    <input required type="number" min="1" max="12" step="1" className={claseInput} value={borrador.cuotas} onChange={(e) => setBorrador({ ...borrador, cuotas: e.target.value })} />
+                  </Campo>
+                )}
+                <Campo etiqueta="Cuota posterior, USD por mes" ayuda="La que rige después de la etapa inicial.">
+                  <input required type="number" inputMode="decimal" step="0.01" min="0.01" className={claseInput} value={borrador.posterior} onChange={(e) => setBorrador({ ...borrador, posterior: e.target.value })} />
+                </Campo>
+                {borrador.modalidad === 'pago_completo' && (
+                  <Campo etiqueta="Cuota congelada, meses" ayuda="Opcional. Cuántos meses la cuota posterior no cambia.">
+                    <input type="number" min="1" max="36" step="1" className={claseInput} value={borrador.congela} onChange={(e) => setBorrador({ ...borrador, congela: e.target.value })} />
+                  </Campo>
+                )}
+                <Campo
+                  etiqueta="Cobro"
+                  ayuda={
+                    borrador.cobro === 'MEP'
+                      ? 'En pesos, con el dólar MEP. El portal actualiza el monto antes de cada cobro.'
+                      : 'En dólares. dLocal Go le cobra al cliente en su moneda local al momento de cada pago.'
+                  }
+                >
+                  <select className={claseInput} value={borrador.cobro} onChange={(e) => setBorrador({ ...borrador, cobro: e.target.value === 'MEP' ? 'MEP' : 'USD' })}>
+                    <option value="USD">USD, dólares</option>
+                    <option value="MEP">ARS, pesos al dólar MEP</option>
+                  </select>
+                </Campo>
+              </div>
+              <p className="text-sm text-piedra">
+                {borrador.modalidad === 'pago_completo'
+                  ? `Pago completo de USD ${borrador.inicial || '·'} que cubre ${borrador.meses || '·'} meses. Después USD ${borrador.posterior || '·'} por mes${borrador.congela ? `, congelados ${borrador.congela} meses` : ''}. El titular autoriza ese débito una semana antes de que venza lo pagado.`
+                  : `${borrador.cuotas || '·'} cuotas de USD ${borrador.inicial || '·'} por mes y después USD ${borrador.posterior || '·'} por mes, sin que el titular vuelva a suscribirse.`}
+                {borrador.cobro === 'MEP' &&
+                  (mep
+                    ? ` Hoy, con el MEP a ${montoTexto(mep.valor, 'ARS')}, ${borrador.modalidad === 'pago_completo' ? 'el pago completo es de' : 'la cuota inicial es de'} ${montoTexto(pesosAlMep(numero(borrador.inicial) || 0, mep.valor), 'ARS')}.`
+                    : ' Trayendo la cotización del dólar MEP.')}
+              </p>
+              {borrador.fundador && (
+                <p className="text-sm text-piedra">
+                  Precio fundador. Quedan {Math.max(0, lugaresFundador(borrador.organizacion_id))} de {FUNDADOR_CUPO} lugares, hasta el {fechaDia(FUNDADOR_HASTA, true)}.
+                </p>
+              )}
+            </>
+          ) : (
           <div className="grid gap-5 tab:grid-cols-3">
             <Campo etiqueta={borrador.periodo === 3 ? 'Monto cada 3 meses' : 'Monto mensual'} ayuda={SIN_MONTO}>
               <input
@@ -638,6 +927,7 @@ export const Abonos: React.FC = () => {
               </select>
             </Campo>
           </div>
+          )}
           <Campo etiqueta="Mail del pagador" ayuda="Va precargado en la página de pago de dLocal Go. Se propone el del titular.">
             <input required type="email" className={claseInput} value={borrador.email_pagador} onChange={(e) => setBorrador({ ...borrador, email_pagador: e.target.value })} />
           </Campo>
@@ -703,8 +993,12 @@ export const Abonos: React.FC = () => {
                       )}
                     </td>
                     <td className="num">
-                      {montoTexto(a.monto, a.moneda)}
-                      <div className="text-xs text-piedra mt-1">{periodoTexto(a.periodo_meses)}</div>
+                      {a.al_mep ? montoTexto(Number(a.monto_usd), 'USD') : montoTexto(a.monto, a.moneda)}
+                      <div className="text-xs text-piedra mt-1">
+                        {enPagoUnico(a) ? 'pago completo' : periodoTexto(a.periodo_meses)}
+                        {a.al_mep ? `, ${montoTexto(a.monto, 'ARS')} al MEP` : ''}
+                      </div>
+                      {a.modalidad && <div className="text-xs text-piedra mt-1">{etapaCorta(a)}</div>}
                     </td>
                     <td>
                       <Etiqueta tono={estado.tono}>{estado.titulo}</Etiqueta>

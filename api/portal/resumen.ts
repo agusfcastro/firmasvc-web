@@ -7,7 +7,11 @@
  *   Alertas: asuntos que vencen en 7 días y el día anterior, envíos a firma
  *   que vencen en 3 días y abonos que terminan en 30 y en 7. Cada empresa
  *   recibe un solo mail por persona y por día con todo junto, y FIRMA uno con
- *   todas las empresas. Cada alerta sale una vez por umbral.
+ *   todas las empresas. Cada alerta sale una vez por umbral. En pago completo,
+ *   7 días antes de que venza lo pagado y el día anterior, el titular recibe
+ *   el aviso para autorizar el débito de la cuota posterior.
+ *   Además dispara la tarea diaria de los abonos (/api/pagos/gestionar), que
+ *   corre aparte con las claves de dLocal Go.
  *   Los lunes, además, el mail de la semana: la newsletter (video y artículo
  *   que carga FIRMA en Administración › Newsletter) a todos los usuarios, y al
  *   titular y al CSM también los vencimientos de la semana y un resumen de su
@@ -27,6 +31,7 @@
  */
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { waitUntil } from '@vercel/functions';
 import { FALTA_SEGUNDO_FACTOR, nivelDe } from '../_lib/nivel.js';
 import { genteDe } from '../_lib/acceso.js';
 import { enviarMail, mailDisponible, plantillaMail } from '../_lib/mail.js';
@@ -311,6 +316,29 @@ async function juntarAlertas(sb: SupabaseClient, orgIds: string[], hoy: string, 
       organizacion_id: a.organizacion_id,
       clave: `alerta:abono:${a.id}:${a.vigente_hasta}:${umbral}`,
       texto: `El abono <a href="${base}/portal/pagos" style="${ENLACE}">${escapar(a.concepto)}</a> termina ${cuando(a.vigente_hasta, hoy)}. Si querés renovarlo, escribinos y lo dejamos listo antes.`,
+      soloTitular: true,
+    });
+  }
+
+  // Pago completo: lo pagado vence en 7 días o mañana y todavía no hay débito para la cuota posterior.
+  const { data: cuotas } = await sb
+    .from('abonos')
+    .select('id, concepto, proximo_cobro, organizacion_id, monto_posterior, moneda, al_mep')
+    .eq('modalidad', 'pago_completo')
+    .eq('etapa', 'posterior')
+    .is('plan_id', null)
+    .eq('estado', 'activo')
+    .gte('proximo_cobro', new Date(`${hoy}T00:00:00-03:00`).toISOString())
+    .lte('proximo_cobro', new Date(`${en7}T23:59:59-03:00`).toISOString())
+    .in('organizacion_id', orgIds);
+  for (const a of cuotas ?? []) {
+    const dia = diaDe(new Date(a.proximo_cobro));
+    const umbral = dia <= manana ? 1 : 7;
+    const monto = `${a.al_mep ? 'USD' : a.moneda} ${Number(a.monto_posterior).toLocaleString('es-AR')}`;
+    alertas.push({
+      organizacion_id: a.organizacion_id,
+      clave: `alerta:cuota:${a.id}:${dia}:${umbral}`,
+      texto: `El pago completo de <a href="${base}/portal/pagos" style="${ENLACE}">${escapar(a.concepto)}</a> cubre hasta ${cuando(dia, hoy)}. Autorizá en Pagos el débito de ${monto} por mes${a.al_mep ? ' al dólar MEP' : ''} para seguir sin cortes.`,
       soloTitular: true,
     });
   }
@@ -628,6 +656,8 @@ export async function GET(request: Request): Promise<Response> {
 
   const clave = process.env.CRON_SECRET;
   if (!clave || !iguales(request.headers.get('authorization') || '', `Bearer ${clave}`)) return error('No autorizado.', 401);
+  // Abonos en cuotas y en pesos al MEP. Corre en su propia función, sin demorar los mails.
+  waitUntil(fetch(`${basePortal()}/api/pagos/gestionar`, { headers: { authorization: `Bearer ${clave}` }, signal: AbortSignal.timeout(55_000) }).catch(() => undefined));
   if (!process.env.PORTAL_CLAVE_AVISOS) return error('El servidor no tiene configurada PORTAL_CLAVE_AVISOS.', 500);
   if (!mailDisponible()) return error('El envío de mails no está configurado.', 503);
   try {

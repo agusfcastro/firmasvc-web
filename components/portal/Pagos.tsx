@@ -10,13 +10,21 @@ import {
   ESTADO_ABONO,
   ESTADO_PAGO,
   MEDIO_MANUAL,
-  PLANES_ABONO,
   PROCESADOR,
   abonoManual,
   activable,
   cambiandoMedio,
   consultarDisponibilidad,
+  consultarMep,
+  cuotaPorAutorizar,
+  desdeAutoriza,
+  enPagoUnico,
   esPagoManual,
+  esPagoUnico,
+  monedaReferencia,
+  montoReferencia,
+  pagosAprobados,
+  pesosAlMep,
   fechaCorta,
   fechaDia,
   fechaLarga,
@@ -38,6 +46,9 @@ import {
  * mensual. Después muestra estado, próximo cobro e historial, el botón para
  * actualizar el estado, el cambio de medio de pago y la baja, los dos con
  * confirmación. La tarjeta se carga siempre en la página de dLocal Go.
+ * Con el esquema de la oferta muestra en qué cuota va o, en pago completo,
+ * primero el pago único y después, desde una semana antes de que venza lo
+ * pagado, la autorización del débito de la cuota posterior.
  */
 
 const claseAccion =
@@ -68,7 +79,11 @@ const Dato: React.FC<{ titulo: string; children: React.ReactNode; ancho?: boolea
   </div>
 );
 
-const Historial: React.FC<{ abono: Abono; pagos: PagoAbono[] }> = ({ abono, pagos }) => (
+const Historial: React.FC<{ abono: Abono; pagos: PagoAbono[] }> = ({ abono, pagos: todos }) => {
+  // De los intentos de pago completo que siguen en proceso se muestra solo el último.
+  const ultimoIntento = todos.find((p) => esPagoUnico(p) && p.estado === 'pendiente');
+  const pagos = todos.filter((p) => !(esPagoUnico(p) && p.estado === 'pendiente') || p === ultimoIntento);
+  return (
   <div className="flex flex-col gap-3">
     <h3 className="eyebrow text-piedra">Historial de pagos</h3>
     {pagos.length === 0 ? (
@@ -99,7 +114,8 @@ const Historial: React.FC<{ abono: Abono; pagos: PagoAbono[] }> = ({ abono, pago
       </div>
     )}
   </div>
-);
+  );
+};
 
 const TarjetaAbono: React.FC<{
   abono: Abono;
@@ -114,17 +130,87 @@ const TarjetaAbono: React.FC<{
   const [confirmando, setConfirmando] = useState<'' | 'baja' | 'tarjeta'>('');
   const [error, setError] = useState<string | null>(null);
   const [nota, setNota] = useState<string | null>(null);
-  const monto = montoTexto(abono.monto, abono.moneda);
+  const [mep, setMep] = useState<number | null>(null);
+  useEffect(() => {
+    if (abono.al_mep && abono.estado !== 'cancelado') void consultarMep().then((m) => setMep(m?.valor ?? null));
+  }, [abono.al_mep, abono.estado]);
+  const unico = enPagoUnico(abono);
+  const porAutorizar = cuotaPorAutorizar(abono);
+  const desde = desdeAutoriza(abono);
+  const ventanaAbierta = !desde || Date.now() >= Date.parse(desde);
+  const moneda = monedaReferencia(abono);
+  const referencia = montoTexto(montoReferencia(abono), moneda);
+  const posterior = montoTexto(Number(abono.monto_posterior), moneda);
+  // En pesos al MEP, los pesos de hoy. Sin cotización, los del último cálculo.
+  const pesosHoy = abono.al_mep ? montoTexto(mep ? pesosAlMep(montoReferencia(abono), mep) : Number(abono.monto), 'ARS') : null;
+  const monto = abono.al_mep ? referencia : montoTexto(abono.monto, abono.moneda);
   const trimestral = abono.periodo_meses === 3;
-  const manual = abonoManual(abono);
-  const debito = trimestral ? 'Débito trimestral' : 'Débito mensual';
+  const manual = abonoManual(abono) && !porAutorizar;
+  const debito = unico ? 'Pago completo' : trimestral ? 'Débito trimestral' : 'Débito mensual';
   const puedePagar = activable(abono);
-  const cambio = cambiandoMedio(abono, pagos);
+  const cambio = cambiandoMedio(abono, pagos) && !porAutorizar;
   const estado = cambio
     ? { titulo: 'Falta el medio de pago', tono: 'alerta' as const }
-    : manual && !futuro(abono.proximo_cobro)
-      ? { titulo: 'Pago vencido', tono: 'alerta' as const }
-      : ESTADO_ABONO[abono.estado];
+    : porAutorizar && (abono.estado === 'pendiente' || !futuro(abono.proximo_cobro))
+      ? { titulo: 'Falta autorizar la cuota', tono: 'alerta' as const }
+      : porAutorizar
+        ? { titulo: 'Pago completo al día', tono: 'bosque' as const }
+        : manual && !futuro(abono.proximo_cobro)
+          ? { titulo: 'Pago vencido', tono: 'alerta' as const }
+          : ESTADO_ABONO[abono.estado];
+
+  // En qué parte del esquema está el abono.
+  const aprobados = pagosAprobados(abono, pagos);
+  const cuotas = abono.cuotas_iniciales ?? 0;
+  let esquema = '';
+  if (abono.modalidad === 'cuotas') {
+    esquema =
+      abono.etapa === 'inicial'
+        ? `Cuota ${Math.min(aprobados + 1, cuotas)} de ${cuotas} a ${referencia}. Después la cuota es de ${posterior} por mes.`
+        : `Ya pagaste las ${cuotas} cuotas iniciales. Ahora la cuota es de ${posterior} por mes.`;
+  } else if (abono.modalidad === 'pago_completo') {
+    esquema =
+      abono.etapa === 'inicial'
+        ? `Un solo pago que cubre ${abono.meses_cubiertos} meses. Después la cuota es de ${posterior} por mes${abono.congela_meses ? `, congelada ${abono.congela_meses} meses` : ''}.`
+        : `Pago completo acreditado. La cuota de ${posterior} por mes queda congelada${abono.congelado_hasta ? ` hasta el ${fechaDia(abono.congelado_hasta, true)}` : ''}.`;
+  }
+  if (esquema && abono.precio_fundador) esquema += ' Con precio fundador.';
+  if (esquema && abono.al_mep) esquema += ' En pesos se cobra al dólar MEP.';
+
+  // Cómo convierte cada cobro.
+  const conversion = abono.al_mep
+    ? `, en pesos al dólar MEP de los días previos a cada cobro${pesosHoy ? ` (hoy ${pesosHoy})` : ''},`
+    : abono.moneda === 'USD'
+      ? ', convertidos a mi moneda local al momento de cada pago,'
+      : '';
+  const textoAutorizacion = unico ? (
+    <>
+      Acepto pagar <strong className="font-semibold">{referencia}</strong> por única vez
+      {abono.al_mep ? `, que hoy son ${pesosHoy} al dólar MEP,` : abono.moneda === 'USD' ? ', convertidos a mi moneda local al momento del pago,' : ''} con la
+      tarjeta que cargue en dLocal Go, en concepto de {abono.concepto}. Cubre {abono.meses_cubiertos} meses. Después la cuota es de {posterior} por mes
+      {abono.congela_meses ? `, congelada ${abono.congela_meses} meses,` : ''} y su débito lo autorizo aparte desde este portal.
+    </>
+  ) : porAutorizar ? (
+    <>
+      Autorizo a FIRMA a debitar <strong className="font-semibold">{referencia} por mes</strong>
+      {futuro(abono.proximo_cobro) ? ` desde el ${fechaLarga(abono.proximo_cobro)}` : ''}
+      {conversion} de la tarjeta que cargue en dLocal Go, en concepto de {abono.concepto}, hasta que dé de baja el abono desde este portal.
+    </>
+  ) : abono.modalidad === 'cuotas' && abono.etapa === 'inicial' ? (
+    <>
+      Autorizo a FIRMA a debitar <strong className="font-semibold">{referencia} por mes</strong> durante las {cuotas} cuotas iniciales y después{' '}
+      <strong className="font-semibold">{posterior} por mes</strong>
+      {conversion} de la tarjeta que cargue en dLocal Go, en concepto de {abono.concepto}, hasta que dé de baja el abono desde este portal.
+    </>
+  ) : (
+    <>
+      Autorizo a FIRMA a debitar{' '}
+      <strong className="font-semibold">
+        {monto} {periodoTexto(abono.periodo_meses)}
+      </strong>
+      {conversion} de la tarjeta que cargue en dLocal Go, en concepto de {abono.concepto}, hasta que dé de baja el abono desde este portal.
+    </>
+  );
 
   async function irA(ruta: 'activar' | 'gestionar', cuerpo: Record<string, unknown>, que: 'pagar' | 'tarjeta') {
     setOcupado(que);
@@ -163,7 +249,7 @@ const TarjetaAbono: React.FC<{
   }
 
   const botonActualizar =
-    !soloLectura && abono.plan_id ? (
+    !soloLectura && (abono.plan_id || (unico && abono.estado === 'pendiente')) ? (
       <button type="button" className={claseSecundaria} onClick={actualizar} disabled={ocupado !== ''}>
         <RefreshCw size={14} aria-hidden="true" className={ocupado === 'estado' ? 'animate-spin' : ''} />
         {ocupado === 'estado' ? 'Actualizando' : 'Actualizar estado'}
@@ -227,16 +313,56 @@ const TarjetaAbono: React.FC<{
       ) : null
     ) : null;
 
+  const sinProcesador = disponible === false;
+  const autorizacion = (
+    <>
+      <label className={`flex items-start gap-3 text-[15px] leading-[1.6] ${soloLectura || sinProcesador ? 'opacity-70' : 'cursor-pointer'}`}>
+        <input
+          type="checkbox"
+          className="mt-1 w-4 h-4 shrink-0 accent-marfil"
+          checked={acepto}
+          disabled={Boolean(soloLectura) || sinProcesador}
+          onChange={(e) => setAcepto(e.target.checked)}
+        />
+        <span>{textoAutorizacion}</span>
+      </label>
+      {sinProcesador ? (
+        <p className="text-[13px] leading-[1.55] text-calido">
+          El pago con tarjeta no está disponible por ahora. {mediosDisponibles().length > 0 ? 'Podés pagar con los otros medios de más abajo.' : 'Escribinos y lo resolvemos.'}
+        </p>
+      ) : null}
+      <button
+        type="button"
+        className={claseAccion}
+        onClick={() => irA('activar', { abono_id: abono.id, acepto: true, monto: montoReferencia(abono) }, 'pagar')}
+        disabled={!acepto || Boolean(soloLectura) || sinProcesador || ocupado !== ''}
+      >
+        {ocupado === 'pagar' ? 'Abriendo la página de pago' : unico ? `Pagar ${referencia} en ${PROCESADOR}` : `Continuar a ${PROCESADOR}`}
+        <ArrowUpRight size={16} aria-hidden="true" />
+      </button>
+      <p className="flex items-start gap-2 text-[13px] leading-[1.55] text-calido">
+        <LockKeyhole size={14} className="mt-[3px] shrink-0" aria-hidden="true" />
+        <span>Vas a cargar la tarjeta en la página segura de dLocal Go. FIRMA no ve ni guarda los datos de tu tarjeta.</span>
+      </p>
+    </>
+  );
+
   let panel: React.ReactNode;
   if (puedePagar) {
-    const sinProcesador = disponible === false;
     panel = (
       <>
-        <p className="eyebrow text-[11px] text-calido">Autorización de débito</p>
+        <p className="eyebrow text-[11px] text-calido">{unico ? 'Pago completo' : 'Autorización de débito'}</p>
         {cambio ? (
           <p className="text-[15px] leading-[1.55]">
             Diste de baja la suscripción anterior para cambiar el medio de pago. Seguí en dLocal Go y suscribite con el medio nuevo. Hasta que lo hagas no se hacen débitos.
             {futuro(abono.proximo_cobro) ? ` Como ya está pago hasta el ${fechaLarga(abono.proximo_cobro)}, el primer débito con el medio nuevo es ese día.` : ''}
+          </p>
+        ) : porAutorizar ? (
+          <p className="text-[15px] leading-[1.55]">
+            Para seguir después del pago completo, suscribite en dLocal Go al débito de la cuota.
+            {futuro(abono.proximo_cobro)
+              ? ` Lo que pagaste cubre hasta el ${fechaLarga(abono.proximo_cobro)}, así que el primer débito es ese día.`
+              : ' Lo que pagaste ya venció, así que el primer débito es al suscribirte.'}
           </p>
         ) : abono.estado === 'pendiente' ? (
           <p className="text-[15px] leading-[1.55]">Estamos esperando la confirmación de dLocal Go. Si no terminaste el pago, podés retomarlo.</p>
@@ -244,35 +370,7 @@ const TarjetaAbono: React.FC<{
         {abono.estado === 'con_error' && (
           <p className="text-[15px] leading-[1.55]">El débito no se pudo completar y la suscripción quedó sin efecto. Podés volver a suscribirte con la misma tarjeta u otra.</p>
         )}
-        <label className={`flex items-start gap-3 text-[15px] leading-[1.6] ${soloLectura || sinProcesador ? 'opacity-70' : 'cursor-pointer'}`}>
-          <input
-            type="checkbox"
-            className="mt-1 w-4 h-4 shrink-0 accent-marfil"
-            checked={acepto}
-            disabled={Boolean(soloLectura) || sinProcesador}
-            onChange={(e) => setAcepto(e.target.checked)}
-          />
-          <span>
-            Autorizo a FIRMA a debitar <strong className="font-semibold">
-              {monto} {periodoTexto(abono.periodo_meses)}
-            </strong>
-            {abono.moneda === 'USD' ? ', convertidos a tu moneda local al momento de cada pago,' : ''} de la tarjeta que cargue en dLocal Go, en concepto de {abono.concepto}, hasta que dé
-            de baja el abono desde este portal.
-          </span>
-        </label>
-        {sinProcesador ? (
-          <p className="text-[13px] leading-[1.55] text-calido">
-            El pago con tarjeta no está disponible por ahora. {mediosDisponibles().length > 0 ? 'Podés pagar con los otros medios de más abajo.' : 'Escribinos y lo resolvemos.'}
-          </p>
-        ) : null}
-        <button type="button" className={claseAccion} onClick={() => irA('activar', { abono_id: abono.id, acepto: true, monto: Number(abono.monto) }, 'pagar')} disabled={!acepto || Boolean(soloLectura) || sinProcesador || ocupado !== ''}>
-          {ocupado === 'pagar' ? 'Abriendo la página de pago' : `Continuar a ${PROCESADOR}`}
-          <ArrowUpRight size={16} aria-hidden="true" />
-        </button>
-        <p className="flex items-start gap-2 text-[13px] leading-[1.55] text-calido">
-          <LockKeyhole size={14} className="mt-[3px] shrink-0" aria-hidden="true" />
-          <span>Vas a cargar la tarjeta en la página segura de dLocal Go. FIRMA no ve ni guarda los datos de tu tarjeta.</span>
-        </p>
+        {autorizacion}
         {abono.estado !== 'borrador' && botonActualizar}
         {abono.estado === 'pendiente' && botonBaja}
       </>
@@ -290,6 +388,22 @@ const TarjetaAbono: React.FC<{
             Si querés retomarlo, agendá una reunión
           </Enlace>
         )}
+      </>
+    );
+  } else if (porAutorizar) {
+    const alDia = futuro(abono.proximo_cobro);
+    panel = (
+      <>
+        <p className="eyebrow text-[11px] text-calido">Pago completo</p>
+        <p className="h3 font-heading">{alDia ? 'Pago completo al día' : 'Falta autorizar la cuota'}</p>
+        <p className="text-[15px] leading-[1.55] text-calido">
+          {alDia ? `Lo que pagaste cubre hasta el ${fechaLarga(abono.proximo_cobro)}. ` : `Lo que pagaste cubrió hasta el ${fechaLarga(abono.proximo_cobro)}. `}
+          {ventanaAbierta
+            ? `Autorizá el débito de ${referencia} por mes para seguir sin cortes.`
+            : `Desde el ${fechaLarga(desde)} vas a poder autorizar acá el débito de ${referencia} por mes. Te avisamos por mail.`}
+        </p>
+        {ventanaAbierta && autorizacion}
+        {botonBaja}
       </>
     );
   } else if (manual) {
@@ -339,19 +453,27 @@ const TarjetaAbono: React.FC<{
           <h2 className="h3">{abono.concepto}</h2>
         </div>
         <dl className="grid gap-x-10 gap-y-5 tab:grid-cols-2">
-          <Dato titulo={trimestral ? 'Monto trimestral' : 'Monto mensual'}>
+          <Dato titulo={unico ? 'Pago completo' : trimestral ? 'Monto trimestral' : 'Monto mensual'}>
             <span className="font-heading font-black text-[22px] text-bosque tabular-nums">{monto}</span>
+            {pesosHoy && <span className="block text-[13px] text-piedra">En pesos al dólar MEP, hoy {pesosHoy}</span>}
           </Dato>
-          <Dato titulo="Periodicidad">{trimestral ? 'Un débito cada 3 meses, por adelantado' : 'Mensual, un débito por mes'}</Dato>
+          <Dato titulo="Periodicidad">{unico ? 'Un solo pago, por adelantado' : trimestral ? 'Un débito cada 3 meses, por adelantado' : 'Mensual, un débito por mes'}</Dato>
+          {esquema && (
+            <Dato titulo="Esquema" ancho>
+              {esquema}
+            </Dato>
+          )}
           <Dato titulo="Medio de pago">{manual ? 'Transferencia o cripto, registrado por FIRMA' : `Tarjeta, a través de ${PROCESADOR}`}</Dato>
-          <Dato titulo={puedePagar ? 'Primer débito' : manual ? 'Pago hasta' : 'Próximo cobro'}>
-            {puedePagar
-              ? cambio && futuro(abono.proximo_cobro)
-                ? fechaLarga(abono.proximo_cobro)
-                : 'Al confirmar el pago'
-              : abono.proximo_cobro
-                ? fechaLarga(abono.proximo_cobro)
-                : 'Sin cobros programados'}
+          <Dato titulo={porAutorizar ? 'Primer débito de la cuota' : puedePagar ? (unico ? 'Pago' : 'Primer débito') : manual ? 'Pago hasta' : 'Próximo cobro'}>
+            {porAutorizar && abono.proximo_cobro
+              ? fechaLarga(abono.proximo_cobro)
+              : puedePagar
+                ? cambio && futuro(abono.proximo_cobro)
+                  ? fechaLarga(abono.proximo_cobro)
+                  : 'Al confirmar el pago'
+                : abono.proximo_cobro
+                  ? fechaLarga(abono.proximo_cobro)
+                  : 'Sin cobros programados'}
           </Dato>
           {abono.vigente_hasta && <Dato titulo="Vigente hasta">{fechaDia(abono.vigente_hasta, true)}</Dato>}
           <Dato titulo="Cómo darte de baja" ancho>
@@ -434,12 +556,13 @@ const TarjetaMedio: React.FC<{ medio: MedioAlternativo }> = ({ medio }) => (
   </article>
 );
 
-/** Plan de /planes que corresponde a un abono vigente, por su concepto. */
+/** Plan de /planes que corresponde a un abono vigente. Los de antes del esquema, por su concepto. */
 function planDelAbono(abonos: Abono[]): string | null {
   for (const a of abonos) {
     if (a.estado === 'cancelado' || a.estado === 'borrador') continue;
-    const p = PLANES_ABONO.find((x) => x.concepto === a.concepto);
-    if (p) return p.id.replace('-trimestral', '');
+    if (a.plan_servicio) return a.plan_servicio;
+    if (/eminent/i.test(a.concepto)) return 'eminent';
+    if (/starter/i.test(a.concepto)) return 'starter';
   }
   return null;
 }
@@ -462,7 +585,7 @@ const PlanesCliente: React.FC<{ abonos: Abono[] }> = ({ abonos }) => {
       <p className="text-[15px] leading-[1.6] text-piedra max-w-[680px] mb-8">
         Tocá el plan que te interesa y agendamos una reunión corta para ajustarlo a tu negocio. Después lo activás desde esta misma página.
       </p>
-      <div className="grid gap-8 wide:grid-cols-3 items-stretch">
+      <div className="grid gap-8 wide:grid-cols-2 items-stretch">
         {PLANES.map((p) => (
           <Tarjeta key={p.id} plan={p} compacta actual={p.id === actual} textoBoton={actual ? `Pasarme a ${p.nombre}` : undefined} />
         ))}
@@ -597,7 +720,11 @@ export const Pagos: React.FC<{ perfil: Perfil; organizacion: Organizacion | null
 
       <div className="wrap py-10 desk:py-14 flex flex-col gap-8">
         {vuelta.volver && vuelta.error && <Aviso tipo="error">dLocal Go no pudo completar el pago. Podés intentarlo de nuevo con la misma tarjeta u otra.</Aviso>}
-        {vuelta.volver && !vuelta.error && confirmado && <Aviso tipo="ok">Listo. El débito automático quedó activo.</Aviso>}
+        {vuelta.volver && !vuelta.error && confirmado && (
+          <Aviso tipo="ok">
+            {delRetorno.some((a) => a.modalidad === 'pago_completo' && !a.plan_id) ? 'Listo. El pago completo quedó acreditado.' : 'Listo. El débito automático quedó activo.'}
+          </Aviso>
+        )}
         {vuelta.volver && !vuelta.error && !confirmado && (abonos === null || (esperando && intentos < MAX_INTENTOS)) && (
           <Aviso tipo="ok">Estamos confirmando tu pago con dLocal Go. Puede tardar unos minutos y esta página se actualiza sola.</Aviso>
         )}

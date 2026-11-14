@@ -43,6 +43,8 @@ El chat de Tina es `POST /api/tina/chat` (`api/tina/chat.ts`), con las herramien
 
 El pago completo suma el cuarto mes sin cargo y la cuota congelada por 12 meses. Precio fundador, para los primeros 5 clientes o hasta el 31/12/2026, es Eminent USD 1500 y Starter USD 800, solo con pago completo. En pesos se cobra al equivalente del dólar MEP.
 
+Los abonos cobran esta oferta desde la migración 0061 (`abonos.modalidad`, `etapa`, `al_mep` y afines). Las opciones están en `OFERTAS` de `components/portal/abonos.ts` y la página pública en `components/Planes.tsx`. Si cambia un precio, se cambia en los dos. El detalle y lo que falta verificar en el sandbox de dLocal Go está en `PORTAL.md`, sección Oferta de noviembre de 2026.
+
 **Eminent** incluye acceso directo a Agustín, Tina completa con derivaciones, documentos, gestión de conflictos y contacto telefónico en urgencias.
 
 **Starter** no incluye asesoramiento sobre casos ni redacción de documentos. Incluye perfilado de clientes, Tina limitada sin derivaciones, hasta 20 firmas y 10 llamadas analizadas por mes (estas últimas recién cuando el analizador esté validado), una hora semanal de consultoría general y no recibe alertas por WhatsApp. La hora adicional cuesta USD 100, más un porcentaje de éxito sobre el caso cuando corresponda.

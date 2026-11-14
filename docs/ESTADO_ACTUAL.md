@@ -101,7 +101,7 @@ Además, la migración 0038 hace que las tablas hijas apunten al padre por `(org
 | `pedidos_contrato`, `esquemas_contrato` | Formulario de contrato de closer y esquemas guardados | Titular y csm. Bloqueado después de enviar |
 | `documentos` | Biblioteca, común o por empresa, con casilla de protocolo o formación | `documento_visible` según rol y áreas |
 | `firma_sobres`, `firma_firmantes`, `firma_eventos` | Firma electrónica con eventos encadenados e inmutables | Negocio y FIRMA. Eventos de solo lectura |
-| `abonos`, `abono_pagos` | Abono mensual de cada empresa y sus cobros | Titular y FIRMA |
+| `abonos`, `abono_pagos` | Abono de cada empresa y sus cobros. Desde la 0061 con el esquema de la oferta (cuotas o pago completo, pesos al MEP) | Titular y FIRMA |
 | `agendas`, `agenda_consumos` | Enlaces de agenda y minutos consumidos por plan | Negocio. Carga FIRMA |
 | `newsletters`, `avisos_programados` | Mail de los lunes y registro de lo que ya salió | Admin. `avisos_programados` solo servidor |
 | `org_variables_def`, `org_variables_valor` | Variables propias de los contratos de cada negocio | Negocio. Edita el titular |
@@ -138,10 +138,10 @@ Hoy conviven dos ejes.
 
 | Eje | Columna | Valores | Qué define |
 | --- | --- | --- | --- |
-| Plan de servicio | `organizaciones.plan` (obligatorio) | `gold`, `black`, `eminent` | Agenda (60 min por mes, 60 min por semana, sin límite) y cupo de firmas (20, 50, sin límite) |
+| Plan de servicio | `organizaciones.plan` (obligatorio) | `starter`, `eminent` desde la 0059 | Agenda (60 min por semana o sin límite) y cupo de firmas (20 o sin límite) |
 | Plan de producto | `organizaciones.plan_producto` | `radar`, `escudo`, `blindaje` | Funcionalidades nuevas, como Fathom y perfiles conductuales |
 
-**No existe el plan Starter** de `CLAUDE.md`.
+Starter reemplazó a Gold y Black en la 0059. Los abonos cobran la oferta de `CLAUDE.md` desde la 0061.
 
 ## Secciones del portal
 
@@ -156,7 +156,7 @@ Hoy conviven dos ejes.
 | Asuntos | `/portal/asuntos` | En producción, con chat en vivo, bitácora y documentos. Cartera del responsable pendiente de la 0057 |
 | Pedidos de contrato | `/portal/pedidos/closer` | En producción, solo modelo de closer |
 | Agenda | `/portal/agenda` | En producción |
-| Pagos | `/portal/pagos` | En producción con dLocal Go |
+| Pagos | `/portal/pagos` | En producción con dLocal Go. Cuotas, pago completo y pesos al MEP desde la 0061, pendientes de probar en sandbox |
 | Bitácora | `/portal/bitacora` | En producción, solo titular |
 | Administración | `/portal/admin/...` | Clientes, Usuarios, Agendas, Documentos, Abonos, Newsletter y Registro |
 
@@ -204,7 +204,7 @@ Respuestas a las dudas del relevamiento. Mandan sobre lo que diga cualquier otro
 
 ## Diferencias entre `CLAUDE.md` y el código
 
-1. **Planes.** `CLAUDE.md` habla de Eminent y Starter. El código tiene Gold, Black y Eminent, más los planes de producto Radar, Escudo y Blindaje.
+1. **Planes.** Resuelto con la 0059 (Starter y Eminent) y la 0061 (abonos con la oferta). Quedan los planes de producto Radar, Escudo y Blindaje, que `CLAUDE.md` no menciona.
 2. **Roles.** `account_manager` no es un rol del portal; el más parecido es `csm`.
 3. **Contratos.** La regla 1 dice que solo `admin` genera contratos. Hoy cualquier rol con acceso al CRM, closer incluido, genera el contrato desde el modelo del servicio y lo manda a firmar.
 4. **Resumen.** Ya existe un mail diario de alertas y uno de los lunes con newsletter. La regla 5 dice que el resumen diario no lleva marketing.

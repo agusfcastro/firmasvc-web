@@ -50,6 +50,24 @@ interface Abono {
   suscripcion_id: string | null;
   proximo_cobro: string | null;
   cancelado_en: string | null;
+  vigente_hasta?: string | null;
+  /* Esquema de la oferta de noviembre de 2026 (0061). Vacío en los abonos de antes. */
+  plan_servicio?: string | null;
+  modalidad?: 'cuotas' | 'pago_completo' | null;
+  /** Qué monto se cobra ahora: el inicial o el posterior. */
+  etapa?: 'inicial' | 'posterior' | null;
+  cuotas_iniciales?: number | null;
+  monto_inicial?: number | string | null;
+  monto_posterior?: number | string | null;
+  meses_cubiertos?: number | null;
+  congela_meses?: number | null;
+  congelado_hasta?: string | null;
+  precio_fundador?: boolean | null;
+  /** En pesos al dólar MEP: monto es pesos y monto_usd la referencia en dólares. */
+  al_mep?: boolean | null;
+  monto_usd?: number | string | null;
+  cotizacion_mep?: number | string | null;
+  cotizado_en?: string | null;
 }
 
 interface Resultado<T> {
@@ -446,6 +464,222 @@ async function actualizarAbono(sb: SupabaseClient, abono: Abono, cambios: Record
   }
 }
 
+/* ------------------------------------------------------------------ */
+/* Oferta de noviembre de 2026: cuotas, pago completo y dólar MEP       */
+/* ------------------------------------------------------------------ */
+
+/** Suma meses sin pasarse de mes: 31 de enero más un mes es 28 o 29 de febrero. */
+function sumarMeses(iso: string, meses: number): string {
+  const d = new Date(iso);
+  const dia = d.getUTCDate();
+  d.setUTCDate(1);
+  d.setUTCMonth(d.getUTCMonth() + meses);
+  const ultimo = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+  d.setUTCDate(Math.min(dia, ultimo));
+  return d.toISOString();
+}
+
+/** Dólares a pesos con el MEP, sin centavos. */
+function pesos(usd: number, mep: number): number {
+  return Math.round(usd * mep);
+}
+
+interface Mep {
+  valor: number;
+  fuente: string;
+  fecha: string;
+}
+
+/**
+ * Dólar MEP (bolsa), precio de venta. Primero dolarapi.com y, si no responde,
+ * argentinadatos.com. Solo vale una cotización de la última semana.
+ */
+async function cotizacionMep(): Promise<Mep | null> {
+  const reciente = (f: string) => Date.parse(f) > Date.now() - 7 * DIA_MS;
+  try {
+    const r = await fetch('https://dolarapi.com/v1/dolares/bolsa', { signal: AbortSignal.timeout(8000) });
+    const j = r.ok ? ((await r.json()) as { venta?: unknown; fechaActualizacion?: unknown } | null) : null;
+    const v = Number(j?.venta);
+    const f = typeof j?.fechaActualizacion === 'string' ? j.fechaActualizacion : '';
+    if (Number.isFinite(v) && v > 0 && reciente(f)) return { valor: Math.round(v * 100) / 100, fuente: 'dolarapi.com', fecha: new Date(Date.parse(f)).toISOString() };
+  } catch {
+    /* sigue con la otra fuente */
+  }
+  try {
+    const r = await fetch('https://api.argentinadatos.com/v1/cotizaciones/dolares/bolsa', { signal: AbortSignal.timeout(8000) });
+    const j = r.ok ? ((await r.json()) as { venta?: unknown; fecha?: unknown }[] | null) : null;
+    const u = Array.isArray(j) && j.length ? j[j.length - 1] : null;
+    const v = Number(u?.venta);
+    const f = typeof u?.fecha === 'string' ? `${u.fecha}T12:00:00-03:00` : '';
+    if (Number.isFinite(v) && v > 0 && reciente(f)) return { valor: Math.round(v * 100) / 100, fuente: 'argentinadatos.com', fecha: new Date(Date.parse(f)).toISOString() };
+  } catch {
+    /* sin cotización */
+  }
+  return null;
+}
+
+/** Pago único de dLocal Go, para el pago completo. Forma supuesta, verificar en sandbox. */
+interface PagoUnico {
+  id?: number | string | null;
+  status?: string | null;
+  redirect_url?: string | null;
+  amount?: number | string | null;
+  currency?: string | null;
+  order_id?: string | null;
+  approved_date?: string | null;
+}
+
+/** Estado de un pago único, sin distinguir mayúsculas. Valores supuestos, verificar en sandbox. */
+function estadoPagoUnico(s: unknown): EstadoPago | null {
+  switch (String(s ?? '').trim().toUpperCase()) {
+    case 'PAID':
+    case 'APPROVED':
+    case 'COMPLETED':
+      return 'aprobado';
+    case 'REJECTED':
+    case 'DECLINED':
+    case 'FAILED':
+      return 'rechazado';
+    case 'REFUNDED':
+    case 'CHARGEBACK':
+      return 'reintegrado';
+    case 'PENDING':
+    case 'CREATED':
+    case 'IN_PROCESS':
+      return 'pendiente';
+    default:
+      return null;
+  }
+}
+
+/**
+ * Consulta en dLocal Go los pagos únicos en curso del abono, los del pago
+ * completo, y guarda cómo terminaron. Responde cuántos cambiaron. Verificar
+ * en sandbox la ruta /v1/payments/{id} y sus estados.
+ */
+async function sincronizarPagosUnicos(sb: SupabaseClient, abono: Abono): Promise<{ ok: boolean; status: number; error: string; nuevos: number }> {
+  const res = { ok: true, status: 200, error: '', nuevos: 0 };
+  if (abono.modalidad !== 'pago_completo') return res;
+  const { data } = await sb.from('abono_pagos').select('cobro_id, fecha, moneda, detalle').eq('abono_id', abono.id).eq('estado', 'pendiente');
+  const enCurso = (data ?? []).filter((p) => (p.detalle as Record<string, unknown> | null)?.procesador === 'dlocalgo_unico');
+  for (const p of enCurso) {
+    const r = await dlocal<PagoUnico>('GET', `/v1/payments/${encodeURIComponent(String(p.cobro_id))}`);
+    if (!r.ok) {
+      if (r.status === 404) continue;
+      return { ...res, ok: false, status: r.status, error: r.error };
+    }
+    // Vencido o cancelado sin pagar: era un intento que el cliente no completó y sale del historial.
+    if (['EXPIRED', 'CANCELLED', 'CANCELED'].includes(String(r.datos?.status ?? '').trim().toUpperCase())) {
+      const { data: borrado } = await sb.from('abono_pagos').delete().eq('cobro_id', String(p.cobro_id)).eq('abono_id', abono.id).eq('estado', 'pendiente').select('id');
+      if (borrado?.length) res.nuevos++;
+      continue;
+    }
+    const estado = estadoPagoUnico(r.datos?.status);
+    if (!estado || estado === 'pendiente') continue;
+    const fila: FilaPago = {
+      abono_id: abono.id,
+      organizacion_id: abono.organizacion_id,
+      cobro_id: String(p.cobro_id),
+      monto_pagado: importe(r.datos?.amount),
+      monto_recibido: null,
+      moneda: String(p.moneda || abono.moneda),
+      moneda_cobro: codigoMoneda(r.datos?.currency),
+      estado,
+      fecha: estado === 'aprobado' ? (fechaIso(r.datos?.approved_date) ?? new Date().toISOString()) : String(p.fecha),
+      detalle: { ...((p.detalle as Record<string, unknown> | null) ?? {}), estado_dlocal: r.datos?.status ?? null, order_id: r.datos?.order_id ?? null },
+    };
+    if (await guardarPago(sb, abono, fila)) res.nuevos++;
+  }
+  return res;
+}
+
+/**
+ * Abono sin plan en dLocal Go: el estado y el vencimiento salen de sus pagos
+ * aprobados, los que FIRMA registra a mano y el pago completo. Cada pago cubre
+ * un período desde su fecha o desde el vencimiento anterior, el que sea más
+ * tarde. En pago completo el primero cubre meses_cubiertos meses y desde ahí
+ * rige el monto posterior, congelado congela_meses meses. En cuotas, el monto
+ * posterior rige después de cuotas_iniciales pagos. Sin pagos vuelve a
+ * borrador, salvo que haya un pago completo en curso.
+ */
+async function recalcularSinPlan(sb: SupabaseClient, abono: Abono): Promise<void> {
+  if (abono.plan_id || abono.estado === 'cancelado') return;
+  const { data } = await sb.from('abono_pagos').select('fecha, detalle').eq('abono_id', abono.id).eq('estado', 'aprobado').order('fecha', { ascending: true });
+  const validos = (data ?? []).filter((p) => ['manual', 'dlocalgo_unico'].includes(String((p.detalle as Record<string, unknown> | null)?.procesador)));
+  const periodo = abono.periodo_meses === 3 ? 3 : 1;
+  const completo = abono.modalidad === 'pago_completo';
+  let vence: string | null = null;
+  validos.forEach((p, i) => {
+    const fecha = String(p.fecha);
+    const desde: string = vence && Date.parse(vence) > Date.parse(fecha) ? vence : fecha;
+    vence = sumarMeses(desde, completo && i === 0 ? (abono.meses_cubiertos ?? 1) : periodo);
+  });
+  const cambios: Record<string, unknown> = vence
+    ? { estado: 'activo', proximo_cobro: vence }
+    : { estado: abono.estado === 'pendiente' ? 'pendiente' : 'borrador', proximo_cobro: null };
+  let etapa: string | null = null;
+  if (abono.modalidad) {
+    const posterior = completo ? validos.length >= 1 : validos.length >= (abono.cuotas_iniciales ?? 1);
+    etapa = posterior ? 'posterior' : 'inicial';
+    const referencia = Number(posterior ? abono.monto_posterior : abono.monto_inicial);
+    cambios.etapa = etapa;
+    if (abono.al_mep) Object.assign(cambios, { monto_usd: referencia, monto: pesos(referencia, Number(abono.cotizacion_mep)) });
+    else cambios.monto = referencia;
+    if (completo) {
+      const cubre = validos[0] ? sumarMeses(String(validos[0].fecha), abono.meses_cubiertos ?? 1) : null;
+      cambios.congelado_hasta = cubre && abono.congela_meses ? sumarMeses(cubre, abono.congela_meses).slice(0, 10) : null;
+    }
+  }
+  const { error: e } = await sb.from('abonos').update(cambios).eq('id', abono.id).is('plan_id', null).neq('estado', 'cancelado');
+  if (e) throw new Error(e.message);
+  if (cambios.estado !== abono.estado) {
+    await registrar(sb, cambios.estado === 'activo' ? 'abono_activado' : 'abono_sin_pagos', abono, { estado_anterior: abono.estado, manual: true });
+  }
+  if (etapa && etapa !== abono.etapa) {
+    await registrar(sb, etapa === 'posterior' ? (completo ? 'abono_pago_completo' : 'abono_cuota_posterior') : 'abono_etapa_inicial', abono, {
+      etapa,
+      cubre_hasta: completo ? (vence ?? null) : null,
+      congelado_hasta: cambios.congelado_hasta ?? null,
+    });
+  }
+}
+
+/**
+ * Abono en cuotas con débito: con la última cuota inicial aprobada, el plan
+ * de dLocal Go pasa al monto posterior y desde el próximo débito se cobra
+ * ese. Si no se pudo, queda en el registro y se reintenta en la próxima
+ * sincronización, que también corre todos los días. Verificar en sandbox que
+ * el PATCH del plan acepte amount y que rija para la suscripción vigente.
+ */
+async function cuotaPosterior(sb: SupabaseClient, abono: Abono): Promise<Abono> {
+  if (abono.modalidad !== 'cuotas' || abono.etapa !== 'inicial' || !abono.plan_id || abono.estado === 'cancelado') return abono;
+  const { count } = await sb.from('abono_pagos').select('id', { count: 'exact', head: true }).eq('abono_id', abono.id).eq('estado', 'aprobado');
+  if ((count ?? 0) < (abono.cuotas_iniciales ?? 1)) return abono;
+  const referencia = Number(abono.monto_posterior);
+  const cambios: Record<string, unknown> = { etapa: 'posterior' };
+  if (abono.al_mep) {
+    const mep = await cotizacionMep();
+    if (!mep) {
+      await registrar(sb, 'abono_error', abono, { etapa: 'cuota_posterior', mensaje: 'No se pudo traer el dólar MEP. Se reintenta en la próxima sincronización.' });
+      return abono;
+    }
+    Object.assign(cambios, { monto: pesos(referencia, mep.valor), monto_usd: referencia, cotizacion_mep: mep.valor, cotizado_en: new Date().toISOString() });
+  } else {
+    cambios.monto = referencia;
+  }
+  const r = await dlocal('PATCH', rutaPlan(abono.plan_id), { amount: cambios.monto });
+  if (!r.ok) {
+    await registrar(sb, 'abono_error', abono, { etapa: 'cuota_posterior', status: r.status, mensaje: `No se pudo pasar el plan al monto posterior. ${r.error}`.trim() });
+    return abono;
+  }
+  if (abono.congela_meses) cambios.congelado_hasta = sumarMeses(abono.proximo_cobro ?? new Date().toISOString(), abono.congela_meses).slice(0, 10);
+  const { data, error: e } = await sb.from('abonos').update(cambios).eq('id', abono.id).eq('etapa', 'inicial').neq('estado', 'cancelado').select('*').maybeSingle<Abono>();
+  if (e) throw new Error(e.message);
+  if (!data) return abono;
+  await registrar(sb, 'abono_cuota_posterior', data, { monto_anterior: Number(abono.monto), cuotas: count ?? 0 });
+  return data;
+}
+
 /**
  * Deja el abono como está en dLocal Go, la única fuente de verdad. Los avisos
  * solo la disparan. Consulta el plan, sus suscripciones y los cobros de cada
@@ -456,7 +690,18 @@ async function actualizarAbono(sb: SupabaseClient, abono: Abono, cambios: Record
  */
 async function sincronizar(sb: SupabaseClient, abono: Abono): Promise<Sincronizado> {
   const res: Sincronizado = { ok: true, status: 200, error: '', abono, plan: null, vigente: null, nuevos: 0 };
-  if (!abono.plan_id) return res;
+  // Pago completo. El pago único en curso se consulta aparte y, aprobado, deja el abono al día por los meses que cubre.
+  const unicos = await sincronizarPagosUnicos(sb, abono);
+  if (!unicos.ok) return { ...res, ok: false, status: unicos.status, error: unicos.error };
+  res.nuevos += unicos.nuevos;
+  if (!abono.plan_id) {
+    if (unicos.nuevos) {
+      await recalcularSinPlan(sb, abono);
+      const { data: leido } = await sb.from('abonos').select('*').eq('id', abono.id).maybeSingle<Abono>();
+      if (leido) res.abono = leido;
+    }
+    return res;
+  }
   const fallo = (r: Resultado<unknown>): Sincronizado => ({ ...res, ok: false, status: r.status, error: r.error });
   const ruta = rutaPlan(abono.plan_id);
 
@@ -520,6 +765,8 @@ async function sincronizar(sb: SupabaseClient, abono: Abono): Promise<Sincroniza
   await actualizarAbono(sb, abono, cambios, actual ? { suscripcion: idDe(actual), estado_dlocal: actual.status ?? null } : {});
   const { data: leido } = await sb.from('abonos').select('*').eq('id', abono.id).maybeSingle<Abono>();
   res.abono = leido ?? ({ ...abono, ...cambios } as Abono);
+  // En cuotas, con la última cuota inicial aprobada el plan pasa al monto posterior.
+  if (actual) res.abono = await cuotaPosterior(sb, res.abono);
   return res;
 }
 

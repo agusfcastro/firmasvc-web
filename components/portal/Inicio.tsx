@@ -25,7 +25,7 @@ import type { EstadoSesion } from './useSesion';
 import { cargoDe, permisosDe, type Permisos } from './tipos';
 import { COLUMNAS_FIRMANTE, type Firmante, type Sobre } from './firmas/api';
 import type { Asunto, Novedad } from './asuntos';
-import type { Abono } from './abonos';
+import { cuotaPorAutorizar, desdeAutoriza, enPagoUnico, type Abono } from './abonos';
 import { OnboardingsDia } from './crm/OnboardingsDia';
 import { ROTULO_PLAN, duracion, firmasOcupadas, usoAgenda, usoFirmas, type Plan, type UsoAgenda, type UsoFirmas } from './planes';
 
@@ -172,9 +172,19 @@ function pendientesDe(r: Resumen, email: string): Pendiente[] {
     lista.push({ clave: `pc-${p.id}`, tono: 'neutro', icono: FilePlus2, titulo: p.titulo || 'Pedido de contrato', detalle: `Borrador guardado el ${fechaLarga(p.actualizado_en)}`, chip: 'Sin enviar', accion: 'Seguir', a: `/portal/pedidos/closer/${p.id}`, orden: 4 });
   }
 
-  if (r.abono && (r.abono.estado === 'pendiente' || r.abono.estado === 'con_error')) {
+  // Pago completo acreditado: desde una semana antes de que venza, falta autorizar el débito de la cuota.
+  const desde = r.abono ? desdeAutoriza(r.abono) : null;
+  const cuotaPendiente = Boolean(r.abono && cuotaPorAutorizar(r.abono) && (!desde || Date.now() >= Date.parse(desde)));
+  if (r.abono && (r.abono.estado === 'pendiente' || r.abono.estado === 'con_error' || cuotaPendiente)) {
     const error = r.abono.estado === 'con_error';
-    lista.push({ clave: 'abono', tono: 'aviso', icono: Wallet, titulo: r.abono.concepto, detalle: error ? 'No se pudo cobrar con tu tarjeta.' : 'Falta activar el débito automático.', chip: error ? 'Revisar medio de pago' : 'Pendiente', accion: 'Ver pagos', a: '/portal/pagos', orden: error ? 0.5 : 5 });
+    const detalle = error
+      ? 'No se pudo cobrar con tu tarjeta.'
+      : enPagoUnico(r.abono)
+        ? 'Falta completar el pago.'
+        : cuotaPendiente
+          ? 'Falta autorizar el débito de la cuota.'
+          : 'Falta activar el débito automático.';
+    lista.push({ clave: 'abono', tono: 'aviso', icono: Wallet, titulo: r.abono.concepto, detalle, chip: error ? 'Revisar medio de pago' : 'Pendiente', accion: 'Ver pagos', a: '/portal/pagos', orden: error ? 0.5 : 5 });
   }
 
   if (r.crmPendientes) {
@@ -489,7 +499,8 @@ const InicioCliente: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
                     <span className="font-extrabold text-[24px] tracking-[-0.03em]">{plan ? ROTULO_PLAN[plan] : r.abono?.concepto ?? ''}</span>
                     {r.abono && (
                       <span className="text-[13px] text-piedra tabular-nums">
-                        {r.abono.moneda} {Math.round(Number(r.abono.monto)).toLocaleString('es-AR')} {r.abono.periodo_meses === 1 ? 'por mes' : `cada ${r.abono.periodo_meses} meses`}
+                        {r.abono.moneda} {Math.round(Number(r.abono.monto)).toLocaleString('es-AR')}{' '}
+                        {enPagoUnico(r.abono) ? 'en un pago' : r.abono.periodo_meses === 1 ? 'por mes' : `cada ${r.abono.periodo_meses} meses`}
                       </span>
                     )}
                   </div>

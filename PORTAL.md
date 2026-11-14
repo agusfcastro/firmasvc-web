@@ -478,6 +478,43 @@ Este módulo cobra pero no emite facturas. La facturación electrónica de cada 
 
 Las tres funciones de `api/pagos` comparten un bloque común idéntico, con el cliente de dLocal Go y la sincronización, porque cada función de Vercel es autocontenida. Si se cambia en una, se cambia igual en las tres.
 
+### Oferta de noviembre de 2026
+
+Desde la migración `0061_abonos_oferta.sql` cada abono puede llevar el esquema de la oferta que está en `CLAUDE.md`. Los abonos de antes siguen igual, con un solo monto.
+
+| Opción | Cómo cobra |
+|---|---|
+| Starter o Eminent en tres cuotas | USD 400 o USD 750 por mes durante tres débitos y después USD 250 o USD 500, sin que el titular vuelva a suscribirse |
+| Starter o Eminent con pago completo | Un pago único de USD 1.000 o USD 1.800 que cubre cuatro meses. Después USD 250 o USD 500 por mes, congelados 12 meses |
+| Precio fundador | Pago completo de USD 800 (Starter) o USD 1.500 (Eminent). Primeras 5 empresas o hasta el 31/12/2026. La base no deja pasar la sexta |
+
+Se arma en **Administración › Abonos** con **Oferta**, que completa concepto y montos. Los montos se pueden cambiar si se negoció otro precio. **Monto especial, sin esquema** es el abono de siempre.
+
+**Cobro.** En dólares, dLocal Go convierte a la moneda del cliente en cada pago. En pesos al dólar MEP, los montos quedan en dólares y el portal calcula los pesos con el MEP de venta (dolarapi.com y, si no responde, argentinadatos.com). Los recalcula al activar y, antes de cada débito, la tarea diaria pasa el plan al MEP del día si se movió más de medio punto.
+
+**Tres cuotas.** Es un plan mensual al monto inicial. Cuando se aprueba la última cuota inicial, la sincronización le pide a dLocal Go que el plan pase al monto posterior. Si dLocal Go no lo acepta, el abono sigue en la etapa inicial, queda el error en el registro, Administración muestra el aviso y se reintenta en cada sincronización.
+
+**Pago completo.** El titular ve en Pagos el monto, los meses que cubre y la cuota posterior, acepta y paga una sola vez en la página de dLocal Go. Al acreditarse, el abono queda al día por cuatro meses y la cuota posterior congelada 12 meses desde que arranca. Desde una semana antes de que venza lo pagado, el titular autoriza en Pagos el débito de la cuota posterior, con los días que faltan sin cobro, y le llega un mail a los 7 días y el día anterior. Si paga por transferencia o cripto, FIRMA registra el pago manual y el primero cuenta como pago completo.
+
+**Tarea diaria.** `/api/portal/resumen` dispara cada mañana `GET /api/pagos/gestionar` con `CRON_SECRET`. Sincroniza los abonos vigentes, así la cuota baja aunque se haya perdido un aviso, y actualiza los pesos de los abonos al MEP con un cobro en los próximos 3 días. No suma ninguna función ni tarea programada en Vercel.
+
+**Verificar en sandbox antes de cobrar.** Además de lo de la prueba completa de arriba.
+
+1. En **Probar conexión con dLocal Go** tienen que salir bien los pasos 8 (cambiar el monto de un plan) y 9 (crear y leer un pago único). Si el 8 falla, las cuotas y el MEP no bajan solos. Si el 9 falla, el pago completo con tarjeta no anda y se cobra por transferencia o cripto.
+2. Armá un abono en cuotas de USD 3, después USD 1, con 3 cuotas. Suscribite y esperá los débitos, o probá con 1 cuota. Revisá que el débito siguiente sea de USD 1. Es lo único que el paso 8 no prueba, que el monto nuevo rija para la suscripción que ya existe.
+3. Armá un pago completo de USD 2 que cubra 1 mes, con cuota posterior de USD 1. Pagalo, revisá que quede al día y que la cuota se pueda autorizar recién una semana antes del vencimiento, y que el primer débito caiga ese día.
+4. Armá uno en pesos al MEP y revisá los pesos en el checkout.
+
+| Archivo | Qué suma |
+|---|---|
+| `supabase/migrations/0061_abonos_oferta.sql` | Columnas del esquema, reglas, cupo del precio fundador y permisos |
+| `supabase/pruebas/abonos_oferta.sql` | Pruebas del esquema y del cupo fundador |
+| `api/pagos/*` (bloque común) | Pago único, etapas, recálculo sin plan, cotización MEP |
+| `api/pagos/activar.ts` | Pago único, autorización de la cuota posterior, `?mep=1` y pasos 8 y 9 de la prueba |
+| `api/pagos/gestionar.ts` | Tarea diaria |
+| `api/portal/resumen.ts` | Dispara la tarea diaria y avisa al titular que autorice la cuota |
+| `components/Planes.tsx` | Página /planes con Starter y Eminent |
+
 ## Estado de asuntos
 
 Cada trámite que FIRMA lleva para una empresa cliente, en `/portal/asuntos`: un contrato, un conflicto, una marca. Tiene tipo, estado (en curso, esperando al cliente, esperando a un tercero o finalizado), próximo paso, vencimiento y un historial de novedades.
@@ -527,7 +564,7 @@ Para activarlo, corré `0034_pedidos_contrato.sql` y después `0035_esquemas_con
 
 ## Planes, agenda y firmas
 
-El plan de cada empresa se elige en Administración › Clientes › Editar: Gold, Black o Eminent. Es obligatorio y no hay planes a medida. Lo único que puede salir de la norma es el monto, que se ajusta en el abono (Administración › Abonos, opción Monto especial).
+El plan de cada empresa se elige en Administración › Clientes › Editar: Starter o Eminent (migración 0059). Es obligatorio y no hay planes a medida. Lo único que puede salir de la norma es el monto, que se ajusta en el abono (Administración › Abonos, cambiando los montos de la oferta o con Monto especial).
 
 | Plan | Agenda | Documentos firmados |
 |---|---|---|

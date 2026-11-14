@@ -8,94 +8,88 @@ import { agendarPlan } from '../lib/calendly';
  * Se comparte solo durante las llamadas de venta.
  * Cada botón abre Calendly con el plan elegido: primero hay una reunión y después
  * FIRMA arma el abono, que el cliente paga desde el portal con dLocal Go.
+ * La oferta es la de noviembre de 2026 (CLAUDE.md, Planes): tres cuotas o pago
+ * completo, y después la cuota posterior. Los montos del portal están en
+ * components/portal/abonos.ts (OFERTAS). Si cambian, se cambian en los dos.
  */
 
 export type Plan = {
-  id: 'gold' | 'black' | 'eminent';
+  id: 'starter' | 'eminent';
   nombre: string;
+  /** Cuota de los tres primeros meses. */
   precio: string;
-  extra?: string;
+  periodo: string;
+  /** Pago completo. */
+  extra: string;
+  /** Cuota desde el cuarto mes. */
+  despues: string;
   titular: string;
   bajada: string;
   incluye: string[];
+  noIncluye?: string;
   ideal: string;
   badge?: string;
 };
 
-const BASE = [
-  'CRM de FIRMA para gestionar tus clientes',
-  'Sistema de firma electrónica con certificado de integridad',
-  'Material grabado de formación legal',
-  'SOPs de reembolsos, reclamos y equipo',
-];
-
 export const PLANES: Plan[] = [
   {
-    id: 'gold',
-    nombre: 'Gold',
-    precio: 'USD 150',
-    titular: 'El orden legal que tu negocio necesita para crecer sin improvisar',
+    id: 'starter',
+    nombre: 'Starter',
+    precio: 'USD 400',
+    periodo: 'por mes, tres cuotas',
+    extra: 'O USD 1.000 en un pago, con el cuarto mes sin cargo y la cuota congelada por 12 meses.',
+    despues: 'Desde el cuarto mes, USD 250 por mes.',
+    titular: 'Las herramientas de FIRMA para operar con orden',
     bajada:
-      'Tu negocio ya vende y ahora necesita procesos. Con Gold tenés las herramientas de FIRMA para gestionar clientes y firmar contratos con validez, los protocolos que usan los negocios que facturan en serio y una hora mensual conmigo para resolver tus dudas antes de que se conviertan en problemas.',
+      'Starter es para el negocio que quiere operar por su cuenta con las herramientas de FIRMA. Tenés el CRM legal con perfilado de clientes, a Tina para resolver lo del día a día, la firma electrónica y una hora por semana de consultoría general.',
     incluye: [
-      'CRM de FIRMA para gestionar tus clientes',
-      'Sistema de firma electrónica con certificado de integridad',
-      'Material grabado de formación legal para emprendedores',
-      'SOPs listos para aplicar en reembolsos, reclamos de clientes y manejo del equipo',
-      'Una hora de consultoría por mes',
+      'CRM legal de FIRMA con perfilado de clientes',
+      'Tina, la asistente con IA del portal, con accionables y recursos',
+      'Hasta 20 documentos firmados por mes con firma electrónica',
+      'Una hora por semana de consultoría general',
     ],
-    ideal: 'negocios que están ordenando su operación y quieren prevenir antes que salir a apagar incendios.',
-  },
-  {
-    id: 'black',
-    nombre: 'Black',
-    precio: 'USD 300',
-    badge: 'Más elegido',
-    titular: 'Tu negocio blindado, con un abogado del lado tuyo cada semana',
-    bajada:
-      'Black es para el que ya no puede darse el lujo de perder un cliente, un reembolso o un integrante del equipo por un conflicto mal manejado. Nos encargamos de los problemas cuando aparecen, mejoramos tus documentos y te acompañamos todas las semanas.',
-    incluye: [
-      ...BASE,
-      'Gestión de conflictos con clientes, socios y equipo',
-      'Una hora de consultoría por semana',
-      'WhatsApp directo con respuesta dentro de las 24 h',
-      'Optimización de tus contratos y documentos actuales',
-      'Un documento nuevo redactado a medida por mes',
-    ],
-    ideal: 'infoproductores, agencias y consultoras que ya facturan y necesitan proteger cada venta.',
+    noIncluye: 'No incluye asesoramiento sobre casos ni redacción de documentos. La hora adicional cuesta USD 100.',
+    ideal: 'negocios que ya tienen sus documentos y quieren ordenar la operación por su cuenta.',
   },
   {
     id: 'eminent',
     nombre: 'Eminent',
-    precio: 'USD 1.000',
-    extra: 'O USD 1.500 pagando 3 meses por adelantado. Te ahorrás USD 1.500.',
-    titular: 'Tu departamento legal, sin límites',
+    precio: 'USD 750',
+    periodo: 'por mes, tres cuotas',
+    extra: 'O USD 1.800 en un pago, con el cuarto mes sin cargo y la cuota congelada por 12 meses.',
+    despues: 'Desde el cuarto mes, USD 500 por mes.',
+    badge: 'Más elegido',
+    titular: 'Tu departamento legal, con un abogado detrás de cada respuesta',
     bajada:
-      'Eminent es tener a FIRMA adentro de tu negocio. Sin cupos de horas ni de documentos, con soporte a toda hora y con tu equipo formado para operar sin riesgos legales. Vos te enfocás en escalar y nosotros cubrimos todo lo demás.',
+      'Eminent es tener a FIRMA adentro de tu negocio. Acceso directo conmigo, Tina con derivación al equipo, todos los documentos que necesites y la gestión de los conflictos con clientes, socios y equipo.',
     incluye: [
-      ...BASE,
+      'Todo lo de Starter, con agenda y firmas sin límite',
+      'Acceso directo a Agustín Castro',
+      'Tina completa, con derivación de tus casos al equipo de FIRMA',
+      'Redacción y optimización de tus contratos y documentos',
       'Gestión de conflictos con clientes, socios y equipo',
-      'Soporte por WhatsApp las 24 horas',
-      'Agenda ilimitada para reuniones y consultas',
-      'Documentación ilimitada, con todos los contratos y documentos que tu negocio necesite',
-      'Formación legal para tu equipo de ventas, soporte y operaciones',
+      'Contacto telefónico en urgencias',
     ],
     ideal: 'negocios que facturan fuerte, tienen equipo propio o socios y quieren cero fricción legal mientras crecen.',
   },
 ];
 
 type Valor = boolean | string;
-const COMPARATIVA: { item: string; gold: Valor; black: Valor; eminent: Valor }[] = [
-  { item: 'CRM de FIRMA', gold: true, black: true, eminent: true },
-  { item: 'Firma electrónica con certificado de integridad', gold: true, black: true, eminent: true },
-  { item: 'Material grabado de formación', gold: true, black: true, eminent: true },
-  { item: 'SOPs de reembolsos, reclamos y equipo', gold: true, black: true, eminent: true },
-  { item: 'Consultoría', gold: '1 h por mes', black: '1 h por semana', eminent: 'Ilimitada' },
-  { item: 'WhatsApp', gold: false, black: 'Respuesta en 24 h', eminent: 'Soporte las 24 horas' },
-  { item: 'Gestión de conflictos', gold: false, black: true, eminent: true },
-  { item: 'Optimización documental', gold: false, black: true, eminent: true },
-  { item: 'Documentos nuevos a medida', gold: false, black: '1 por mes', eminent: 'Ilimitados' },
-  { item: 'Formación para tu equipo', gold: false, black: false, eminent: true },
+const COMPARATIVA: { item: string; starter: Valor; eminent: Valor }[] = [
+  { item: 'CRM legal con perfilado de clientes', starter: true, eminent: true },
+  { item: 'Tina, asistente con IA', starter: 'Accionables y recursos', eminent: 'Con derivación al equipo' },
+  { item: 'Firma electrónica', starter: 'Hasta 20 por mes', eminent: 'Sin límite' },
+  { item: 'Consultoría', starter: '1 h general por semana', eminent: 'Sin límite' },
+  { item: 'Asesoramiento sobre tus casos', starter: false, eminent: true },
+  { item: 'Redacción de documentos', starter: false, eminent: true },
+  { item: 'Gestión de conflictos', starter: false, eminent: true },
+  { item: 'Contacto telefónico en urgencias', starter: false, eminent: true },
+];
+
+const PRECIOS: { item: string; starter: string; eminent: string }[] = [
+  { item: 'Tres cuotas, por mes', starter: 'USD 400', eminent: 'USD 750' },
+  { item: 'Pago completo, cuatro meses', starter: 'USD 1.000', eminent: 'USD 1.800' },
+  { item: 'Desde el cuarto mes, por mes', starter: 'USD 250', eminent: 'USD 500' },
 ];
 
 const Celda: React.FC<{ v: Valor }> = ({ v }) => {
@@ -109,8 +103,7 @@ const Celda: React.FC<{ v: Valor }> = ({ v }) => {
  * compacta deja afuera la bajada y el «Ideal para». actual la marca como el plan del cliente.
  */
 export const Tarjeta: React.FC<{ plan: Plan; compacta?: boolean; actual?: boolean; textoBoton?: string }> = ({ plan, compacta, actual, textoBoton }) => {
-  const oscura = plan.id === 'black';
-  const premium = plan.id === 'eminent';
+  const oscura = plan.id === 'eminent';
   const texto = oscura ? 'text-marfil' : 'text-tinta';
   const suave = oscura ? 'text-marfil/70' : 'text-piedra';
   const linea = oscura ? 'border-marfil/15' : 'border-tinta/15';
@@ -118,7 +111,7 @@ export const Tarjeta: React.FC<{ plan: Plan; compacta?: boolean; actual?: boolea
   return (
     <article
       className={`relative flex flex-col p-8 border ${
-        oscura ? 'bg-tinta border-tinta' : premium ? 'bg-marfil-claro border-bosque border-2' : 'bg-marfil-claro border-tinta/15'
+        oscura ? 'bg-tinta border-tinta' : 'bg-marfil-claro border-tinta/15'
       } ${texto}`}
     >
       {(actual || plan.badge) && (
@@ -134,11 +127,10 @@ export const Tarjeta: React.FC<{ plan: Plan; compacta?: boolean; actual?: boolea
       <p className={`eyebrow ${oscura ? 'text-marfil/80' : 'text-bosque'}`}>{plan.nombre}</p>
       <div className="mt-3 flex items-baseline gap-2">
         <span className={`font-heading font-black tracking-tight whitespace-nowrap ${compacta ? 'text-4xl' : 'text-5xl'}`}>{plan.precio}</span>
-        <span className={`text-sm ${suave}`}>por mes</span>
+        <span className={`text-sm ${suave}`}>{plan.periodo}</span>
       </div>
-      {plan.extra && (
-        <p className="mt-3 text-sm font-medium text-bosque bg-bosque-suave px-3 py-2">{plan.extra}</p>
-      )}
+      <p className={`mt-2 text-sm ${suave}`}>{plan.despues}</p>
+      <p className={`mt-3 text-sm font-medium px-3 py-2 ${oscura ? 'text-marfil bg-marfil/10' : 'text-bosque bg-bosque-suave'}`}>{plan.extra}</p>
 
       <h3 className="h3 mt-6">{plan.titular}</h3>
       {!compacta && <p className={`mt-3 text-[15px] leading-relaxed ${suave}`}>{plan.bajada}</p>}
@@ -152,6 +144,8 @@ export const Tarjeta: React.FC<{ plan: Plan; compacta?: boolean; actual?: boolea
         ))}
       </ul>
 
+      {plan.noIncluye && <p className={`mt-5 text-sm ${suave}`}>{plan.noIncluye}</p>}
+
       {!compacta && (
         <p className={`mt-6 pt-5 border-t ${linea} text-sm ${suave}`}>
           <b className={oscura ? 'text-marfil' : 'text-tinta'}>Ideal para</b> {plan.ideal}
@@ -163,11 +157,7 @@ export const Tarjeta: React.FC<{ plan: Plan; compacta?: boolean; actual?: boolea
         onClick={() => agendarPlan(plan.id)}
         disabled={actual}
         className={`mt-6 block w-full text-center font-semibold py-4 transition-colors disabled:opacity-60 disabled:cursor-default ${
-          oscura
-            ? 'bg-marfil text-tinta hover:bg-marfil-oscuro'
-            : premium
-              ? 'bg-bosque text-marfil hover:bg-bosque-dark'
-              : 'border border-tinta text-tinta hover:bg-tinta hover:text-marfil'
+          oscura ? 'bg-marfil text-tinta hover:bg-marfil-oscuro' : 'border border-tinta text-tinta hover:bg-tinta hover:text-marfil'
         }`}
       >
         {actual ? 'Es tu plan actual' : (textoBoton ?? `Quiero ${plan.nombre}`)}
@@ -213,13 +203,16 @@ export const Planes: React.FC = () => {
           <p className="eyebrow text-bosque">Abonos legales</p>
           <h1 className="h2 mt-4 max-w-3xl mx-auto">Elegí cómo querés blindar tu negocio</h1>
           <p className="mt-5 text-lg text-piedra max-w-2xl mx-auto">
-            Tres niveles de acompañamiento legal para infoproductores, agencias y negocios que ya
+            Dos niveles de acompañamiento legal para infoproductores, agencias y negocios que ya
             facturan y no quieren perder ventas por conflictos evitables.
           </p>
         </section>
 
         <section className="wrap">
-          <div className="grid gap-8 wide:grid-cols-3 items-stretch">
+          <p className="max-w-3xl mx-auto mb-10 text-center text-[15px] font-medium text-bosque bg-bosque-suave px-5 py-4">
+            Precio fundador para las primeras 5 empresas o hasta el 31 de diciembre de 2026. Eminent a USD 1.500 y Starter a USD 800, con pago completo.
+          </p>
+          <div className="grid gap-8 wide:grid-cols-2 items-stretch max-w-5xl mx-auto">
             {PLANES.map((p) => (
               <Tarjeta key={p.id} plan={p} />
             ))}
@@ -233,33 +226,33 @@ export const Planes: React.FC = () => {
               <thead>
                 <tr className="border-b border-tinta/15">
                   <th className="p-4" />
-                  <th className="eyebrow p-4 text-bosque">Gold</th>
-                  <th className="eyebrow p-4 bg-tinta text-marfil">Black</th>
-                  <th className="eyebrow p-4 text-bosque">Eminent</th>
+                  <th className="eyebrow p-4 text-bosque">Starter</th>
+                  <th className="eyebrow p-4 bg-tinta text-marfil">Eminent</th>
                 </tr>
               </thead>
               <tbody>
                 {COMPARATIVA.map((r) => (
                   <tr key={r.item} className="border-b border-tinta/10">
                     <td className="p-4 text-piedra">{r.item}</td>
-                    <td className="p-4 text-center"><Celda v={r.gold} /></td>
-                    <td className="p-4 text-center bg-tinta/[0.04]"><Celda v={r.black} /></td>
-                    <td className="p-4 text-center"><Celda v={r.eminent} /></td>
+                    <td className="p-4 text-center"><Celda v={r.starter} /></td>
+                    <td className="p-4 text-center bg-tinta/[0.04]"><Celda v={r.eminent} /></td>
                   </tr>
                 ))}
-                <tr className="font-heading font-bold">
-                  <td className="p-4">Inversión mensual</td>
-                  <td className="p-4 text-center">USD 150</td>
-                  <td className="p-4 text-center bg-tinta/[0.04]">USD 300</td>
-                  <td className="p-4 text-center">USD 1.000</td>
-                </tr>
+                {PRECIOS.map((r) => (
+                  <tr key={r.item} className="border-b border-tinta/10 font-heading font-bold">
+                    <td className="p-4">{r.item}</td>
+                    <td className="p-4 text-center">{r.starter}</td>
+                    <td className="p-4 text-center bg-tinta/[0.04]">{r.eminent}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
 
           <p className="mt-10 text-sm text-piedra text-center max-w-2xl mx-auto">
-            Los abonos no incluyen juicios ni constitución de sociedades en el extranjero, que se
-            cotizan por separado con descuento para clientes activos.
+            Si pagás en pesos, se cobra al equivalente del dólar MEP. Los abonos no incluyen juicios
+            ni constitución de sociedades en el extranjero, que se cotizan por separado con descuento
+            para clientes activos.
           </p>
         </section>
       </main>
