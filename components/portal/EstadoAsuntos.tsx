@@ -45,6 +45,7 @@ import {
   type Novedad,
   type TipoAsunto,
 } from './asuntos';
+import { mensajeAmable } from './errores';
 
 /**
  * Estado de asuntos en /portal/asuntos y /portal/asuntos/:id.
@@ -728,7 +729,7 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
       .eq('id', asunto.id);
     if (e1) {
       setOcupado('');
-      return setError(e1.message);
+      return setError(mensajeAmable(e1));
     }
     if (abrirCaso) {
       // El caso se abre con la fecha del asunto, así cuenta desde que llegó el reclamo.
@@ -763,7 +764,7 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
       : await supabase.from('asuntos').delete().eq('id', asunto.id);
     if (e) {
       setOcupado('');
-      return setError(e.message);
+      return setError(mensajeAmable(e));
     }
     if (lista?.length) await supabase.storage.from(BUCKET_ASUNTOS).remove(lista.map((a) => a.ruta));
     navegar('/portal/asuntos');
@@ -1175,7 +1176,7 @@ const Bitacora: React.FC<{
       const { error } = await supabase.from('asuntos').update({ estado }).eq('id', asunto.id);
       if (error) {
         setGuardando(false);
-        return alError(error.message);
+        return alError(mensajeAmable(error));
       }
     }
     let nota = estado ? 'Estado actualizado.' : '';
@@ -1353,7 +1354,7 @@ const Documentos: React.FC<{
     const { error } = await supabase.from('asunto_archivos').delete().eq('id', a.id);
     if (!error) await supabase.storage.from(BUCKET_ASUNTOS).remove([a.ruta]);
     setOcupado('');
-    if (error) return alError(error.message);
+    if (error) return alError(mensajeAmable(error));
     alCambiar('Archivo borrado.');
   }
 

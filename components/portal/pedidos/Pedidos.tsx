@@ -30,6 +30,7 @@ import {
   type Respuestas,
   type Valor,
 } from './formulario';
+import { mensajeAmable } from '../errores';
 
 /**
  * Pedidos de contrato en /portal/pedidos/<modelo> (nuevo) y /portal/pedidos/<id>.
@@ -857,7 +858,7 @@ const EntregarModelo: React.FC<{ pedido: PedidoContrato }> = ({ pedido }) => {
     if (e) {
       await sb.storage.from(BUCKET_DOCUMENTOS).remove([subida.ruta]);
       setSubiendo(false);
-      return setError(e.message);
+      return setError(mensajeAmable(e));
     }
     if (pedido.asunto_id) {
       const { data: msj } = await sb

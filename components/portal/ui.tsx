@@ -16,6 +16,7 @@ import {
   ScrollText,
   ShieldCheck,
   Wallet,
+  WifiOff,
   X,
   type LucideIcon,
 } from 'lucide-react';
@@ -29,6 +30,7 @@ import { ROTULO_PLAN, type Plan } from './planes';
 import { BurbujaTina } from './tina/BurbujaTina';
 import { BotonAvisos } from './TarjetaAvisos';
 import { desactivarPush } from './push';
+import { LimiteError } from './LimiteError';
 
 import simboloClaro from '../../assets/brand/simbolo-claro.png';
 import simboloOscuro from '../../assets/brand/simbolo-oscuro.png';
@@ -181,17 +183,25 @@ interface Negocio {
 }
 
 /** Para un usuario del cliente, la política de organizaciones devuelve el negocio activo y los de sus membresías. */
+const cacheNegocios = new Map<string, Negocio[]>();
+
 function useMisNegocios(perfil: Perfil | null | undefined): Negocio[] {
-  const [negocios, setNegocios] = useState<Negocio[]>([]);
+  const [negocios, setNegocios] = useState<Negocio[]>(() => (perfil ? cacheNegocios.get(perfil.id) ?? [] : []));
   useEffect(() => {
     if (!supabase || !perfil || perfil.rol === 'admin') return;
+    // Cada pantalla monta su marco: sin caché, la lista se volvía a pedir en cada cambio de sección.
+    const previo = cacheNegocios.get(perfil.id);
+    if (previo) return setNegocios(previo);
     let vigente = true;
+    const id = perfil.id;
     void supabase
       .from('organizaciones')
       .select('id, nombre')
       .order('nombre')
-      .then(({ data }) => {
-        if (vigente) setNegocios((data as Negocio[]) ?? []);
+      .then(({ data, error }) => {
+        const lista = (data as Negocio[]) ?? [];
+        if (!error) cacheNegocios.set(id, lista);
+        if (vigente) setNegocios(lista);
       });
     return () => {
       vigente = false;
@@ -242,6 +252,22 @@ const SelectorNegocio: React.FC<{ perfil: Perfil; negocios: Negocio[] }> = ({ pe
     </>
   );
 };
+
+/** false mientras el navegador avisa que no hay red. */
+function useConexion(): boolean {
+  const [hay, setHay] = useState(() => (typeof navigator === 'undefined' ? true : navigator.onLine));
+  useEffect(() => {
+    const si = () => setHay(true);
+    const no = () => setHay(false);
+    window.addEventListener('online', si);
+    window.addEventListener('offline', no);
+    return () => {
+      window.removeEventListener('online', si);
+      window.removeEventListener('offline', no);
+    };
+  }, []);
+  return hay;
+}
 
 const iniciales = (texto: string): string =>
   texto
@@ -404,6 +430,16 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
   const secciones = perfil && permisos ? seccionesDe(perfil, permisos, ruta) : [];
   const contadores = useContadores(permisos, esAdmin ? null : orgDelMarco, esAdmin, perfil ? veAsuntos(perfil) : false);
   const [menu, setMenu] = useState(false);
+  const conexion = useConexion();
+
+  // El título de la pestaña dice en qué sección estás: sirve en el historial y con varias pestañas abiertas.
+  const tituloSeccion = secciones.find((x) => x.activo)?.titulo ?? null;
+  useEffect(() => {
+    document.title = tituloSeccion && tituloSeccion !== 'Inicio' ? `${tituloSeccion} · FIRMA` : 'Portal de clientes · FIRMA';
+    return () => {
+      document.title = 'Portal de clientes · FIRMA';
+    };
+  }, [tituloSeccion]);
 
   // La barra inferior muestra las cuatro secciones que más se usan. El resto vive en Más.
   const ORDEN_INFERIOR: ClaveSeccion[] = ['inicio', 'asuntos', 'firmas', 'documentos', 'crm', 'protocolos', 'agenda', 'pagos', 'admin'];
@@ -415,6 +451,10 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
   return (
     <DensidadBotones.Provider value="compacta">
       <div className="portal min-h-screen bg-marfil text-tinta desk:grid desk:grid-cols-[264px_minmax(0,1fr)]">
+        {/* Con teclado: salta el menú y va directo al contenido. */}
+        <a href="#contenido" className="sr-only focus:not-sr-only focus:fixed focus:z-[60] focus:left-3 focus:top-3 focus:px-4 focus:py-2.5 focus:rounded-[10px] focus:bg-papel focus:text-tinta focus:text-[14px] focus:font-semibold focus:shadow-flotante">
+          Saltar al contenido
+        </a>
         {lateral && (
           <div className="hidden desk:block bg-tinta">
             <aside className="sticky top-0 h-screen overflow-y-auto scrollbar-hide" aria-label="Barra lateral">
@@ -452,7 +492,18 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
             </div>
           )}
 
-          <main className={`flex-1 ${ancho === 'angosto' ? 'wrap max-w-[560px] py-10' : ''}`}>{children}</main>
+          {!conexion && (
+            <div role="status" className="bg-aviso-suave text-aviso text-[13.5px] font-medium">
+              <div className="wrap flex items-center gap-2.5 py-2.5">
+                <WifiOff size={16} aria-hidden="true" className="shrink-0" />
+                Sin conexión. Lo que ves puede estar desactualizado y los cambios no se guardan hasta que vuelva.
+              </div>
+            </div>
+          )}
+
+          <main id="contenido" tabIndex={-1} className={`flex-1 focus:outline-none ${ancho === 'angosto' ? 'wrap max-w-[560px] py-10' : ''}`}>
+            {children}
+          </main>
 
           <footer className="wrap w-full">
             <p className="py-6 border-t border-separador text-[12.5px] text-piedra leading-relaxed">
@@ -491,7 +542,7 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
                   </Enlace>
                 );
               })}
-              <button type="button" onClick={() => setMenu(true)} className="flex flex-col items-center justify-center gap-1 h-16 text-[11.5px] text-piedra">
+              <button type="button" onClick={() => setMenu(true)} aria-haspopup="dialog" aria-expanded={menu} aria-label="Más secciones" className="flex flex-col items-center justify-center gap-1 h-16 text-[11.5px] text-piedra">
                 <Menu size={21} strokeWidth={1.75} aria-hidden="true" />
                 Más
               </button>
@@ -504,7 +555,12 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
         </PanelMenu>
 
         {/* Tina atiende a los usuarios de los clientes. FIRMA y la vista previa no la ven. */}
-        {perfil && perfil.rol !== 'admin' && !vista && perfil.organizacion_id && <BurbujaTina nombre={perfil.nombre ?? null} />}
+        {perfil && perfil.rol !== 'admin' && !vista && perfil.organizacion_id && (
+          // Si el chat falla, se oculta la burbuja y el resto del portal sigue andando.
+          <LimiteError respaldo={null}>
+            <BurbujaTina nombre={perfil.nombre ?? null} />
+          </LimiteError>
+        )}
       </div>
     </DensidadBotones.Provider>
   );

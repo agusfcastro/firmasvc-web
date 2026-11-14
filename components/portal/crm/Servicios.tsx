@@ -7,6 +7,7 @@ import { useVistaPrevia } from '../vistaPrevia';
 import { BotonCopiar } from './firma';
 import { VARIABLES } from '../../../api/_lib/variables';
 import { dinero, type Servicio } from './tipos';
+import { mensajeAmable } from '../errores';
 
 /**
  * Servicios que vende cada empresa. Los carga el titular (o FIRMA) y el
@@ -71,7 +72,7 @@ export const Servicios: React.FC<{ orgId: string; orgNombre: string; esAdmin: bo
       supabase.from('documentos').select('id, titulo, archivo_nombre, organizacion_id').eq('seccion', 'servicio').eq('activo', true).not('archivo_ruta', 'is', null).order('orden').order('titulo'),
       supabase.from('organizaciones').select('firmante_nombre, firmante_email').eq('id', orgId).maybeSingle(),
     ]);
-    if (e) setError(e.message);
+    if (e) setError(mensajeAmable(e));
     setLista((data as Fila[]) ?? []);
     // Solo Word, y de la biblioteca común o de esta empresa.
     setModelos(((docs ?? []) as Modelo[]).filter((d) => /\.docx$/i.test(d.archivo_nombre ?? '') && (!d.organizacion_id || d.organizacion_id === orgId)));
@@ -89,7 +90,7 @@ export const Servicios: React.FC<{ orgId: string; orgNombre: string; esAdmin: bo
     setOk(null);
     const { error: err } = await supabase.rpc('organizacion_firmante', { p_org: orgId, p_nombre: firmante.nombre, p_email: email });
     setGuardandoFirmante(false);
-    if (err) return setError(err.message);
+    if (err) return setError(mensajeAmable(err));
     setOk('Listo. Esa persona firma los contratos por la empresa.');
   }
 
@@ -125,7 +126,7 @@ export const Servicios: React.FC<{ orgId: string; orgNombre: string; esAdmin: bo
       ? await supabase.from('crm_servicios').update(datos).eq('id', borrador.id)
       : await supabase.from('crm_servicios').insert({ ...datos, organizacion_id: orgId, clave });
     setGuardando(false);
-    if (err) return setError(/duplicate|unique/i.test(err.message) ? `Ya hay un servicio con el código ${clave}.` : err.message);
+    if (err) return setError(/duplicate|unique/i.test(err.message) ? `Ya hay un servicio con el código ${clave}.` : mensajeAmable(err));
     setOk(borrador.id ? 'Servicio actualizado.' : 'Servicio agregado. Ya aparece al cargar una venta.');
     setBorrador(null);
     void cargar();

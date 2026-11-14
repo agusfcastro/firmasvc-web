@@ -1,12 +1,13 @@
-import React, { Suspense, lazy, useEffect } from 'react';
+import React, { Suspense, lazy, useEffect, useRef } from 'react';
 // Archivo variable (peso y ancho), alojada en firmasvc.com. Solo la descarga quien entra al portal.
 import '@fontsource-variable/archivo/wdth.css';
 import { Button } from '../Button';
 import { supabase } from './supabase';
-import { navegar, useRuta } from './navegacion';
+import { guardarDestino, navegar, tomarDestino, useRuta } from './navegacion';
 import { useSesion } from './useSesion';
 import { registrarServiceWorker } from './push';
-import { Aviso, Cargando } from './ui';
+import { Aviso, Cargando, Marco } from './ui';
+import { LimiteError } from './LimiteError';
 import { LayoutAcceso } from './LayoutAcceso';
 import { Ingresar } from './Ingresar';
 import { DefinirClave } from './DefinirClave';
@@ -14,7 +15,6 @@ import { SegundoFactor } from './SegundoFactor';
 import { Inicio } from './Inicio';
 import { Agenda } from './Agenda';
 import { Documentos } from './Documentos';
-import { Pagos } from './Pagos';
 // Sin lazy: Documentos ya trae este módulo para la tarjeta del pedido.
 import { Pedido } from './pedidos/Pedidos';
 import { VistaPreviaContexto, leerVistaPrevia } from './vistaPrevia';
@@ -24,7 +24,16 @@ const CrmApp = lazy(() => import('./crm/CrmApp'));
 const Firmas = lazy(() => import('./firmas/Firmas'));
 const Asuntos = lazy(() => import('./EstadoAsuntos'));
 const Bitacora = lazy(() => import('./Bitacora'));
+// Pagos lo abre solo el titular: no hace falta que lo descargue todo el equipo.
+const Pagos = lazy(() => import('./Pagos').then((m) => ({ default: m.Pagos })));
 const PanelAdmin = lazy(() => import('./admin/PanelAdmin').then((m) => ({ default: m.PanelAdmin })));
+
+const CargandoSeccion: React.FC = () => (
+  <div className="wrap py-16 flex items-center gap-3 text-piedra text-[14px]" role="status">
+    <span aria-hidden="true" className="w-4 h-4 rounded-full border-2 border-borde-suave border-t-tinta animate-spin motion-reduce:animate-none" />
+    Cargando…
+  </div>
+);
 
 /**
  * Portal de clientes FIRMA. Rutas
@@ -39,7 +48,7 @@ const PanelAdmin = lazy(() => import('./admin/PanelAdmin').then((m) => ({ defaul
  *   /portal/bitacora   bitácora de la empresa (solo titular; FIRMA usa Administración › Registro)
  *   /portal/admin/...  panel de administración (solo admin)
  */
-export const PortalApp: React.FC = () => {
+const Portal: React.FC = () => {
   const ruta = useRuta();
   const estado = useSesion();
   const { cargando, sesion, perfil, vieneDeEnlace } = estado;
@@ -51,6 +60,7 @@ export const PortalApp: React.FC = () => {
 
   useEffect(() => {
     const previo = document.title;
+    // El título de cada sección lo pone el Marco. Este es el de las pantallas de acceso.
     document.title = 'Portal de clientes · FIRMA';
     const meta = document.createElement('meta');
     meta.name = 'robots';
@@ -62,11 +72,19 @@ export const PortalApp: React.FC = () => {
     };
   }, []);
 
+  const yaControlo = useRef(false);
+
   // Redirecciones según la sesión.
   useEffect(() => {
     if (cargando || !supabase) return;
-    if (!sesion && ruta !== '/portal/ingresar' && ruta !== '/portal/clave') navegar('/portal/ingresar');
-    else if (sesion && ruta === '/portal/ingresar') navegar('/portal');
+    const alAbrir = !yaControlo.current;
+    yaControlo.current = true;
+    if (!sesion && ruta !== '/portal/ingresar' && ruta !== '/portal/clave') {
+      // Se guarda adónde iba (el enlace de un mail o de un aviso) para llevarla ahí después de ingresar.
+      // Solo al abrir el portal: al salir no, así la próxima persona que ingrese acá empieza por Inicio.
+      if (alAbrir) guardarDestino(window.location.pathname + window.location.search);
+      navegar('/portal/ingresar');
+    } else if (sesion && ruta === '/portal/ingresar') navegar(tomarDestino());
     else if (sesion && vieneDeEnlace && ruta !== '/portal/clave') navegar('/portal/clave');
   }, [cargando, sesion, ruta, vieneDeEnlace]);
 
@@ -87,6 +105,19 @@ export const PortalApp: React.FC = () => {
   }
   if (ruta === '/portal/clave') return <DefinirClave estado={estado} />;
   if (!sesion) return <Ingresar />;
+
+  if (estado.falloCarga && !perfil) {
+    return (
+      <LayoutAcceso>
+        <p className="text-[13px] font-medium text-piedra mb-2">Sin conexión</p>
+        <h1 className="p-titulo-grande mb-5">
+          No pudimos cargar <span className="text-bosque">tu cuenta</span>
+        </h1>
+        <p className="text-piedra mb-8">Parece un problema de conexión. Tu acceso sigue igual: revisá tu internet y probá de nuevo.</p>
+        <Button onClick={() => void estado.recargar()}>Reintentar</Button>
+      </LayoutAcceso>
+    );
+  }
 
   if (!perfil || !perfil.activo || (perfil.rol !== 'admin' && !estado.organizacion)) {
     return (
@@ -109,12 +140,24 @@ export const PortalApp: React.FC = () => {
     );
   }
 
+  // Mientras baja una sección, el marco queda en su lugar: solo espera el contenido.
+  const espera = (
+    <Marco perfil={perfil}>
+      <CargandoSeccion />
+    </Marco>
+  );
+
   // Modo "Ver como": el admin navega con la perspectiva de un cliente.
   const vista = perfil.rol === 'admin' ? leerVistaPrevia() : null;
   if (vista) {
     const perfilVista: Perfil = { ...perfil, rol: vista.rol, organizacion_id: vista.orgId, areas: vista.areas, nombre: vista.nombre ?? perfil.nombre, cargo: null };
     const orgVista = { id: vista.orgId, nombre: vista.orgNombre, activa: true } as Organizacion;
     const permisosVista = permisosDe(vista.rol);
+    const esperaVista = (
+      <Marco perfil={perfilVista}>
+        <CargandoSeccion />
+      </Marco>
+    );
     const enCrm = (ruta === '/portal/crm' || ruta.startsWith('/portal/crm/')) && permisosVista.crm;
     const enDocumentos = ruta === '/portal/documentos' || ruta.startsWith('/portal/documentos/') || ruta === '/portal/protocolos';
     const enFirmas = (ruta === '/portal/firmas' || ruta.startsWith('/portal/firmas/')) && permisosVista.documentosLegales;
@@ -125,15 +168,15 @@ export const PortalApp: React.FC = () => {
         {enPedidos ? (
           <Pedido perfil={perfilVista} organizacion={orgVista} ruta={ruta} />
         ) : enCrm ? (
-          <Suspense fallback={<Cargando />}>
+          <Suspense fallback={esperaVista}>
             <CrmApp perfil={perfilVista} organizacion={orgVista} ruta={ruta} />
           </Suspense>
         ) : enFirmas ? (
-          <Suspense fallback={<Cargando />}>
+          <Suspense fallback={esperaVista}>
             <Firmas perfil={perfilVista} organizacion={orgVista} ruta={ruta} />
           </Suspense>
         ) : enAsuntos ? (
-          <Suspense fallback={<Cargando />}>
+          <Suspense fallback={esperaVista}>
             <Asuntos perfil={perfilVista} organizacion={orgVista} ruta={ruta} />
           </Suspense>
         ) : enDocumentos ? (
@@ -141,7 +184,9 @@ export const PortalApp: React.FC = () => {
         ) : ruta === '/portal/agenda' && permisosVista.agenda ? (
           <Agenda perfil={perfilVista} organizacion={orgVista} />
         ) : ruta === '/portal/pagos' && permisosVista.gestion ? (
-          <Pagos perfil={perfilVista} organizacion={orgVista} />
+          <Suspense fallback={esperaVista}>
+            <Pagos perfil={perfilVista} organizacion={orgVista} />
+          </Suspense>
         ) : (
           <Inicio estado={{ ...estado, perfil: perfilVista, organizacion: orgVista }} />
         )}
@@ -153,7 +198,7 @@ export const PortalApp: React.FC = () => {
 
   if ((ruta === '/portal/crm' || ruta.startsWith('/portal/crm/')) && permisos.crm) {
     return (
-      <Suspense fallback={<Cargando />}>
+      <Suspense fallback={espera}>
         <CrmApp perfil={perfil} organizacion={estado.organizacion} ruta={ruta} />
       </Suspense>
     );
@@ -166,7 +211,7 @@ export const PortalApp: React.FC = () => {
 
   if ((ruta === '/portal/firmas' || ruta.startsWith('/portal/firmas/')) && permisos.documentosLegales) {
     return (
-      <Suspense fallback={<Cargando />}>
+      <Suspense fallback={espera}>
         <Firmas perfil={perfil} organizacion={estado.organizacion} ruta={ruta} />
       </Suspense>
     );
@@ -175,7 +220,7 @@ export const PortalApp: React.FC = () => {
   // Closers y setters responsables de un cliente entran solo a los asuntos de su cartera.
   if ((ruta === '/portal/asuntos' || ruta.startsWith('/portal/asuntos/')) && veAsuntos(perfil)) {
     return (
-      <Suspense fallback={<Cargando />}>
+      <Suspense fallback={espera}>
         <Asuntos perfil={perfil} organizacion={estado.organizacion} ruta={ruta} />
       </Suspense>
     );
@@ -189,13 +234,17 @@ export const PortalApp: React.FC = () => {
   // Pagos solo para titulares y FIRMA. El resto del equipo vuelve al inicio.
   if (ruta === '/portal/pagos') {
     if (!permisos.gestion) return <Inicio estado={estado} />;
-    return <Pagos perfil={perfil} organizacion={estado.organizacion} />;
+    return (
+      <Suspense fallback={espera}>
+        <Pagos perfil={perfil} organizacion={estado.organizacion} />
+      </Suspense>
+    );
   }
 
   if (ruta === '/portal/bitacora') {
     if (perfil.rol !== 'titular') return <Inicio estado={estado} />;
     return (
-      <Suspense fallback={<Cargando />}>
+      <Suspense fallback={espera}>
         <Bitacora perfil={perfil} organizacion={estado.organizacion} />
       </Suspense>
     );
@@ -204,7 +253,7 @@ export const PortalApp: React.FC = () => {
   if (ruta.startsWith('/portal/admin')) {
     if (perfil.rol !== 'admin') return <Inicio estado={estado} />;
     return (
-      <Suspense fallback={<Cargando />}>
+      <Suspense fallback={espera}>
         <PanelAdmin perfil={perfil} ruta={ruta} />
       </Suspense>
     );
@@ -212,5 +261,12 @@ export const PortalApp: React.FC = () => {
 
   return <Inicio estado={estado} />;
 };
+
+/** El portal entero dentro de la red de contención: un error en una pantalla no deja la página en blanco. */
+export const PortalApp: React.FC = () => (
+  <LimiteError>
+    <Portal />
+  </LimiteError>
+);
 
 export default PortalApp;

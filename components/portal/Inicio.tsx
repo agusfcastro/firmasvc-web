@@ -125,6 +125,9 @@ async function cargarResumen(orgId: string, p: Permisos): Promise<Resumen> {
     p.crm && !p.casos ? sb.from('crm_clientes').select('id', { count: 'exact', head: true }).eq('organizacion_id', orgId).in('estado_firma', ['Pendiente', 'En firma']) : null,
   ]);
 
+  // Supabase no lanza el error, lo devuelve. Si falla lo que arma «Para hoy», se avisa en vez de mostrar «Estás al día».
+  if (asuntos?.error || sobres?.error) throw new Error('resumen');
+
   const listaSobres = ((sobres?.data ?? []) as Sobre[]).filter((s) => s.estado === 'en_curso' || (s.completado_en && s.completado_en >= hace30));
   const enCurso = listaSobres.filter((s) => s.estado === 'en_curso');
   const { data: f } = enCurso.length ? await sb.from('firma_firmantes').select(COLUMNAS_FIRMANTE).in('sobre_id', enCurso.map((s) => s.id)) : { data: [] };
@@ -145,6 +148,9 @@ async function cargarResumen(orgId: string, p: Permisos): Promise<Resumen> {
 }
 
 /** Lo que la persona tiene que resolver, del más urgente al menos. */
+/** Cuántos pendientes se listan en Inicio. El número del título cuenta todos. */
+const MAX_PENDIENTES = 6;
+
 function pendientesDe(r: Resumen, email: string): Pendiente[] {
   const lista: Pendiente[] = [];
   const yo = email.trim().toLowerCase();
@@ -192,7 +198,7 @@ function pendientesDe(r: Resumen, email: string): Pendiente[] {
     lista.push({ clave: 'crm', tono: 'neutro', icono: Kanban, titulo: plural(r.crmPendientes, 'cliente con la firma pendiente', 'clientes con la firma pendiente'), detalle: 'CRM legal · contratos que todavía no firmaron', chip: 'Seguimiento', accion: 'Ver clientes', a: '/portal/crm', orden: 6 });
   }
 
-  return lista.sort((x, y) => x.orden - y.orden).slice(0, 6);
+  return lista.sort((x, y) => x.orden - y.orden);
 }
 
 function actividadDe(r: Resumen): Evento[] {
@@ -245,7 +251,7 @@ const Datos: React.FC<{ items: Dato[]; cargando: boolean }> = ({ items, cargando
             <Icono size={16} strokeWidth={1.75} aria-hidden="true" />
             {d.titulo}
           </span>
-          <span className="font-extrabold text-[34px] leading-none tracking-[-0.04em] mt-3 mb-2 tabular-nums">{cargando ? '·' : d.valor}</span>
+          <span className="font-extrabold text-[34px] leading-none tracking-[-0.04em] mt-3 mb-2 tabular-nums">{cargando ? <span className="inline-block w-10 h-[0.8em] rounded bg-niebla animate-pulse motion-reduce:animate-none align-baseline" aria-label="Cargando" /> : d.valor}</span>
           {d.barra !== undefined ? (
             <span aria-hidden="true" className="block h-1 bg-separador mt-1">
               <span className="block h-full bg-bosque" style={{ width: `${Math.min(100, Math.max(0, d.barra))}%` }} />
@@ -284,8 +290,38 @@ const Tarjeta: React.FC<{ titulo: string; cuenta?: number; enlace?: { a: string;
   </section>
 );
 
-const ListaPendientes: React.FC<{ items: Pendiente[]; cargando: boolean; vacio: string }> = ({ items, cargando, vacio }) => {
-  if (cargando) return <p className="px-5 desk:px-6 py-6 text-[14px] text-piedra">Cargando lo pendiente…</p>;
+const ListaPendientes: React.FC<{ items: Pendiente[]; cargando: boolean; vacio: string; max?: number; error?: boolean; alReintentar?: () => void }> = ({ items: todos, cargando, vacio, max = MAX_PENDIENTES, error, alReintentar }) => {
+  const [verTodos, setVerTodos] = useState(false);
+  const items = verTodos ? todos : todos.slice(0, max);
+  const ocultos = todos.length - items.length;
+  if (cargando)
+    return (
+      <div className="px-5 desk:px-6 py-5 flex flex-col gap-4" role="status" aria-label="Cargando lo pendiente">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="flex items-center gap-4 animate-pulse motion-reduce:animate-none">
+            <span className="w-10 h-10 rounded-[12px] bg-niebla shrink-0" />
+            <span className="flex-1 flex flex-col gap-2">
+              <span className="h-3.5 rounded bg-niebla w-[55%]" />
+              <span className="h-3 rounded bg-separador w-[80%]" />
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  // Si la carga falló no se puede decir «Estás al día»: se avisa y se deja reintentar.
+  if (error)
+    return (
+      <div className="px-5 desk:px-6 py-6 flex flex-wrap items-center gap-x-4 gap-y-3" role="alert">
+        <p className="flex-1 min-w-[220px] text-[14px]">
+          <span className="font-medium">No pudimos cargar lo pendiente.</span> <span className="text-piedra">Revisá tu conexión y probá de nuevo.</span>
+        </p>
+        {alReintentar && (
+          <Button variant="ghost" size="sm" onClick={alReintentar}>
+            Reintentar
+          </Button>
+        )}
+      </div>
+    );
   if (!items.length)
     return (
       <div className="px-5 desk:px-6 py-8 flex items-center gap-4">
@@ -320,6 +356,13 @@ const ListaPendientes: React.FC<{ items: Pendiente[]; cargando: boolean; vacio: 
           </li>
         );
       })}
+      {(ocultos > 0 || (verTodos && todos.length > max)) && (
+        <li>
+          <button type="button" onClick={() => setVerTodos((v) => !v)} aria-expanded={verTodos} className="w-full min-h-[48px] px-4 desk:px-6 text-left text-[13.5px] font-semibold text-piedra hover:text-tinta hover:bg-marfil/60">
+            {verTodos ? 'Ver menos' : `Ver ${ocultos === 1 ? 'el que falta' : `los ${ocultos} que faltan`}`}
+          </button>
+        </li>
+      )}
     </ul>
   );
 };
@@ -385,6 +428,8 @@ const InicioCliente: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
   const { perfil, organizacion } = estado;
   const [r, setR] = useState<Resumen>(VACIO);
   const [cargando, setCargando] = useState(true);
+  const [fallo, setFallo] = useState(false);
+  const [intento, setIntento] = useState(0);
   const orgId = organizacion?.id ?? null;
   const permisos = permisosDe(perfil!.rol);
 
@@ -392,14 +437,19 @@ const InicioCliente: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
     if (!supabase || !orgId) return;
     let vivo = true;
     setCargando(true);
+    setFallo(false);
     void cargarResumen(orgId, permisos)
       .then((x) => vivo && setR(x))
-      .catch(() => vivo && setR(VACIO))
+      .catch(() => {
+        if (!vivo) return;
+        setR(VACIO);
+        setFallo(true);
+      })
       .finally(() => vivo && setCargando(false));
     return () => {
       vivo = false;
     };
-  }, [orgId, perfil!.rol]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [orgId, perfil!.rol, intento]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const nombre = (perfil!.nombre || '').split(' ')[0];
   const pendientes = pendientesDe(r, perfil!.email);
@@ -437,7 +487,9 @@ const InicioCliente: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
 
   const resumen = cargando
     ? 'Juntando lo de tu empresa…'
-    : pendientes.length
+    : fallo
+      ? 'No pudimos traer las novedades de tu empresa.'
+      : pendientes.length
       ? `Tenés ${plural(pendientes.length, 'cosa para resolver', 'cosas para resolver')}.`
       : 'No tenés nada pendiente por ahora.';
 
@@ -456,7 +508,7 @@ const InicioCliente: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
           <>
             {saludo()}
             {nombre ? ', ' : ' '}
-            <span className="ondulado whitespace-nowrap">{nombre || 'bienvenido'}</span>
+            <span className="ondulado whitespace-nowrap">{nombre || 'te damos la bienvenida'}</span>
           </>
         }
         bajada={resumen}
@@ -471,14 +523,14 @@ const InicioCliente: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
 
       <div className="wrap pt-6 pb-10 flex flex-col gap-6">
         <TarjetaAvisos />
-        {datos.length > 0 && <Datos items={datos} cargando={cargando} />}
+        {datos.length > 0 && !fallo && <Datos items={datos} cargando={cargando} />}
 
         <div className="grid grid-cols-1 wide:grid-cols-[minmax(0,1fr)_340px] gap-6 items-start">
           <div className="flex flex-col gap-6 min-w-0">
             {permisos.crm && orgId && <OnboardingsDia orgId={orgId} />}
             {(permisos.casos || permisos.documentosLegales || permisos.crm) && (
               <Tarjeta titulo="Para hoy" cuenta={pendientes.length}>
-                <ListaPendientes items={pendientes} cargando={cargando} vacio="Cuando algo necesite tu respuesta o esté por vencer, aparece acá." />
+                <ListaPendientes items={pendientes} cargando={cargando} error={fallo} alReintentar={() => setIntento((n) => n + 1)} vacio="Cuando algo necesite tu respuesta o esté por vencer, aparece acá." />
               </Tarjeta>
             )}
             {eventos.length > 0 && (
@@ -554,12 +606,16 @@ const InicioFirma: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
   const { perfil } = estado;
   const [r, setR] = useState<ResumenFirma>({ orgs: [], asuntos: [], sobres: [], abonos: [], pedidos: [] });
   const [cargando, setCargando] = useState(true);
+  const [fallo, setFallo] = useState(false);
+  const [intento, setIntento] = useState(0);
 
   useEffect(() => {
     if (!supabase) return;
     let vivo = true;
     const sb = supabase;
     const hace7 = new Date(Date.now() - 7 * DIA).toISOString();
+    setCargando(true);
+    setFallo(false);
     void Promise.all([
       sb.from('organizaciones').select('id, nombre, activa, demo').order('nombre'),
       sb.from('asuntos').select('id, organizacion_id, codigo, titulo, estado, proximo_paso, vence_en, actualizado_en').eq('estado', 'en_curso').order('vence_en', { ascending: true, nullsFirst: false }),
@@ -569,12 +625,17 @@ const InicioFirma: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
     ]).then(([o, a, s, ab, pc]) => {
       if (!vivo) return;
       setR({ orgs: (o.data ?? []) as ResumenFirma['orgs'], asuntos: (a.data ?? []) as Asunto[], sobres: (s.data ?? []) as Sobre[], abonos: (ab.data ?? []) as Abono[], pedidos: (pc.data ?? []) as ResumenFirma['pedidos'] });
+      setFallo(Boolean(o.error || a.error || s.error || ab.error));
+      setCargando(false);
+    }).catch(() => {
+      if (!vivo) return;
+      setFallo(true);
       setCargando(false);
     });
     return () => {
       vivo = false;
     };
-  }, []);
+  }, [intento]);
 
   const nombreOrg = (id: string | null) => r.orgs.find((o) => o.id === id)?.nombre ?? 'Sin empresa';
   const clientes = r.orgs.filter((o) => o.activa && !o.demo).length;
@@ -587,8 +648,7 @@ const InicioFirma: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
     ...r.pedidos.map((p) => ({ clave: `pc-${p.id}`, tono: 'bosque' as Tono, icono: FilePlus2, titulo: p.titulo || 'Pedido de contrato', detalle: `${nombreOrg(p.organizacion_id)} · enviado ${hace(p.enviado_en)}`, chip: 'Pedido nuevo', accion: 'Ver', a: p.asunto_id ? `/portal/asuntos/${p.asunto_id}` : '/portal/asuntos', orden: 1 })),
     ...venceSemana.map((a) => ({ clave: `as-${a.id}`, tono: (diasHasta(a.vence_en!) <= 2 ? 'aviso' : 'neutro') as Tono, icono: BriefcaseBusiness, titulo: a.titulo, detalle: `${nombreOrg(a.organizacion_id)}${a.proximo_paso ? ` · ${a.proximo_paso}` : ''}`, chip: venceEn(a.vence_en!), accion: 'Ver', a: `/portal/asuntos/${a.id}`, orden: 2 + diasHasta(a.vence_en!) / 10 })),
   ]
-    .sort((x, y) => x.orden - y.orden)
-    .slice(0, 8);
+    .sort((x, y) => x.orden - y.orden);
 
   const datos: Dato[] = [
     { titulo: 'Clientes activos', icono: Users, valor: clientes, nota: plural(r.orgs.length, 'empresa en total', 'empresas en total'), a: '/portal/admin/clientes' },
@@ -599,9 +659,9 @@ const InicioFirma: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
 
   const accesos = [
     { a: '/portal/admin', titulo: 'Usuarios', texto: 'Invitaciones, roles y verificación en dos pasos.', icono: ShieldCheck },
-    { a: '/portal/admin/clientes', titulo: 'Clientes', texto: 'Empresas, planes, logos y vista como cliente.', icono: Users },
+    { a: '/portal/admin/clientes', titulo: 'Empresas cliente', texto: 'Empresas, planes, logos y vista como cliente.', icono: Users },
     { a: '/portal/admin/documentos', titulo: 'Documentos', texto: 'Modelos, protocolos y avisos a cada empresa.', icono: FileText },
-    { a: '/portal/crm', titulo: 'Clientes', texto: 'El CRM de cada empresa y sus casos.', icono: Kanban },
+    { a: '/portal/crm', titulo: 'CRM de cada empresa', texto: 'Los clientes de tus clientes, sus contratos y sus casos.', icono: Kanban },
   ];
 
   return (
@@ -614,14 +674,14 @@ const InicioFirma: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
             {saludo()}, <span className="ondulado">{(perfil!.nombre || 'FIRMA').split(' ')[0]}</span>
           </>
         }
-        bajada={cargando ? 'Juntando lo de tus clientes…' : pendientes.length ? `Hay ${plural(pendientes.length, 'cosa que mirar', 'cosas que mirar')} en los negocios de tus clientes.` : 'Nada urgente en los negocios de tus clientes.'}
+        bajada={cargando ? 'Juntando lo de tus clientes…' : fallo ? 'No pudimos traer todo. Lo que ves puede estar incompleto.' : pendientes.length ? `Hay ${plural(pendientes.length, 'cosa que mirar', 'cosas que mirar')} en los negocios de tus clientes.` : 'Nada urgente en los negocios de tus clientes.'}
       />
       <div className="wrap pt-6 pb-10 flex flex-col gap-6">
         <TarjetaAvisos />
-        <Datos items={datos} cargando={cargando} />
+        {!fallo && <Datos items={datos} cargando={cargando} />}
         <div className="grid grid-cols-1 wide:grid-cols-[minmax(0,1fr)_340px] gap-6 items-start">
           <Tarjeta titulo="Para hoy" cuenta={pendientes.length} enlace={{ a: '/portal/asuntos', texto: 'Todos los asuntos' }}>
-            <ListaPendientes items={pendientes} cargando={cargando} vacio="Cuando un asunto esté por vencer o falle un cobro, aparece acá." />
+            <ListaPendientes items={pendientes} cargando={cargando} max={8} error={fallo} alReintentar={() => setIntento((n) => n + 1)} vacio="Cuando un asunto esté por vencer o falle un cobro, aparece acá." />
           </Tarjeta>
           <Tarjeta titulo="Administración">
             <ModulosRapidos items={accesos} />

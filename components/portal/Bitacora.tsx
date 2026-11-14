@@ -5,6 +5,7 @@ import { supabase } from './supabase';
 import { Aviso, Encabezado, Etiqueta, Marco } from './ui';
 import { ACCIONES } from './acciones';
 import { fechaCorta, type EntradaRegistro, type Organizacion, type Perfil } from './tipos';
+import { mensajeAmable } from './errores';
 
 /**
  * Bitácora de la empresa, para el titular: quién ingresó, quién cambió
@@ -23,6 +24,8 @@ export const Bitacora: React.FC<{ perfil: Perfil; organizacion: Organizacion | n
   const [cargando, setCargando] = useState(true);
   const [verificacion, setVerificacion] = useState<{ ok: boolean; texto: string } | null>(null);
   const [verificando, setVerificando] = useState(false);
+  const [hayMas, setHayMas] = useState(false);
+  const [trayendo, setTrayendo] = useState(false);
   const orgId = organizacion?.id ?? perfil.organizacion_id;
 
   useEffect(() => {
@@ -33,12 +36,25 @@ export const Bitacora: React.FC<{ perfil: Perfil; organizacion: Organizacion | n
         // El titular ve los perfiles de su equipo. Los de FIRMA no: se muestran como FIRMA.
         supabase!.from('perfiles').select('id, nombre, email'),
       ]);
-      if (e) setError(e.message);
+      if (e) setError(mensajeAmable(e, 'No pudimos cargar la bitácora.'));
       setFilas((data as EntradaRegistro[]) ?? []);
+      setHayMas((data?.length ?? 0) === POR_PAGINA);
       setNombres(Object.fromEntries(((perfiles ?? []) as { id: string; nombre: string | null; email: string }[]).map((p) => [p.id, p.nombre || p.email])));
       setCargando(false);
     })();
   }, [orgId]);
+
+  /** Trae los movimientos anteriores al último que está en pantalla. */
+  async function traerMas() {
+    const ultimo = filas[filas.length - 1];
+    if (!supabase || !orgId || !ultimo) return;
+    setTrayendo(true);
+    const { data, error: e } = await supabase.from('registro_accesos').select('*').eq('organizacion_id', orgId).lt('id', ultimo.id).order('id', { ascending: false }).limit(POR_PAGINA);
+    setTrayendo(false);
+    if (e) return setError(mensajeAmable(e, 'No pudimos traer más movimientos.'));
+    setFilas((f) => [...f, ...((data as EntradaRegistro[]) ?? [])]);
+    setHayMas((data?.length ?? 0) === POR_PAGINA);
+  }
 
   async function verificar() {
     if (!supabase || !orgId) return;
@@ -72,7 +88,7 @@ export const Bitacora: React.FC<{ perfil: Perfil; organizacion: Organizacion | n
         bajada="Quién entró y qué se hizo en la cuenta, incluido lo que hizo FIRMA. Nadie puede editar ni borrar un movimiento."
         acciones={
           <Button variant="ghost" size="lg" onClick={() => void verificar()} disabled={verificando} className="self-end">
-            <ShieldCheck size={18} /> {verificando ? 'Verificando…' : 'Verificar'}
+            <ShieldCheck size={18} aria-hidden="true" /> {verificando ? 'Verificando…' : 'Verificar'}
           </Button>
         }
       />
@@ -86,7 +102,9 @@ export const Bitacora: React.FC<{ perfil: Perfil; organizacion: Organizacion | n
             </span>
           </Aviso>
         )}
-        <p className="text-sm text-piedra">Últimos {POR_PAGINA} movimientos.</p>
+        <p className="text-sm text-piedra" role="status">
+          {cargando ? 'Cargando los movimientos…' : hayMas ? `Los ${filas.length} movimientos más recientes.` : filas.length ? `${filas.length} ${filas.length === 1 ? 'movimiento' : 'movimientos'} en total.` : ''}
+        </p>
         <div className="overflow-x-auto">
           <table className="tabla min-w-[640px]">
             <thead>
@@ -117,6 +135,11 @@ export const Bitacora: React.FC<{ perfil: Perfil; organizacion: Organizacion | n
             </tbody>
           </table>
         </div>
+        {hayMas && (
+          <Button variant="ghost" onClick={() => void traerMas()} disabled={trayendo} className="self-start">
+            {trayendo ? 'Trayendo…' : 'Ver movimientos anteriores'}
+          </Button>
+        )}
       </div>
     </Marco>
   );

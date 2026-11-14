@@ -7,6 +7,7 @@ import { supabase } from '../supabase';
 import { Aviso, Etiqueta } from '../ui';
 import { BUCKET_ASUNTOS, avisarPorMail, fechaHoraAsunto, type Archivo } from '../asuntos';
 import { rangoDe, seleccionActual, ubicar, type Ancla, type Seleccion } from './anclas';
+import { mensajeAmable } from '../errores';
 
 GlobalWorkerOptions.workerSrc = trabajador;
 
@@ -260,7 +261,7 @@ export const VisorComentarios: React.FC<{
     if (!supabase) return;
     setError(null);
     const { error: e } = await supabase.rpc('resolver_comentario', { comentario: hilo.id, resuelto });
-    if (e) return setError(e.message);
+    if (e) return setError(mensajeAmable(e));
     if (resuelto && activo === hilo.id) setActivo(null);
     void cargar();
     alCambiar();
@@ -272,7 +273,7 @@ export const VisorComentarios: React.FC<{
     if (!window.confirm(`${aviso} No se puede deshacer.`)) return;
     setError(null);
     const { error: e } = await supabase.from('asunto_comentarios').delete().eq('id', c.id);
-    if (e) return setError(e.message);
+    if (e) return setError(mensajeAmable(e));
     setComentarios((l) => l.filter((x) => x.id !== c.id && x.padre_id !== c.id));
     alCambiar();
   }

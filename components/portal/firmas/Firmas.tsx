@@ -214,7 +214,7 @@ const Listado: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> =
                     const firmaron = fs.filter((f) => f.estado === 'firmado').length;
                     const e = ESTADO_SOBRE[s.estado];
                     return (
-                      <tr key={s.id} className="fila-link" onClick={() => navegar(`/portal/firmas/${s.id}`)}>
+                      <tr key={s.id} className="fila-link" onClick={(e) => !(e.target as HTMLElement).closest('a, button') && navegar(`/portal/firmas/${s.id}`)}>
                         <td>
                           <Enlace a={`/portal/firmas/${s.id}`} className="font-medium hover:text-bosque">
                             {s.titulo}

@@ -5,6 +5,7 @@ import { supabase } from '../supabase';
 import { Aviso, Campo, Encabezado, Enlace, Etiqueta, claseInput } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
 import { ROL_COMERCIAL, type IntegranteEquipo, type RolComercial } from './tipos';
+import { mensajeAmable } from '../errores';
 
 /**
  * Equipo comercial de la empresa: closers, setters, account managers y CSM,
@@ -37,7 +38,7 @@ export const Equipo: React.FC<{ orgId: string; orgNombre: string; puedeGestionar
   async function cargar() {
     if (!supabase) return;
     const { data, error: e } = await supabase.from('equipo_miembros').select('*').eq('organizacion_id', orgId).order('activo', { ascending: false }).order('nombre');
-    if (e) setError(e.message);
+    if (e) setError(mensajeAmable(e));
     setLista((data as IntegranteEquipo[]) ?? []);
   }
 
@@ -61,7 +62,7 @@ export const Equipo: React.FC<{ orgId: string; orgNombre: string; puedeGestionar
       ? await supabase.from('equipo_miembros').update(datos).eq('id', borrador.id)
       : await supabase.from('equipo_miembros').insert({ ...datos, organizacion_id: orgId });
     setGuardando(false);
-    if (err) return setError(/duplicate|unique/i.test(err.message) ? `Ya hay alguien del equipo con el mail ${email}.` : err.message);
+    if (err) return setError(/duplicate|unique/i.test(err.message) ? `Ya hay alguien del equipo con el mail ${email}.` : mensajeAmable(err));
     setOk(borrador.id ? 'Datos actualizados.' : 'Listo. Ya se puede asignar a los clientes.');
     setBorrador(null);
     void cargar();

@@ -7,6 +7,7 @@ import { useVistaPrevia } from '../vistaPrevia';
 import { BotonCopiar } from './firma';
 import { CampoVariable } from './variablesPropias';
 import { TIPO_VARIABLE, type AmbitoVariable, type TipoVariable, type VariablePropia } from './tipos';
+import { mensajeAmable } from '../errores';
 
 /**
  * Variables propias de la empresa para los contratos modelo, además de las
@@ -59,7 +60,7 @@ export const Variables: React.FC<{ orgId: string; orgNombre: string; puedeGestio
       supabase.from('org_variables_def').select('*').eq('organizacion_id', orgId).order('activa', { ascending: false }).order('orden').order('etiqueta'),
       supabase.from('org_variables_valor').select('clave, valor').eq('organizacion_id', orgId),
     ]);
-    if (e) setError(e.message);
+    if (e) setError(mensajeAmable(e));
     setLista((data as VariablePropia[]) ?? []);
     setValores(Object.fromEntries(((vals ?? []) as { clave: string; valor: unknown }[]).map((v) => [v.clave, v.valor])));
   }
@@ -84,7 +85,7 @@ export const Variables: React.FC<{ orgId: string; orgNombre: string; puedeGestio
     const r2 = vacios.length ? await supabase.from('org_variables_valor').delete().eq('organizacion_id', orgId).in('clave', vacios) : { error: null };
     setGuardando(false);
     const err = r1.error || r2.error;
-    if (err) return setError(err.message);
+    if (err) return setError(mensajeAmable(err));
     setOk('Datos de la empresa guardados. Los contratos nuevos ya salen con estos valores.');
   }
 
@@ -118,7 +119,7 @@ export const Variables: React.FC<{ orgId: string; orgNombre: string; puedeGestio
     if (err) {
       if (/duplicate|unique/i.test(err.message)) return setError(`Ya hay una variable {{${clave}}}.`);
       if (/variable_de_sistema|check/i.test(err.message)) return setError(`{{${clave}}} es una variable del sistema o no es una clave válida. Elegí otra.`);
-      return setError(err.message);
+      return setError(mensajeAmable(err));
     }
     setOk(borrador.id ? 'Variable actualizada.' : `Listo. Usala en el Word como {{${clave}}}.`);
     setBorrador(null);

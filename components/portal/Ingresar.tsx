@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '../Button';
 import { supabase } from './supabase';
-import { navegar } from './navegacion';
+import { navegar, tomarDestino } from './navegacion';
 import { Aviso, Campo, claseInput } from './ui';
 import { LayoutAcceso } from './LayoutAcceso';
 
@@ -35,11 +35,26 @@ export const Ingresar: React.FC = () => {
     const { error: err } = await supabase.auth.signInWithPassword({ email: email.trim(), password: clave });
     setEnviando(false);
     if (err) {
-      setError(/banned/i.test(err.message) ? 'Tu acceso está desactivado. Escribinos si creés que es un error.' : 'Mail o contraseña incorrectos.');
+      const m = err.message;
+      setError(
+        /banned/i.test(m)
+          ? 'Tu acceso está desactivado. Escribinos si creés que es un error.'
+          : /fetch|network|load failed/i.test(m) || err.status === 0
+            ? 'No hay conexión. Revisá tu internet y probá de nuevo.'
+            : err.status === 429 || /rate limit|too many/i.test(m)
+              ? 'Demasiados intentos seguidos. Esperá unos minutos y probá de nuevo.'
+              : err.status && err.status >= 500
+                ? 'El servidor no respondió. Probá de nuevo en un rato.'
+                : 'Mail o contraseña incorrectos.',
+      );
       return;
     }
-    await supabase.rpc('registrar_ingreso');
-    navegar('/portal');
+    // Es solo el registro del ingreso en la bitácora: si falla, se entra igual.
+    await supabase.rpc('registrar_ingreso').then(
+      () => undefined,
+      () => undefined,
+    );
+    navegar(tomarDestino());
   }
 
   async function recuperar(e: React.FormEvent) {

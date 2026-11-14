@@ -16,6 +16,8 @@ export interface EstadoSesion {
   /** Valida el enlace pendiente. Devuelve null si entró o el motivo si no. */
   activarEnlace: () => Promise<string | null>;
   recargar: () => Promise<void>;
+  /** La sesión está, pero no se pudo leer la cuenta (sin conexión o el servidor no respondió). No es lo mismo que no tener acceso. */
+  falloCarga: boolean;
   /** Nivel de la sesión: aal2 si ya pasó el segundo factor. null mientras se lee. */
   mfa: { actual: string | null; posible: string | null } | null;
   recargarMfa: () => Promise<void>;
@@ -43,6 +45,7 @@ export function useSesion(): EstadoSesion {
   const [vieneDeEnlace, setVieneDeEnlace] = useState(hashDeEnlace);
   const [enlacePendiente, setEnlacePendiente] = useState(() => tokenDeEnlace() !== null);
   const [mfa, setMfa] = useState<EstadoSesion['mfa']>(null);
+  const [falloCarga, setFalloCarga] = useState(false);
 
   // Se lee del token de la sesión, sin ir al servidor.
   const recargarMfa = useCallback(async () => {
@@ -60,9 +63,17 @@ export function useSesion(): EstadoSesion {
     if (!supabase || !s) {
       setPerfil(null);
       setOrganizacion(null);
+      setFalloCarga(false);
       return;
     }
-    const { data: p } = await supabase.from('perfiles').select('*').eq('id', s.user.id).maybeSingle();
+    const { data: p, error: errorPerfil } = await supabase.from('perfiles').select('*').eq('id', s.user.id).maybeSingle();
+    // Sin respuesta del servidor no se sabe si la cuenta está habilitada: se avisa y se deja reintentar,
+    // en vez de mostrar «Tu cuenta no está habilitada» a alguien que solo se quedó sin señal.
+    if (errorPerfil) {
+      setFalloCarga(true);
+      return;
+    }
+    setFalloCarga(false);
     // Closers y setters responsables de un cliente ven los asuntos de su cartera (migración 0057).
     let cartera = false;
     if (p && p.rol !== 'admin' && !permisosDe(p.rol as Perfil['rol']).casos) {
@@ -128,7 +139,7 @@ export function useSesion(): EstadoSesion {
     return null;
   }, []);
 
-  return { cargando, sesion, perfil, organizacion, vieneDeEnlace, terminarEnlace, enlacePendiente, activarEnlace, recargar, mfa, recargarMfa };
+  return { cargando, sesion, perfil, organizacion, vieneDeEnlace, terminarEnlace, enlacePendiente, activarEnlace, recargar, falloCarga, mfa, recargarMfa };
 }
 
 /** Llama a la API de administración con el token de la sesión actual. */

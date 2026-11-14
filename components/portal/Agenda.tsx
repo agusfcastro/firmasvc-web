@@ -5,6 +5,7 @@ import { Aviso, Encabezado, Marco } from './ui';
 import { BarraUso } from './BarraUso';
 import { agendaAgotada, diaYMes, duracion, periodoAgenda, usoAgenda, whatsapp, type UsoAgenda } from './planes';
 import type { Agenda as TipoAgenda, Organizacion, Perfil } from './tipos';
+import { mensajeAmable } from './errores';
 
 /** Abre la reserva en una ventana sobre el portal. Si el navegador la bloquea, sigue el enlace normal. */
 function abrirReserva(e: React.MouseEvent<HTMLAnchorElement>, url: string) {
@@ -32,7 +33,7 @@ export const Agenda: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
     if (esAdmin) q = q.is('organizacion_id', null);
     else if (organizacion?.id) q = q.or(`organizacion_id.is.null,organizacion_id.eq.${organizacion.id}`);
     q.then(({ data, error: e }) => {
-      if (e) setError(e.message);
+      if (e) setError(mensajeAmable(e, 'No pudimos cargar la agenda.'));
       setAgendas((data as TipoAgenda[]) ?? []);
     });
     if (!esAdmin && organizacion?.id) void usoAgenda(organizacion.id).then(setUso);
@@ -83,7 +84,12 @@ export const Agenda: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
               </a>
             </div>
           )}
-          {!agotada && agendas && agendas.length === 0 && <p className="text-piedra">No hay horarios publicados en este momento. Escribinos a agustin@firmasvc.com y coordinamos.</p>}
+          {!agendas && !error && (
+            <p className="text-piedra text-[14px]" role="status">
+              Cargando los horarios…
+            </p>
+          )}
+          {!agotada && !error && agendas && agendas.length === 0 && <p className="text-piedra">No hay horarios publicados en este momento. Escribinos a agustin@firmasvc.com y coordinamos.</p>}
           <div className="grid grid-cols-1 tab:grid-cols-2 wide:grid-cols-3 gap-4 desk:gap-5">
             {visibles.map((a) => (
               <a key={a.id} href={a.url} target="_blank" rel="noopener noreferrer" onClick={(e) => abrirReserva(e, a.url)} className="group p-tarjeta flex flex-col gap-2.5 p-5 desk:p-6 transition-colors duration-150 hover:border-bosque">

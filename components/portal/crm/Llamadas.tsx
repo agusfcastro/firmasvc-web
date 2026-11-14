@@ -6,6 +6,7 @@ import { Aviso, Campo, Cifras, Encabezado, Enlace, Etiqueta, Pestanas, TituloSec
 import { useVistaPrevia } from '../vistaPrevia';
 import { ROL_COMERCIAL, type IntegranteEquipo } from './tipos';
 import { PasosFathom, urlWebhook } from './fathom';
+import { mensajeAmable } from '../errores';
 
 /**
  * Llamadas de Fathom (migraciones 0049 y 0050).
@@ -218,7 +219,7 @@ export const Llamadas: React.FC<{ orgId: string; orgNombre: string; puedeGestion
     const { error: e } = await accion();
     setOcupado(false);
     if (e) {
-      setError(e.message);
+      setError(mensajeAmable(e));
       return false;
     }
     setOk(mensaje);

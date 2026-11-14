@@ -3,9 +3,10 @@ import { AlertTriangle, ChevronLeft, ChevronRight, Download, Layers, Phone, Plus
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
-import { Aviso, Cifras, Encabezado, Etiqueta, Monto, Pestanas, claseInput } from '../ui';
+import { Aviso, Cifras, Encabezado, Enlace, Etiqueta, Monto, Pestanas, claseInput } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
 import { TONO_FIRMA, dinero, fecha, hoyISO, type ClienteResumen, type IntegranteEquipo } from './tipos';
+import { mensajeAmable } from '../errores';
 
 type Filtro = 'todos' | 'vencidas' | 'revisar' | 'Pendiente' | 'En firma' | 'Firmado' | 'Baja';
 
@@ -140,7 +141,7 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
       .eq('organizacion_id', orgId)
       .order('codigo', { ascending: false })
       .then(({ data, error: e }) => {
-        if (e) setError(e.message);
+        if (e) setError(mensajeAmable(e));
         setFilas(((data as ClienteResumen[]) ?? []).map((f) => ({ ...f, cobrado: Number(f.cobrado), pendiente: Number(f.pendiente), cuotas_vencidas: cobranzaRef ? Number(f.cuotas_vencidas) : 0, cuotas_pactadas: Number(f.cuotas_pactadas ?? 0), monto_total: f.monto_total === null ? null : Number(f.monto_total), proxima_cuota_monto: f.proxima_cuota_monto === null || f.proxima_cuota_monto === undefined ? null : Number(f.proxima_cuota_monto), por_cobrar_30_dias: Number(f.por_cobrar_30_dias ?? 0) })));
         setCargando(false);
       });
@@ -300,15 +301,11 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
                   const avance = f.monto_total ? Math.min(100, Math.round((f.cobrado / f.monto_total) * 100)) : 0;
                   const vencida = f.cuotas_vencidas > 0 && f.estado_firma !== 'Baja';
                   return (
-                    <tr key={f.id} className="fila-link" onClick={() => navegar(`/portal/crm/${f.id}`)}>
+                    <tr key={f.id} className="fila-link" onClick={(e) => !(e.target as HTMLElement).closest('a, button') && navegar(`/portal/crm/${f.id}`)}>
                       <td className="min-w-[220px]">
-                        <a
-                          href={`/portal/crm/${f.id}`}
-                          onClick={(e) => e.preventDefault()}
-                          className="font-heading font-bold text-[16px] leading-tight hover:text-bosque"
-                        >
+                        <Enlace a={`/portal/crm/${f.id}`} className="font-heading font-bold text-[16px] leading-tight hover:text-bosque">
                           {f.nombre}
-                        </a>
+                        </Enlace>
                         <div className="text-xs text-piedra mt-1 flex flex-wrap items-center gap-x-2">
                           <span className="tabular-nums">{f.codigo}</span>
                           {f.tipo === 'empresa' && <span>{f.representante ? `Empresa · ${f.representante}` : 'Empresa'}</span>}

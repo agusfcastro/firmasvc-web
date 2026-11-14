@@ -5,6 +5,7 @@ import { supabase } from '../supabase';
 import { Aviso, Campo, Etiqueta, TituloSeccion, claseInput } from '../ui';
 import { hoyISO } from './tipos';
 import { registrarLectura } from '../lecturas';
+import { mensajeAmable } from '../errores';
 
 type Arquetipo = { clave: string; nombre: string; descripcion: string; umbral: number; ventana_dias: number; orden: number };
 type TipoSenal = { clave: string; arquetipo: string; nombre: string; descripcion: string | null; origen: 'crm' | 'manual' | 'llamada'; peso: number; orden: number; activo: boolean };
@@ -115,7 +116,7 @@ export const PerfilCliente: React.FC<{ clienteId: string; soloLectura: boolean; 
     setError(null);
     const { error: e } = await supabase.rpc('perfil_decidir', { perfil: p.id, confirmar, motivo });
     setOcupado(false);
-    if (e) return setError(e.message);
+    if (e) return setError(mensajeAmable(e));
     void cargar();
   }
 
@@ -127,7 +128,7 @@ export const PerfilCliente: React.FC<{ clienteId: string; soloLectura: boolean; 
     setError(null);
     const { error: e } = await supabase.from('perfil_senales').update({ descartada_en: new Date().toISOString(), motivo_descarte: motivo }).eq('id', s.id);
     setOcupado(false);
-    if (e) return setError(/perfil_senales_descarte/.test(e.message) ? 'Escribí un motivo de al menos 3 letras.' : e.message);
+    if (e) return setError(/perfil_senales_descarte/.test(e.message) ? 'Escribí un motivo de al menos 3 letras.' : mensajeAmable(e));
     void cargar();
   }
 
@@ -145,7 +146,7 @@ export const PerfilCliente: React.FC<{ clienteId: string; soloLectura: boolean; 
       detalle: nueva.detalle,
     });
     setOcupado(false);
-    if (err) return setError(err.message);
+    if (err) return setError(mensajeAmable(err));
     setNueva(null);
     void cargar();
   }
