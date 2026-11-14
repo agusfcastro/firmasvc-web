@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, Download, FileText, Mail, Paperclip, Plus, RefreshCw, Send, StickyNote, Trash2, Upload } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Download, Eye, FileText, Mail, MessageSquare, Paperclip, Plus, RefreshCw, Send, StickyNote, Trash2, Upload } from 'lucide-react';
 import { Button } from '../Button';
 import { supabase } from './supabase';
 import { navegar } from './navegacion';
@@ -21,6 +21,7 @@ import {
 import { dinero, hoyISO } from './crm/tipos';
 import { FormularioDelAsunto, type PedidoContrato } from './pedidos/Pedidos';
 import { registrarLectura } from './lecturas';
+import { VisorComentarios, tipoVisor } from './comentarios/VisorComentarios';
 import {
   BUCKET_ASUNTOS,
   ESTADOS,
@@ -840,7 +841,17 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
             <Bitacora asunto={asunto} novedades={novedades} esFirma={esFirma} soloLectura={soloLectura} nombreDe={nombreDe} alCambiar={(t) => { setOk(t); void cargar(); }} alError={setError} />
           )}
           {pestana === 'documentos' && (
-            <Documentos asunto={asunto} archivos={archivos} esFirma={esFirma} soloLectura={soloLectura} nombreDe={nombreDe} alCambiar={(t) => { setOk(t); void cargar(); }} alError={setError} />
+            <Documentos
+              asunto={asunto}
+              archivos={archivos}
+              esFirma={esFirma}
+              soloLectura={soloLectura}
+              miId={perfil.id}
+              nombreDe={nombreDe}
+              conocerAutores={conocerAutores}
+              alCambiar={(t) => { setOk(t); void cargar(); }}
+              alError={setError}
+            />
           )}
           {pestana === 'formulario' && pedido && <FormularioDelAsunto pedido={pedido} empresa={empresa} puedeCompletar={!esFirma && !soloLectura} esFirma={esFirma} />}
         </div>
@@ -1265,12 +1276,40 @@ const Documentos: React.FC<{
   archivos: Archivo[];
   esFirma: boolean;
   soloLectura: boolean;
+  miId: string;
   nombreDe: (autorId: string | null) => string;
+  conocerAutores: (ids: (string | null)[]) => Promise<void> | void;
   alCambiar: (t: string) => void;
   alError: (t: string | null) => void;
-}> = ({ asunto, archivos, esFirma, soloLectura, nombreDe, alCambiar, alError }) => {
+}> = ({ asunto, archivos, esFirma, soloLectura, miId, nombreDe, conocerAutores, alCambiar, alError }) => {
   const [ocupado, setOcupado] = useState('');
   const entrada = useRef<HTMLInputElement>(null);
+  // El documento abierto en el visor va en la dirección (?documento=), así el aviso por mail lleva directo a él.
+  const [abierto, setAbierto] = useState<string | null>(() => new URLSearchParams(window.location.search).get('documento'));
+  const [abiertosPorArchivo, setAbiertosPorArchivo] = useState<Record<string, number>>({});
+
+  const contarComentarios = useCallback(async () => {
+    if (!supabase) return;
+    // Sin la migración 0065 la tabla no existe: quedan sin contador.
+    const { data } = await supabase.from('asunto_comentarios').select('archivo_id, interna').eq('asunto_id', asunto.id).is('padre_id', null).is('resuelto_en', null);
+    const cuenta: Record<string, number> = {};
+    for (const c of (data as { archivo_id: string; interna: boolean }[]) ?? []) if (esFirma || !c.interna) cuenta[c.archivo_id] = (cuenta[c.archivo_id] ?? 0) + 1;
+    setAbiertosPorArchivo(cuenta);
+  }, [asunto.id, esFirma]);
+
+  useEffect(() => {
+    void contarComentarios();
+  }, [contarComentarios]);
+
+  function abrir(id: string | null) {
+    setAbierto(id);
+    const url = new URL(window.location.href);
+    if (id) url.searchParams.set('documento', id);
+    else url.searchParams.delete('documento');
+    window.history.replaceState({}, '', url);
+  }
+  const cerrarVisor = useCallback(() => abrir(null), []);
+  const archivoAbierto = archivos.find((a) => a.id === abierto && tipoVisor(a.nombre));
 
   async function subir(archivo: File) {
     if (!supabase) return;
@@ -1323,7 +1362,7 @@ const Documentos: React.FC<{
       {!soloLectura && (
         <div className="bg-white border border-tinta/15 p-6 flex flex-col tab:flex-row tab:items-center gap-4 justify-between">
           <p className="text-[15px] leading-[1.5] text-piedra max-w-[46ch]">
-            Subí documentos del asunto: PDF, Word, Excel o imágenes, hasta 20 MB. {esFirma ? 'La empresa' : 'FIRMA'} recibe un aviso por mail.
+            Subí documentos del asunto: PDF, Word, Excel o imágenes, hasta 20 MB. {esFirma ? 'La empresa' : 'FIRMA'} recibe un aviso por mail. Los PDF y Word se pueden ver y comentar acá mismo.
           </p>
           <label className={`inline-flex items-center justify-center gap-2 h-[52px] px-6 bg-bosque text-marfil text-[15px] font-medium whitespace-nowrap transition-colors duration-150 hover:bg-bosque-dark ${ocupado ? 'opacity-60 pointer-events-none' : 'cursor-pointer'}`}>
             <Upload size={16} aria-hidden="true" />
@@ -1357,6 +1396,13 @@ const Documentos: React.FC<{
                 </span>
               </div>
               <div className="flex items-center gap-4 shrink-0">
+                {tipoVisor(a.nombre) && (
+                  <button type="button" onClick={() => abrir(a.id)} className="inline-flex items-center gap-2 text-sm font-medium text-bosque underline underline-offset-4">
+                    {abiertosPorArchivo[a.id] ? <MessageSquare size={14} aria-hidden="true" /> : <Eye size={14} aria-hidden="true" />}
+                    {soloLectura ? 'Ver' : 'Ver y comentar'}
+                    {abiertosPorArchivo[a.id] ? ` (${abiertosPorArchivo[a.id]})` : ''}
+                  </button>
+                )}
                 <button type="button" onClick={() => descargar(a)} disabled={ocupado !== ''} className="inline-flex items-center gap-2 text-sm font-medium text-bosque underline underline-offset-4 disabled:opacity-50">
                   <Download size={14} aria-hidden="true" />
                   {ocupado === `bajar-${a.id}` ? 'Abriendo…' : 'Descargar'}
@@ -1370,6 +1416,19 @@ const Documentos: React.FC<{
             </li>
           ))}
         </ul>
+      )}
+
+      {archivoAbierto && (
+        <VisorComentarios
+          archivo={archivoAbierto}
+          esFirma={esFirma}
+          soloLectura={soloLectura}
+          miId={miId}
+          nombreDe={nombreDe}
+          conocerAutores={conocerAutores}
+          alCerrar={cerrarVisor}
+          alCambiar={() => void contarComentarios()}
+        />
       )}
     </section>
   );

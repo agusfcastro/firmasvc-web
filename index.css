@@ -515,3 +515,15 @@ a.card { color: inherit; text-decoration: none; }
 @keyframes tina-parpadeo { 0%, 92%, 100% { scale: 1 1; } 95% { scale: 1 0.12; } }
 @keyframes tina-mirar { 0%, 100% { translate: -2.5px 0; } 50% { translate: 2.5px 0; } }
 @media (prefers-reduced-motion: reduce) { .tina-ojos, .tina-ojos-pensando { animation: none; } }
+
+/* Visor de documentos con comentarios (components/portal/comentarios). La capa de texto de pdf.js va
+   transparente sobre la hoja dibujada, así se puede seleccionar; los resaltes van debajo, en amarillo. */
+.capa-texto { position: absolute; inset: 0; overflow: clip; line-height: 1; text-align: initial; -webkit-text-size-adjust: none; text-size-adjust: none; forced-color-adjust: none; transform-origin: 0 0; z-index: 2; }
+.capa-texto :is(span, br) { color: transparent; position: absolute; white-space: pre; cursor: text; transform-origin: 0% 0%; }
+.capa-texto span.markedContent { top: 0; height: 0; }
+.capa-texto ::selection { background: rgb(23 58 47 / 0.28); }
+.capa-texto .endOfContent { display: block; position: absolute; inset: 100% 0 0; z-index: -1; cursor: default; user-select: none; }
+.resalte-comentario { position: absolute; background: rgb(242 193 78 / 0.38); mix-blend-mode: multiply; border-radius: 2px; pointer-events: none; transition: background-color 150ms; }
+.resalte-comentario.activo { background: rgb(242 193 78 / 0.75); box-shadow: 0 2px 0 0 rgb(184 134 11); }
+.vista-word .docx-wrapper { background: transparent; padding: 0; }
+.vista-word .docx-wrapper > section.docx { box-shadow: 0 1px 3px rgb(0 0 0 / 0.12); margin-bottom: 24px; }

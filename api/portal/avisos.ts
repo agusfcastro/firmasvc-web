@@ -11,6 +11,9 @@
  *              la otra parte no tiene el asunto abierto. Como mucho un mail
  *              cada 15 minutos por asunto y por lado: los demás esperan.
  *   archivo    Documento subido a un asunto. Avisa a la otra parte, una vez.
+ *   comentario Comentario o respuesta en un documento del asunto (0065). Lo
+ *              pide quien lo escribió. Los internos no se avisan. Como el
+ *              chat, como mucho un mail cada 15 minutos por asunto y por lado.
  *   asunto     Asunto que abrió el cliente. Lo pide quien lo creó, una sola vez,
  *              en la primera hora. Avisa a FIRMA con lo que contó el cliente.
  *   documento  Documento nuevo de una empresa. Solo FIRMA, una vez por
@@ -349,6 +352,57 @@ async function avisoArchivo(sb: SupabaseClient, quien: Quien, id: string, base: 
   return json({ ok: true, avisados });
 }
 
+async function avisoComentario(sb: SupabaseClient, quien: Quien, id: string, base: string): Promise<Response> {
+  const { data: com } = await quien.db.from('asunto_comentarios').select('*').eq('id', id).maybeSingle();
+  if (!com) return error('No existe ese comentario.', 404);
+  if (com.autor_id !== quien.id) return error('Solo quien escribió el comentario puede avisar.', 403);
+  if (com.interna) return error('Los comentarios internos no se avisan.', 409);
+  if (Date.now() - Date.parse(com.creado_en) > 3_600_000) return error('Ese comentario es viejo para avisar.', 409);
+  const asunto = await datosAsunto(sb, com.asunto_id);
+  if (!asunto) return error('No existe ese asunto.', 404);
+  const { data: arch } = await sb.from('asunto_archivos').select('nombre').eq('id', com.archivo_id).maybeSingle();
+  const documento = (arch?.nombre as string | undefined) ?? 'un documento';
+  // En una respuesta, la frase es la del comentario que abre el hilo.
+  const { data: padre } = com.padre_id ? await sb.from('asunto_comentarios').select('cita').eq('id', com.padre_id).maybeSingle() : { data: null };
+  const cita = ((com.cita ?? padre?.cita) as string | null) ?? null;
+
+  const deFirma = quien.rol === 'admin';
+  const campo = deFirma ? 'aviso_comentario_cliente' : 'aviso_comentario_firma';
+  const limite = new Date(Date.now() - 15 * 60_000).toISOString();
+  const { data: turno } = await sb
+    .from('asuntos')
+    .update({ [campo]: new Date().toISOString() })
+    .eq('id', asunto.id)
+    .or(`${campo}.is.null,${campo}.lt."${limite}"`)
+    .select('id');
+  if (!turno?.length) return json({ ok: true, avisados: 0, pospuesto: true });
+
+  const quienEs = deFirma ? 'FIRMA' : `${escapar(quien.nombre || quien.email)}, de <strong>${escapar(asunto.empresa)}</strong>,`;
+  const avisados = await avisarA(
+    await otraParte(sb, quien, asunto),
+    (d) => ({
+      asunto: `${prefijoCodigo(asunto.codigo)}${deFirma ? 'FIRMA' : asunto.empresa} comentó ${documento}`,
+      html: plantillaMail({
+        seccion: 'Estado de asuntos',
+        titulo: 'Hay comentarios nuevos en un documento.',
+        resalte: 'comentarios nuevos',
+        anticipo: com.texto.slice(0, 120),
+        parrafos: [
+          hola(d),
+          `${quienEs} ${com.padre_id ? 'respondió un comentario' : 'comentó'} en <strong>${escapar(documento)}</strong>, del asunto <strong>${escapar(asunto.titulo)}</strong>.`,
+          ...(cita ? [`<em>“${escapar(cita.length > 300 ? `${cita.slice(0, 300)}…` : cita)}”</em>`] : []),
+        ],
+        cita: conSaltos(com.texto.length > 600 ? `${com.texto.slice(0, 600)}…` : com.texto),
+        nota: 'Si llegan más comentarios en los próximos 15 minutos, los ves en el portal sin otro mail.',
+        boton: { texto: 'Ver el documento', url: `${base}/portal/asuntos/${asunto.id}?pestana=documentos&documento=${com.archivo_id}` },
+        firma: deFirma,
+      }),
+    }),
+    deFirma ? FIRMA_MAIL : quien.email,
+  );
+  return json({ ok: true, avisados });
+}
+
 async function avisoDocumento(sb: SupabaseClient, quien: Quien, id: string, base: string): Promise<Response> {
   if (quien.rol !== 'admin') return error('Solo FIRMA avisa documentos nuevos.', 403);
   const { data: doc } = await sb.from('documentos').select('*').eq('id', id).maybeSingle();
@@ -418,6 +472,7 @@ export async function POST(request: Request): Promise<Response> {
     if (cuerpo.tipo === 'documento') return await avisoDocumento(sb, quien, id, base);
     if (cuerpo.tipo === 'mensaje') return await avisoMensaje(sb, quien, id, base);
     if (cuerpo.tipo === 'archivo') return await avisoArchivo(sb, quien, id, base);
+    if (cuerpo.tipo === 'comentario') return await avisoComentario(sb, quien, id, base);
     if (cuerpo.tipo === 'asunto') return await avisoAsunto(sb, quien, id, base);
     return error('Tipo de aviso desconocido.');
   } catch {
