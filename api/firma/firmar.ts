@@ -27,6 +27,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { FALTA_SEGUNDO_FACTOR, nivelDe } from '../_lib/nivel.js';
 import { SIN_ACCESO, SIN_CLIENTE_USUARIO, accesoVigente, clienteDelUsuario } from '../_lib/acceso.js';
 import { enviarMail, mailDisponible, plantillaMail } from '../_lib/mail.js';
+import { enviarPush } from '../_lib/push.js';
 import { COLOR, rgb01 } from '../_lib/marca.js';
 import { PDFDocument, StandardFonts, degrees, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
 
@@ -855,6 +856,15 @@ async function confirmarBfa(sb: SupabaseClient, sobre: Sobre, espera = 10_000): 
   }
 }
 
+/**
+ * Notificación push a quien mandó el envío. Sin nombres ni títulos, que se
+ * ven en la pantalla bloqueada. No frena nada si falla.
+ */
+async function pushAlCreador(sb: SupabaseClient, sobre: Sobre, titulo: string, cuerpo: string): Promise<void> {
+  if (!sobre.creado_por || desdePortal(sobre)) return;
+  await enviarPush(sb, [sobre.creado_por], { titulo, cuerpo, url: `/portal/firmas/${sobre.id}`, etiqueta: `sobre-${sobre.id}` }).catch(() => 0);
+}
+
 /** Avisa a quien mandó el envío. Para rechazos. */
 async function avisarCreador(
   sb: SupabaseClient,
@@ -1341,7 +1351,12 @@ export async function POST(request: Request): Promise<Response> {
       const despues = await firmantesDe(sb, sobre.id);
       if (despues.every((x) => x.estado === 'firmado')) {
         await sellar(sb, sobre.id);
-      } else if (sobre.secuencial && !sinCodigo(sobre)) {
+        await pushAlCreador(sb, sobre, 'Documento firmado', 'Firmaron todas las personas. El documento firmado ya está en el portal.');
+      } else {
+        const faltan = despues.filter((x) => x.estado !== 'firmado').length;
+        await pushAlCreador(sb, sobre, 'Firmaron un documento', faltan === 1 ? 'Falta una firma para completarlo.' : `Faltan ${faltan} firmas para completarlo.`);
+      }
+      if (!despues.every((x) => x.estado === 'firmado') && sobre.secuencial && !sinCodigo(sobre)) {
         // Le toca al grupo siguiente. Se avisa a los que todavía no recibieron nada.
         for (const sig of enTurno(despues, true)) {
           if (sig.estado === 'pendiente') await notificarFirmante(sb, sobre, sig, null, null);
@@ -1384,6 +1399,7 @@ export async function POST(request: Request): Promise<Response> {
           cita: escapar(motivoRechazo),
           nota: 'Si hace falta, corregí el documento y mandalo de nuevo desde Firmas.',
         });
+        await pushAlCreador(sb, sobre, 'Rechazaron un documento', 'El envío se cerró. Mirá el motivo en el portal.');
       }
       return json({ ok: true });
     }

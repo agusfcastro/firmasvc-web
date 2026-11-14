@@ -36,6 +36,7 @@ import { FALTA_SEGUNDO_FACTOR, nivelDe } from '../_lib/nivel.js';
 import { genteDe } from '../_lib/acceso.js';
 import { enviarMail, mailDisponible, plantillaMail } from '../_lib/mail.js';
 import { COLOR } from '../_lib/marca.js';
+import { enviarPush, pushDisponible } from '../_lib/push.js';
 
 const ZONA = 'America/Argentina/Buenos_Aires';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -538,17 +539,73 @@ async function mandarPrueba(sb: SupabaseClient, request: Request): Promise<Respo
 /* Tarea diaria                                                           */
 /* -------------------------------------------------------------------- */
 
+/**
+ * Notificación de la mañana con los onboardings del día de cada empresa, al
+ * account manager responsable de cada cliente del CRM. Los clientes sin
+ * responsable (o con uno sin usuario en el portal) van a los CSM de la
+ * empresa y, si no hay, al titular. Una vez por empresa y día. Sin nombres
+ * de clientes: el detalle está en Inicio.
+ */
+async function avisarOnboardings(sb: SupabaseClient, orgIds: string[], hoy: string): Promise<number> {
+  if (!pushDisponible() || !orgIds.length) return 0;
+  const desde = new Date(`${hoy}T00:00:00-03:00`).toISOString();
+  const hasta = new Date(`${sumarDias(hoy, 1)}T00:00:00-03:00`).toISOString();
+  const { data: clientes } = await sb
+    .from('crm_clientes')
+    .select('organizacion_id, responsable_id, fecha_onboarding')
+    .in('organizacion_id', orgIds)
+    .gte('fecha_onboarding', desde)
+    .lt('fecha_onboarding', hasta);
+  const filas = (clientes ?? []) as { organizacion_id: string; responsable_id: string | null; fecha_onboarding: string }[];
+  if (!filas.length) return 0;
+
+  const conOnboarding = [...new Set(filas.map((f) => f.organizacion_id))];
+  const libres = await reservar(sb, conOnboarding.map((o) => `push-onboardings:${o}:${hoy}`));
+  const responsables = [...new Set(filas.map((f) => f.responsable_id).filter((x): x is string => !!x))];
+  const { data: equipo } = responsables.length ? await sb.from('equipo_miembros').select('id, usuario_id').in('id', responsables).eq('activo', true) : { data: [] };
+  const usuarioDe = new Map(((equipo ?? []) as { id: string; usuario_id: string | null }[]).map((e) => [e.id, e.usuario_id]));
+  const gente = await genteDe(sb, conOnboarding, ['csm', 'titular']);
+
+  let avisados = 0;
+  for (const org of conOnboarding) {
+    if (!libres.has(`push-onboardings:${org}:${hoy}`)) continue;
+    const porUsuario = new Map<string, number>();
+    for (const f of filas.filter((x) => x.organizacion_id === org)) {
+      let destino = [f.responsable_id ? usuarioDe.get(f.responsable_id) : null].filter((x): x is string => !!x);
+      if (!destino.length) destino = gente.filter((g) => g.organizacion_id === org && g.rol === 'csm').map((g) => g.id);
+      if (!destino.length) destino = gente.filter((g) => g.organizacion_id === org && g.rol === 'titular').map((g) => g.id);
+      for (const u of destino) porUsuario.set(u, (porUsuario.get(u) ?? 0) + 1);
+    }
+    for (const [usuario, n] of porUsuario) {
+      avisados += await enviarPush(sb, [usuario], {
+        titulo: n === 1 ? 'Hoy tenés un onboarding' : `Hoy tenés ${n} onboardings`,
+        cuerpo: 'Revisá en el portal que cada cliente tenga su contrato firmado.',
+        url: '/portal',
+        etiqueta: `onboardings-${hoy}`,
+      });
+    }
+  }
+  return avisados;
+}
+
 async function tareaDiaria(sb: SupabaseClient, forzarResumen: boolean): Promise<Response> {
   const inicio = Date.now();
   const sinTiempo = () => Date.now() - inicio > TIEMPO_MS;
   const base = basePortal();
   const hoy = diaDe(new Date());
-  const resultado = { alertas: 0, mails_alertas: 0, lunes: 0, pendientes: 0, errores: [] as string[] };
+  const resultado = { alertas: 0, mails_alertas: 0, lunes: 0, pendientes: 0, push_onboardings: 0, errores: [] as string[] };
 
   const { data: orgs } = await sb.from('organizaciones').select('id, nombre').eq('activa', true).eq('demo', false);
   const empresas = new Map((orgs ?? []).map((o) => [o.id as string, o.nombre as string]));
   const orgIds = [...empresas.keys()];
   if (!orgIds.length) return json({ ok: true, ...resultado });
+
+  // Onboardings del día: notificación al account manager. Si falla, los mails salen igual.
+  try {
+    resultado.push_onboardings = await avisarOnboardings(sb, orgIds, hoy);
+  } catch (e) {
+    resultado.errores.push(`Onboardings: ${(e as Error).message}`);
+  }
 
   // Una fila por persona y negocio, por sus membresías activas: quien está en dos negocios recibe lo de los dos.
   const miembros = await genteDe(sb, orgIds, ROLES_EMPRESA);

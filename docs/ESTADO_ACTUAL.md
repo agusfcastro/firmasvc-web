@@ -160,7 +160,7 @@ Starter reemplazó a Gold y Black en la 0059. Los abonos cobran la oferta de `CL
 | Bitácora | `/portal/bitacora` | En producción, solo titular |
 | Administración | `/portal/admin/...` | Clientes, Usuarios, Agendas, Documentos, Abonos, Newsletter y Registro |
 
-**No hay nada de Tina, ni chat, ni PWA, ni notificaciones push.** No existe manifest, service worker ni código de push. Tampoco se usa hoy la API de Claude. `ANTHROPIC_API_KEY` se usó en el pasado para contratos y quedó retirada.
+**App instalable y notificaciones push** desde el 14/11/2026: manifest, service worker y avisos de asuntos, documentos, onboardings, firmas y derivaciones de Tina. Detalle en `PORTAL.md`, sección App instalable y notificaciones. Necesita `VAPID_PRIVATE_KEY` en Vercel.
 
 ## Mail
 

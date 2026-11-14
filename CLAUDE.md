@@ -71,7 +71,7 @@ Los abonos cobran esta oferta desde la migración 0061 (`abonos.modalidad`, `eta
 ## Canales
 
 **Fase 1 (noviembre 2026)**
-- Portal instalable como PWA, con notificaciones push. La app instalada se llama FIRMA y usa el logo de FIRMA.
+- Portal instalable como PWA, con notificaciones push. La app instalada se llama FIRMA y usa el logo de FIRMA. Hecho: avisos de asuntos, documentos, onboardings del día, firmas y derivaciones de Tina (`api/_lib/push.ts`, `components/portal/push.ts`, `public/sw.js`). Necesita `VAPID_PRIVATE_KEY` en Vercel. Vercel tiene 12 funciones, que era el tope del plan Hobby: antes de sumar un archivo nuevo en `api/` fuera de `_lib`, confirmar el límite vigente.
 - Burbuja de chat de Tina dentro del portal.
 - Resumen diario por mail a las 7 de la mañana de Argentina para todos los clientes, de lunes a viernes, aparte de las alertas de vencimientos y de la newsletter de los lunes, al titular y a los account managers. Si no hay novedades, se manda un mensaje corto que lo avisa. Usa el mismo servicio de mail que la firma electrónica.
 - Notificaciones solo operativas. Los onboardings le avisan al account manager. En asuntos y conflictos, quien actualiza el portal marca una opción para que Tina avise al responsable.

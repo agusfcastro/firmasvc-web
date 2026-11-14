@@ -19,6 +19,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { unzipSync, strFromU8 } from 'fflate';
 import { CATALOGO } from '../../../components/protocolos/rutas.js';
 import { enviarMail, plantillaMail } from '../mail.js';
+import { enviarPush } from '../push.js';
 
 export interface Sesion {
   usuarioId: string;
@@ -567,6 +568,19 @@ async function crearTicket(s: Sesion, e: Entrada): Promise<Resultado> {
     .select('id')
     .single();
   if (error || !data) return invalido(`No se pudo crear la derivación. ${error?.message ?? ''}`.trim());
+
+  // Notificación a FIRMA: al responsable del cliente o, si no tiene, a todo el equipo de FIRMA.
+  let paraFirma = s.responsable ? [s.responsable.id] : [];
+  if (!paraFirma.length) {
+    const { data: admins } = await s.sb.from('perfiles').select('id').eq('rol', 'admin').eq('activo', true);
+    paraFirma = (admins ?? []).map((a: { id: string }) => a.id);
+  }
+  await enviarPush(s.sb, paraFirma, {
+    titulo: prioridad === 'alta' ? 'Derivación urgente de Tina' : 'Derivación de Tina',
+    cuerpo: `${s.orgNombre} · ${categoria.replace(/_/g, ' ')}. ${prioridad === 'alta' ? 'Necesita respuesta hoy.' : 'Para el día hábil.'}`,
+    url: '/portal',
+    etiqueta: `ticket-${data.id}`,
+  }).catch(() => 0);
 
   if (prioridad === 'alta') {
     const destino = s.responsable?.email || 'agustin@firmasvc.com';

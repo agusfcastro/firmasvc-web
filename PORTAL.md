@@ -608,6 +608,45 @@ Cada aviso sale una sola vez y a cada persona por separado. Los documentos de la
 | `api/portal/avisos.ts` | Avisos por mail de novedades y documentos |
 | `api/portal/recuperar.ts` | Mail de «Olvidé mi contraseña» con la marca |
 
+## App instalable y notificaciones
+
+El portal se instala como app **FIRMA** (manifest en `public/manifest.webmanifest`, íconos en `public/app/`) y manda notificaciones push a cada dispositivo que las active. Los mails siguen saliendo igual: la notificación se suma.
+
+### Puesta en marcha
+
+1. En Vercel, **Settings › Environment Variables**, cargá `VAPID_PRIVATE_KEY` para Production y Preview. El valor está en tu `.env.local`. Es secreta: no va en el código ni en GitHub.
+2. La clave pública que le corresponde está en `VAPID_PUBLICA` de `components/portal/push.ts`. Si alguna vez cambiás la privada, hay que cambiar la pública y todos tienen que volver a activar los avisos.
+3. Sin `VAPID_PRIVATE_KEY` no sale ninguna notificación y nada falla.
+
+### Cómo lo activa cada persona
+
+- En **Inicio** aparece la tarjeta «Avisos en este dispositivo» con **Activar avisos**. Desaparece cuando los activa o la cierra.
+- La **campana** de la barra lateral, al lado de Salir, los prende y apaga en ese dispositivo.
+- En **iPhone y iPad** solo funcionan con la app instalada: Safari › Compartir › «Agregar a inicio», abrir FIRMA desde el ícono y activar ahí (iOS 16.4 o más).
+- En Android y en computadora alcanza con el navegador. Chrome ofrece instalar la app desde el menú.
+- Al salir del portal, ese dispositivo deja de recibir avisos de esa cuenta.
+
+### Qué se avisa
+
+Los textos no llevan nombres de clientes ni títulos de documentos, porque se ven en la pantalla bloqueada. El detalle se ve al tocarla.
+
+| Aviso | A quién | Dónde se dispara |
+|---|---|---|
+| Novedad, mensaje, documento y comentario en un asunto, asunto nuevo | Los mismos que reciben el mail | `api/portal/avisos.ts` |
+| Documento o protocolo nuevo de la empresa | Los mismos que reciben el mail | `api/portal/avisos.ts` |
+| Onboardings del día | Al account manager responsable de cada cliente del CRM; si no tiene usuario, a los CSM y, si no hay, al titular. A las 9, con la tarea diaria | `api/portal/resumen.ts` |
+| Alguien firmó, documento completo o rechazado | A quien mandó el envío. No en recibos firmados desde el portal | `api/firma/firmar.ts` |
+| Derivación de Tina | Al responsable de FIRMA del cliente; si no tiene, a todo el equipo de FIRMA | `api/_lib/tina/herramientas.ts` |
+
+### Archivos
+
+| Archivo | Qué hace |
+|---|---|
+| `public/sw.js` | Service worker. Solo muestra la notificación y abre el portal al tocarla. No guarda nada en caché |
+| `components/portal/push.ts` | Registra el service worker y guarda la suscripción en `push_suscripciones` (0060) |
+| `components/portal/TarjetaAvisos.tsx` | Tarjeta de Inicio y campana de la barra lateral |
+| `api/_lib/push.ts` | Firma con VAPID y cifra (RFC 8291) sin dependencias. Marca inactivas las suscripciones vencidas |
+
 ## Mail de los lunes y alertas
 
 Mails que el portal manda solo, sin que nadie los pida, desde `/api/portal/resumen`. Corre todos los días a las 9 de Buenos Aires con Vercel Cron. En el plan Hobby de Vercel la tarea puede salir en cualquier momento entre las 9 y las 10. Las empresas desactivadas y la demo no reciben nada.

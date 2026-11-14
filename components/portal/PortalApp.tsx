@@ -5,6 +5,7 @@ import { Button } from '../Button';
 import { supabase } from './supabase';
 import { navegar, useRuta } from './navegacion';
 import { useSesion } from './useSesion';
+import { registrarServiceWorker } from './push';
 import { Aviso, Cargando } from './ui';
 import { LayoutAcceso } from './LayoutAcceso';
 import { Ingresar } from './Ingresar';
@@ -42,6 +43,11 @@ export const PortalApp: React.FC = () => {
   const ruta = useRuta();
   const estado = useSesion();
   const { cargando, sesion, perfil, vieneDeEnlace } = estado;
+
+  // App instalable y avisos: el service worker solo muestra notificaciones, no guarda nada en caché.
+  useEffect(() => {
+    void registrarServiceWorker();
+  }, []);
 
   useEffect(() => {
     const previo = document.title;

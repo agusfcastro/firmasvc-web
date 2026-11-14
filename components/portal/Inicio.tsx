@@ -27,6 +27,7 @@ import { COLUMNAS_FIRMANTE, type Firmante, type Sobre } from './firmas/api';
 import type { Asunto, Novedad } from './asuntos';
 import { cuotaPorAutorizar, desdeAutoriza, enPagoUnico, type Abono } from './abonos';
 import { OnboardingsDia } from './crm/OnboardingsDia';
+import { TarjetaAvisos } from './TarjetaAvisos';
 import { ROTULO_PLAN, duracion, firmasOcupadas, usoAgenda, usoFirmas, type Plan, type UsoAgenda, type UsoFirmas } from './planes';
 
 /* ------------------------------------------------------------------ */
@@ -469,6 +470,7 @@ const InicioCliente: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
       />
 
       <div className="wrap pt-6 pb-10 flex flex-col gap-6">
+        <TarjetaAvisos />
         {datos.length > 0 && <Datos items={datos} cargando={cargando} />}
 
         <div className="grid grid-cols-1 wide:grid-cols-[minmax(0,1fr)_340px] gap-6 items-start">
@@ -615,6 +617,7 @@ const InicioFirma: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
         bajada={cargando ? 'Juntando lo de tus clientes…' : pendientes.length ? `Hay ${plural(pendientes.length, 'cosa que mirar', 'cosas que mirar')} en los negocios de tus clientes.` : 'Nada urgente en los negocios de tus clientes.'}
       />
       <div className="wrap pt-6 pb-10 flex flex-col gap-6">
+        <TarjetaAvisos />
         <Datos items={datos} cargando={cargando} />
         <div className="grid grid-cols-1 wide:grid-cols-[minmax(0,1fr)_340px] gap-6 items-start">
           <Tarjeta titulo="Para hoy" cuenta={pendientes.length} enlace={{ a: '/portal/asuntos', texto: 'Todos los asuntos' }}>

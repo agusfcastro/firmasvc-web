@@ -24,6 +24,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { FALTA_SEGUNDO_FACTOR, nivelDe } from '../_lib/nivel.js';
 import { SIN_ACCESO, SIN_CLIENTE_USUARIO, accesoVigente, clienteDelUsuario, genteDe } from '../_lib/acceso.js';
 import { enviarMail, mailDisponible, plantillaMail } from '../_lib/mail.js';
+import { enviarPushPorMail, type AvisoPush } from '../_lib/push.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const FIRMA_MAIL = 'agustin@firmasvc.com';
@@ -96,8 +97,16 @@ async function quienLlama(sb: SupabaseClient, request: Request): Promise<Quien |
   return { id: data.user.id, rol: perfil.rol, email: perfil.email, nombre: perfil.nombre ?? null, organizacion_id: perfil.organizacion_id, db };
 }
 
-/** Manda el mismo aviso a cada persona por separado, así nadie ve los mails de los demás. */
-async function avisarA(destinatarios: Destinatario[], armar: (d: Destinatario) => { asunto: string; html: string }, responderA: string | null): Promise<number> {
+/**
+ * Manda el mismo aviso a cada persona por separado, así nadie ve los mails de los demás.
+ * Con push, además una notificación a sus dispositivos (api/_lib/push.ts), sin datos del caso.
+ */
+async function avisarA(
+  destinatarios: Destinatario[],
+  armar: (d: Destinatario) => { asunto: string; html: string },
+  responderA: string | null,
+  push?: AvisoPush,
+): Promise<number> {
   let enviados = 0;
   const vistos = new Set<string>();
   for (const d of destinatarios) {
@@ -108,6 +117,8 @@ async function avisarA(destinatarios: Destinatario[], armar: (d: Destinatario) =
     const fallo = await enviarMail({ nombreRemitente: 'FIRMA', direccion: process.env.PORTAL_MAIL_DIRECCION || 'portal@firmasvc.com', para: [d.email], asunto, html, responderA });
     if (!fallo) enviados++;
   }
+  const admin = push ? clienteServicio() : null;
+  if (push && admin) await enviarPushPorMail(admin, [...vistos], push);
   return enviados;
 }
 
@@ -162,6 +173,9 @@ async function avisoNovedad(sb: SupabaseClient, quien: Quien, id: string, base: 
       }),
     }),
     deFirma ? FIRMA_MAIL : quien.email,
+    deFirma
+      ? { titulo: 'Novedad en un asunto', cuerpo: 'FIRMA actualizó uno de tus asuntos. Tocá para verlo.', url: `/portal/asuntos/${asunto.id}`, etiqueta: `asunto-${asunto.id}` }
+      : { titulo: 'Novedad en un asunto', cuerpo: `${empresa} escribió en un asunto.`, url: `/portal/asuntos/${asunto.id}`, etiqueta: `asunto-${asunto.id}` },
   );
 
   await sb.from('asunto_novedades').update({ avisado_en: new Date().toISOString(), avisados }).eq('id', id);
@@ -226,6 +240,7 @@ async function avisoAsunto(sb: SupabaseClient, quien: Quien, id: string, base: s
       }),
     }),
     quien.email,
+    { titulo: 'Asunto nuevo', cuerpo: `${empresa} abrió un asunto en el portal.`, url: `/portal/asuntos/${id}`, etiqueta: `asunto-${id}` },
   );
   return json({ ok: true, avisados });
 }
@@ -315,6 +330,7 @@ async function avisoMensaje(sb: SupabaseClient, quien: Quien, id: string, base: 
       }),
     }),
     deFirma ? FIRMA_MAIL : quien.email,
+    { titulo: 'Mensaje nuevo', cuerpo: deFirma ? 'FIRMA te escribió en un asunto.' : `${asunto.empresa} escribió en un asunto.`, url: `/portal/asuntos/${asunto.id}`, etiqueta: `asunto-${asunto.id}` },
   );
   return json({ ok: true, avisados });
 }
@@ -347,6 +363,7 @@ async function avisoArchivo(sb: SupabaseClient, quien: Quien, id: string, base: 
       }),
     }),
     deFirma ? FIRMA_MAIL : quien.email,
+    { titulo: 'Documento nuevo', cuerpo: deFirma ? 'FIRMA subió un documento a uno de tus asuntos.' : `${asunto.empresa} subió un documento a un asunto.`, url: `/portal/asuntos/${asunto.id}?pestana=documentos`, etiqueta: `asunto-${asunto.id}` },
   );
   await sb.from('registro_accesos').insert({ usuario_id: null, actor_id: quien.id, accion: 'aviso_archivo', detalle: { archivo_id: id, asunto_id: asunto.id, nombre: arch.nombre, avisados } });
   return json({ ok: true, avisados });
@@ -399,6 +416,7 @@ async function avisoComentario(sb: SupabaseClient, quien: Quien, id: string, bas
       }),
     }),
     deFirma ? FIRMA_MAIL : quien.email,
+    { titulo: 'Comentario nuevo', cuerpo: deFirma ? 'FIRMA comentó un documento de tus asuntos.' : `${asunto.empresa} comentó un documento.`, url: `/portal/asuntos/${asunto.id}?pestana=documentos&documento=${com.archivo_id}`, etiqueta: `asunto-${asunto.id}` },
   );
   return json({ ok: true, avisados });
 }
@@ -443,6 +461,9 @@ async function avisoDocumento(sb: SupabaseClient, quien: Quien, id: string, base
       }),
     }),
     FIRMA_MAIL,
+    doc.es_protocolo
+      ? { titulo: 'Protocolo nuevo', cuerpo: 'FIRMA sumó un protocolo para tu equipo.', url: '/portal/protocolos' }
+      : { titulo: 'Documento nuevo', cuerpo: 'FIRMA sumó un documento en el portal.', url: '/portal/documentos' },
   );
 
   await sb.from('registro_accesos').insert({ usuario_id: null, actor_id: quien.id, accion: 'aviso_documento', detalle: { documento_id: id, titulo: doc.titulo, organizacion_id: doc.organizacion_id, avisados } });

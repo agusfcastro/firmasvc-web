@@ -27,6 +27,8 @@ import { useLogoOrg } from './logos';
 import { ROTULO_ROL, cargoDe, permisosDe, veAsuntos, type Perfil, type Permisos } from './tipos';
 import { ROTULO_PLAN, type Plan } from './planes';
 import { BurbujaTina } from './tina/BurbujaTina';
+import { BotonAvisos } from './TarjetaAvisos';
+import { desactivarPush } from './push';
 
 import simboloClaro from '../../assets/brand/simbolo-claro.png';
 import simboloOscuro from '../../assets/brand/simbolo-oscuro.png';
@@ -51,6 +53,8 @@ export const Enlace: React.FC<React.AnchorHTMLAttributes<HTMLAnchorElement> & { 
 );
 
 async function salir() {
+  // Este dispositivo deja de recibir avisos de esta cuenta, por si lo usa otra persona.
+  await desactivarPush().catch(() => undefined);
   // Solo esta sesión: sin scope, Supabase cierra la cuenta en todos los dispositivos.
   await supabase?.auth.signOut({ scope: 'local' });
   navegar('/portal/ingresar');
@@ -346,6 +350,7 @@ const Lateral: React.FC<{
             <span className="text-marfil text-[13.5px] font-medium truncate">{nombre}</span>
             <span className="text-[12px] text-lateral-tenue truncate">{perfil.nombre ? perfil.email : ROTULO_ROL[perfil.rol]}</span>
           </span>
+          <BotonAvisos />
           <button type="button" onClick={salir} aria-label="Salir del portal" title="Salir" className="w-10 h-10 grid place-items-center shrink-0 rounded-[10px] text-lateral-tenue hover:text-marfil hover:bg-marfil/[0.06]">
             <LogOut size={17} aria-hidden="true" />
           </button>
