@@ -39,12 +39,13 @@ export const TarjetaAvisos: React.FC = () => {
   };
 
   return (
-    <section className="p-tarjeta relative flex flex-col sm:flex-row sm:items-center gap-4">
-      <span aria-hidden="true" className="w-10 h-10 shrink-0 grid place-items-center rounded-full bg-tinta text-marfil">
-        <Bell size={18} />
+    <section className="p-tarjeta relative flex flex-col tab:flex-row tab:items-center gap-4 px-5 py-4 desk:px-6 desk:py-5">
+      <div className="flex items-start gap-3 flex-1 min-w-0 pr-9">
+      <span aria-hidden="true" className="w-9 h-9 shrink-0 grid place-items-center rounded-full bg-tinta text-marfil">
+        <Bell size={16} />
       </span>
-      <div className="flex-1 min-w-0 pr-8">
-        <h2 className="font-bold text-[15.5px] tracking-[-0.01em]">Avisos en este dispositivo</h2>
+      <div className="flex-1 min-w-0">
+        <h2 className="font-bold text-[15.5px] tracking-[-0.01em] leading-9">Avisos en este dispositivo</h2>
         {estado === 'instalar' ? (
           <p className="text-[13.5px] text-piedra mt-1">
             En iPhone, primero instalá la app: tocá <Share size={14} className="inline -mt-0.5" aria-label="Compartir" /> y después «Agregar a inicio». Abrí FIRMA desde
@@ -57,8 +58,9 @@ export const TarjetaAvisos: React.FC = () => {
         )}
         {error && <p className="text-[13px] text-peligro-fuerte mt-2">{error}</p>}
       </div>
+      </div>
       {estado === 'apagados' && (
-        <Button onClick={activar} disabled={ocupado} className="shrink-0">
+        <Button onClick={activar} disabled={ocupado} className="shrink-0 w-full tab:w-auto">
           {ocupado ? 'Activando…' : 'Activar avisos'}
         </Button>
       )}
