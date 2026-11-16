@@ -623,6 +623,8 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [anulando, setAnulando] = useState(false);
   const [motivo, setMotivo] = useState('');
+  const [extendiendo, setExtendiendo] = useState(false);
+  const [diasExtra, setDiasExtra] = useState(15);
   const [editando, setEditando] = useState<string | null>(null);
   const [nuevoEmail, setNuevoEmail] = useState('');
   const [avisos] = useState<string[]>(() => {
@@ -674,6 +676,21 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
     setOcupado(null);
     if (!r.ok) return setError(r.error);
     setOk(exito);
+    setVersion((v) => v + 1);
+  }
+
+  // Plazo nuevo desde hoy. Uno vencido se reabre con las firmas que ya tenía.
+  async function extender() {
+    if (!sobre) return;
+    setOcupado('extender');
+    setError(null);
+    setOk(null);
+    const r = await llamarSobres<{ vence_en: string; avisados: number; aviso?: string }>({ accion: 'extender', sobre_id: sobre.id, dias: diasExtra });
+    setOcupado(null);
+    if (!r.ok) return setError(r.error);
+    const { vence_en, avisados, aviso } = r.datos;
+    setOk(aviso ?? `Listo, ahora vence el ${fechaHora(vence_en)}.${avisados ? ` Le avisamos por mail a ${avisados === 1 ? 'quien falta firmar' : 'quienes faltan firmar'}.` : ''}`);
+    setExtendiendo(false);
     setVersion((v) => v + 1);
   }
 
@@ -911,6 +928,7 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
                     {ROTULO_EVENTO[ev.tipo] ?? ev.tipo}
                     {ev.firmante_id && nombres.get(ev.firmante_id) ? ` · ${nombres.get(ev.firmante_id)}` : ''}
                     {ev.ip ? <span className="text-piedra"> · IP {ev.ip}</span> : null}
+                    {ev.tipo === 'plazo_extendido' && typeof ev.detalle.ahora === 'string' ? <span className="text-piedra"> · hasta el {fechaHora(ev.detalle.ahora)}</span> : null}
                     {ev.tipo === 'error_mail' && typeof ev.detalle.motivo === 'string' ? <span className="block text-xs text-peligro">{ev.detalle.motivo}</span> : null}
                   </span>
                 </li>
@@ -945,6 +963,55 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
             <div className="flex flex-col gap-2 text-sm">
               <span className="eyebrow text-[11px] text-piedra">Mensaje</span>
               <p className="whitespace-pre-line leading-[1.6]">{sobre.mensaje}</p>
+            </div>
+          )}
+
+          {(enCurso || sobre.estado === 'vencido') && !sobre.error_sellado && !soloLectura && (
+            <div className="flex flex-col gap-3">
+              {!extendiendo ? (
+                enCurso ? (
+                  <button type="button" onClick={() => setExtendiendo(true)} className="text-sm text-piedra underline underline-offset-4 self-start hover:text-tinta">
+                    Extender el plazo
+                  </button>
+                ) : (
+                  <Button variant="dark" size="sm" className="self-start" onClick={() => setExtendiendo(true)}>
+                    <RefreshCw size={15} aria-hidden="true" /> Extender el plazo
+                  </Button>
+                )
+              ) : (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    void extender();
+                  }}
+                  className="bg-marfil-oscuro p-5 flex flex-col gap-3"
+                >
+                  <Campo
+                    etiqueta="Plazo nuevo"
+                    ayuda={
+                      enCurso
+                        ? 'Se cuenta desde hoy y queda en el registro. Los enlaces siguen siendo los mismos.'
+                        : 'Se cuenta desde hoy y queda en el registro. El envío se reabre con las firmas que ya tenía y los mismos enlaces.'
+                    }
+                  >
+                    <select value={diasExtra} onChange={(e) => setDiasExtra(Number(e.target.value))} className={claseInput}>
+                      {[3, 7, 15, 30, 60, 90].map((d) => (
+                        <option key={d} value={d}>
+                          {d} días
+                        </option>
+                      ))}
+                    </select>
+                  </Campo>
+                  <div className="flex gap-3">
+                    <Button type="submit" variant="dark" size="sm" disabled={ocupado === 'extender'}>
+                      {ocupado === 'extender' ? 'Extendiendo' : 'Extender'}
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setExtendiendo(false)}>
+                      Volver
+                    </Button>
+                  </div>
+                </form>
+              )}
             </div>
           )}
 

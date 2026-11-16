@@ -449,6 +449,7 @@ const ROTULO_EVENTO: Record<string, string> = {
   firma_rechazada: 'Rechazó el documento',
   sobre_rechazado: 'Envío cerrado por rechazo',
   sobre_vencido: 'Venció el plazo',
+  plazo_extendido: 'Se extendió el plazo para firmar',
   sobre_anulado: 'Envío anulado',
   documento_descargado: 'Descargó el documento',
   sellado_fallido: 'Falló el armado del PDF firmado',

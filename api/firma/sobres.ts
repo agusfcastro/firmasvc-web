@@ -15,6 +15,7 @@
  *   enlaces     { sobre_id }               enlaces personales para mandar por otro medio
  *   recordar    { firmante_id }            reenvía la invitación
  *   corregir_email { firmante_id, email }  cambia el mail de quien no firmó. El enlace anterior deja de andar
+ *   extender    { sobre_id, dias }         plazo nuevo desde hoy, de 1 a 90 días. Reabre uno vencido y avisa a quienes faltan firmar
  *   anular      { sobre_id, motivo }
  *   descargar   { sobre_id, cual }         cual es original o final. Enlace que vence en dos minutos
  *   eliminar    { sobre_id }               solo FIRMA. Borra el envío con su registro, para los de prueba (migración 0028)
@@ -918,6 +919,56 @@ export async function POST(request: Request): Promise<Response> {
       const fallo = await notificarFirmante(sb, s, corregido as Firmante, request, q.id);
       if (fallo) return json({ ok: true, invitado: false, aviso: `Se corrigió el mail, pero no salió la invitación. ${fallo}` });
       return json({ ok: true, invitado: true });
+    }
+
+    /* -------------------------------------------------------------- */
+    /* Extender el plazo                                               */
+    /* -------------------------------------------------------------- */
+    if (accion === 'extender') {
+      const s = await cargarSobre(sb, q, cuerpo.sobre_id);
+      if (s instanceof Response) return s;
+      const dias = Math.round(Number(cuerpo.dias));
+      if (!Number.isFinite(dias) || dias < 1 || dias > 90) return error('El plazo nuevo va de 1 a 90 días.');
+      if (s.estado !== 'en_curso' && s.estado !== 'vencido') return error('Solo se extiende un envío en curso o vencido.');
+      if (s.error_sellado) return error('Ya firmaron todos. Solo falta armar el PDF firmado.');
+      const vence_en = new Date(Date.now() + dias * 86400000).toISOString();
+      if (s.estado === 'en_curso' && new Date(vence_en).getTime() <= new Date(s.vence_en).getTime()) return error(`El envío ya vence el ${venceElDia(s.vence_en)}. Elegí un plazo más largo.`);
+
+      const reabre = s.estado === 'vencido';
+      if (reabre) {
+        // Al reabrirse vuelve a reservar su lugar en el cupo del plan.
+        const tope = await limiteDeFirmas(sb, s);
+        if (tope) return error(tope, 409);
+        if (s.crm_cliente_id) {
+          const { data: cl } = await sb.from('crm_clientes').select('estado_firma').eq('id', s.crm_cliente_id).maybeSingle();
+          if (cl?.estado_firma === 'Baja') return error('El cliente está dado de baja.', 409);
+          const { data: otro } = await sb.from('firma_sobres').select('id').eq('crm_cliente_id', s.crm_cliente_id).in('estado', ['en_curso', 'completado']).neq('id', s.id).limit(1);
+          if (otro?.length) return error('Ese cliente ya tiene otro contrato en firma o firmado. Seguí con ese.', 409);
+        }
+      }
+
+      const { data: extendido } = await sb
+        .from('firma_sobres')
+        .update({ estado: 'en_curso', vence_en, cerrado_en: null, motivo_cierre: null })
+        .eq('id', s.id)
+        .eq('estado', s.estado)
+        .select('*')
+        .maybeSingle();
+      if (!extendido) return error('El envío cambió de estado. Recargá la página.', 409);
+      await evento(sb, s.id, null, q.id, 'plazo_extendido', request, { antes: s.vence_en, ahora: vence_en, dias, reabierto: reabre });
+
+      // Por mail, a quienes les toca firmar les llega de nuevo la invitación con la fecha nueva.
+      if (extendido.entrega !== 'mail' && extendido.entrega != null) return json({ ok: true, vence_en, avisados: 0 });
+      if (!mailDisponible()) return json({ ok: true, vence_en, avisados: 0, aviso: 'El envío de mails no está configurado. Copiá los enlaces y mandalos por otro medio.' });
+      const { data: todos } = await sb.from('firma_firmantes').select('*').eq('sobre_id', s.id).order('orden');
+      let avisados = 0;
+      const fallos: string[] = [];
+      for (const f of enTurno((todos ?? []) as Firmante[], extendido.secuencial)) {
+        const fallo = await notificarFirmante(sb, extendido as Sobre, f, request, q.id, Boolean(f.notificado_en));
+        if (fallo) fallos.push(f.nombre);
+        else avisados++;
+      }
+      return json({ ok: true, vence_en, avisados, aviso: fallos.length ? `Se extendió el plazo, pero no salió el mail a ${fallos.join(', ')}. Usá el recordatorio o copiá el enlace.` : undefined });
     }
 
     /* -------------------------------------------------------------- */
