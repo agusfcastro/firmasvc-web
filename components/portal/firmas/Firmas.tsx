@@ -83,6 +83,8 @@ const Listado: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> =
   const [orgs, setOrgs] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<Filtro>('en_curso');
+  // Orden por fecha de envío: primero los más recientes, o primero los más antiguos.
+  const [recientesPrimero, setRecientesPrimero] = useState(true);
   const cupo = useCupoFirmas(esAdmin ? null : vista?.orgId ?? organizacion?.id);
   const sinCupo = firmasAgotadas(cupo);
 
@@ -127,9 +129,9 @@ const Listado: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> =
     completado: todos.filter((s) => s.estado === 'completado').length,
     cerrados: todos.filter((s) => ['rechazado', 'anulado', 'vencido'].includes(s.estado)).length,
   };
-  const lista = todos.filter((s) =>
-    filtro === 'todos' ? true : filtro === 'cerrados' ? ['rechazado', 'anulado', 'vencido'].includes(s.estado) : s.estado === filtro,
-  );
+  const lista = todos
+    .filter((s) => (filtro === 'todos' ? true : filtro === 'cerrados' ? ['rechazado', 'anulado', 'vencido'].includes(s.estado) : s.estado === filtro))
+    .sort((a, b) => (new Date(a.creado_en).getTime() - new Date(b.creado_en).getTime()) * (recientesPrimero ? -1 : 1));
   const vencenPronto = todos.filter((s) => s.estado === 'en_curso' && new Date(s.vence_en).getTime() - Date.now() < 3 * 86400000).length;
 
   return (
@@ -204,7 +206,17 @@ const Listado: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> =
                     {esAdmin && <th>Cliente</th>}
                     <th>Firmas</th>
                     <th>Estado</th>
-                    <th>Enviado</th>
+                    <th aria-sort={recientesPrimero ? 'descending' : 'ascending'}>
+                      <button
+                        type="button"
+                        onClick={() => setRecientesPrimero((v) => !v)}
+                        title={recientesPrimero ? 'Ordenar del más antiguo al más reciente' : 'Ordenar del más reciente al más antiguo'}
+                        className="inline-flex items-center gap-1 font-medium hover:text-tinta transition-colors duration-150"
+                      >
+                        Enviado
+                        {recientesPrimero ? <ArrowDown size={14} aria-hidden="true" /> : <ArrowUp size={14} aria-hidden="true" />}
+                      </button>
+                    </th>
                     <th>Vence</th>
                   </tr>
                 </thead>
