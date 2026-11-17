@@ -26,6 +26,8 @@ El portal cumple dos roles. Es el canal del cliente y es la herramienta interna 
 
 Los contratos del CRM los generan y mandan a firmar solo `admin`, el `titular` y quienes tengan el área Legales u Operaciones. Nadie del cliente ve los modelos con sus variables ni los placeholders.
 
+El rol viejo `miembro` se retiró en la migración 0066 y esas cuentas pasaron a `csm`. La misma migración borró las tablas sin uso `zapsign_cuentas` y `crm_borradores`.
+
 En el código el cliente de FIRMA es `organizaciones` y `client_id` es `organizacion_id`. El glosario completo y el estado del repo están en `docs/ESTADO_ACTUAL.md`.
 
 ## Planes
@@ -74,6 +76,8 @@ Los abonos cobran esta oferta desde la migración 0061 (`abonos.modalidad`, `eta
 
 **Fase 1 (noviembre 2026)**
 - Portal instalable como PWA, con notificaciones push. La app instalada se llama FIRMA y usa el logo de FIRMA. Hecho: avisos de asuntos, documentos, onboardings del día, firmas y derivaciones de Tina (`api/_lib/push.ts`, `components/portal/push.ts`, `public/sw.js`). Necesita `VAPID_PRIVATE_KEY` en Vercel. Vercel tiene 12 funciones, que era el tope del plan Hobby: antes de sumar un archivo nuevo en `api/` fuera de `_lib`, confirmar el límite vigente.
+- Centro de avisos con campana. Hecho: cada aviso que manda el servidor queda también en el historial de la persona (tabla `avisos`, migración 0066), llegue o no el push, y se guarda 90 días. Lo escribe solo el servidor desde `api/_lib/push.ts`; cada persona lee los suyos y solo puede marcarlos como leídos. La campana está en `components/portal/avisos/CentroAvisos.tsx` y las pruebas en `supabase/pruebas/avisos.sql`.
+- Buscador del portal (`components/portal/Buscador.tsx`), en la barra lateral y arriba en el celular. Invoices y recibos se abre desde Clientes y la bitácora desde el pie de la barra lateral.
 - Burbuja de chat de Tina dentro del portal.
 - Resumen diario por mail a las 7 de la mañana de Argentina para todos los clientes, de lunes a viernes, aparte de las alertas de vencimientos y de la newsletter de los lunes, al titular y a los account managers. Si no hay novedades, se manda un mensaje corto que lo avisa. Usa el mismo servicio de mail que la firma electrónica.
 - Notificaciones solo operativas. Los onboardings le avisan al account manager. En asuntos y conflictos, quien actualiza el portal marca una opción para que Tina avise al responsable.
