@@ -12,9 +12,14 @@ import {
   Kanban,
   LogOut,
   Menu,
+  Layers,
+  Phone,
   ReceiptText,
   ScrollText,
+  Search,
+  ShieldAlert,
   ShieldCheck,
+  Users,
   Wallet,
   WifiOff,
   X,
@@ -28,7 +33,8 @@ import { useLogoOrg } from './logos';
 import { ROTULO_ROL, cargoDe, permisosDe, veAsuntos, type Perfil, type Permisos } from './tipos';
 import { ROTULO_PLAN, type Plan } from './planes';
 import { BurbujaTina } from './tina/BurbujaTina';
-import { BotonAvisos } from './TarjetaAvisos';
+import { CampanaAvisos, PanelAvisos, vaciarAvisos } from './avisos/CentroAvisos';
+import { Buscador, abrirBuscador, atajoBuscador, type AccesoSeccion } from './Buscador';
 import { desactivarPush } from './push';
 import { LimiteError } from './LimiteError';
 
@@ -59,13 +65,14 @@ async function salir() {
   await desactivarPush().catch(() => undefined);
   // Solo esta sesión: sin scope, Supabase cierra la cuenta en todos los dispositivos.
   await supabase?.auth.signOut({ scope: 'local' });
+  vaciarAvisos();
   navegar('/portal/ingresar');
 }
 
 /* ------------------------------------------------------------------ */
 /* Secciones del portal según el rol                                   */
 /* ------------------------------------------------------------------ */
-type ClaveSeccion = 'inicio' | 'asuntos' | 'firmas' | 'documentos' | 'protocolos' | 'crm' | 'comprobantes' | 'agenda' | 'pagos' | 'bitacora' | 'admin';
+type ClaveSeccion = 'inicio' | 'asuntos' | 'firmas' | 'documentos' | 'protocolos' | 'crm' | 'agenda' | 'pagos' | 'admin';
 
 interface Seccion {
   clave: ClaveSeccion;
@@ -88,17 +95,29 @@ function seccionesDe(perfil: Perfil, permisos: Permisos, ruta: string): Seccion[
       ? [s('documentos', '/portal/documentos', 'Documentos', 'Documentos', FileText, 'expediente', ruta.startsWith('/portal/documentos') || ruta.startsWith('/portal/pedidos'))]
       : []),
     s('protocolos', '/portal/protocolos', 'Protocolos', 'Protocolos', BookOpen, 'expediente', ruta === '/portal/protocolos'),
-    ...(permisos.crm
-      ? [
-          s('crm', '/portal/crm', 'Clientes', 'Clientes', Kanban, 'negocio', ruta.startsWith('/portal/crm') && !ruta.startsWith('/portal/crm/comprobantes')),
-          s('comprobantes', '/portal/crm/comprobantes', 'Invoices y recibos', 'Recibos', ReceiptText, 'negocio', ruta.startsWith('/portal/crm/comprobantes')),
-        ]
-      : []),
+    // Invoices y recibos se abren desde Clientes; la bitácora, desde el pie de la barra lateral.
+    ...(permisos.crm ? [s('crm', '/portal/crm', 'Clientes', 'Clientes', Kanban, 'negocio', ruta.startsWith('/portal/crm'))] : []),
     ...(permisos.agenda ? [s('agenda', '/portal/agenda', 'Agenda', 'Agenda', CalendarDays, 'negocio', ruta === '/portal/agenda')] : []),
     // Pagos solo para titulares y FIRMA. El resto del equipo no ve nada de pagos.
     ...(permisos.gestion ? [s('pagos', '/portal/pagos', 'Pagos', 'Pagos', Wallet, 'negocio', ruta === '/portal/pagos')] : []),
-    ...(perfil.rol === 'titular' ? [s('bitacora', '/portal/bitacora', 'Bitácora', 'Bitácora', ScrollText, 'negocio', ruta === '/portal/bitacora')] : []),
     ...(perfil.rol === 'admin' ? [s('admin', '/portal/admin', 'Administración', 'Admin', ShieldCheck, 'firma', ruta.startsWith('/portal/admin'))] : []),
+  ];
+}
+
+/** Lo que el buscador ofrece como sección: el menú más las pantallas que no tienen ítem propio. */
+function accesosDe(perfil: Perfil, permisos: Permisos, secciones: Seccion[]): AccesoSeccion[] {
+  return [
+    ...secciones.map((x) => ({ a: x.a, titulo: x.titulo, icono: x.icono })),
+    ...(permisos.crm
+      ? [
+          { a: '/portal/crm/comprobantes', titulo: 'Invoices y recibos', icono: ReceiptText },
+          ...(permisos.casos ? [{ a: '/portal/crm/casos', titulo: 'Casos de conflicto', icono: ShieldAlert }] : []),
+          { a: '/portal/crm/servicios', titulo: 'Servicios', icono: Layers },
+          { a: '/portal/crm/equipo', titulo: 'Equipo', icono: Users },
+          { a: '/portal/crm/llamadas', titulo: 'Llamadas', icono: Phone },
+        ]
+      : []),
+    ...(perfil.rol === 'titular' ? [{ a: '/portal/bitacora', titulo: 'Bitácora de la cuenta', icono: ScrollText }] : []),
   ];
 }
 
@@ -294,7 +313,6 @@ const Lateral: React.FC<{
   const grupos = (['expediente', 'negocio', 'firma'] as const).map((g) => ({ g, items: secciones.filter((x) => x.grupo === g) })).filter((x) => x.items.length);
   const cuenta = (c: ClaveSeccion) => (c === 'asuntos' ? contadores.asuntos : c === 'firmas' ? contadores.firmas : undefined);
   const nombre = perfil.nombre || perfil.email;
-  const tieneAgenda = secciones.some((x) => x.clave === 'agenda');
   const negocios = useMisNegocios(!vista && perfil.rol !== 'admin' ? perfil : null);
   const varios = negocios.length > 1;
   const titulos = esAdmin ? { expediente: 'Clientes', negocio: 'Gestión', firma: 'FIRMA' } : TITULO_GRUPO;
@@ -329,6 +347,22 @@ const Lateral: React.FC<{
         )}
       </div>
 
+      <button
+        type="button"
+        onClick={() => {
+          alElegir?.();
+          abrirBuscador();
+        }}
+        aria-haspopup="dialog"
+        className="relative -my-1 flex items-center gap-2.5 h-10 px-3 rounded-[10px] border border-marfil/10 text-[14px] text-lateral-tenue hover:text-marfil hover:border-marfil/25"
+      >
+        <Search size={16} aria-hidden="true" className="shrink-0" />
+        <span className="flex-1 text-left">Buscar</span>
+        <kbd aria-hidden="true" className="hidden desk:inline font-sans text-[11.5px] px-1.5 py-0.5 rounded-[6px] border border-marfil/15">
+          {atajoBuscador()}
+        </kbd>
+      </button>
+
       <nav aria-label="Secciones del portal" className="relative flex flex-col gap-5">
         {grupos.map(({ g, items }) => (
           <div key={g} className="flex flex-col gap-0.5">
@@ -358,15 +392,17 @@ const Lateral: React.FC<{
         ))}
       </nav>
 
-      <div className="relative mt-auto flex flex-col gap-4">
-        {tieneAgenda && !esAdmin && (
-          <div className="p-4 rounded-[14px] border border-marfil/10 bg-marfil/[0.05] [@media(max-height:880px)]:hidden">
-            <p className="font-bold text-marfil text-[15px] tracking-[-0.01em]">¿Una duda legal?</p>
-            <p className="text-[13px] leading-[1.45] mt-1 mb-3">Agendá 30 minutos con Agustín Castro y salís con la respuesta.</p>
-            <Enlace a="/portal/agenda" onClick={alElegir} className="inline-flex items-center gap-1.5 text-[13.5px] font-semibold text-marfil hover:underline underline-offset-4">
-              Agendar reunión <ChevronRight size={15} aria-hidden="true" />
-            </Enlace>
-          </div>
+      <div className="relative mt-auto flex flex-col gap-3">
+        {perfil.rol === 'titular' && !vista && (
+          <Enlace
+            a="/portal/bitacora"
+            onClick={alElegir}
+            aria-current={window.location.pathname.startsWith('/portal/bitacora') ? 'page' : undefined}
+            className="flex items-center gap-2.5 min-h-[36px] px-3 rounded-[10px] text-[13px] text-lateral-tenue hover:text-marfil hover:bg-marfil/[0.06] aria-[current=page]:text-marfil"
+          >
+            <ScrollText size={15} strokeWidth={1.75} aria-hidden="true" className="shrink-0" />
+            Bitácora de la cuenta
+          </Enlace>
         )}
         <div className="flex items-center gap-3 pt-4 px-1 border-t border-marfil/10">
           <span aria-hidden="true" className="w-8 h-8 shrink-0 rounded-full grid place-items-center bg-grafito text-marfil text-[12px] font-bold">
@@ -376,7 +412,7 @@ const Lateral: React.FC<{
             <span className="text-marfil text-[13.5px] font-medium truncate">{nombre}</span>
             <span className="text-[12px] text-lateral-tenue truncate">{perfil.nombre ? perfil.email : ROTULO_ROL[perfil.rol]}</span>
           </span>
-          <BotonAvisos />
+          <CampanaAvisos alAbrir={alElegir} />
           <button type="button" onClick={salir} aria-label="Salir del portal" title="Salir" className="w-10 h-10 grid place-items-center shrink-0 rounded-[10px] text-lateral-tenue hover:text-marfil hover:bg-marfil/[0.06]">
             <LogOut size={17} aria-hidden="true" />
           </button>
@@ -471,6 +507,12 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
             </Enlace>
             <span className="flex-1 min-w-0 text-right text-[13px] text-lateral-texto truncate">{esAdmin ? 'Administración' : vista?.orgNombre ?? org?.nombre ?? ''}</span>
             {perfil && (
+              <button type="button" onClick={abrirBuscador} aria-label="Buscar en el portal" aria-haspopup="dialog" className="w-10 h-10 -mr-1.5 grid place-items-center shrink-0 rounded-[10px] text-lateral-texto hover:text-marfil hover:bg-marfil/[0.06]">
+                <Search size={19} aria-hidden="true" />
+              </button>
+            )}
+            {perfil && <CampanaAvisos className="-mr-1.5" />}
+            {perfil && (
               <button type="button" onClick={() => setMenu(true)} aria-label="Abrir el menú" aria-expanded={menu} className="w-10 h-10 -mr-2 grid place-items-center shrink-0 rounded-[10px] hover:bg-marfil/[0.06]">
                 <Menu size={20} aria-hidden="true" />
               </button>
@@ -553,6 +595,13 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
         <PanelMenu abierto={menu} alCerrar={() => setMenu(false)}>
           {lateral}
         </PanelMenu>
+
+        {perfil && permisos && (
+          <>
+            <PanelAvisos />
+            <Buscador perfil={perfil} orgId={perfil.rol === 'admin' ? null : perfil.organizacion_id} secciones={accesosDe(perfil, permisos, secciones)} />
+          </>
+        )}
 
         {/* Tina atiende a los usuarios de los clientes. FIRMA y la vista previa no la ven. */}
         {perfil && perfil.rol !== 'admin' && !vista && perfil.organizacion_id && (

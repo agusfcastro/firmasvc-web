@@ -95,5 +95,6 @@ end $$;
 
 -- Las claves por negocio existen, aunque en varios casos un trigger frene antes.
 select pruebas.como_postgres();
-select pruebas.ok((select count(*) from pg_constraint where contype = 'f' and conname like '%\_org\_fk' escape '\') = 13,
-  'están las 13 claves foráneas por negocio');
+-- Eran 13: la de crm_borradores se fue con la tabla (0066).
+select pruebas.ok((select count(*) from pg_constraint where contype = 'f' and conname like '%\_org\_fk' escape '\') = 12,
+  'están las 12 claves foráneas por negocio');

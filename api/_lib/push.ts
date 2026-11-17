@@ -90,6 +90,22 @@ export function cifrar(mensaje: Buffer, p256dh: string, auth: string, prueba?: {
   return Buffer.concat([sal, rs, Buffer.from([servidorPublica.length]), servidorPublica, cifrado]);
 }
 
+/**
+ * Deja el aviso en el historial de cada persona (tabla avisos, migración 0066), que el
+ * portal muestra en la campana. Nunca tira error: si la tabla no está, el push sale igual.
+ */
+async function anotarAvisos(admin: SupabaseClient, ids: string[], aviso: AvisoPush): Promise<void> {
+  try {
+    const url = /^\/portal(\/|\?|$)/.test(aviso.url) ? aviso.url : '/portal';
+    const { error } = await admin.from('avisos').insert(
+      ids.map((usuario_id) => ({ usuario_id, titulo: aviso.titulo.trim().slice(0, 200) || 'FIRMA', cuerpo: aviso.cuerpo.slice(0, 500), url, etiqueta: aviso.etiqueta ?? null })),
+    );
+    if (!error) await admin.rpc('avisos_limpiar');
+  } catch {
+    /* el historial no frena el aviso */
+  }
+}
+
 interface Suscripcion {
   id: string;
   endpoint: string;
@@ -106,7 +122,10 @@ interface Suscripcion {
 export async function enviarPush(admin: SupabaseClient, usuarios: string[], aviso: AvisoPush): Promise<number> {
   const v = vapid();
   const ids = [...new Set(usuarios.filter(Boolean))];
-  if (!v || !ids.length) return 0;
+  if (!ids.length) return 0;
+  // Primero queda en la campana del portal, tenga o no avisos activos en algún dispositivo.
+  await anotarAvisos(admin, ids, aviso);
+  if (!v) return 0;
   try {
     const { data } = await admin.from('push_suscripciones').select('id, endpoint, p256dh, auth').in('usuario_id', ids).eq('activa', true);
     const subs = (data ?? []) as Suscripcion[];
@@ -149,7 +168,8 @@ export async function enviarPush(admin: SupabaseClient, usuarios: string[], avis
 /** Igual que enviarPush, pero con mails: los busca en perfiles. */
 export async function enviarPushPorMail(admin: SupabaseClient, emails: string[], aviso: AvisoPush): Promise<number> {
   const lista = [...new Set(emails.map((e) => e.trim().toLowerCase()).filter(Boolean))];
-  if (!lista.length || !pushDisponible()) return 0;
+  // Sin clave de push igual se anota en la campana del portal.
+  if (!lista.length) return 0;
   const { data } = await admin.from('perfiles').select('id').in('email', lista).eq('activo', true);
   const ids = (data ?? []).map((p: { id: string }) => p.id);
   return enviarPush(admin, ids, aviso);

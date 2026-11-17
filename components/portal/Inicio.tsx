@@ -457,15 +457,12 @@ const InicioCliente: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
   const firmasEnCurso = r.sobres.filter((s) => s.estado === 'en_curso');
   const porVencer = firmasEnCurso.filter((s) => diasHasta(s.vence_en) <= 3).length;
   const esperan = r.asuntos.filter((a) => a.estado === 'espera_cliente').length;
-  const hace7 = new Date(Date.now() - 7 * DIA).toISOString();
-  const nuevos = r.documentos.filter((d) => d.actualizado_en >= hace7).length;
   const plan = (organizacion?.plan ?? null) as Plan | null;
 
   const datos: Dato[] = [];
   if (permisos.documentosLegales)
     datos.push({ titulo: 'Firmas en curso', icono: FileSignature, valor: firmasEnCurso.length, nota: porVencer ? plural(porVencer, 'vence en 3 días o menos', 'vencen en 3 días o menos') : 'Ninguna por vencer', tono: porVencer ? 'aviso' : undefined, a: '/portal/firmas' });
   if (permisos.casos) datos.push({ titulo: 'Asuntos abiertos', icono: BriefcaseBusiness, valor: r.asuntos.length, nota: esperan ? plural(esperan, 'espera tu respuesta', 'esperan tu respuesta') : 'Ninguno espera tu respuesta', tono: esperan ? 'bosque' : undefined, a: '/portal/asuntos' });
-  if (permisos.documentosLegales) datos.push({ titulo: 'Documentos', icono: FileText, valor: r.documentos.length, nota: nuevos ? plural(nuevos, 'actualizado esta semana', 'actualizados esta semana') : 'Sin cambios esta semana', tono: nuevos ? 'bosque' : undefined, a: '/portal/documentos' });
   if (r.firmas && permisos.documentosLegales) {
     const ocupadas = firmasOcupadas(r.firmas);
     datos.push(
@@ -577,11 +574,6 @@ const InicioCliente: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
                     <CalendarDays size={16} aria-hidden="true" /> Agendar reunión
                   </Button>
                 </div>
-              </Tarjeta>
-            )}
-            {(permisos.casos || permisos.documentosLegales) && (
-              <Tarjeta titulo="Atajos">
-                <ModulosRapidos items={rapidos} />
               </Tarjeta>
             )}
           </div>

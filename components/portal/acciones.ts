@@ -9,6 +9,7 @@ export const ACCIONES: Record<string, string> = {
   enlace_acceso: 'Enlace de acceso copiado',
   pedido_clave: 'Pidió una contraseña nueva',
   descarga_documento: 'Descargó un documento',
+  // ZapSign se retiró, pero la bitácora no se borra: los movimientos viejos siguen necesitando su texto.
   zapsign_conectado: 'ZapSign conectado',
   zapsign_desconectado: 'ZapSign desconectado',
   abono_alta: 'Abono creado',

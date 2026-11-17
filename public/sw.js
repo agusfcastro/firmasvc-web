@@ -16,6 +16,13 @@ self.addEventListener('push', (event) => {
     datos = { cuerpo: event.data ? event.data.text() : '' };
   }
   const url = typeof datos.url === 'string' && datos.url.startsWith('/') ? datos.url : '/portal';
+  // Si el portal está abierto, la campana se actualiza al momento.
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: 'window', includeUncontrolled: true })
+      .then((abiertas) => abiertas.forEach((c) => c.postMessage({ tipo: 'aviso' })))
+      .catch(() => undefined),
+  );
   event.waitUntil(
     self.registration.showNotification(datos.titulo || 'FIRMA', {
       body: datos.cuerpo || 'Tenés una novedad en el portal.',

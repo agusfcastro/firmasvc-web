@@ -43,14 +43,7 @@
     <!-- Calendly se carga recién al abrir el popup (lib/calendly.ts) -->
     <link rel="preconnect" href="https://assets.calendly.com" />
 
-    <!-- Preconnect for Google Fonts (eliminates DNS + TLS round trips) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- Load font asynchronously to avoid render blocking -->
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Bitter:wght@600;700;900&display=swap" onload="this.rel='stylesheet'" />
-    <noscript>
-      <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Bitter:wght@600;700;900&display=swap" rel="stylesheet" />
-    </noscript>
+    <!-- Archivo Variable va alojada en firmasvc.com. Las páginas que usan Archivo y Bitter de Google las piden al cargar (lib/fuentesWeb.ts). -->
 
     <!-- Datos estructurados para buscadores -->
     <script type="application/ld+json">

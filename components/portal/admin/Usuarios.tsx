@@ -90,7 +90,7 @@ export const Usuarios: React.FC<{ yo: Perfil }> = ({ yo }) => {
       nombre: borrador.nombre,
       rol: borrador.rol,
       organizacion_id: borrador.rol === 'admin' ? null : borrador.organizacion_id || null,
-      areas: borrador.rol === 'csm' || borrador.rol === 'miembro' ? borrador.areas : [],
+      areas: borrador.rol === 'csm' ? borrador.areas : [],
     };
     const r = borrador.usuario_id
       ? await accion({ accion: 'actualizar', usuario_id: borrador.usuario_id, ...base }, 'Cambios guardados.', 'form')
@@ -153,7 +153,6 @@ export const Usuarios: React.FC<{ yo: Perfil }> = ({ yo }) => {
                   {ROTULO_ROL[r]}
                 </option>
               ))}
-              {borrador.rol === 'miembro' && <option value="miembro">{ROTULO_ROL.miembro}</option>}
               <option value="admin">{ROTULO_ROL.admin}</option>
             </select>
           </Campo>
@@ -173,7 +172,7 @@ export const Usuarios: React.FC<{ yo: Perfil }> = ({ yo }) => {
             </Campo>
           )}
           {borrador.rol === 'admin' && <Aviso tipo="info">Un admin FIRMA ve y edita la información de todos los clientes. Dalo solo a tu equipo interno.</Aviso>}
-          {(borrador.rol === 'csm' || borrador.rol === 'miembro') && (
+          {borrador.rol === 'csm' && (
             <fieldset>
               <legend className="text-sm font-medium mb-2">Áreas</legend>
               <p className="text-xs text-piedra mb-3">Opcional. Si marcás alguna, solo ve los documentos de esas áreas. Sin marcar, ve todos. El titular siempre ve todo.</p>

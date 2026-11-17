@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ChevronLeft, ChevronRight, Download, Layers, Phone, Plus, Search, ShieldAlert, Users } from 'lucide-react';
+import { AlertTriangle, ChevronLeft, ChevronRight, Download, Layers, Phone, Plus, ReceiptText, Search, ShieldAlert, Users } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
@@ -231,6 +231,9 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
             </Button>
             <Button variant="ghost" size="lg" onClick={() => navegar('/portal/crm/llamadas')} className="self-end">
               <Phone size={18} /> Llamadas
+            </Button>
+            <Button variant="ghost" size="lg" onClick={() => navegar('/portal/crm/comprobantes')} className="self-end">
+              <ReceiptText size={18} /> Invoices y recibos
             </Button>
             {!soloLectura && (
               <Button size="lg" onClick={() => navegar('/portal/crm/nuevo')} className="self-end">

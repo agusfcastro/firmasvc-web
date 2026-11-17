@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 // Archivo variable desde firmasvc.com, la misma del portal: pesos 100 a 900 y ancho 62 a 125.
 import '@fontsource-variable/archivo/wdth.css';
 import { Header } from './components/Header';
@@ -14,6 +14,7 @@ import { WhatsAppButton } from './components/WhatsAppButton';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { TermsOfService } from './components/TermsOfService';
 import { RUTAS_MOTOR } from './components/protocolos/rutas';
+import { cargarFuentesWeb } from './lib/fuentesWeb';
 
 // Los protocolos y su índice comparten un motor que se carga aparte para no sumar peso a la home.
 const PaginaProtocolo = lazy(() => import('./components/protocolos/PaginaProtocolo'));
@@ -35,6 +36,11 @@ const Herramienta = lazy(() => import('./components/comprobantes/Herramienta'));
 /** ruta viene solo del prerender del build (entry-server.tsx). En el navegador sale de la dirección. */
 function App({ ruta }: { ruta?: string }) {
   const path = (ruta ?? window.location.pathname).replace(/\/$/, '');
+
+  // El home y el portal usan la tipografía propia. El resto todavía pide Archivo y Bitter a Google.
+  useEffect(() => {
+    if (path !== '' && path !== '/portal' && !path.startsWith('/portal/')) cargarFuentesWeb();
+  }, [path]);
   if (path === '/privacidad' || path === '/privacy') {
     return <PrivacyPolicy />;
   }

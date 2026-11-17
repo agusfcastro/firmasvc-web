@@ -1,5 +1,5 @@
-/** miembro es el rol anterior a csm. Se conserva para cuentas viejas y ya no se asigna. */
-export type Rol = 'admin' | 'titular' | 'csm' | 'closer' | 'setter' | 'miembro';
+/** El rol viejo «miembro» se retiró en la migración 0066: esas cuentas pasaron a csm. */
+export type Rol = 'admin' | 'titular' | 'csm' | 'closer' | 'setter';
 export type RolCliente = Exclude<Rol, 'admin'>;
 
 /** Roles que se asignan hoy a la gente de un cliente, en el orden del panel. */
@@ -32,11 +32,13 @@ export function permisosDe(rol: Rol): Permisos {
     case 'titular':
       return { crm: true, casos: true, documentosLegales: true, agenda: true, gestion: true };
     case 'csm':
-    case 'miembro':
       return { crm: true, casos: true, documentosLegales: true, agenda: true, gestion: false };
     case 'closer':
       return { crm: true, casos: false, documentosLegales: false, agenda: true, gestion: false };
     case 'setter':
+      return { crm: false, casos: false, documentosLegales: false, agenda: false, gestion: false };
+    // Un rol que el portal no conoce no ve nada sensible: solo protocolos.
+    default:
       return { crm: false, casos: false, documentosLegales: false, agenda: false, gestion: false };
   }
 }
@@ -133,18 +135,16 @@ export const ROTULO_ROL: Record<Rol, string> = {
   csm: 'CSM',
   closer: 'Closer',
   setter: 'Setter',
-  miembro: 'Miembro del equipo',
 };
 
 /** Lo que se lee debajo del nombre: el cargo si tiene uno, si no el rol. */
-export const cargoDe = (perfil: Pick<Perfil, 'rol' | 'cargo'>): string => perfil.cargo?.trim() || ROTULO_ROL[perfil.rol];
+export const cargoDe = (perfil: Pick<Perfil, 'rol' | 'cargo'>): string => perfil.cargo?.trim() || ROTULO_ROL[perfil.rol] || 'Equipo';
 
 export const AYUDA_ROL: Record<RolCliente, string> = {
   titular: 'Todo lo de su empresa, incluidos el equipo, los pagos y los servicios.',
   csm: 'Todo menos la administración de la empresa (equipo, pagos y servicios).',
   closer: 'CRM y agenda, sin casos de conflicto. De documentos, solo protocolos y formación.',
   setter: 'Solo protocolos y formación.',
-  miembro: 'Rol anterior, equivale a CSM.',
 };
 
 export const PAISES: Record<string, string> = {

@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Bell, BellOff, Share, X } from 'lucide-react';
+import { Bell, Share, X } from 'lucide-react';
 import { Button } from '../Button';
-import { activarPush, cerrarTarjeta, desactivarPush, estadoPush, tarjetaCerrada, type EstadoPush } from './push';
+import { activarPush, cerrarTarjeta, estadoPush, tarjetaCerrada, type EstadoPush } from './push';
 
 /**
  * Tarjeta de Inicio que ofrece activar los avisos en este dispositivo.
  * Desaparece cuando se activan o cuando la persona la cierra; después se
- * manejan con la campana de la barra lateral.
+ * manejan desde la campana (avisos/CentroAvisos.tsx).
  */
 export const TarjetaAvisos: React.FC = () => {
   const [estado, setEstado] = useState<EstadoPush | null>(null);
@@ -68,49 +68,5 @@ export const TarjetaAvisos: React.FC = () => {
         <X size={16} aria-hidden="true" />
       </button>
     </section>
-  );
-};
-
-/** Campana de la barra lateral: prende y apaga los avisos de este dispositivo. */
-export const BotonAvisos: React.FC = () => {
-  const [estado, setEstado] = useState<EstadoPush | null>(null);
-  const [ocupado, setOcupado] = useState(false);
-
-  useEffect(() => {
-    let vivo = true;
-    estadoPush().then((e) => vivo && setEstado(e));
-    return () => {
-      vivo = false;
-    };
-  }, []);
-
-  if (!estado || estado === 'no_soportado' || estado === 'instalar') return null;
-  const activos = estado === 'activos';
-  const titulo = activos ? 'Avisos activos en este dispositivo. Tocá para apagarlos' : estado === 'bloqueados' ? 'Avisos bloqueados en el navegador' : 'Activar avisos en este dispositivo';
-
-  const alternar = async () => {
-    if (estado === 'bloqueados') return;
-    setOcupado(true);
-    if (activos) {
-      await desactivarPush();
-      setEstado('apagados');
-    } else {
-      setEstado((await activarPush()).estado);
-    }
-    setOcupado(false);
-  };
-
-  return (
-    <button
-      type="button"
-      onClick={alternar}
-      disabled={ocupado || estado === 'bloqueados'}
-      aria-label={titulo}
-      aria-pressed={activos}
-      title={titulo}
-      className={`w-10 h-10 grid place-items-center shrink-0 rounded-[10px] hover:bg-marfil/[0.06] disabled:opacity-50 ${activos ? 'text-marfil' : 'text-lateral-tenue hover:text-marfil'}`}
-    >
-      {activos ? <Bell size={17} aria-hidden="true" /> : <BellOff size={17} aria-hidden="true" />}
-    </button>
   );
 };
