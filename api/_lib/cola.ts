@@ -7,6 +7,7 @@
  * lanza un error, el trabajo vuelve a la cola con una espera creciente.
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { analizarLlamada, type DatosAnalisis } from './analisis/analizar.js';
 
 export interface Trabajo {
   id: number;
@@ -17,13 +18,38 @@ export interface Trabajo {
   max_intentos: number;
 }
 
-type Procesador = (sb: SupabaseClient, payload: Record<string, unknown>) => Promise<void>;
+type Procesador = (sb: SupabaseClient, payload: Record<string, unknown>, trabajo: Trabajo) => Promise<void>;
 
 const PROCESADORES: Record<string, Procesador> = {
   // Cruza los mails de la llamada con el equipo y los clientes del CRM.
   async interaccion_vincular(sb, payload) {
     const { error } = await sb.rpc('interaccion_vincular', { p_interaccion: payload.interaccion_id });
     if (error) throw new Error(error.message);
+  },
+
+  // Analiza una llamada con Claude (migración 0067, api/_lib/analisis). Si el
+  // análisis ya no está pendiente, no hace nada. En el último intento, un
+  // error queda anotado en el análisis para que se vea en el portal.
+  async interaccion_analizar(sb, payload, trabajo) {
+    const id = String(payload.analisis_id ?? '');
+    const { data, error } = await sb.rpc('analisis_contenido', { p_analisis: id });
+    if (error) throw new Error(error.message);
+    const datos = data as (DatosAnalisis & { sin_contenido?: boolean }) | null;
+    if (!datos) return;
+    if (datos.sin_contenido) {
+      await sb.rpc('analisis_error', { p_analisis: id, p_error: 'La llamada ya no tiene la transcripción guardada.' });
+      return;
+    }
+    try {
+      const resultado = await analizarLlamada(datos);
+      const { error: e } = await sb.rpc('analisis_guardar', { p_analisis: id, p_resultado: resultado });
+      if (e) throw new Error(e.message);
+    } catch (e) {
+      if (trabajo.intentos >= trabajo.max_intentos) {
+        await sb.rpc('analisis_error', { p_analisis: id, p_error: e instanceof Error ? e.message : String(e) });
+      }
+      throw e;
+    }
   },
 };
 
@@ -39,7 +65,7 @@ export async function procesarTrabajo(sb: SupabaseClient, t: Trabajo): Promise<b
   try {
     const procesador = PROCESADORES[t.tipo];
     if (!procesador) throw new Error(`No hay procesador para el tipo ${t.tipo}.`);
-    await procesador(sb, t.payload ?? {});
+    await procesador(sb, t.payload ?? {}, t);
     await sb.rpc('cola_terminar', { p_id: t.id });
     return true;
   } catch (e) {
@@ -51,13 +77,16 @@ export async function procesarTrabajo(sb: SupabaseClient, t: Trabajo): Promise<b
 /**
  * Toma y procesa trabajos hasta vaciar la cola o pasar el tiempo. Con id,
  * solo ese trabajo (si otro procesador ya lo tomó, no hace nada).
+ * De a uno y con 5 minutos de reserva: un análisis de llamada puede tardar
+ * un par de minutos y no tiene que quedar otro trabajo reservado esperando.
+ * Pasado el tiempo no toma más, pero termina el que tiene entre manos.
  */
 export async function procesarCola(sb: SupabaseClient, opciones: { id?: number; hastaMs?: number } = {}): Promise<{ hechos: number; fallidos: number }> {
   const limite = Date.now() + (opciones.hastaMs ?? 40_000);
   let hechos = 0;
   let fallidos = 0;
   do {
-    const { data, error } = await sb.rpc('cola_tomar', { p_cantidad: opciones.id ? 1 : 5, p_segundos: 120, p_id: opciones.id ?? null });
+    const { data, error } = await sb.rpc('cola_tomar', { p_cantidad: 1, p_segundos: 300, p_id: opciones.id ?? null });
     if (error) throw new Error(error.message);
     const trabajos = (data as Trabajo[] | null) ?? [];
     if (!trabajos.length) break;

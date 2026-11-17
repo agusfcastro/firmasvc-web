@@ -939,7 +939,7 @@ Del aviso se guarda solo lo necesario. El resumen y las tareas que arma Fathom s
 | Conexiones de Fathom | Ve y administra | Ve | La suya, si tiene cuenta en el portal | Ve y administra |
 | Llamadas (metadata) | Todas | Todas | Las que grabó o en las que participó (por su cuenta vinculada en Equipo) | Todas |
 | Asignar el cliente | Sí | Sí | No | Sí |
-| Contenido | Nadie desde el portal. Lo lee el servidor; la lectura para personas llega con la fase 5 y queda en la bitácora | | | |
+| Contenido | Nadie desde el portal. Lo lee el servidor. Lo que llega a las personas es el análisis (sección Análisis de llamadas de venta), que queda en la bitácora | | | |
 
 Conectar, generar una URL nueva, guardar el secreto, pausar, desconectar y asignar quedan en la bitácora del negocio.
 
@@ -974,3 +974,102 @@ Sin la funcionalidad `fathom` en el plan, la pantalla lo avisa. La traen los pla
 La firma sigue lo que documenta Fathom: la clave es lo que sigue a `whsec_` decodificado de base64. Falta confirmar con una cuenta real los nombres de los campos del aviso: `recording_id`, `title`, `recording_start_time`, `recording_end_time`, `calendar_invitees`, `recorded_by` y `transcript` con `speaker`, `text` y `timestamp`. Está marcado «verificar con una cuenta real» en `api/webhooks/fathom.ts`.
 
 Para sumar un tipo de trabajo a la cola: un procesador en `api/_lib/cola.ts` y `cola_encolar('tipo', negocio, '{"id": …}', 'tipo:' || id)` desde la base o la API.
+
+## Análisis de llamadas de venta
+
+Fase 5, migración `0067_analisis_llamadas.sql`. Cada llamada de un negocio con la funcionalidad `analisis_llamadas` se analiza sola al quedar vinculada. Eminent la trae desde esta migración y los planes de producto la traían desde la 0040. El método es el de la skill perfil-riesgo-prospecto v1.1. Claude codifica lo que dijo el prospecto con un libro de códigos cerrado, la base calcula el puntaje y FIRMA revisa cada análisis antes de que lo vea el negocio.
+
+### Cómo se analiza una llamada
+
+1. Al pasar de recibida a vinculada, el disparador `interacciones_despues` crea el análisis pendiente y encola `interaccion_analizar`. La carga manual hace lo mismo. Desde el portal, titular, CSM y FIRMA lo piden con «Analizar» (`analisis_solicitar`). Las llamadas que ya estaban vinculadas antes de la 0067 no se analizan solas.
+2. El barrido de la cola (`/api/cola/procesar`) lee la llamada descifrada con `analisis_contenido` (solo servidor). `api/_lib/analisis/transcripcion.ts` arma la transcripción con roles (Vendedor, Prospecto o Hablante) en lugar de nombres, y sin mails ni teléfonos. Los montos quedan.
+3. `claude-haiku-5-5` clasifica la etapa. Si no es venta, el análisis queda en `no_aplica` y la llamada en `clasificada`, con su etapa en `etapa_comercial`.
+4. Si es venta, `claude-opus-5-5` con esfuerzo medio y salida estructurada codifica con las instrucciones de `docs/ANALIZADOR_VENTA.md` (`api/_lib/analisis/analizar.ts`).
+5. El servidor verifica que cada cita aparezca textual en lo que dijo quien corresponde. La que no aparece pasa a descartes y no cuenta. La que aparece toma el minuto de la intervención.
+6. `analisis_guardar` puntúa con `analisis_puntuar`, cifra el informe con la clave `interacciones_contenido` y lo deja en revisión. En claro quedan solo los códigos, las intensidades y los puntajes.
+
+Un error se reintenta como cualquier trabajo de la cola. En el último intento el análisis pasa a `error` con el detalle, que ve FIRMA. Un trabajo que agotó los intentos sin llegar a anotarlo también se informa como error en el listado.
+
+### Puntaje
+
+Lo calcula la base, nunca el modelo, así la misma entrada da siempre el mismo resultado y FIRMA puede corregir sin volver a llamar a Claude. Es la suma de peso por intensidad de los códigos de riesgo menos la de los protectores, con mínimo cero. Bandas de 0 a 5 bajo, de 6 a 11 medio y de 12 en adelante alto. Las reglas de mínimo solo suben la banda.
+
+| Regla | Condición | Banda mínima |
+|---|---|---|
+| R1 | C1 con intensidad 2 | Alta |
+| R2 | D1 y B1 a la vez | Alta |
+| R3 | E1 con intensidad 2 | Alta |
+| R4 | A1 sin corrección del vendedor | Media |
+| R5 | B5 con intensidad 2 | Media |
+
+D1 con intensidad 2 activa la alerta de vulnerabilidad. Con confianza `no_evaluable` (el prospecto dijo menos de 300 palabras) no hay banda.
+
+### Estados
+
+| Estado | Qué ve el negocio | Qué ve FIRMA |
+|---|---|---|
+| `pendiente` | Analizando | Analizando |
+| `en_revision` | En revisión de FIRMA | El informe completo para revisar |
+| `aprobado` | La banda y el informe, sin las correcciones de FIRMA ni lo descartado | Todo |
+| `descartado` | Descartado por FIRMA, con el motivo | Todo |
+| `no_aplica` | La etapa (Seguimiento, Soporte...) | La clasificación, con «Analizar como venta» |
+| `limite` | Sin análisis este mes | Puede pedirlo sin límite |
+| `error` | No se pudo analizar, con «Volver a pedir» | El detalle del error |
+| `reemplazado` | No se muestra | No se muestra |
+
+Closers y setters no ven análisis. La tabla `interaccion_analisis` no se lee ni se escribe directo: todo pasa por funciones.
+
+### Revisión de FIRMA
+
+CRM › Llamadas, columna Análisis. El filtro «Solo las que esperan revisión de FIRMA» deja las que están para revisar. En el informe:
+
+- **Descartar un código** pide motivo (`analisis_corregir`). La base recalcula el puntaje y lo anota en `correcciones`. «Restaurar» lo deshace. Solo en revisión.
+- **Aprobar** (`analisis_aprobar`). Desde ahí lo ven el titular y el CSM.
+- **Descartar el análisis** (`analisis_descartar`) pide un motivo, que ve el negocio. Sirve también para retirar uno ya aprobado.
+- **Volver a analizar** y **Analizar como venta** (`analisis_solicitar`) crean un análisis nuevo y dejan el anterior como reemplazado. FIRMA no tiene límite del plan.
+
+En «Ver como», FIRMA ve lo mismo que vería el negocio. Quedan en la bitácora `analisis_solicitado`, `analisis_corregido`, `analisis_aprobado`, `analisis_descartado`, `interaccion_cargada` y `lectura_analisis` (una vez cada 30 minutos por persona).
+
+### Perfil conductual
+
+Al aprobar, si el negocio tiene `perfiles_conductuales`, los códigos con señal entran al perfil del cliente de la llamada como señales de origen `llamada`, con el análisis como evidencia. El detalle de la señal no repite la cita.
+
+| Códigos | Señal | Arquetipo |
+|---|---|---|
+| A1 | `llamada_resultado_garantizado` (2) | Expectativa de resultado garantizado |
+| A2, A5 | `llamada_expectativa_concreta` (1) | Expectativa de resultado garantizado |
+| D3 | `llamada_malentendido` (1) | Expectativa de resultado garantizado |
+| D1 | `llamada_tension_financiera` (2) | Sensibilidad al precio |
+| B1 | `llamada_garantia_salida` (1) | Sensibilidad al precio |
+| D2 | `llamada_baja_disponibilidad` (1) | Baja adopción |
+| F1, F2 | `llamada_sin_compromiso` (1) | Baja adopción |
+| C1 | `llamada_reclamo_previo` (2) | Escalada temprana |
+| E1 | `llamada_canales_terceros` (2) | Escalada temprana |
+
+Si el análisis deja de estar aprobado o la llamada pasa a otro cliente, sus señales se descartan con el motivo. Una señal descartada no vuelve: para el cliente nuevo de una llamada reasignada, FIRMA la vuelve a analizar. Una llamada sin cliente suma sus señales cuando se le asigna uno.
+
+### Carga manual
+
+«Cargar transcripción», en la pestaña Llamadas (titular, CSM y FIRMA). Se pega el texto o se sube un txt, vtt o srt (Zoom, Meet, Teams, Fathom u Otter, `leerTranscripcion` en `components/portal/crm/analisis.ts`). La pantalla muestra los hablantes que encontró para marcar quién es vendedor, quién prospecto, quién otra persona y qué no era un nombre. Exige confirmar el consentimiento de la grabación. `interaccion_cargar_manual` la guarda cifrada por 90 días como las de Fathom, con `fuente = 'manual'`, y encola el análisis. Si quien cargó marcó roles, el resto de los hablantes queda como Hablante y no cuenta como prospecto.
+
+### Libro de códigos y versiones
+
+`analisis_codigos` guarda la versión `venta-1.1` con código, tipo, peso, respaldo y señal. Una versión publicada no cambia, para que lo analizado con ella se pueda recalcular igual. Para cambiar un peso o una definición, en una migración nueva se agrega la versión (por ejemplo `venta-1.2`), se actualiza `docs/ANALIZADOR_VENTA.md` y se cambia la versión que asigna `analisis_encolar_interno`. Si cambian las reglas o las bandas, también `analisis_puntuar`.
+
+### Límite del plan
+
+`limite_funcionalidad(org, 'analisis_llamadas') ->> 'llamadas_mes'`. Cuenta las llamadas distintas con análisis creado en el mes de Buenos Aires que esté pendiente, en revisión, aprobado, descartado o en error. Pasado el límite, el análisis queda en `limite` y no se encola. Eminent no tiene límite. Starter (10 por mes) se suma cuando se valide el analizador:
+
+```sql
+insert into public.planes_servicio_funcionalidades (plan, funcionalidad, limites)
+values ('starter', 'analisis_llamadas', '{"llamadas_mes": 10}');
+```
+
+### Puesta en marcha
+
+1. Correr la 0067, después de todas las anteriores. En producción se aplicó el 17 de noviembre de 2026 desde el SQL Editor.
+2. En Vercel no hay variables nuevas: usa `ANTHROPIC_API_KEY`, la de Tina. `vercel.json` sube `/api/cola/procesar` a 300 segundos e incluye `docs/ANALIZADOR_VENTA.md`. 300 segundos es el máximo de Hobby con Fluid Compute, activo por defecto en proyectos nuevos; si el proyecto no lo tiene, se activa en Settings › Functions. La cola ahora toma de a un trabajo y lo reserva 5 minutos.
+3. Probar con «Cargar transcripción» y mirar la cola: `select tipo, estado, intentos, error from cola_trabajos where tipo = 'interaccion_analizar' order by id desc limit 10;`.
+4. Cada análisis guarda `modelo`, `tokens_entrada` y `tokens_salida` para seguir el costo. Toda llamada pasa por Haiku y solo las de venta por Opus.
+
+Pruebas en `supabase/pruebas/analisis_llamadas.sql`.

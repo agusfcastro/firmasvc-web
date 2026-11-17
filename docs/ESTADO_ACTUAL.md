@@ -51,7 +51,7 @@ Todo el backend son **rutas `/api` de Vercel** en TypeScript. No hay Edge Functi
 | `api/firma/sobres.ts`, `api/firma/firmar.ts` | Firma electrónica, contratos del CRM, sellado |
 | `api/pagos/*` | Abonos y cobro con dLocal Go |
 | `api/webhooks/fathom.ts` | Llamadas de Fathom |
-| `api/cola/procesar.ts` | Procesa la cola de trabajos (`cola_trabajos`) |
+| `api/cola/procesar.ts` | Procesa la cola de trabajos (`cola_trabajos`), incluido el análisis de llamadas con Claude (`api/_lib/analisis`) |
 
 Patrón que siguen las funciones que atienden a usuarios.
 
@@ -108,6 +108,7 @@ Además, la migración 0038 hace que las tablas hijas apunten al padre por `(org
 | `funcionalidades`, `planes_funcionalidades`, `planes_servicio_funcionalidades`, `org_funcionalidades` | Qué incluye cada plan y excepciones por negocio | Lectura. Edita admin |
 | `arquetipos`, `senal_tipos`, `perfil_senales`, `perfiles_conductuales` | Perfil conductual de clientes del CRM | Titular, csm y FIRMA, con la funcionalidad |
 | `integraciones`, `webhook_recepciones`, `interacciones` | Conexiones de Fathom y llamadas cifradas | Según rol, ver `PORTAL.md` |
+| `analisis_codigos`, `interaccion_analisis` | Libro de códigos versionado y análisis de las llamadas de venta, con el informe cifrado | Catálogo, lectura. Análisis, solo por funciones: FIRMA todo, titular y CSM lo aprobado |
 | `cola_trabajos` | Cola de trabajos del servidor | Solo FIRMA lee. Escribe el servidor |
 | `comprobantes`, `comprobantes_emisor`, `comprobantes_numeracion` | Recibos y comprobantes de cada negocio | Negocio |
 
@@ -150,7 +151,7 @@ Starter reemplazó a Gold y Black en la 0059. Los abonos cobran la oferta de `CL
 | Ingreso, contraseña, segundo factor | `/portal/ingresar`, `/portal/clave` | En producción |
 | Inicio | `/portal` | En producción. Muestra pendientes reales por rol (firmas, asuntos, pedidos, débitos) y los onboardings del día |
 | CRM legal | `/portal/crm/...` | En producción. Listado, ficha, alta, servicios, variables, equipo, casos de conflicto, comprobantes, llamadas |
-| Llamadas de Fathom | `/portal/crm/llamadas` | Recepción y vínculo funcionando. Análisis con Claude pendiente (fase 5). Faltan verificar campos con una cuenta real |
+| Llamadas de Fathom | `/portal/crm/llamadas` | Recepción y vínculo funcionando. Análisis de las de venta con Claude, revisión de FIRMA y carga manual de transcripciones (fase 5, migración 0067, aplicada en producción el 17 de noviembre de 2026; el código todavía sin publicar). Faltan verificar los campos de Fathom con una cuenta real |
 | Documentos y Protocolos | `/portal/documentos`, `/portal/protocolos` | En producción. Los videos de protocolos no están cargados |
 | Firma electrónica | `/portal/firmas` | En producción, con registro de auditoría encadenado y sello |
 | Asuntos | `/portal/asuntos` | En producción, con chat en vivo, bitácora y documentos. Cartera del responsable pendiente de la 0057 |

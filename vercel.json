@@ -243,7 +243,8 @@
       "maxDuration": 60
     },
     "api/cola/procesar.ts": {
-      "maxDuration": 60
+      "maxDuration": 300,
+      "includeFiles": "docs/ANALIZADOR_VENTA.md"
     },
     "api/webhooks/fathom.ts": {
       "maxDuration": 60

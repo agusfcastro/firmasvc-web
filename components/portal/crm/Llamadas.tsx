@@ -7,6 +7,9 @@ import { useVistaPrevia } from '../vistaPrevia';
 import { ROL_COMERCIAL, type IntegranteEquipo } from './tipos';
 import { PasosFathom, urlWebhook } from './fathom';
 import { mensajeAmable } from '../errores';
+import { AnalisisLlamada } from './AnalisisLlamada';
+import { CargarTranscripcion } from './CargarTranscripcion';
+import { etiquetaAnalisis, type AnalisisFila } from './analisis';
 
 /**
  * Llamadas de Fathom (migraciones 0049 y 0050).
@@ -22,6 +25,10 @@ import { mensajeAmable } from '../errores';
  *                asignan a mano.
  * Titular, CSM y FIRMA ven todo el negocio. Un closer ve «Mi Fathom» para
  * conectar la suya y solo sus llamadas. La transcripción no se muestra acá.
+ * Análisis (migración 0067), para titular, CSM y FIRMA: la columna Análisis
+ * muestra el estado de cada llamada y abre el informe (AnalisisLlamada). El
+ * negocio ve «En revisión de FIRMA» hasta que FIRMA lo aprueba. «Cargar
+ * transcripción» suma una llamada que no vino por Fathom.
  */
 
 interface Integracion {
@@ -137,6 +144,13 @@ export const Llamadas: React.FC<{ orgId: string; orgNombre: string; puedeGestion
   const [ok, setOk] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const vistaPrevia = Boolean(useVistaPrevia());
+  // Análisis de llamadas (migración 0067). Solo para quien ve todo el negocio.
+  const [analisis, setAnalisis] = useState<Map<string, AnalisisFila>>(new Map());
+  const [conAnalisis, setConAnalisis] = useState(false);
+  const [esStaff, setEsStaff] = useState(false);
+  const [abierto, setAbierto] = useState<string | null>(null);
+  const [cargandoManual, setCargandoManual] = useState(false);
+  const [soloRevision, setSoloRevision] = useState(false);
 
   async function cargar() {
     if (!supabase) return;
@@ -163,12 +177,25 @@ export const Llamadas: React.FC<{ orgId: string; orgNombre: string; puedeGestion
     setIntegraciones((i.data as Integracion[]) ?? []);
     setLlamadas((l.data as Llamada[]) ?? []);
     setClientes((c.data as ClienteCorto[]) ?? []);
+    if (verTodo) {
+      const [a, f, s] = await Promise.all([
+        supabase.rpc('analisis_listado', { p_org: orgId }),
+        supabase.rpc('tiene_funcionalidad', { org: orgId, clave: 'analisis_llamadas' }),
+        supabase.rpc('es_staff'),
+      ]);
+      if (a.error) setError('No pudimos cargar los análisis de las llamadas.');
+      setAnalisis(new Map(((a.data as AnalisisFila[] | null) ?? []).map((x) => [x.interaccion_id, x])));
+      setConAnalisis(Boolean(f.data));
+      setEsStaff(Boolean(s.data));
+    }
   }
 
   useEffect(() => {
     setNueva(null);
     setEnlace(null);
     setSecreto(null);
+    setAbierto(null);
+    setCargandoManual(false);
     void cargar();
   }, [orgId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -176,7 +203,9 @@ export const Llamadas: React.FC<{ orgId: string; orgNombre: string; puedeGestion
   const nombreDe = useMemo(() => new Map(equipo.map((m) => [m.id, m.nombre])), [equipo]);
   const activos = equipo.filter((m) => m.activo);
   const sinCliente = llamadas.filter((l) => !l.cliente_id);
-  const visibles = soloSinCliente && verTodo ? sinCliente : llamadas;
+  const comoFirma = esStaff && !vistaPrevia;
+  const enRevision = llamadas.filter((l) => analisis.get(l.id)?.estado === 'en_revision');
+  const visibles = soloRevision && comoFirma ? enRevision : soloSinCliente && verTodo ? sinCliente : llamadas;
   const segundos = llamadas.reduce((s, l) => s + (l.duracion_seg ?? 0), 0);
   const conDuracion = llamadas.filter((l) => l.duracion_seg != null).length;
 
@@ -408,6 +437,31 @@ export const Llamadas: React.FC<{ orgId: string; orgNombre: string; puedeGestion
   );
 
   const yo = miIntegrante ? equipo.find((m) => m.id === miIntegrante) : undefined;
+
+  /** Estado del análisis de una llamada, o el botón para pedirlo. */
+  function celdaAnalisis(id: string) {
+    const a = analisis.get(id);
+    if (!a) {
+      return conAnalisis && !vistaPrevia ? (
+        <button
+          type="button"
+          className="text-sm underline underline-offset-4 hover:text-bosque disabled:opacity-50"
+          disabled={ocupado}
+          onClick={() => void correr(() => supabase!.rpc('analisis_solicitar', { p_interaccion: id }), 'Pedimos el análisis. Tarda unos minutos.')}
+        >
+          Analizar
+        </button>
+      ) : (
+        <span className="text-piedra">—</span>
+      );
+    }
+    const e = etiquetaAnalisis(a, comoFirma);
+    return (
+      <button type="button" className="hover:opacity-80" onClick={() => setAbierto(a.analisis_id)} aria-label={`Ver el análisis: ${e.texto}`}>
+        <Etiqueta tono={e.tono}>{e.texto}</Etiqueta>
+      </button>
+    );
+  }
   // Quien no administra el negocio ve su conexión arriba; el titular la ve en Conexiones.
   const conMiFathom = Boolean(habilitado && yo && !puedeGestionar);
 
@@ -447,7 +501,33 @@ export const Llamadas: React.FC<{ orgId: string; orgNombre: string; puedeGestion
           <Aviso tipo="info">Para conectar tu Fathom, pedile al titular que te sume en Equipo con el mail de tu cuenta del portal.</Aviso>
         )}
 
-        {(habilitado || llamadas.length > 0) && (
+        {abierto ? (
+          <AnalisisLlamada
+            analisisId={abierto}
+            esStaff={esStaff}
+            puedePedir={verTodo}
+            alVolver={(m) => {
+              setAbierto(null);
+              if (m) setOk(m);
+            }}
+            alCambiar={() => void cargar()}
+          />
+        ) : cargandoManual ? (
+          <CargarTranscripcion
+            orgId={orgId}
+            equipo={equipo}
+            clientes={clientes}
+            alCancelar={() => setCargandoManual(false)}
+            alCargar={(m) => {
+              setCargandoManual(false);
+              setOk(m);
+              setVista('llamadas');
+              setSoloSinCliente(false);
+              setSoloRevision(false);
+              void cargar();
+            }}
+          />
+        ) : (habilitado || conAnalisis || llamadas.length > 0) && (
           <>
             <Pestanas<Vista>
               items={[
@@ -595,10 +675,39 @@ export const Llamadas: React.FC<{ orgId: string; orgNombre: string; puedeGestion
             {vista === 'llamadas' && (
               <section className="flex flex-col gap-4">
                 {verTodo && (
-                  <label className="inline-flex items-center gap-2 text-sm">
-                    <input type="checkbox" checked={soloSinCliente} onChange={(e) => setSoloSinCliente(e.target.checked)} />
-                    Solo las que no tienen cliente
-                  </label>
+                  <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+                    <label className="inline-flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={soloSinCliente}
+                        onChange={(e) => {
+                          setSoloSinCliente(e.target.checked);
+                          if (e.target.checked) setSoloRevision(false);
+                        }}
+                      />
+                      Solo las que no tienen cliente
+                    </label>
+                    {comoFirma && (
+                      <label className="inline-flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={soloRevision}
+                          onChange={(e) => {
+                            setSoloRevision(e.target.checked);
+                            if (e.target.checked) setSoloSinCliente(false);
+                          }}
+                        />
+                        Solo las que esperan revisión de FIRMA ({enRevision.length})
+                      </label>
+                    )}
+                    {conAnalisis && !vistaPrevia && (
+                      <div className="ml-auto">
+                        <Button size="sm" variant="ghost" onClick={() => setCargandoManual(true)}>
+                          Cargar transcripción
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 )}
                 <div className="overflow-x-auto">
                   <table className="tabla min-w-[720px]">
@@ -609,13 +718,18 @@ export const Llamadas: React.FC<{ orgId: string; orgNombre: string; puedeGestion
                         <th>Grabó</th>
                         <th>Duración</th>
                         <th>Cliente</th>
+                        {verTodo && <th>Análisis</th>}
                       </tr>
                     </thead>
                     <tbody>
                       {visibles.length === 0 && (
                         <tr>
-                          <td colSpan={5} className="p-6 text-piedra">
-                            {soloSinCliente && verTodo ? 'No hay llamadas sin cliente.' : 'Todavía no llegó ninguna llamada.'}
+                          <td colSpan={verTodo ? 6 : 5} className="p-6 text-piedra">
+                            {soloRevision && comoFirma
+                              ? 'No hay análisis esperando revisión.'
+                              : soloSinCliente && verTodo
+                                ? 'No hay llamadas sin cliente.'
+                                : 'Todavía no llegó ninguna llamada.'}
                           </td>
                         </tr>
                       )}
@@ -655,6 +769,7 @@ export const Llamadas: React.FC<{ orgId: string; orgNombre: string; puedeGestion
                               <span className="text-piedra">Sin cliente</span>
                             )}
                           </td>
+                          {verTodo && <td>{celdaAnalisis(l.id)}</td>}
                         </tr>
                       ))}
                     </tbody>

@@ -54,4 +54,10 @@ export const ACCIONES: Record<string, string> = {
   integracion_reanudada: 'Reanudó Fathom de un integrante',
   integracion_quitada: 'Desconectó Fathom de un integrante',
   interaccion_asignada: 'Asignó el cliente de una llamada',
+  interaccion_cargada: 'Cargó la transcripción de una llamada',
+  analisis_solicitado: 'Pidió el análisis de una llamada',
+  analisis_corregido: 'Corrigió un código del análisis de una llamada',
+  analisis_aprobado: 'Aprobó el análisis de una llamada',
+  analisis_descartado: 'Descartó el análisis de una llamada',
+  lectura_analisis: 'Consultó el análisis de una llamada',
 };

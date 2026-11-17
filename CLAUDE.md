@@ -41,6 +41,8 @@ Las tablas de Tina están en la migración 0060 (`tina_conversaciones`, `tina_me
 
 El chat de Tina es `POST /api/tina/chat` (`api/tina/chat.ts`), con las herramientas en `api/_lib/tina/herramientas.ts`, el prompt armado desde `docs/TINA_SYSTEM_PROMPT.md` (`api/_lib/tina/prompt.ts`) y los precios en `api/_lib/tina/precios.ts`. Usa `claude-opus-5-5` con esfuerzo bajo y necesita `ANTHROPIC_API_KEY` en Vercel. Si se cambia el documento del prompt, se cambia lo que dice Tina.
 
+El análisis de llamadas de venta está en la migración 0067 (`analisis_codigos`, `interaccion_analisis`). Corre en la cola (`interaccion_analizar` en `api/_lib/cola.ts`, con `api/_lib/analisis/`): `claude-haiku-5-5` clasifica la etapa y `claude-opus-5-5` codifica las de venta con `docs/ANALIZADOR_VENTA.md`, que sale de la skill perfil-riesgo-prospecto v1.1. El puntaje lo calcula la base (`analisis_puntuar`), nunca el modelo, y FIRMA aprueba cada análisis antes de que lo vea el negocio. Si se cambia el documento o un peso, se publica una versión nueva del libro de códigos. El detalle está en `PORTAL.md`, sección Análisis de llamadas de venta.
+
 El pago completo suma el cuarto mes sin cargo y la cuota congelada por 12 meses. Precio fundador, para los primeros 5 clientes o hasta el 31/12/2026, es Eminent USD 1500 y Starter USD 800, solo con pago completo. En pesos se cobra al equivalente del dólar MEP.
 
 Los abonos cobran esta oferta desde la migración 0061 (`abonos.modalidad`, `etapa`, `al_mep` y afines). Las opciones están en `OFERTAS` de `components/portal/abonos.ts` y la página pública en `components/Planes.tsx`. Si cambia un precio, se cambia en los dos. El detalle y lo que falta verificar en el sandbox de dLocal Go está en `PORTAL.md`, sección Oferta de noviembre de 2026.
