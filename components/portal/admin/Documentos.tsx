@@ -6,6 +6,7 @@ import { Aviso, Campo, Etiqueta, Interruptor, Pestanas, claseInput } from '../ui
 import { avisarPorMail } from '../asuntos';
 import { BUCKET_DOCUMENTOS, EXTENSIONES_ACEPTADAS, FORMATOS, SECCIONES, TAMANO_MAXIMO, descargarArchivo, extension, formatoDe, liberarModeloContrato, tamano, vencimientoContrato } from '../descargas';
 import { MODELOS, type ClaveModelo } from '../pedidos/modelos';
+import { seccionPersona, type ModeloPropio } from '../pedidos/propio';
 import { ROL_COMERCIAL, rolDe, type IntegranteEquipo, type RolComercial } from '../crm/tipos';
 import { fechaCorta, type Area, type Documento, type Organizacion, type SeccionDocumento } from '../tipos';
 
@@ -27,6 +28,12 @@ interface Borrador {
   es_protocolo: boolean;
   /** Contrato modelo de closer o setter de la empresa (0063). Solo en Contratos con tu equipo y para un cliente. */
   modelo_contrato: '' | ClaveModelo;
+  /**
+   * Contrato modelo de otro rol (0068): el id de un formulario propio de la empresa, o MODELO_NUEVO
+   * para crearlo al guardar con el nombre de modelo_titulo. Vacío si no lo es.
+   */
+  modelo_propio: string;
+  modelo_titulo: string;
   /** Persona del equipo a la que corresponde el contrato (0068). Solo en Contratos con tu equipo y para un cliente. */
   equipo_miembro_id: string;
   /** Fecha en que termina ese contrato, AAAA-MM-DD. */
@@ -41,11 +48,14 @@ interface Borrador {
 /** Valor del desplegable para escribir a mano a alguien que no está en el equipo. Se suma al guardar. */
 const OTRA_PERSONA = 'otra';
 
+/** Valor del desplegable para un contrato modelo que todavía no tiene formulario. Se crea al guardar. */
+const MODELO_NUEVO = 'nuevo';
+
 /** Los contratos con el equipo arrancan reservados al titular y a Dirección. */
 const areasPorDefecto = (s: SeccionDocumento): string[] => (s === 'equipo' ? ['direccion'] : []);
 
 /** Un documento se ata a una persona si es de un cliente, va en Contratos con tu equipo y no es el modelo ni un protocolo. */
-const puedeAtar = (b: Borrador): boolean => b.seccion === 'equipo' && Boolean(b.organizacion_id) && !b.modelo_contrato && !b.es_protocolo;
+const puedeAtar = (b: Borrador): boolean => b.seccion === 'equipo' && Boolean(b.organizacion_id) && !b.modelo_contrato && !b.modelo_propio && !b.es_protocolo;
 
 /** Filtro por empresa: todas, las de un cliente, o los documentos que ven todos los clientes. */
 const GENERALES = 'generales';
@@ -74,15 +84,19 @@ export const Documentos: React.FC = () => {
   const formulario = useRef<HTMLFormElement>(null);
   // Equipo de todas las empresas, para atar un contrato a su persona y nombrarla en la lista.
   const [equipo, setEquipo] = useState<IntegranteEquipo[]>([]);
+  // Formularios propios de cada empresa (Administración › Formularios): un documento puede ser el contrato modelo de uno.
+  const [propios, setPropios] = useState<ModeloPropio[]>([]);
 
   async function cargar() {
     if (!supabase) return;
-    const [d, o, a, eq] = await Promise.all([
+    const [d, o, a, eq, mp] = await Promise.all([
       supabase.from('documentos').select('*').order('actualizado_en', { ascending: false }),
       supabase.from('organizaciones').select('*').order('nombre'),
       supabase.from('areas').select('*').order('orden'),
       supabase.from('equipo_miembros').select('*').order('nombre'),
+      supabase.from('modelos_contrato').select('*').order('titulo'),
     ]);
+    setPropios((mp.data as ModeloPropio[]) ?? []);
     setEquipo((eq.data as IntegranteEquipo[]) ?? []);
     if (d.error) setError(`${d.error.message}. Revisá que la migración 0005_documentos.sql esté corrida en Supabase.`);
     setLista((d.data as Documento[]) ?? []);
@@ -134,6 +148,8 @@ export const Documentos: React.FC = () => {
       activo: true,
       es_protocolo: false,
       modelo_contrato: '',
+      modelo_propio: '',
+      modelo_titulo: '',
       equipo_miembro_id: '',
       contrato_vence_el: '',
       persona_nombre: '',
@@ -156,6 +172,8 @@ export const Documentos: React.FC = () => {
       activo: d.activo,
       es_protocolo: Boolean(d.es_protocolo),
       modelo_contrato: d.modelo_contrato ?? '',
+      modelo_propio: propios.find((m) => m.documento_id === d.id)?.id ?? '',
+      modelo_titulo: '',
       equipo_miembro_id: d.equipo_miembro_id ?? '',
       contrato_vence_el: d.contrato_vence_el ?? '',
       persona_nombre: '',
@@ -212,6 +230,9 @@ export const Documentos: React.FC = () => {
     const modeloContrato = borrador.seccion === 'equipo' && borrador.organizacion_id && borrador.modelo_contrato ? borrador.modelo_contrato : null;
     // El contrato de una persona: de un cliente, en Contratos con tu equipo, y no es el modelo ni un protocolo.
     let persona = puedeAtar(borrador) ? borrador.equipo_miembro_id || null : null;
+    // El contrato modelo de otro rol: va atado a un formulario propio de la empresa.
+    const modeloPropio = borrador.seccion === 'equipo' && borrador.organizacion_id && !modeloContrato ? borrador.modelo_propio : '';
+    if (modeloPropio === MODELO_NUEVO && borrador.modelo_titulo.trim().length < 3) return setError('Poné el nombre del contrato, por ejemplo «Contrato de nutricionista».');
     if (persona === OTRA_PERSONA && borrador.persona_nombre.trim().length < 2) return setError('Escribí el nombre completo de la persona.');
     setGuardando(true);
 
@@ -287,13 +308,48 @@ export const Documentos: React.FC = () => {
       await supabase.storage.from(BUCKET_DOCUMENTOS).remove([original.archivo_ruta]);
     }
 
+    // 4. Contrato modelo de otro rol: se ata a su formulario, que se crea si todavía no existe.
+    let notaModelo = '';
+    if (guardado?.id) {
+      const anterior = propios.find((m) => m.documento_id === guardado.id);
+      let fallo: string | null = null;
+      if (anterior && anterior.id !== modeloPropio) {
+        fallo = (await supabase.from('modelos_contrato').update({ documento_id: null }).eq('id', anterior.id)).error?.message ?? null;
+      }
+      if (!fallo && modeloPropio === MODELO_NUEVO) {
+        const titulo = borrador.modelo_titulo.trim();
+        fallo =
+          (
+            await supabase.from('modelos_contrato').insert({
+              organizacion_id: borrador.organizacion_id,
+              titulo,
+              persona: 'prestador',
+              documento_id: guardado.id,
+              activo: true,
+              orden: propios.filter((m) => m.organizacion_id === borrador.organizacion_id).length + 1,
+              // Arranca pidiendo los datos de la persona. Las demás preguntas se suman en Administración › Formularios.
+              secciones: [seccionPersona('prestador')],
+            })
+          ).error?.message ?? null;
+        if (!fallo) notaModelo = ` Quedó como modelo de «${titulo}»: el cliente ya lo puede pedir desde Contratos con tu equipo. Las preguntas del formulario se ajustan en Formularios.`;
+      } else if (!fallo && modeloPropio && modeloPropio !== anterior?.id) {
+        fallo = (await supabase.from('modelos_contrato').update({ documento_id: guardado.id }).eq('id', modeloPropio)).error?.message ?? null;
+      }
+      if (fallo) {
+        setGuardando(false);
+        cerrar();
+        void cargar();
+        return setError(`El documento se guardó, pero no quedó como contrato modelo. ${fallo}`);
+      }
+    }
+
     let nota = borrador.id ? 'Documento actualizado.' : 'Documento cargado.';
     if (!borrador.id && avisar && datos.organizacion_id && datos.activo && guardado?.id) {
       const r = await avisarPorMail('documento', guardado.id);
       nota = r.ok ? `Documento cargado. Avisamos por mail a ${r.avisados} ${r.avisados === 1 ? 'persona' : 'personas'}.` : `Documento cargado, pero el aviso por mail no salió. ${r.error ?? ''}`;
     }
     setGuardando(false);
-    setOk(nota);
+    setOk(nota + notaModelo);
     cerrar();
     void cargar();
   }
@@ -320,6 +376,7 @@ export const Documentos: React.FC = () => {
   const personas = borrador?.organizacion_id
     ? equipo.filter((m) => m.organizacion_id === borrador.organizacion_id && (m.activo || m.id === borrador.equipo_miembro_id))
     : [];
+  const propiosDeOrg = borrador?.organizacion_id ? propios.filter((m) => m.organizacion_id === borrador.organizacion_id) : [];
   const conPersona = Boolean(borrador && puedeAtar(borrador) && borrador.equipo_miembro_id);
 
   const nombreOrg = (id: string | null) => (id ? `Solo ${orgs.find((o) => o.id === id)?.nombre ?? 'un cliente'}` : 'Todos los clientes');
@@ -349,7 +406,7 @@ export const Documentos: React.FC = () => {
               </select>
             </Campo>
             <Campo etiqueta="Visible para">
-              <select className={claseInput} value={borrador.organizacion_id ?? ''} onChange={(e) => setBorrador({ ...borrador, organizacion_id: e.target.value || null, equipo_miembro_id: '', contrato_vence_el: '', persona_nombre: '' })}>
+              <select className={claseInput} value={borrador.organizacion_id ?? ''} onChange={(e) => setBorrador({ ...borrador, organizacion_id: e.target.value || null, equipo_miembro_id: '', contrato_vence_el: '', persona_nombre: '', modelo_propio: '', modelo_titulo: '' })}>
                 <option value="">Todos los clientes</option>
                 {orgs.map((o) => (
                   <option key={o.id} value={o.id}>
@@ -361,19 +418,46 @@ export const Documentos: React.FC = () => {
           </div>
 
           {borrador.seccion === 'equipo' && borrador.organizacion_id && (
-            <Campo
-              etiqueta="¿Es su contrato modelo?"
-              ayuda="El cliente lo baja desde la tarjeta del contrato y cada persona nueva se suma con él. Hay uno por contrato: si ya tenía otro, deja de ser el modelo y sigue en la sección."
-            >
-              <select className={claseInput} value={borrador.modelo_contrato} onChange={(e) => setBorrador({ ...borrador, modelo_contrato: e.target.value as Borrador['modelo_contrato'] })}>
-                <option value="">No</option>
-                {Object.values(MODELOS).map((m) => (
-                  <option key={m.clave} value={m.clave}>
-                    Sí, es su {m.titulo.toLowerCase()}
-                  </option>
-                ))}
-              </select>
-            </Campo>
+            <div className="grid gap-5 tab:grid-cols-2">
+              <Campo
+                etiqueta="¿Es su contrato modelo?"
+                ayuda="El cliente lo baja desde la tarjeta del contrato y cada persona nueva se suma con él. Hay uno por contrato: si ya tenía otro, deja de ser el modelo y sigue en la sección."
+              >
+                <select
+                  className={claseInput}
+                  value={borrador.modelo_contrato || (borrador.modelo_propio ? `propio:${borrador.modelo_propio}` : '')}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    const propio = v.startsWith('propio:') ? v.slice(7) : '';
+                    setBorrador({
+                      ...borrador,
+                      modelo_contrato: propio ? '' : (v as Borrador['modelo_contrato']),
+                      modelo_propio: propio,
+                      ...(v ? { equipo_miembro_id: '', contrato_vence_el: '', persona_nombre: '' } : {}),
+                    });
+                  }}
+                >
+                  <option value="">No</option>
+                  {Object.values(MODELOS).map((m) => (
+                    <option key={m.clave} value={m.clave}>
+                      Sí, es su {m.titulo.toLowerCase()}
+                    </option>
+                  ))}
+                  {propiosDeOrg.map((m) => (
+                    <option key={m.id} value={`propio:${m.id}`}>
+                      Sí, es su {m.titulo.toLowerCase()}
+                      {m.activo ? '' : ' (oculto)'}
+                    </option>
+                  ))}
+                  <option value={`propio:${MODELO_NUEVO}`}>Sí, de otro rol (escribir el nombre)</option>
+                </select>
+              </Campo>
+              {borrador.modelo_propio === MODELO_NUEVO && (
+                <Campo etiqueta="Nombre del contrato" ayuda="Así se llama la tarjeta que ve el cliente para pedirlo. Queda guardado para la próxima vez.">
+                  <input className={claseInput} maxLength={80} value={borrador.modelo_titulo} onChange={(e) => setBorrador({ ...borrador, modelo_titulo: e.target.value })} placeholder="Contrato de nutricionista" />
+                </Campo>
+              )}
+            </div>
           )}
 
           {puedeAtar(borrador) && (
@@ -600,6 +684,13 @@ export const Documentos: React.FC = () => {
                       <Etiqueta tono="bosque">Modelo · {MODELOS[d.modelo_contrato].titulo.toLowerCase()}</Etiqueta>
                     </div>
                   )}
+                  {propios
+                    .filter((m) => m.documento_id === d.id)
+                    .map((m) => (
+                      <div key={m.id} className="mt-1.5">
+                        <Etiqueta tono="bosque">Modelo · {m.titulo.toLowerCase()}</Etiqueta>
+                      </div>
+                    ))}
                   {d.equipo_miembro_id && (
                     <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-piedra">
                       <Etiqueta tono="tinta">{personaDe(d.equipo_miembro_id)}</Etiqueta>
