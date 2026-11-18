@@ -6,7 +6,7 @@ import { Aviso, Campo, Etiqueta, Interruptor, Pestanas, claseInput } from '../ui
 import { avisarPorMail } from '../asuntos';
 import { BUCKET_DOCUMENTOS, EXTENSIONES_ACEPTADAS, FORMATOS, SECCIONES, TAMANO_MAXIMO, descargarArchivo, extension, formatoDe, liberarModeloContrato, tamano, vencimientoContrato } from '../descargas';
 import { MODELOS, type ClaveModelo } from '../pedidos/modelos';
-import { ROL_COMERCIAL, type IntegranteEquipo } from '../crm/tipos';
+import { ROL_COMERCIAL, type IntegranteEquipo, type RolComercial } from '../crm/tipos';
 import { fechaCorta, type Area, type Documento, type Organizacion, type SeccionDocumento } from '../tipos';
 
 type Filtro = 'todas' | SeccionDocumento;
@@ -32,7 +32,13 @@ interface Borrador {
   equipo_miembro_id: string;
   /** Fecha en que termina ese contrato, AAAA-MM-DD. */
   contrato_vence_el: string;
+  /** Con OTRA_PERSONA: el nombre y el rol de alguien que todavía no está en el equipo. No necesita cuenta en el portal. */
+  persona_nombre: string;
+  persona_rol: RolComercial;
 }
+
+/** Valor del desplegable para escribir a mano a alguien que no está en el equipo. Se suma al guardar. */
+const OTRA_PERSONA = 'otra';
 
 /** Los contratos con el equipo arrancan reservados al titular y a Dirección. */
 const areasPorDefecto = (s: SeccionDocumento): string[] => (s === 'equipo' ? ['direccion'] : []);
@@ -113,6 +119,8 @@ export const Documentos: React.FC = () => {
       modelo_contrato: '',
       equipo_miembro_id: '',
       contrato_vence_el: '',
+      persona_nombre: '',
+      persona_rol: 'otro',
     });
   }
 
@@ -133,6 +141,8 @@ export const Documentos: React.FC = () => {
       modelo_contrato: d.modelo_contrato ?? '',
       equipo_miembro_id: d.equipo_miembro_id ?? '',
       contrato_vence_el: d.contrato_vence_el ?? '',
+      persona_nombre: '',
+      persona_rol: 'otro',
     });
   }
 
@@ -183,8 +193,19 @@ export const Documentos: React.FC = () => {
     // El contrato modelo es de un cliente y vive en Contratos con tu equipo.
     const modeloContrato = borrador.seccion === 'equipo' && borrador.organizacion_id && borrador.modelo_contrato ? borrador.modelo_contrato : null;
     // El contrato de una persona: de un cliente, en Contratos con tu equipo, y no es el modelo ni un protocolo.
-    const persona = puedeAtar(borrador) ? borrador.equipo_miembro_id || null : null;
+    let persona = puedeAtar(borrador) ? borrador.equipo_miembro_id || null : null;
+    if (persona === OTRA_PERSONA && borrador.persona_nombre.trim().length < 2) return setError('Escribí el nombre completo de la persona.');
     setGuardando(true);
+
+    // Alguien que no está en el equipo se suma ahora, sin cuenta en el portal. Si ya hay alguien con ese nombre, se usa ese.
+    if (persona === OTRA_PERSONA) {
+      const { data: idNuevo, error: eq } = await supabase.rpc('equipo_sumar', { org: borrador.organizacion_id, nombre: borrador.persona_nombre.trim(), rol: borrador.persona_rol });
+      if (eq || !idNuevo) {
+        setGuardando(false);
+        return setError(eq?.message ?? 'No se pudo sumar a la persona al equipo.');
+      }
+      persona = idNuevo as string;
+    }
 
     // 0. Si pasa a ser el contrato modelo, el que lo era deja de serlo.
     if (modeloContrato && borrador.organizacion_id) {
@@ -309,7 +330,7 @@ export const Documentos: React.FC = () => {
               </select>
             </Campo>
             <Campo etiqueta="Visible para">
-              <select className={claseInput} value={borrador.organizacion_id ?? ''} onChange={(e) => setBorrador({ ...borrador, organizacion_id: e.target.value || null, equipo_miembro_id: '', contrato_vence_el: '' })}>
+              <select className={claseInput} value={borrador.organizacion_id ?? ''} onChange={(e) => setBorrador({ ...borrador, organizacion_id: e.target.value || null, equipo_miembro_id: '', contrato_vence_el: '', persona_nombre: '' })}>
                 <option value="">Todos los clientes</option>
                 {orgs.map((o) => (
                   <option key={o.id} value={o.id}>
@@ -350,8 +371,25 @@ export const Documentos: React.FC = () => {
                       {m.activo ? '' : ' (desactivado)'}
                     </option>
                   ))}
+                  <option value={OTRA_PERSONA}>Otra persona (escribir el nombre)</option>
                 </select>
               </Campo>
+              {borrador.equipo_miembro_id === OTRA_PERSONA && (
+                <>
+                  <Campo etiqueta="Nombre completo" ayuda="Queda en el equipo de la empresa, sin cuenta en el portal. Si ya hay alguien con ese nombre, se usa esa persona.">
+                    <input className={claseInput} maxLength={120} value={borrador.persona_nombre} onChange={(e) => setBorrador({ ...borrador, persona_nombre: e.target.value })} placeholder="Santiago Ávalos" />
+                  </Campo>
+                  <Campo etiqueta="Rol">
+                    <select className={claseInput} value={borrador.persona_rol} onChange={(e) => setBorrador({ ...borrador, persona_rol: e.target.value as RolComercial })}>
+                      {(Object.keys(ROL_COMERCIAL) as RolComercial[]).map((r) => (
+                        <option key={r} value={r}>
+                          {ROL_COMERCIAL[r]}
+                        </option>
+                      ))}
+                    </select>
+                  </Campo>
+                </>
+              )}
               {conPersona && (
                 <Campo etiqueta="Vencimiento del contrato (opcional)" ayuda="El día en que termina. Treinta días antes la tarjeta lo marca como «vence pronto».">
                   <input type="date" className={claseInput} value={borrador.contrato_vence_el} onChange={(e) => setBorrador({ ...borrador, contrato_vence_el: e.target.value })} />

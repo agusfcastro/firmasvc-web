@@ -8,7 +8,7 @@ import { useVistaPrevia } from '../vistaPrevia';
 import { BotonCopiar } from '../crm/firma';
 import { ESTADO_FIRMANTE, ESTADO_SOBRE, fechaHora } from '../../firma/comun';
 import { generaContratos, type Organizacion, type Perfil } from '../tipos';
-import { ROL_COMERCIAL, type IntegranteEquipo } from '../crm/tipos';
+import { ROL_COMERCIAL, type IntegranteEquipo, type RolComercial } from '../crm/tipos';
 import { BarraUso } from '../BarraUso';
 import { diaYMes, firmasAgotadas, firmasOcupadas, usoFirmas, whatsapp, type UsoFirmas } from '../planes';
 import { registrarLectura } from '../lecturas';
@@ -30,6 +30,9 @@ import {
  *   /portal/firmas/nuevo   mandar un PDF a firmar
  *   /portal/firmas/<id>    seguimiento, registro y descargas
  */
+/** Valor del desplegable para escribir a mano a alguien que no está en el equipo. */
+const OTRA_PERSONA = 'otra';
+
 export const Firmas: React.FC<{ perfil: Perfil; organizacion: Organizacion | null; ruta: string }> = ({ perfil, organizacion, ruta }) => {
   const resto = ruta.replace(/^\/portal\/firmas\/?/, '');
   return (
@@ -299,6 +302,9 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
   const [miembro, setMiembro] = useState('');
   // Fecha en que termina el contrato de esa persona. No es el plazo para firmar.
   const [venceContrato, setVenceContrato] = useState('');
+  // Con OTRA_PERSONA: alguien que todavía no está en el equipo. Se suma al enviar, sin cuenta en el portal.
+  const [personaNueva, setPersonaNueva] = useState('');
+  const [rolNuevo, setRolNuevo] = useState<RolComercial>('otro');
   const orgEnvio = esAdmin ? orgId : organizacion?.id ?? '';
   const puedeEquipo = generaContratos(perfil);
 
@@ -409,6 +415,7 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
     setError(null);
     if (!archivo) return setError('Subí el PDF que hay que firmar.');
     if (!titulo.trim()) return setError('Poné un título al envío.');
+    if (miembro === OTRA_PERSONA && personaNueva.trim().length < 2) return setError('Escribí el nombre completo de la persona del equipo.');
     const lista = filas.filter((f) => f.nombre.trim() || f.email.trim());
     if (lista.length === 0) return setError('Sumá al menos un firmante.');
     setEnviando(true);
@@ -416,6 +423,16 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
     if ('error' in subida) {
       setEnviando(false);
       return setError(subida.error);
+    }
+    // Alguien que no está en el equipo se suma ahora. Si ya hay alguien con ese nombre, se usa ese.
+    let miembroId = miembro;
+    if (miembro === OTRA_PERSONA) {
+      const { data: idNuevo, error: eq } = supabase ? await supabase.rpc('equipo_sumar', { org: orgEnvio, nombre: personaNueva.trim(), rol: rolNuevo }) : { data: null, error: null };
+      if (eq || !idNuevo) {
+        setEnviando(false);
+        return setError(eq?.message ?? 'No se pudo sumar a la persona al equipo.');
+      }
+      miembroId = idNuevo as string;
     }
     const r = await llamarSobres<{ id: string; avisos: string[] }>({
       accion: 'crear',
@@ -427,7 +444,7 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
       vence_dias: dias,
       organizacion_id: esAdmin ? orgId || null : undefined,
       crm_cliente_id: clienteCrm || undefined,
-      equipo_miembro_id: miembro || undefined,
+      equipo_miembro_id: miembroId || undefined,
       entrega,
       firmantes: lista.map((f) => ({ nombre: f.nombre, email: f.email, pedir_documento: f.pedir_documento })),
     });
@@ -528,7 +545,7 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
                 </select>
               </Campo>
             )}
-            {equipo.length > 0 && (
+            {puedeEquipo && Boolean(orgEnvio) && (
               <Campo etiqueta="Persona del equipo (opcional)" ayuda="Si es el contrato de alguien de tu equipo, vinculalo. Queda en Documentos › Contratos con tu equipo, con su estado y el PDF firmado.">
                 <select value={miembro} onChange={(e) => vincularEquipo(e.target.value)} className={claseInput}>
                   <option value="">Sin vincular</option>
@@ -537,8 +554,25 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
                       {m.nombre} · {ROL_COMERCIAL[m.rol_comercial]}
                     </option>
                   ))}
+                  <option value={OTRA_PERSONA}>Otra persona (escribir el nombre)</option>
                 </select>
               </Campo>
+            )}
+            {miembro === OTRA_PERSONA && (
+              <div className="grid gap-5 tab:grid-cols-2">
+                <Campo etiqueta="Nombre completo" ayuda="Queda en tu equipo, sin cuenta en el portal. Si ya hay alguien con ese nombre, se usa esa persona.">
+                  <input value={personaNueva} onChange={(e) => setPersonaNueva(e.target.value)} maxLength={120} className={claseInput} placeholder="Santiago Ávalos" />
+                </Campo>
+                <Campo etiqueta="Rol">
+                  <select value={rolNuevo} onChange={(e) => setRolNuevo(e.target.value as RolComercial)} className={claseInput}>
+                    {(Object.keys(ROL_COMERCIAL) as RolComercial[]).map((r) => (
+                      <option key={r} value={r}>
+                        {ROL_COMERCIAL[r]}
+                      </option>
+                    ))}
+                  </select>
+                </Campo>
+              </div>
             )}
             {miembro && (
               <Campo etiqueta="Vencimiento del contrato (opcional)" ayuda="El día en que termina el contrato, no el plazo para firmar. Sale en la tarjeta de la persona y se puede cambiar después.">

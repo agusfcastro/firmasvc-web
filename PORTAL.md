@@ -586,7 +586,7 @@ En **Documentos › Contratos con tu equipo**, el bloque «Contratos de tu equip
 - **Envíos a firma** atados a una persona en Firmas (migración 0064), con quién falta firmar y el PDF firmado.
 - **Documentos** que FIRMA carga en Administración › Documentos y ata a una persona con «¿Es el contrato de alguien del equipo?» (migración 0068, `documentos.equipo_miembro_id`).
 
-En los dos casos se elige entre las personas activas del equipo de la empresa, tengan o no usuario en el portal. Los ven FIRMA, el titular y quienes tienen el área Legales u Operaciones, sin importar las áreas marcadas en el documento.
+En los dos casos se elige entre las personas activas del equipo de la empresa, tengan o no usuario en el portal. Si la persona todavía no está en el equipo, «Otra persona (escribir el nombre)» pide nombre completo y rol y la suma ahí mismo con `equipo_sumar`, sin cuenta en el portal; si ya hay alguien con ese nombre, usa ese. Los ven FIRMA, el titular y quienes tienen el área Legales u Operaciones, sin importar las áreas marcadas en el documento.
 
 El **vencimiento del contrato** (`contrato_vence_el`, en `documentos` y en `firma_sobres`) es la fecha en que termina el contrato, no el plazo para firmar. Es opcional. En un documento lo carga FIRMA; en un envío a firma se carga al mandarlo o después desde la tarjeta (`firma_sobre_vencimiento`). Treinta días antes la tarjeta dice «Vence pronto» y, pasada la fecha, «Vencido». Todavía no manda avisos por mail ni push.
 
