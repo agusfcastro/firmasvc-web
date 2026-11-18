@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Check, ExternalLink, Lock, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, Check, ExternalLink, Lock, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { Aviso, Campo, Cifras, Encabezado, Enlace, Etiqueta, Monto, TituloSeccion, claseInput } from '../ui';
@@ -88,6 +88,13 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
   const [noExiste, setNoExiste] = useState(false);
   const soloLectura = Boolean(useVistaPrevia());
   const [casosAbiertos, setCasosAbiertos] = useState(0);
+  // La ficha con los datos queda cerrada: se abre solo para editar.
+  const [editando, setEditando] = useState(false);
+  const refFicha = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (editando) refFicha.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [editando]);
 
   async function cargar() {
     if (!supabase) return;
@@ -162,9 +169,11 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
     }
     const { error } = await supabase.from('crm_clientes').update(cambios).eq('id', id);
     setGuardando(false);
-    // Guardado, se vuelve al listado del CRM. Con error, se queda en la ficha para corregir.
+    // Con error, la ficha queda abierta para corregir. Guardado, se cierra y se queda en el cliente.
     if (error) return setMensaje({ tipo: 'error', texto: error.message });
-    navegar('/portal/crm');
+    setEditando(false);
+    setMensaje({ tipo: 'ok', texto: 'Datos guardados.' });
+    void cargar();
   }
 
   async function borrarCliente() {
@@ -216,6 +225,22 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
     setNueva(null);
     void cargar();
   }
+
+  // Cerrar sin guardar descarta lo que se haya tocado.
+  const cerrarFicha = () => {
+    setBorrador(cliente);
+    setEditando(false);
+  };
+
+  // Lo que más se consulta de la ficha queda a la vista, al costado, sin abrirla.
+  const nombreDe = (mid?: string | null) => equipo.find((m) => m.id === mid)?.nombre ?? null;
+  const resumen: [string, string | null][] = [
+    ['Teléfono', cliente.telefono ?? null],
+    ['Closer', nombreDe(cliente.closer_id)],
+    ['Setter', nombreDe(cliente.setter_id)],
+    ['Responsable', nombreDe(cliente.responsable_id) ?? cliente.responsable ?? null],
+    ['Onboarding', cliente.fecha_onboarding ? new Date(cliente.fecha_onboarding).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' }) : null],
+  ];
 
   const set = <K extends keyof ClienteCrm>(k: K, v: ClienteCrm[K]) => setBorrador({ ...borrador, [k]: v });
 
@@ -419,6 +444,11 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
           <>
             {casosAbiertos > 0 && <Etiqueta tono="alerta">{casosAbiertos === 1 ? 'Caso abierto' : `${casosAbiertos} casos abiertos`}</Etiqueta>}
             <Etiqueta tono={TONO_FIRMA[cliente.estado_firma]}>{cliente.estado_firma === 'En firma' ? 'En firma' : `Firma ${cliente.estado_firma.toLowerCase()}`}</Etiqueta>
+            {!editando && (
+              <Button variant="ghost" size="sm" onClick={() => setEditando(true)}>
+                <Pencil size={15} aria-hidden="true" /> {soloLectura ? 'Ver datos' : 'Editar datos'}
+              </Button>
+            )}
           </>
         }
       />
@@ -431,184 +461,154 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
           </Aviso>
         )}
 
-        {/* Plan de pagos */}
-        <section>
-          <TituloSeccion eyebrow={cobranza ? 'Cobranza' : 'Condiciones contractuales'} titulo={cobranza ? 'Plan de pagos' : 'Plan de pagos pactado'} />
-          {!cobranza && <p className="text-sm text-piedra -mt-3 mb-6 max-w-[64ch]">Estas condiciones se usan para el contrato. El seguimiento de los cobros lo lleva la empresa en su propio sistema.</p>}
-          <Cifras
-            items={[
-              { titulo: 'Acordado', valor: <Monto n={cliente.monto_total} moneda={moneda} /> },
-              { titulo: cobranza ? 'Cobrado' : 'Anticipo', valor: <Monto n={cobrado} moneda={moneda} /> },
-              { titulo: cobranza ? 'Pendiente' : 'Saldo en cuotas', valor: <Monto n={pendiente} moneda={moneda} />, nota: cobranza ? undefined : `${cuotasPactadas.length} ${cuotasPactadas.length === 1 ? 'cuota' : 'cuotas'}` },
-              { titulo: 'Diferencia', valor: diferencia === 0 ? 'Cierra' : <Monto n={Math.abs(diferencia)} moneda={moneda} />, alerta: diferencia !== 0, nota: diferencia === 0 ? undefined : diferencia > 0 ? 'Falta asignar en cuotas' : 'Las cuotas superan el total' },
-            ]}
-          />
-          <fieldset disabled={soloLectura} className="mt-8 min-w-0">
-            {cobranza ? tablaPagos : tablaPlan}
-            {nueva ? (
-              <form onSubmit={agregarPago} className="mt-6 grid gap-4 tab:grid-cols-[160px_180px_1fr_auto_auto] items-end bg-marfil-oscuro p-5">
-                <Campo etiqueta={`Monto (${moneda})`}>
-                  <input required type="number" step="0.01" min="0.01" className={claseInput} value={nueva.monto} onChange={(e) => setNueva({ ...nueva, monto: e.target.value })} />
-                </Campo>
-                <Campo etiqueta={nueva.anticipo ? 'Fecha de pago' : 'Vencimiento'}>
-                  <input type="date" className={claseInput} value={nueva.fecha} onChange={(e) => setNueva({ ...nueva, fecha: e.target.value })} />
-                </Campo>
-                <Campo etiqueta="Nota">
-                  <input className={claseInput} value={nueva.nota} onChange={(e) => setNueva({ ...nueva, nota: e.target.value })} />
-                </Campo>
-                <Button type="submit">{nueva.anticipo ? 'Agregar anticipo' : 'Agregar cuota'}</Button>
-                <Button type="button" variant="ghost" onClick={() => setNueva(null)}>
-                  Cancelar
-                </Button>
-              </form>
-            ) : (
-              !soloLectura && (
-                <div className="mt-6 flex flex-wrap gap-3">
-                  <Button variant="ghost" size="sm" onClick={() => setNueva({ anticipo: false, monto: diferencia > 0 ? String(diferencia) : '', fecha: '', nota: '' })}>
-                    <Plus size={16} /> Agregar cuota
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => setNueva({ anticipo: true, monto: diferencia > 0 ? String(diferencia) : '', fecha: hoy, nota: 'Anticipo' })}>
-                    <Plus size={16} /> Agregar anticipo
-                  </Button>
-                </div>
-              )
-            )}
-          </fieldset>
-        </section>
-
-        <ComprobantesCliente clienteId={id} soloLectura={soloLectura} />
-        {verCasos && <CasosCliente clienteId={id} moneda={moneda} soloLectura={soloLectura} alContar={setCasosAbiertos} />}
-        {verCasos && <AsuntosCliente clienteId={id} soloLectura={soloLectura} esFirma={esAdmin && !soloLectura} />}
-        {verCasos && <PerfilCliente clienteId={id} soloLectura={soloLectura} mostrarPlan={puedeGestionar} />}
-
-        <div className="grid gap-12 desk:grid-cols-[7fr_5fr] desk:gap-14 items-start">
-          {/* Datos */}
-          <form onSubmit={guardarDatos} className="min-w-0">
-            <TituloSeccion eyebrow="Ficha" titulo="Datos del cliente" />
-            <fieldset disabled={soloLectura} className="flex flex-col gap-6 min-w-0">
-              <DatosCliente d={identidadDe(borrador)} alCambiar={(k, v) => setBorrador({ ...borrador, [k]: v })} nombreGrupo={`tipo-${id}`} />
-              <div className="grid gap-5 tab:grid-cols-2">
-                <Campo etiqueta="Servicio">
-                  <select className={claseInput} value={borrador.servicio ?? ''} onChange={(e) => set('servicio', e.target.value)}>
-                    <option value="">Sin definir</option>
-                    {servicios.map((sv) => (
-                      <option key={sv.id} value={sv.clave}>
-                        {sv.clave}
-                        {sv.nombre ? ` · ${sv.nombre}` : ''}
-                      </option>
-                    ))}
-                    {borrador.servicio && !servicios.some((sv) => sv.clave === borrador.servicio) && <option value={borrador.servicio}>{borrador.servicio}</option>}
-                  </select>
-                </Campo>
-                <Campo etiqueta={`Monto total (${moneda})`}>
-                  <input type="number" step="0.01" className={claseInput} value={borrador.monto_total ?? ''} onChange={(e) => set('monto_total', e.target.value === '' ? null : (e.target.value as unknown as number))} />
-                </Campo>
-                <Campo etiqueta="Modalidad">
-                  <select className={claseInput} value={borrador.modalidad} onChange={(e) => set('modalidad', e.target.value as ClienteCrm['modalidad'])}>
-                    <option value="Cuotas">Cuotas</option>
-                    <option value="PIF">PIF (pago total)</option>
-                  </select>
-                </Campo>
-                <Campo etiqueta="Onboarding">
-                  <input type="datetime-local" className={claseInput} value={aLocal(borrador.fecha_onboarding)} onChange={(e) => set('fecha_onboarding', e.target.value ? new Date(e.target.value).toISOString() : null)} />
-                </Campo>
-                {(
-                  [
-                    ['closer_id', 'Closer', ['closer']],
-                    ['setter_id', 'Setter', ['setter']],
-                    ['responsable_id', 'Responsable (CSM o AM)', ['csm', 'account_manager']],
-                  ] as const
-                ).map(([campo, etiqueta, roles]) => (
-                  <Campo key={campo} etiqueta={etiqueta}>
-                    <select className={claseInput} value={borrador[campo] ?? ''} onChange={(e) => set(campo, e.target.value || null)}>
-                      <option value="">Sin asignar</option>
-                      {equipo
-                        // Activos con ese rol primero; el asignado se muestra aunque hoy esté inactivo o tenga otro rol.
-                        .filter((m) => (m.activo && (roles as readonly string[]).includes(m.rol_comercial)) || m.id === borrador[campo])
-                        .map((m) => (
-                          <option key={m.id} value={m.id}>
-                            {m.nombre}
-                            {!(roles as readonly string[]).includes(m.rol_comercial) ? ` · ${ROL_COMERCIAL[m.rol_comercial]}` : ''}
-                            {!m.activo ? ' · inactivo' : ''}
-                          </option>
-                        ))}
+        {editando && (
+          <div ref={refFicha} className="max-w-[860px] scroll-mt-28">
+            <form onSubmit={guardarDatos} className="min-w-0">
+              <TituloSeccion eyebrow="Ficha" titulo="Datos del cliente" />
+              <fieldset disabled={soloLectura} className="flex flex-col gap-6 min-w-0">
+                <DatosCliente d={identidadDe(borrador)} alCambiar={(k, v) => setBorrador({ ...borrador, [k]: v })} nombreGrupo={`tipo-${id}`} />
+                <div className="grid gap-5 tab:grid-cols-2">
+                  <Campo etiqueta="Servicio">
+                    <select className={claseInput} value={borrador.servicio ?? ''} onChange={(e) => set('servicio', e.target.value)}>
+                      <option value="">Sin definir</option>
+                      {servicios.map((sv) => (
+                        <option key={sv.id} value={sv.clave}>
+                          {sv.clave}
+                          {sv.nombre ? ` · ${sv.nombre}` : ''}
+                        </option>
+                      ))}
+                      {borrador.servicio && !servicios.some((sv) => sv.clave === borrador.servicio) && <option value={borrador.servicio}>{borrador.servicio}</option>}
                     </select>
                   </Campo>
-                ))}
-                {borrador.responsable && !borrador.responsable_id && (
-                  <Campo etiqueta="Responsable anotado a mano" ayuda="De antes del equipo. Elegí a la persona arriba y borrá esto.">
-                    <input className={claseInput} value={borrador.responsable ?? ''} onChange={(e) => set('responsable', e.target.value)} />
+                  <Campo etiqueta={`Monto total (${moneda})`}>
+                    <input type="number" step="0.01" className={claseInput} value={borrador.monto_total ?? ''} onChange={(e) => set('monto_total', e.target.value === '' ? null : (e.target.value as unknown as number))} />
                   </Campo>
-                )}
-              </div>
-              {equipo.length === 0 && (
-                <p className="text-sm text-piedra -mt-2">
-                  Para asignar closer, setter y responsable, cargá a las personas en{' '}
-                  <Enlace a="/portal/crm/equipo" className="underline underline-offset-4 hover:text-bosque">
-                    Equipo
-                  </Enlace>
-                  .
-                </p>
-              )}
-              {variables.length > 0 && (
-                <div className="grid gap-5 tab:grid-cols-2 pt-6 border-t border-tinta/15">
-                  <p className="tab:col-span-2 eyebrow text-piedra">Datos propios de la empresa</p>
-                  {variables.map((v) => (
-                    <Campo key={v.id} etiqueta={`${v.etiqueta}${v.obligatoria ? ' *' : ''}`} ayuda={v.ayuda ?? undefined}>
-                      <CampoVariable
-                        v={v}
-                        valor={(borrador.datos_extra ?? {})[v.clave] ?? null}
-                        alCambiar={(x) => set('datos_extra', { ...(borrador.datos_extra ?? {}), [v.clave]: x })}
-                      />
+                  <Campo etiqueta="Modalidad">
+                    <select className={claseInput} value={borrador.modalidad} onChange={(e) => set('modalidad', e.target.value as ClienteCrm['modalidad'])}>
+                      <option value="Cuotas">Cuotas</option>
+                      <option value="PIF">PIF (pago total)</option>
+                    </select>
+                  </Campo>
+                  <Campo etiqueta="Onboarding">
+                    <input type="datetime-local" className={claseInput} value={aLocal(borrador.fecha_onboarding)} onChange={(e) => set('fecha_onboarding', e.target.value ? new Date(e.target.value).toISOString() : null)} />
+                  </Campo>
+                  {(
+                    [
+                      ['closer_id', 'Closer', ['closer']],
+                      ['setter_id', 'Setter', ['setter']],
+                      ['responsable_id', 'Responsable (CSM o AM)', ['csm', 'account_manager']],
+                    ] as const
+                  ).map(([campo, etiqueta, roles]) => (
+                    <Campo key={campo} etiqueta={etiqueta}>
+                      <select className={claseInput} value={borrador[campo] ?? ''} onChange={(e) => set(campo, e.target.value || null)}>
+                        <option value="">Sin asignar</option>
+                        {equipo
+                          // Activos con ese rol primero; el asignado se muestra aunque hoy esté inactivo o tenga otro rol.
+                          .filter((m) => (m.activo && (roles as readonly string[]).includes(m.rol_comercial)) || m.id === borrador[campo])
+                          .map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.nombre}
+                              {!(roles as readonly string[]).includes(m.rol_comercial) ? ` · ${ROL_COMERCIAL[m.rol_comercial]}` : ''}
+                              {!m.activo ? ' · inactivo' : ''}
+                            </option>
+                          ))}
+                      </select>
                     </Campo>
                   ))}
-                </div>
-              )}
-              <Campo etiqueta="Notas" ayuda="Cualquier información que pueda ser relevante.">
-                <textarea rows={4} className={`${claseInput} h-auto py-3`} value={borrador.notas ?? ''} onChange={(e) => set('notas', e.target.value)} />
-              </Campo>
-              <Campo etiqueta="Condiciones acordadas" ayuda="Descuentos, pagos especiales o lo que se haya pactado fuera del plan. Se usa al armar el contrato. Si las cambiás, volvé a armarlo.">
-                <textarea rows={3} className={`${claseInput} h-auto py-3`} value={borrador.condiciones ?? ''} onChange={(e) => set('condiciones', e.target.value)} />
-              </Campo>
-
-              {esAdmin && (
-                <div className="grid gap-5 tab:grid-cols-2 pt-6 border-t border-tinta/15">
-                  <p className="tab:col-span-2 eyebrow text-piedra">Solo FIRMA</p>
-                  <label className="tab:col-span-2 flex items-center gap-2.5 text-sm">
-                    <input
-                      type="checkbox"
-                      className="w-4 h-4 accent-bosque"
-                      checked={borrador.estado_firma === 'Baja'}
-                      onChange={(e) => set('estado_firma', e.target.checked ? 'Baja' : cliente.estado_firma === 'Baja' ? 'Pendiente' : cliente.estado_firma)}
-                    />
-                    Dar de baja al cliente
-                  </label>
-                  <label className="tab:col-span-2 flex items-center gap-2.5 text-sm">
-                    <input type="checkbox" className="w-4 h-4 accent-bosque" checked={borrador.revisar_pagos} onChange={(e) => set('revisar_pagos', e.target.checked)} />
-                    Marcar el plan de pagos para revisar
-                  </label>
-                </div>
-              )}
-
-              {!soloLectura && (
-                <div className="flex flex-wrap items-center gap-3">
-                  <Button type="submit" size="lg" disabled={guardando}>
-                    {guardando ? 'Guardando…' : 'Guardar cambios'}
-                  </Button>
-                  {esAdmin && (
-                    <button
-                      type="button"
-                      onClick={() => void borrarCliente()}
-                      disabled={guardando}
-                      className="ml-auto inline-flex items-center gap-2 h-[52px] px-4 text-sm font-medium text-peligro transition-colors duration-150 hover:bg-peligro-suave disabled:opacity-40"
-                    >
-                      <Trash2 size={16} aria-hidden="true" /> Eliminar cliente
-                    </button>
+                  {borrador.responsable && !borrador.responsable_id && (
+                    <Campo etiqueta="Responsable anotado a mano" ayuda="De antes del equipo. Elegí a la persona arriba y borrá esto.">
+                      <input className={claseInput} value={borrador.responsable ?? ''} onChange={(e) => set('responsable', e.target.value)} />
+                    </Campo>
                   )}
                 </div>
+                {equipo.length === 0 && (
+                  <p className="text-sm text-piedra -mt-2">
+                    Para asignar closer, setter y responsable, cargá a las personas en{' '}
+                    <Enlace a="/portal/crm/equipo" className="underline underline-offset-4 hover:text-bosque">
+                      Equipo
+                    </Enlace>
+                    .
+                  </p>
+                )}
+                {variables.length > 0 && (
+                  <div className="grid gap-5 tab:grid-cols-2 pt-6 border-t border-tinta/15">
+                    <p className="tab:col-span-2 eyebrow text-piedra">Datos propios de la empresa</p>
+                    {variables.map((v) => (
+                      <Campo key={v.id} etiqueta={`${v.etiqueta}${v.obligatoria ? ' *' : ''}`} ayuda={v.ayuda ?? undefined}>
+                        <CampoVariable
+                          v={v}
+                          valor={(borrador.datos_extra ?? {})[v.clave] ?? null}
+                          alCambiar={(x) => set('datos_extra', { ...(borrador.datos_extra ?? {}), [v.clave]: x })}
+                        />
+                      </Campo>
+                    ))}
+                  </div>
+                )}
+                <Campo etiqueta="Notas" ayuda="Cualquier información que pueda ser relevante.">
+                  <textarea rows={4} className={`${claseInput} h-auto py-3`} value={borrador.notas ?? ''} onChange={(e) => set('notas', e.target.value)} />
+                </Campo>
+                <Campo etiqueta="Condiciones acordadas" ayuda="Descuentos, pagos especiales o lo que se haya pactado fuera del plan. Se usa al armar el contrato. Si las cambiás, volvé a armarlo.">
+                  <textarea rows={3} className={`${claseInput} h-auto py-3`} value={borrador.condiciones ?? ''} onChange={(e) => set('condiciones', e.target.value)} />
+                </Campo>
+
+                {esAdmin && (
+                  <div className="grid gap-5 tab:grid-cols-2 pt-6 border-t border-tinta/15">
+                    <p className="tab:col-span-2 eyebrow text-piedra">Solo FIRMA</p>
+                    <label className="tab:col-span-2 flex items-center gap-2.5 text-sm">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 accent-bosque"
+                        checked={borrador.estado_firma === 'Baja'}
+                        onChange={(e) => set('estado_firma', e.target.checked ? 'Baja' : cliente.estado_firma === 'Baja' ? 'Pendiente' : cliente.estado_firma)}
+                      />
+                      Dar de baja al cliente
+                    </label>
+                    <label className="tab:col-span-2 flex items-center gap-2.5 text-sm">
+                      <input type="checkbox" className="w-4 h-4 accent-bosque" checked={borrador.revisar_pagos} onChange={(e) => set('revisar_pagos', e.target.checked)} />
+                      Marcar el plan de pagos para revisar
+                    </label>
+                  </div>
+                )}
+
+                {!soloLectura && (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Button type="submit" size="lg" disabled={guardando}>
+                      {guardando ? 'Guardando…' : 'Guardar cambios'}
+                    </Button>
+                    <Button type="button" variant="ghost" size="lg" disabled={guardando} onClick={cerrarFicha}>
+                      Cancelar
+                    </Button>
+                    {esAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => void borrarCliente()}
+                        disabled={guardando}
+                        className="ml-auto inline-flex items-center gap-2 h-[52px] px-4 text-sm font-medium text-peligro transition-colors duration-150 hover:bg-peligro-suave disabled:opacity-40"
+                      >
+                        <Trash2 size={16} aria-hidden="true" /> Eliminar cliente
+                      </button>
+                    )}
+                  </div>
+                )}
+              </fieldset>
+              {soloLectura && (
+                <div className="mt-6">
+                  <Button type="button" variant="ghost" onClick={cerrarFicha}>
+                    Cerrar
+                  </Button>
+                </div>
               )}
-            </fieldset>
-          </form>
+            </form>
+          </div>
+        )}
+
+        <div className="grid gap-12 desk:grid-cols-[7fr_5fr] desk:gap-14 items-start">
+          <div className="flex flex-col gap-14 min-w-0">
+          <ComprobantesCliente clienteId={id} soloLectura={soloLectura} />
+          {verCasos && <CasosCliente clienteId={id} moneda={moneda} soloLectura={soloLectura} alContar={setCasosAbiertos} />}
+          {verCasos && <AsuntosCliente clienteId={id} soloLectura={soloLectura} esFirma={esAdmin && !soloLectura} />}
+          {verCasos && <PerfilCliente clienteId={id} soloLectura={soloLectura} mostrarPlan={puedeGestionar} />}
+          </div>
 
           {/* Columna lateral */}
           <aside className="flex flex-col gap-10 min-w-0 desk:sticky desk:top-32">
@@ -655,31 +655,85 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
               )}
             </div>
 
-            {puedeGestionar && historial.length > 0 && (
-              <section>
-                <TituloSeccion eyebrow="Trazabilidad" titulo="Historial" />
-                <ol className="flex flex-col">
-                  {historial.map((h) => (
-                    <li key={h.id} className="py-3.5 text-sm border-t border-tinta/12">
-                      <div className="flex justify-between gap-3">
-                        <span className="font-medium">{tituloCambio(h)}</span>
-                        <span className="text-piedra text-xs whitespace-nowrap">{new Date(h.creado_en).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}</span>
-                      </div>
-                      {h.operacion === 'update' &&
-                        (Object.entries(h.cambios) as [string, { antes: unknown; despues: unknown }][])
-                          .filter(([k]) => !OCULTOS.has(k))
-                          .map(([k, v]) => (
-                            <span key={k} className="block text-xs text-piedra mt-1">
-                              {ROTULOS[k] ?? k} · {valorLegible(v.antes, k)} → {valorLegible(v.despues, k)}
-                            </span>
-                          ))}
-                    </li>
-                  ))}
-                </ol>
-              </section>
-            )}
+            <dl className="flex flex-col">
+              {resumen.map(([k, v]) => (
+                <div key={k} className="flex justify-between gap-4 py-3 text-sm border-t border-tinta/12 first:border-t-0">
+                  <dt className="text-piedra">{k}</dt>
+                  <dd className={`text-right min-w-0 break-words ${v ? 'font-medium' : 'text-piedra'}`}>{v ?? 'Sin cargar'}</dd>
+                </div>
+              ))}
+            </dl>
           </aside>
         </div>
+
+        {/* Plan de pagos */}
+        <section>
+          <TituloSeccion eyebrow={cobranza ? 'Cobranza' : 'Condiciones contractuales'} titulo={cobranza ? 'Plan de pagos' : 'Plan de pagos pactado'} />
+          {!cobranza && <p className="text-sm text-piedra -mt-3 mb-6 max-w-[64ch]">Estas condiciones se usan para el contrato. El seguimiento de los cobros lo lleva la empresa en su propio sistema.</p>}
+          <Cifras
+            items={[
+              { titulo: 'Acordado', valor: <Monto n={cliente.monto_total} moneda={moneda} /> },
+              { titulo: cobranza ? 'Cobrado' : 'Anticipo', valor: <Monto n={cobrado} moneda={moneda} /> },
+              { titulo: cobranza ? 'Pendiente' : 'Saldo en cuotas', valor: <Monto n={pendiente} moneda={moneda} />, nota: cobranza ? undefined : `${cuotasPactadas.length} ${cuotasPactadas.length === 1 ? 'cuota' : 'cuotas'}` },
+              { titulo: 'Diferencia', valor: diferencia === 0 ? 'Cierra' : <Monto n={Math.abs(diferencia)} moneda={moneda} />, alerta: diferencia !== 0, nota: diferencia === 0 ? undefined : diferencia > 0 ? 'Falta asignar en cuotas' : 'Las cuotas superan el total' },
+            ]}
+          />
+          <fieldset disabled={soloLectura} className="mt-8 min-w-0">
+            {cobranza ? tablaPagos : tablaPlan}
+            {nueva ? (
+              <form onSubmit={agregarPago} className="mt-6 grid gap-4 tab:grid-cols-[160px_180px_1fr_auto_auto] items-end bg-marfil-oscuro p-5">
+                <Campo etiqueta={`Monto (${moneda})`}>
+                  <input required type="number" step="0.01" min="0.01" className={claseInput} value={nueva.monto} onChange={(e) => setNueva({ ...nueva, monto: e.target.value })} />
+                </Campo>
+                <Campo etiqueta={nueva.anticipo ? 'Fecha de pago' : 'Vencimiento'}>
+                  <input type="date" className={claseInput} value={nueva.fecha} onChange={(e) => setNueva({ ...nueva, fecha: e.target.value })} />
+                </Campo>
+                <Campo etiqueta="Nota">
+                  <input className={claseInput} value={nueva.nota} onChange={(e) => setNueva({ ...nueva, nota: e.target.value })} />
+                </Campo>
+                <Button type="submit">{nueva.anticipo ? 'Agregar anticipo' : 'Agregar cuota'}</Button>
+                <Button type="button" variant="ghost" onClick={() => setNueva(null)}>
+                  Cancelar
+                </Button>
+              </form>
+            ) : (
+              !soloLectura && (
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <Button variant="ghost" size="sm" onClick={() => setNueva({ anticipo: false, monto: diferencia > 0 ? String(diferencia) : '', fecha: '', nota: '' })}>
+                    <Plus size={16} /> Agregar cuota
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setNueva({ anticipo: true, monto: diferencia > 0 ? String(diferencia) : '', fecha: hoy, nota: 'Anticipo' })}>
+                    <Plus size={16} /> Agregar anticipo
+                  </Button>
+                </div>
+              )
+            )}
+          </fieldset>
+        </section>
+
+        {puedeGestionar && historial.length > 0 && (
+          <section>
+            <TituloSeccion eyebrow="Trazabilidad" titulo="Historial" />
+            <ol className="flex flex-col">
+              {historial.map((h) => (
+                <li key={h.id} className="py-3.5 text-sm border-t border-tinta/12">
+                  <div className="flex justify-between gap-3">
+                    <span className="font-medium">{tituloCambio(h)}</span>
+                    <span className="text-piedra text-xs whitespace-nowrap">{new Date(h.creado_en).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                  </div>
+                  {h.operacion === 'update' &&
+                    (Object.entries(h.cambios) as [string, { antes: unknown; despues: unknown }][])
+                      .filter(([k]) => !OCULTOS.has(k))
+                      .map(([k, v]) => (
+                        <span key={k} className="block text-xs text-piedra mt-1">
+                          {ROTULOS[k] ?? k} · {valorLegible(v.antes, k)} → {valorLegible(v.despues, k)}
+                        </span>
+                      ))}
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
       </div>
     </>
   );
