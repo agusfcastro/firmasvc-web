@@ -4,7 +4,7 @@ import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { Aviso, Campo, Encabezado, Enlace, Etiqueta, claseInput } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
-import { ROL_COMERCIAL, type IntegranteEquipo, type RolComercial } from './tipos';
+import { ROL_COMERCIAL, rolDe, type IntegranteEquipo, type RolComercial } from './tipos';
 import { mensajeAmable } from '../errores';
 
 /**
@@ -21,11 +21,13 @@ interface Borrador {
   id?: string;
   nombre: string;
   rol_comercial: RolComercial;
+  /** Con el rol «otro»: el rol escrito a mano. */
+  cargo: string;
   email: string;
   activo: boolean;
 }
 
-const VACIO: Borrador = { nombre: '', rol_comercial: 'closer', email: '', activo: true };
+const VACIO: Borrador = { nombre: '', rol_comercial: 'closer', cargo: '', email: '', activo: true };
 
 export const Equipo: React.FC<{ orgId: string; orgNombre: string; puedeGestionar: boolean }> = ({ orgId, orgNombre, puedeGestionar }) => {
   const [lista, setLista] = useState<IntegranteEquipo[]>([]);
@@ -57,7 +59,11 @@ export const Equipo: React.FC<{ orgId: string; orgNombre: string; puedeGestionar
     setGuardando(true);
     setError(null);
     setOk(null);
-    const datos = { nombre, rol_comercial: borrador.rol_comercial, email: email || null, activo: borrador.activo };
+    const cargo = borrador.rol_comercial === 'otro' ? borrador.cargo.trim() : '';
+    if (cargo.length === 1) return setError('Escribí el rol completo.');
+    const tenia = Boolean(borrador.id && lista.find((m) => m.id === borrador.id)?.cargo);
+    // El cargo viaja solo si se escribió o hay que borrarlo, así sin la migración 0069 el resto sigue andando.
+    const datos = { nombre, rol_comercial: borrador.rol_comercial, email: email || null, activo: borrador.activo, ...(cargo || tenia ? { cargo: cargo || null } : {}) };
     const { error: err } = borrador.id
       ? await supabase.from('equipo_miembros').update(datos).eq('id', borrador.id)
       : await supabase.from('equipo_miembros').insert({ ...datos, organizacion_id: orgId });
@@ -110,6 +116,11 @@ export const Equipo: React.FC<{ orgId: string; orgNombre: string; puedeGestionar
                 ))}
               </select>
             </Campo>
+            {borrador.rol_comercial === 'otro' && (
+              <Campo etiqueta="¿Qué rol tiene?" ayuda="Por ejemplo Nutricionista, Editor o Diseñador. Sale al lado de su nombre.">
+                <input className={claseInput} maxLength={60} value={borrador.cargo} onChange={(e) => setBorrador({ ...borrador, cargo: e.target.value })} />
+              </Campo>
+            )}
             <Campo etiqueta="Mail (opcional)" ayuda="El mail con el que entra a las llamadas. Sirve para atribuirle cada llamada.">
               <input type="email" className={claseInput} value={borrador.email} onChange={(e) => setBorrador({ ...borrador, email: e.target.value })} />
             </Campo>
@@ -153,7 +164,7 @@ export const Equipo: React.FC<{ orgId: string; orgNombre: string; puedeGestionar
                     <div className="font-heading font-bold text-[16px] leading-tight">{m.nombre}</div>
                     {m.email && <div className="text-xs text-piedra">{m.email}</div>}
                   </td>
-                  <td>{ROL_COMERCIAL[m.rol_comercial]}</td>
+                  <td>{rolDe(m)}</td>
                   <td className="text-piedra text-sm">{m.usuario_id ? 'Con cuenta' : 'Sin cuenta'}</td>
                   <td>{m.activo ? <Etiqueta tono="bosque">Activo</Etiqueta> : <Etiqueta>Inactivo</Etiqueta>}</td>
                   <td className="text-right">
@@ -161,7 +172,7 @@ export const Equipo: React.FC<{ orgId: string; orgNombre: string; puedeGestionar
                       <button
                         type="button"
                         className="underline underline-offset-4 hover:text-bosque"
-                        onClick={() => setBorrador({ id: m.id, nombre: m.nombre, rol_comercial: m.rol_comercial, email: m.email ?? '', activo: m.activo })}
+                        onClick={() => setBorrador({ id: m.id, nombre: m.nombre, rol_comercial: m.rol_comercial, cargo: m.cargo ?? '', email: m.email ?? '', activo: m.activo })}
                       >
                         Editar
                       </button>

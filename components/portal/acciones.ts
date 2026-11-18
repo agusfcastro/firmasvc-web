@@ -30,6 +30,7 @@ export const ACCIONES: Record<string, string> = {
   abono_vigencia: 'Vigencia del abono cambiada',
   abono_borrado: 'Abono de prueba borrado',
   empresa_borrada: 'Empresa de prueba borrada',
+  usuario_eliminado: 'Usuario eliminado',
   demo_creada: 'Empresa demo creada',
   demo_reiniciada: 'Empresa demo reiniciada con los datos de ejemplo',
   abono_sin_pagos: 'Abono sin pagos, vuelve a borrador',

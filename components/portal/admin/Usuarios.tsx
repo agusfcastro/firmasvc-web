@@ -31,7 +31,8 @@ export const Usuarios: React.FC<{ yo: Perfil }> = ({ yo }) => {
   const [usuarios, setUsuarios] = useState<Perfil[]>([]);
   const [orgs, setOrgs] = useState<Organizacion[]>([]);
   const [areas, setAreas] = useState<Area[]>([]);
-  const [filtroOrg, setFiltroOrg] = useState('todas');
+  // Desde Administración › Clientes se llega con la empresa ya elegida (?empresa=).
+  const [filtroOrg, setFiltroOrg] = useState(() => new URLSearchParams(window.location.search).get('empresa') || 'todas');
   const [busqueda, setBusqueda] = useState('');
   const [borrador, setBorrador] = useState<Borrador | null>(null);
   const [ocupado, setOcupado] = useState<string | null>(null);
@@ -107,6 +108,16 @@ export const Usuarios: React.FC<{ yo: Perfil }> = ({ yo }) => {
       });
     }
     setBorrador(null);
+  }
+
+  /** Borra la cuenta. Lo que la persona hizo en el portal queda, y si era parte del equipo sigue en el equipo sin cuenta. */
+  async function eliminar(u: Perfil) {
+    const escrito = window.prompt(
+      `Vas a eliminar la cuenta de ${u.nombre || u.email}. No se puede deshacer.\n\nLo que hizo en el portal se conserva y el mail queda libre para volver a invitarlo.\n\nPara confirmar, escribí su mail:\n${u.email}`,
+    );
+    if (escrito === null) return;
+    if (escrito.trim().toLowerCase() !== u.email.toLowerCase()) return setMensaje({ tipo: 'error', texto: 'El mail no coincide. No se eliminó nada.' });
+    await accion({ accion: 'eliminar', usuario_id: u.id, confirmacion: escrito.trim() }, `Cuenta de ${u.email} eliminada.`, u.id);
   }
 
   function alternarArea(clave: string) {
@@ -317,6 +328,11 @@ export const Usuarios: React.FC<{ yo: Perfil }> = ({ yo }) => {
                         }}
                       >
                         {u.activo ? 'Desactivar' : 'Activar'}
+                      </button>
+                    )}
+                    {u.id !== yo.id && (
+                      <button type="button" disabled={ocupado === u.id} className="underline underline-offset-4 text-peligro" onClick={() => void eliminar(u)}>
+                        Eliminar
                       </button>
                     )}
                   </div>

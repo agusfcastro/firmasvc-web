@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Plus, RotateCcw } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
-import { Aviso, Campo, Etiqueta, Interruptor, claseInput } from '../ui';
+import { Aviso, Campo, Enlace, Etiqueta, Interruptor, claseInput } from '../ui';
 import { iniciarVistaPrevia } from '../vistaPrevia';
 import { llamarApiAdmin, type RespuestaAdmin } from '../useSesion';
 import { BotonCopiar } from '../crm/firma';
@@ -323,6 +323,12 @@ export const Clientes: React.FC = () => {
                       </option>
                     ))}
                   </select>
+                  <Enlace a={`/portal/admin?empresa=${o.id}`} className="underline underline-offset-4 hover:text-bosque mr-4">
+                    Usuarios
+                  </Enlace>
+                  <Enlace a={`/portal/admin/documentos?empresa=${o.id}`} className="underline underline-offset-4 hover:text-bosque mr-4">
+                    Documentos
+                  </Enlace>
                   <button type="button" className="underline underline-offset-4 hover:text-bosque" onClick={() => setBorrador({ ...o })}>
                     Editar
                   </button>

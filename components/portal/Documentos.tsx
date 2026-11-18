@@ -56,8 +56,7 @@ export const Documentos: React.FC<{ perfil: Perfil; organizacion: Organizacion |
       .from('documentos')
       .select('*')
       .eq('activo', true)
-      .order('orden')
-      .order('titulo')
+      .order('actualizado_en', { ascending: false })
       .then(({ data, error: e }) => {
         if (!vivo) return;
         if (e) setError(esAdmin ? `${e.message}. Revisá que la migración 0005_documentos.sql esté corrida en Supabase.` : 'No pudimos cargar los documentos. Probá recargar la página.');

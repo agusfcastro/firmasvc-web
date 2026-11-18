@@ -3,7 +3,7 @@ import { ArrowDown, ArrowUpRight, Plus } from 'lucide-react';
 import { supabase } from '../supabase';
 import { Aviso, Enlace, Etiqueta, claseInput } from '../ui';
 import { ESTADO_SOBRE } from '../../firma/comun';
-import { ROL_COMERCIAL, type IntegranteEquipo } from '../crm/tipos';
+import { rolDe, type IntegranteEquipo } from '../crm/tipos';
 import { vencimientoContrato } from '../descargas';
 import type { Documento } from '../tipos';
 import { COLUMNAS_FIRMANTE, descargarSobre, type Firmante, type Sobre } from './api';
@@ -168,7 +168,7 @@ export const ContratosEquipoFirmados: React.FC<{
                 </div>
                 <h4 className="font-heading font-semibold text-[18px] leading-snug">
                   {nombre}
-                  {persona && <span className="text-piedra font-medium"> · {ROL_COMERCIAL[persona.rol_comercial]}</span>}
+                  {persona && <span className="text-piedra font-medium"> · {rolDe(persona)}</span>}
                 </h4>
                 {editandoEste && editando ? (
                   <div className="flex flex-wrap items-end gap-2">

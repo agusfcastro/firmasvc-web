@@ -3,7 +3,7 @@ import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { Aviso, Campo, TituloSeccion, claseInput } from '../ui';
 import { mensajeAmable } from '../errores';
-import { ROL_COMERCIAL, type IntegranteEquipo } from './tipos';
+import { rolDe, type IntegranteEquipo } from './tipos';
 import { hablantesDe, leerTranscripcion, sinFalsosHablantes } from './analisis';
 
 /**
@@ -120,7 +120,7 @@ export const CargarTranscripcion: React.FC<{
               <option value="">Sin indicar</option>
               {activos.map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.nombre} · {ROL_COMERCIAL[m.rol_comercial] ?? m.rol_comercial}
+                  {m.nombre} · {rolDe(m)}
                 </option>
               ))}
             </select>

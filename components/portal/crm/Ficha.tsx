@@ -6,7 +6,7 @@ import { Aviso, Campo, Cifras, Encabezado, Enlace, Etiqueta, Monto, TituloSeccio
 import { useVistaPrevia } from '../vistaPrevia';
 import { navegar } from '../navegacion';
 import { BUCKET_ASUNTOS } from '../asuntos';
-import { ROL_COMERCIAL, TONO_FIRMA, dinero, hoyISO, type CambioHistorial, type ClienteCrm, type ContratoReservado, type IntegranteEquipo, type Pago, type Servicio, type VariablePropia } from './tipos';
+import { rolDe, TONO_FIRMA, dinero, hoyISO, type CambioHistorial, type ClienteCrm, type ContratoReservado, type IntegranteEquipo, type Pago, type Servicio, type VariablePropia } from './tipos';
 import { CampoVariable, sinVacios } from './variablesPropias';
 import { CAMPOS_CASO, VALORES_CASO } from './reglasCasos';
 import { CasosCliente } from './Casos';
@@ -508,7 +508,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                           .map((m) => (
                             <option key={m.id} value={m.id}>
                               {m.nombre}
-                              {!(roles as readonly string[]).includes(m.rol_comercial) ? ` · ${ROL_COMERCIAL[m.rol_comercial]}` : ''}
+                              {!(roles as readonly string[]).includes(m.rol_comercial) ? ` · ${rolDe(m)}` : ''}
                               {!m.activo ? ' · inactivo' : ''}
                             </option>
                           ))}

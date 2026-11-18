@@ -8,7 +8,7 @@ import { useVistaPrevia } from '../vistaPrevia';
 import { BotonCopiar } from '../crm/firma';
 import { ESTADO_FIRMANTE, ESTADO_SOBRE, fechaHora } from '../../firma/comun';
 import { generaContratos, type Organizacion, type Perfil } from '../tipos';
-import { ROL_COMERCIAL, type IntegranteEquipo, type RolComercial } from '../crm/tipos';
+import { ROL_COMERCIAL, rolDe, type IntegranteEquipo, type RolComercial } from '../crm/tipos';
 import { BarraUso } from '../BarraUso';
 import { diaYMes, firmasAgotadas, firmasOcupadas, usoFirmas, whatsapp, type UsoFirmas } from '../planes';
 import { registrarLectura } from '../lecturas';
@@ -305,6 +305,8 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
   // Con OTRA_PERSONA: alguien que todavía no está en el equipo. Se suma al enviar, sin cuenta en el portal.
   const [personaNueva, setPersonaNueva] = useState('');
   const [rolNuevo, setRolNuevo] = useState<RolComercial>('otro');
+  // Con el rol «otro»: el rol escrito a mano (Nutricionista, Editor).
+  const [cargoNuevo, setCargoNuevo] = useState('');
   const orgEnvio = esAdmin ? orgId : organizacion?.id ?? '';
   const puedeEquipo = generaContratos(perfil);
 
@@ -427,7 +429,7 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
     // Alguien que no está en el equipo se suma ahora. Si ya hay alguien con ese nombre, se usa ese.
     let miembroId = miembro;
     if (miembro === OTRA_PERSONA) {
-      const { data: idNuevo, error: eq } = supabase ? await supabase.rpc('equipo_sumar', { org: orgEnvio, nombre: personaNueva.trim(), rol: rolNuevo }) : { data: null, error: null };
+      const { data: idNuevo, error: eq } = supabase ? await supabase.rpc('equipo_sumar', { org: orgEnvio, nombre: personaNueva.trim(), rol: rolNuevo, ...(rolNuevo === 'otro' && cargoNuevo.trim() ? { cargo: cargoNuevo.trim() } : {}) }) : { data: null, error: null };
       if (eq || !idNuevo) {
         setEnviando(false);
         return setError(eq?.message ?? 'No se pudo sumar a la persona al equipo.');
@@ -551,7 +553,7 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
                   <option value="">Sin vincular</option>
                   {equipo.map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.nombre} · {ROL_COMERCIAL[m.rol_comercial]}
+                      {m.nombre} · {rolDe(m)}
                     </option>
                   ))}
                   <option value={OTRA_PERSONA}>Otra persona (escribir el nombre)</option>
@@ -572,6 +574,11 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
                     ))}
                   </select>
                 </Campo>
+                {rolNuevo === 'otro' && (
+                  <Campo etiqueta="¿Qué rol tiene?" ayuda="Sale al lado de su nombre en la tarjeta del contrato.">
+                    <input value={cargoNuevo} onChange={(e) => setCargoNuevo(e.target.value)} maxLength={60} className={claseInput} placeholder="Nutricionista" />
+                  </Campo>
+                )}
               </div>
             )}
             {miembro && (

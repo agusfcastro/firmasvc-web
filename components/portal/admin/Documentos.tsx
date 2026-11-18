@@ -6,7 +6,7 @@ import { Aviso, Campo, Etiqueta, Interruptor, Pestanas, claseInput } from '../ui
 import { avisarPorMail } from '../asuntos';
 import { BUCKET_DOCUMENTOS, EXTENSIONES_ACEPTADAS, FORMATOS, SECCIONES, TAMANO_MAXIMO, descargarArchivo, extension, formatoDe, liberarModeloContrato, tamano, vencimientoContrato } from '../descargas';
 import { MODELOS, type ClaveModelo } from '../pedidos/modelos';
-import { ROL_COMERCIAL, type IntegranteEquipo, type RolComercial } from '../crm/tipos';
+import { ROL_COMERCIAL, rolDe, type IntegranteEquipo, type RolComercial } from '../crm/tipos';
 import { fechaCorta, type Area, type Documento, type Organizacion, type SeccionDocumento } from '../tipos';
 
 type Filtro = 'todas' | SeccionDocumento;
@@ -22,7 +22,6 @@ interface Borrador {
   areas: string[];
   contenido: Contenido;
   url: string;
-  orden: number;
   activo: boolean;
   /** Protocolos y formación: los ven también closers y setters */
   es_protocolo: boolean;
@@ -35,6 +34,8 @@ interface Borrador {
   /** Con OTRA_PERSONA: el nombre y el rol de alguien que todavía no está en el equipo. No necesita cuenta en el portal. */
   persona_nombre: string;
   persona_rol: RolComercial;
+  /** Con el rol «otro»: el rol escrito a mano. */
+  persona_cargo: string;
 }
 
 /** Valor del desplegable para escribir a mano a alguien que no está en el equipo. Se suma al guardar. */
@@ -46,7 +47,11 @@ const areasPorDefecto = (s: SeccionDocumento): string[] => (s === 'equipo' ? ['d
 /** Un documento se ata a una persona si es de un cliente, va en Contratos con tu equipo y no es el modelo ni un protocolo. */
 const puedeAtar = (b: Borrador): boolean => b.seccion === 'equipo' && Boolean(b.organizacion_id) && !b.modelo_contrato && !b.es_protocolo;
 
-const ORDEN_SECCION: Record<SeccionDocumento, number> = { servicio: 0, equipo: 1, otros: 2 };
+/** Filtro por empresa: todas, las de un cliente, o los documentos que ven todos los clientes. */
+const GENERALES = 'generales';
+
+/** La empresa con la que se abre la pantalla, cuando se llega desde Administración › Clientes (?empresa=). */
+const empresaInicial = (): string => new URLSearchParams(window.location.search).get('empresa') || 'todas';
 
 const claseEtiqueta = 'block text-[12.5px] font-medium text-piedra mb-2';
 const claseLink = 'underline underline-offset-4 hover:text-bosque';
@@ -56,6 +61,8 @@ export const Documentos: React.FC = () => {
   const [orgs, setOrgs] = useState<Organizacion[]>([]);
   const [areas, setAreas] = useState<Area[]>([]);
   const [filtro, setFiltro] = useState<Filtro>('todas');
+  const [filtroOrg, setFiltroOrg] = useState(empresaInicial);
+  const [busqueda, setBusqueda] = useState('');
   const [borrador, setBorrador] = useState<Borrador | null>(null);
   const [areasTocadas, setAreasTocadas] = useState(false);
   const [archivo, setArchivo] = useState<File | null>(null);
@@ -71,7 +78,7 @@ export const Documentos: React.FC = () => {
   async function cargar() {
     if (!supabase) return;
     const [d, o, a, eq] = await Promise.all([
-      supabase.from('documentos').select('*').order('orden').order('titulo'),
+      supabase.from('documentos').select('*').order('actualizado_en', { ascending: false }),
       supabase.from('organizaciones').select('*').order('nombre'),
       supabase.from('areas').select('*').order('orden'),
       supabase.from('equipo_miembros').select('*').order('nombre'),
@@ -87,11 +94,21 @@ export const Documentos: React.FC = () => {
     void cargar();
   }, []);
 
+  const personaDe = (id: string) => {
+    const m = equipo.find((x) => x.id === id);
+    return m ? `${m.nombre} · ${rolDe(m)}` : 'Persona del equipo';
+  };
+
   const original = borrador?.id ? (lista.find((x) => x.id === borrador.id) ?? null) : null;
-  const filtrados = (filtro === 'todas' ? lista : lista.filter((d) => d.seccion === filtro))
-    .slice()
-    .sort((a, b) => ORDEN_SECCION[a.seccion] - ORDEN_SECCION[b.seccion] || a.orden - b.orden || a.titulo.localeCompare(b.titulo, 'es'));
-  const cuenta = (s: SeccionDocumento) => lista.filter((d) => d.seccion === s).length;
+  // La empresa y la búsqueda se aplican primero, así las pestañas cuentan lo que se está viendo. Llegan con lo más nuevo arriba.
+  const q = busqueda.trim().toLowerCase();
+  const deLaEmpresa = lista.filter((d) => {
+    if (filtroOrg === GENERALES ? d.organizacion_id !== null : filtroOrg !== 'todas' && d.organizacion_id !== filtroOrg) return false;
+    return !q || d.titulo.toLowerCase().includes(q) || (d.archivo_nombre ?? '').toLowerCase().includes(q) || (d.equipo_miembro_id ? personaDe(d.equipo_miembro_id).toLowerCase().includes(q) : false);
+  });
+  const filtrados = filtro === 'todas' ? deLaEmpresa : deLaEmpresa.filter((d) => d.seccion === filtro);
+  const cuenta = (s: SeccionDocumento) => deLaEmpresa.filter((d) => d.seccion === s).length;
+  const hayFiltros = filtroOrg !== 'todas' || Boolean(q) || filtro !== 'todas';
 
   function abrir(b: Borrador) {
     setBorrador(b);
@@ -109,11 +126,11 @@ export const Documentos: React.FC = () => {
       titulo: '',
       descripcion: '',
       version: '',
-      organizacion_id: null,
+      // Con una empresa filtrada, el documento nuevo arranca siendo de ella.
+      organizacion_id: filtroOrg !== 'todas' && filtroOrg !== GENERALES ? filtroOrg : null,
       areas: areasPorDefecto(seccion),
       contenido: 'archivo',
       url: '',
-      orden: cuenta(seccion) + 1,
       activo: true,
       es_protocolo: false,
       modelo_contrato: '',
@@ -121,6 +138,7 @@ export const Documentos: React.FC = () => {
       contrato_vence_el: '',
       persona_nombre: '',
       persona_rol: 'otro',
+      persona_cargo: '',
     });
   }
 
@@ -135,7 +153,6 @@ export const Documentos: React.FC = () => {
       areas: d.areas ?? [],
       contenido: d.url ? 'enlace' : 'archivo',
       url: d.url ?? '',
-      orden: d.orden,
       activo: d.activo,
       es_protocolo: Boolean(d.es_protocolo),
       modelo_contrato: d.modelo_contrato ?? '',
@@ -143,6 +160,7 @@ export const Documentos: React.FC = () => {
       contrato_vence_el: d.contrato_vence_el ?? '',
       persona_nombre: '',
       persona_rol: 'otro',
+      persona_cargo: '',
     });
   }
 
@@ -153,7 +171,7 @@ export const Documentos: React.FC = () => {
 
   function cambiarSeccion(s: SeccionDocumento) {
     if (!borrador) return;
-    setBorrador({ ...borrador, seccion: s, areas: areasTocadas ? borrador.areas : areasPorDefecto(s), orden: borrador.id ? borrador.orden : cuenta(s) + 1 });
+    setBorrador({ ...borrador, seccion: s, areas: areasTocadas ? borrador.areas : areasPorDefecto(s) });
   }
 
   function alternarArea(clave: string) {
@@ -199,10 +217,16 @@ export const Documentos: React.FC = () => {
 
     // Alguien que no está en el equipo se suma ahora, sin cuenta en el portal. Si ya hay alguien con ese nombre, se usa ese.
     if (persona === OTRA_PERSONA) {
-      const { data: idNuevo, error: eq } = await supabase.rpc('equipo_sumar', { org: borrador.organizacion_id, nombre: borrador.persona_nombre.trim(), rol: borrador.persona_rol });
+      const { data: idNuevo, error: eq } = await supabase.rpc('equipo_sumar', {
+        org: borrador.organizacion_id,
+        nombre: borrador.persona_nombre.trim(),
+        rol: borrador.persona_rol,
+        // Solo si lo escribió, así sin la migración 0069 el resto sigue andando.
+        ...(borrador.persona_rol === 'otro' && borrador.persona_cargo.trim() ? { cargo: borrador.persona_cargo.trim() } : {}),
+      });
       if (eq || !idNuevo) {
         setGuardando(false);
-        return setError(eq?.message ?? 'No se pudo sumar a la persona al equipo.');
+        return setError(eq && /equipo_sumar|cargo/.test(eq.message) ? `${eq.message}. Revisá que la migración 0069_equipo_cargo.sql esté corrida en Supabase.` : (eq?.message ?? 'No se pudo sumar a la persona al equipo.'));
       }
       persona = idNuevo as string;
     }
@@ -239,7 +263,6 @@ export const Documentos: React.FC = () => {
       version: borrador.version.trim() || null,
       organizacion_id: borrador.organizacion_id || null,
       areas: borrador.areas,
-      orden: Number(borrador.orden) || 0,
       activo: borrador.activo,
       es_protocolo: borrador.es_protocolo,
       modelo_contrato: modeloContrato,
@@ -299,10 +322,6 @@ export const Documentos: React.FC = () => {
     : [];
   const conPersona = Boolean(borrador && puedeAtar(borrador) && borrador.equipo_miembro_id);
 
-  const personaDe = (id: string) => {
-    const m = equipo.find((x) => x.id === id);
-    return m ? `${m.nombre} · ${ROL_COMERCIAL[m.rol_comercial]}` : 'Persona del equipo';
-  };
   const nombreOrg = (id: string | null) => (id ? `Solo ${orgs.find((o) => o.id === id)?.nombre ?? 'un cliente'}` : 'Todos los clientes');
   const nombreAreas = (claves: string[]) =>
     claves.length === 0 ? 'Todo el equipo' : `Titular y ${claves.map((c) => areas.find((a) => a.clave === c)?.nombre ?? c).join(', ')}`;
@@ -367,7 +386,7 @@ export const Documentos: React.FC = () => {
                   <option value="">No, es un documento de la sección</option>
                   {personas.map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.nombre} · {ROL_COMERCIAL[m.rol_comercial]}
+                      {m.nombre} · {rolDe(m)}
                       {m.activo ? '' : ' (desactivado)'}
                     </option>
                   ))}
@@ -388,6 +407,11 @@ export const Documentos: React.FC = () => {
                       ))}
                     </select>
                   </Campo>
+                  {borrador.persona_rol === 'otro' && (
+                    <Campo etiqueta="¿Qué rol tiene?" ayuda="Sale al lado de su nombre en la tarjeta del contrato.">
+                      <input className={claseInput} maxLength={60} value={borrador.persona_cargo} onChange={(e) => setBorrador({ ...borrador, persona_cargo: e.target.value })} placeholder="Nutricionista" />
+                    </Campo>
+                  )}
                 </>
               )}
               {conPersona && (
@@ -466,12 +490,9 @@ export const Documentos: React.FC = () => {
             <span>Es un protocolo o material de formación. Lo ven también closers y setters, que no acceden a los documentos legales.</span>
           </label>
 
-          <div className="grid gap-5 tab:grid-cols-2">
-            <Campo etiqueta="Versión" ayuda="Si la cambiás, o si reemplazás el archivo, se actualiza la fecha que ve el cliente.">
+          <div className="tab:max-w-[50%]">
+            <Campo etiqueta="Versión (opcional)" ayuda="Si la cambiás, o si reemplazás el archivo, se actualiza la fecha que ve el cliente y el documento sube al principio de la lista.">
               <input className={claseInput} value={borrador.version} onChange={(e) => setBorrador({ ...borrador, version: e.target.value })} placeholder="1.0" />
-            </Campo>
-            <Campo etiqueta="Orden">
-              <input type="number" className={claseInput} value={borrador.orden} onChange={(e) => setBorrador({ ...borrador, orden: Number(e.target.value) })} />
             </Campo>
           </div>
 
@@ -526,13 +547,26 @@ export const Documentos: React.FC = () => {
           </div>
         </form>
       ) : (
-        <Button onClick={nuevo}>
-          <Plus size={16} /> Nuevo documento
-        </Button>
+        <div className="flex flex-wrap items-end gap-3">
+          <Button onClick={nuevo}>
+            <Plus size={16} /> Nuevo documento
+          </Button>
+          <div className="flex-1" />
+          <select className={`${claseInput} !w-auto min-w-[200px]`} value={filtroOrg} onChange={(e) => setFiltroOrg(e.target.value)} aria-label="Filtrar por empresa">
+            <option value="todas">Todas las empresas</option>
+            <option value={GENERALES}>Para todos los clientes</option>
+            {orgs.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.nombre}
+              </option>
+            ))}
+          </select>
+          <input className={`${claseInput} !w-full tab:!w-64`} placeholder="Buscar por título, archivo o persona" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} aria-label="Buscar documentos" />
+        </div>
       )}
 
       <Pestanas<Filtro>
-        items={[{ clave: 'todas', titulo: 'Todas', cuenta: lista.length }, ...SECCIONES.map((s) => ({ clave: s.clave, titulo: s.titulo, cuenta: cuenta(s.clave) }))]}
+        items={[{ clave: 'todas', titulo: 'Todas', cuenta: deLaEmpresa.length }, ...SECCIONES.map((s) => ({ clave: s.clave, titulo: s.titulo, cuenta: cuenta(s.clave) }))]}
         activa={filtro}
         alCambiar={setFiltro}
       />
@@ -553,7 +587,7 @@ export const Documentos: React.FC = () => {
             {filtrados.length === 0 && (
               <tr>
                 <td colSpan={6} className="text-piedra">
-                  Todavía no hay documentos{filtro === 'todas' ? '' : ' en esta sección'}.
+                  {hayFiltros ? 'No hay documentos con ese filtro.' : 'Todavía no hay documentos.'}
                 </td>
               </tr>
             )}

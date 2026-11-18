@@ -11,6 +11,10 @@
  *   actualizar  { usuario_id, nombre?, rol?, organizacion_id?, areas? }
  *   activar     { usuario_id }
  *   desactivar  { usuario_id }
+ *   eliminar    { usuario_id, confirmacion }
+ *               Borra la cuenta y su perfil. confirmacion tiene que ser su mail.
+ *               Lo que la persona hizo queda: las tablas la referencian con
+ *               on delete set null y la firma electrónica guarda nombre y mail propios.
  *   enviar_acceso { usuario_id }   reenvía el enlace para definir contraseña
  *   enlace_acceso { usuario_id }   devuelve { enlace } sin mandar mail
  *   borrar_empresa { organizacion_id, confirmacion }
@@ -206,6 +210,18 @@ export async function POST(request: Request): Promise<Response> {
     if (errBan) return error(`No se pudo cambiar el estado. ${errBan.message}`, 502);
     await sb.from('perfiles').update({ activo: activar }).eq('id', usuario_id);
     await registrar(sb, actor, usuario_id, activar ? 'activacion' : 'desactivacion');
+    return json({ ok: true });
+  }
+
+  if (accion === 'eliminar') {
+    if (usuario_id === actor) return error('No podés eliminar tu propia cuenta.');
+    if (String(cuerpo.confirmacion || '').trim().toLowerCase() !== String(perfil.email).toLowerCase()) return error('Escribí el mail exacto de la persona para confirmar.');
+    // El perfil se va con la cuenta (on delete cascade). El resto de sus huellas queda sin autor.
+    const { error: errBorrar } = await sb.auth.admin.deleteUser(usuario_id);
+    if (errBorrar) return error(`No se pudo eliminar la cuenta. ${errBorrar.message}`, 502);
+    await sb.from('perfiles').delete().eq('id', usuario_id);
+    // Ya no existe: el registro guarda quién era en el detalle.
+    await registrar(sb, actor, null, 'usuario_eliminado', { email: perfil.email, nombre: perfil.nombre, rol: perfil.rol, organizacion_id: perfil.organizacion_id });
     return json({ ok: true });
   }
 

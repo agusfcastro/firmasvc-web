@@ -4,7 +4,7 @@ import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { Aviso, Campo, Cifras, Encabezado, Enlace, Etiqueta, Pestanas, TituloSeccion, claseInput } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
-import { ROL_COMERCIAL, type IntegranteEquipo } from './tipos';
+import { rolDe, type IntegranteEquipo } from './tipos';
 import { PasosFathom, urlWebhook } from './fathom';
 import { mensajeAmable } from '../errores';
 import { AnalisisLlamada } from './AnalisisLlamada';
@@ -655,7 +655,7 @@ export const Llamadas: React.FC<{ orgId: string; orgNombre: string; puedeGestion
                             <td>
                               <div className="font-heading font-bold text-[16px] leading-tight">{m.nombre}</div>
                               <div className="text-xs text-piedra">
-                                {ROL_COMERCIAL[m.rol_comercial]}
+                                {rolDe(m)}
                                 {m.usuario_id ? ' · con cuenta en el portal' : ''}
                               </div>
                             </td>

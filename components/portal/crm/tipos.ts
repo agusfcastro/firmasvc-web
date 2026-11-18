@@ -52,10 +52,16 @@ export interface IntegranteEquipo {
   organizacion_id: string;
   nombre: string;
   rol_comercial: RolComercial;
+  /** Rol escrito a mano cuando rol_comercial es «otro» (0069): Nutricionista, Médico, Editor. */
+  cargo?: string | null;
   email: string | null;
   usuario_id: string | null;
   activo: boolean;
 }
+
+/** El rol de alguien del equipo como se muestra: el escrito a mano si es «otro» y lo tiene. */
+export const rolDe = (m: Pick<IntegranteEquipo, 'rol_comercial' | 'cargo'>): string =>
+  (m.rol_comercial === 'otro' && m.cargo?.trim()) || ROL_COMERCIAL[m.rol_comercial] || m.rol_comercial;
 
 export type TipoVariable = 'texto' | 'numero' | 'monto' | 'fecha' | 'opcion' | 'booleano';
 export type AmbitoVariable = 'negocio' | 'cliente' | 'contrato';

@@ -6,7 +6,7 @@ import { navegar } from '../navegacion';
 import { Aviso, Campo, Encabezado, Enlace, TituloSeccion, claseInput } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
 import { generarContratoFirma } from './contratoFirma';
-import { ROL_COMERCIAL, dinero, hoyISO, type IntegranteEquipo, type Servicio, type TipoCliente } from './tipos';
+import { rolDe, dinero, hoyISO, type IntegranteEquipo, type Servicio, type TipoCliente } from './tipos';
 import { DatosCliente, filaIdentidad } from './DatosCliente';
 
 /** Valor de la lista para asignar a alguien que todavía no está en Equipo. */
@@ -269,7 +269,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
                     <optgroup label="Otros del equipo">
                       {otros.map((m) => (
                         <option key={m.id} value={m.id}>
-                          {m.nombre} · {ROL_COMERCIAL[m.rol_comercial]}
+                          {m.nombre} · {rolDe(m)}
                         </option>
                       ))}
                     </optgroup>
