@@ -218,7 +218,7 @@ function mejoresParrafos(t: string, palabras: string[], cuantos: number, max = 1
 }
 
 /** Texto de un .docx: los párrafos de word/document.xml. */
-function textoDeDocx(datos: Uint8Array): string {
+export function textoDeDocx(datos: Uint8Array): string {
   const archivos = unzipSync(datos, { filter: (f) => f.name === 'word/document.xml' });
   const xml = archivos['word/document.xml'];
   if (!xml) return '';

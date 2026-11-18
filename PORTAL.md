@@ -675,6 +675,18 @@ Los textos no llevan nombres de clientes ni títulos de documentos, porque se ve
 | `components/portal/TarjetaAvisos.tsx` | Tarjeta de Inicio y campana de la barra lateral |
 | `api/_lib/push.ts` | Firma con VAPID y cifra (RFC 8291) sin dependencias. Marca inactivas las suscripciones vencidas |
 
+## Comentarios de documentos: exportar y brief de Tina
+
+Los comentarios que deja un cliente en un documento de un asunto (migración 0065) se trabajan de dos maneras, las dos solo para FIRMA.
+
+**Exportar.** En el visor, arriba del panel de comentarios, «Copiar todos» y «Descargar en Word» sacan todos los hilos del documento en orden, primero los abiertos y después los resueltos, con la hoja, la frase resaltada, quién escribió, cuándo y las respuestas. Se arma en el navegador (`components/portal/comentarios/exportar.ts`).
+
+**Brief de Tina.** De lunes a viernes, la tarea diaria (`api/portal/resumen.ts`) busca los hilos abiertos, no internos, cuyo último mensaje es de alguien que no es de FIRMA y tiene menos de 30 días (`comentarios_para_borrador()`), y encola un trabajo `comentarios_borrador` por documento. Cada trabajo (`api/_lib/tina/borradores.ts`) le manda a `claude-opus-5-5` el documento (el PDF entero o el texto del Word) y los hilos, sin nombres ni mails de quien comentó, y guarda un borrador por hilo en `comentario_borradores` (migración 0070): qué pide el cliente, la respuesta sugerida, el texto nuevo de la cláusula si corresponde y una nota con lo que hay que revisar. Diez minutos después, el trabajo `comentarios_brief` manda a FIRMA un mail y un aviso con los documentos que tienen borradores.
+
+En el visor, FIRMA ve el borrador debajo del comentario, corrige la respuesta y la publica como respuesta del hilo, o lo descarta. El cliente no ve nada hasta que se publica. Un borrador deja de mostrarse si alguien escribe en el hilo después; si el que escribe es el cliente, a la mañana siguiente se prepara otro. Lo publicado o descartado no se vuelve a preparar. El prompt está en el mismo archivo (`SISTEMA`): si se cambia, cambia lo que redacta Tina.
+
+Necesita `ANTHROPIC_API_KEY` en Vercel y la cola en marcha (sección Llamadas de Fathom y cola de trabajos). No suma funciones. Pruebas en `supabase/pruebas/borradores_comentarios.sql`.
+
 ## Mail de los lunes y alertas
 
 Mails que el portal manda solo, sin que nadie los pida, desde `/api/portal/resumen`. Corre todos los días a las 9 de Buenos Aires con Vercel Cron. En el plan Hobby de Vercel la tarea puede salir en cualquier momento entre las 9 y las 10. Las empresas desactivadas y la demo no reciben nada.

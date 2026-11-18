@@ -8,6 +8,7 @@
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { analizarLlamada, type DatosAnalisis } from './analisis/analizar.js';
+import { avisarBrief, prepararBorradores } from './tina/borradores.js';
 
 export interface Trabajo {
   id: number;
@@ -50,6 +51,17 @@ const PROCESADORES: Record<string, Procesador> = {
       }
       throw e;
     }
+  },
+
+  // Brief matutino de Tina (migración 0070, api/_lib/tina/borradores.ts): los
+  // borradores de respuesta a los comentarios de un documento.
+  async comentarios_borrador(sb, payload) {
+    await prepararBorradores(sb, String(payload.archivo_id ?? ''));
+  },
+
+  // El mail y el aviso a FIRMA con los borradores del día. Sale diez minutos después de encolar los documentos.
+  async comentarios_brief(sb) {
+    await avisarBrief(sb);
   },
 };
 
