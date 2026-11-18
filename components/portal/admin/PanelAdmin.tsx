@@ -6,6 +6,7 @@ import { Clientes } from './Clientes';
 import { Registro } from './Registro';
 import { Agendas } from './Agendas';
 import { Documentos } from './Documentos';
+import { Formularios } from './Formularios';
 import { Abonos } from './Abonos';
 import { NewsletterAdmin } from './Newsletter';
 
@@ -14,6 +15,7 @@ const PESTANAS = [
   { ruta: '/portal/admin/clientes', titulo: 'Clientes' },
   { ruta: '/portal/admin/agendas', titulo: 'Agendas' },
   { ruta: '/portal/admin/documentos', titulo: 'Documentos' },
+  { ruta: '/portal/admin/formularios', titulo: 'Formularios' },
   { ruta: '/portal/admin/abonos', titulo: 'Abonos' },
   { ruta: '/portal/admin/newsletter', titulo: 'Newsletter' },
   { ruta: '/portal/admin/registro', titulo: 'Registro de accesos' },
@@ -46,7 +48,7 @@ export const PanelAdmin: React.FC<{ perfil: Perfil; ruta: string }> = ({ perfil,
           );
         })}
       </nav>
-      {ruta === '/portal/admin/clientes' ? <Clientes /> : ruta === '/portal/admin/agendas' ? <Agendas /> : ruta === '/portal/admin/documentos' ? <Documentos /> : ruta === '/portal/admin/abonos' ? <Abonos /> : ruta === '/portal/admin/newsletter' ? <NewsletterAdmin /> : ruta === '/portal/admin/registro' ? <Registro /> : <Usuarios yo={perfil} />}
+      {ruta === '/portal/admin/clientes' ? <Clientes /> : ruta === '/portal/admin/agendas' ? <Agendas /> : ruta === '/portal/admin/documentos' ? <Documentos /> : ruta === '/portal/admin/formularios' ? <Formularios /> : ruta === '/portal/admin/abonos' ? <Abonos /> : ruta === '/portal/admin/newsletter' ? <NewsletterAdmin /> : ruta === '/portal/admin/registro' ? <Registro /> : <Usuarios yo={perfil} />}
     </div>
   </Marco>
 );

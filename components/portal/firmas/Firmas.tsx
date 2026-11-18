@@ -297,6 +297,8 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
   const [clienteCrm, setClienteCrm] = useState('');
   const [equipo, setEquipo] = useState<IntegranteEquipo[]>([]);
   const [miembro, setMiembro] = useState('');
+  // Fecha en que termina el contrato de esa persona. No es el plazo para firmar.
+  const [venceContrato, setVenceContrato] = useState('');
   const orgEnvio = esAdmin ? orgId : organizacion?.id ?? '';
   const puedeEquipo = generaContratos(perfil);
 
@@ -384,6 +386,7 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
 
   function vincularEquipo(id: string) {
     setMiembro(id);
+    if (!id) setVenceContrato('');
     // Un envío va atado al CRM o al equipo, no a los dos.
     if (id) setClienteCrm('');
     const m = equipo.find((x) => x.id === id);
@@ -392,7 +395,10 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
 
   function vincular(id: string) {
     setClienteCrm(id);
-    if (id) setMiembro('');
+    if (id) {
+      setMiembro('');
+      setVenceContrato('');
+    }
     // Con un solo firmante vacío, se propone el cliente elegido.
     const c = clientesCrm.find((x) => x.id === id);
     if (c) proponer(c.representante || c.nombre, c.email);
@@ -425,9 +431,16 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
       entrega,
       firmantes: lista.map((f) => ({ nombre: f.nombre, email: f.email, pedir_documento: f.pedir_documento })),
     });
+    // El vencimiento del contrato se carga aparte (migración 0068): si falla, el envío ya salió y se carga desde Documentos.
+    let sinVencimiento = false;
+    if (r.ok && miembro && venceContrato && supabase) {
+      const { error: e } = await supabase.rpc('firma_sobre_vencimiento', { p_sobre: r.datos.id, p_fecha: venceContrato });
+      sinVencimiento = Boolean(e);
+    }
     setEnviando(false);
     if (!r.ok) return setError(r.error);
     try {
+      if (sinVencimiento) r.datos.avisos = [...(r.datos.avisos ?? []), 'El vencimiento del contrato no se pudo guardar. Cargalo desde Documentos › Contratos con tu equipo.'];
       if (r.datos.avisos?.length) window.sessionStorage.setItem(`firma-avisos-${r.datos.id}`, JSON.stringify(r.datos.avisos));
     } catch {
       /* sin almacenamiento, el detalle igual muestra los enlaces */
@@ -525,6 +538,11 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
                     </option>
                   ))}
                 </select>
+              </Campo>
+            )}
+            {miembro && (
+              <Campo etiqueta="Vencimiento del contrato (opcional)" ayuda="El día en que termina el contrato, no el plazo para firmar. Sale en la tarjeta de la persona y se puede cambiar después.">
+                <input type="date" value={venceContrato} onChange={(e) => setVenceContrato(e.target.value)} className={claseInput} />
               </Campo>
             )}
             {!esAdmin && organizacion && <p className="text-sm text-piedra">Los mails salen a nombre de {organizacion.nombre} vía FIRMA.</p>}

@@ -78,7 +78,9 @@ export const Documentos: React.FC<{ perfil: Perfil; organizacion: Organizacion |
   const protocolos = disponibles.filter((d) => d.es_protocolo);
   // Los protocolos tienen su propia vista y no se repiten en las secciones de documentos.
   const visibles = disponibles.filter((d) => !d.es_protocolo);
-  const lista = enProtocolos ? protocolos : visibles.filter((d) => d.seccion === seccion.clave);
+  // Los contratos atados a una persona del equipo (0068) salen arriba, en su bloque, con nombre, rol y vencimiento.
+  const deEquipo = visibles.filter((d) => d.seccion === 'equipo' && d.equipo_miembro_id);
+  const lista = enProtocolos ? protocolos : visibles.filter((d) => d.seccion === seccion.clave && !d.equipo_miembro_id);
   const cuenta = (clave: string) => visibles.filter((d) => d.seccion === clave).length;
   // Quien no es titular ve solo las secciones donde tiene documentos y nunca el aviso laboral, que es para el titular.
   const esMiembro = perfil.rol !== 'admin' && perfil.rol !== 'titular';
@@ -191,11 +193,22 @@ export const Documentos: React.FC<{ perfil: Perfil; organizacion: Organizacion |
           {!enProtocolos && seccion.clave === 'equipo' && permisosDe(perfil.rol).casos && <PedidosEquipo orgId={orgId} vistaPrevia={esAdmin || Boolean(vista)} />}
 
           {/* Los contratos del equipo mandados a firmar (0064). Traen honorarios: solo titular, Legales y Operaciones. */}
-          {!enProtocolos && seccion.clave === 'equipo' && orgId && generaContratos(perfil) && <ContratosEquipoFirmados orgId={orgId} puedeEnviar={!vista} />}
+          {!enProtocolos && seccion.clave === 'equipo' && orgId && generaContratos(perfil) && (
+            <ContratosEquipoFirmados
+              orgId={orgId}
+              puedeEnviar={!vista}
+              docs={deEquipo}
+              bajandoDoc={bajando}
+              alDescargarDoc={(d) => void descargar(d)}
+              alAbrirDoc={(d) => {
+                if (!vista) registrarDescarga(d);
+              }}
+            />
+          )}
 
           {docs === null ? (
             <p className="text-[14px] text-piedra">Cargando documentos…</p>
-          ) : lista.length === 0 ? (
+          ) : lista.length === 0 && !enProtocolos && seccion.clave === 'equipo' && deEquipo.length > 0 ? null : lista.length === 0 ? (
             <div className="p-tarjeta flex flex-col gap-3 p-6 desk:p-8 max-w-[680px]">
               <p className="font-heading font-semibold text-[18px]">{esAdmin ? 'Todavía no cargaste documentos acá' : enProtocolos ? 'Todavía no hay protocolos para tu área' : 'Esta sección todavía no tiene documentos'}</p>
               <p className="text-[15px] leading-[1.6] text-piedra">

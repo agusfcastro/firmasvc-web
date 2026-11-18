@@ -383,7 +383,7 @@ interface DatosSemana {
   asuntos: { id: string; codigo: string | null; titulo: string; estado: string; vence_en: string | null; cerrado_en: string | null }[];
   novedades: Map<string, number>;
   sobres: { id: string; codigo: string; titulo: string; estado: string; vence_en: string; completado_en: string | null }[];
-  documentos: { areas: string[] | null }[];
+  documentos: { areas: string[] | null; equipo_miembro_id?: string | null }[];
   abonos: { concepto: string; vigente_hasta: string }[];
 }
 
@@ -392,7 +392,7 @@ async function datosSemana(sb: SupabaseClient, orgId: string, hoy: string, domin
     sb.from('asuntos').select('id, codigo, titulo, estado, vence_en, cerrado_en').eq('organizacion_id', orgId).or(`estado.neq.finalizado,cerrado_en.gte."${desde}"`),
     sb.from('asunto_novedades').select('asunto_id').eq('organizacion_id', orgId).eq('interna', false).gte('creado_en', desde),
     sb.from('firma_sobres').select('id, codigo, titulo, estado, vence_en, completado_en').eq('organizacion_id', orgId).or(`estado.eq.en_curso,completado_en.gte."${desde}"`),
-    sb.from('documentos').select('areas').eq('organizacion_id', orgId).eq('activo', true).gte('creado_en', desde),
+    sb.from('documentos').select('*').eq('organizacion_id', orgId).eq('activo', true).gte('creado_en', desde),
     sb.from('abonos').select('concepto, vigente_hasta').eq('organizacion_id', orgId).not('estado', 'in', '(cancelado,borrador)').gte('vigente_hasta', hoy).lte('vigente_hasta', domingo),
   ]);
   const cuenta = new Map<string, number>();
@@ -482,7 +482,11 @@ function mailLunes(
     if (enCurso || completados)
       resumen.push(`${[enCurso && plural(enCurso, 'firma en curso', 'firmas en curso'), completados && plural(completados, 'firma completada', 'firmas completadas')].filter(Boolean).join(' y ')}.`);
     // Los mismos documentos que la persona ve en el portal, como en el aviso de documento nuevo.
-    const documentos = d.documentos.filter((doc) => !doc.areas?.length || g.rol === 'titular' || (g.areas ?? []).some((a) => (doc.areas ?? []).includes(a))).length;
+    const documentos = d.documentos.filter((doc) =>
+      doc.equipo_miembro_id
+        ? g.rol === 'titular' || (g.areas ?? []).some((a) => a === 'legales' || a === 'operaciones')
+        : !doc.areas?.length || g.rol === 'titular' || (g.areas ?? []).some((a) => (doc.areas ?? []).includes(a)),
+    ).length;
     if (documentos) resumen.push(`${plural(documentos, 'documento nuevo', 'documentos nuevos')} en el portal.`);
 
     const de = varios ? ` · ${g.empresa}` : '';

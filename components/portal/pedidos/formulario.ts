@@ -58,8 +58,8 @@ export interface Seccion {
 }
 
 export interface Modelo {
-  /** Las claves de los datos de la persona empiezan con <clave>_ (migración 0062). */
-  clave: 'closer' | 'setter';
+  /** Las claves de los datos de la persona empiezan con <clave>_ (migración 0062). propio es un modelo armado por FIRMA para una empresa (0068). */
+  clave: 'closer' | 'setter' | 'propio';
   /** Cómo se nombra a la persona en los textos: «los datos del closer». */
   persona: string;
   titulo: string;

@@ -123,6 +123,10 @@ export interface Documento {
   es_protocolo?: boolean;
   /** Contrato modelo de closer o setter de la empresa (0063). */
   modelo_contrato?: 'closer' | 'setter' | null;
+  /** Persona del equipo a la que corresponde el contrato (0068). Lo ven solo el titular, Legales y Operaciones. */
+  equipo_miembro_id?: string | null;
+  /** Fecha en que termina el contrato de esa persona, AAAA-MM-DD (0068). */
+  contrato_vence_el?: string | null;
   orden: number;
   activo: boolean;
   creado_en: string;

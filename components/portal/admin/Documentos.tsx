@@ -4,8 +4,9 @@ import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { Aviso, Campo, Etiqueta, Interruptor, Pestanas, claseInput } from '../ui';
 import { avisarPorMail } from '../asuntos';
-import { BUCKET_DOCUMENTOS, EXTENSIONES_ACEPTADAS, FORMATOS, SECCIONES, TAMANO_MAXIMO, descargarArchivo, extension, formatoDe, liberarModeloContrato, tamano } from '../descargas';
+import { BUCKET_DOCUMENTOS, EXTENSIONES_ACEPTADAS, FORMATOS, SECCIONES, TAMANO_MAXIMO, descargarArchivo, extension, formatoDe, liberarModeloContrato, tamano, vencimientoContrato } from '../descargas';
 import { MODELOS, type ClaveModelo } from '../pedidos/modelos';
+import { ROL_COMERCIAL, type IntegranteEquipo } from '../crm/tipos';
 import { fechaCorta, type Area, type Documento, type Organizacion, type SeccionDocumento } from '../tipos';
 
 type Filtro = 'todas' | SeccionDocumento;
@@ -27,10 +28,17 @@ interface Borrador {
   es_protocolo: boolean;
   /** Contrato modelo de closer o setter de la empresa (0063). Solo en Contratos con tu equipo y para un cliente. */
   modelo_contrato: '' | ClaveModelo;
+  /** Persona del equipo a la que corresponde el contrato (0068). Solo en Contratos con tu equipo y para un cliente. */
+  equipo_miembro_id: string;
+  /** Fecha en que termina ese contrato, AAAA-MM-DD. */
+  contrato_vence_el: string;
 }
 
 /** Los contratos con el equipo arrancan reservados al titular y a Dirección. */
 const areasPorDefecto = (s: SeccionDocumento): string[] => (s === 'equipo' ? ['direccion'] : []);
+
+/** Un documento se ata a una persona si es de un cliente, va en Contratos con tu equipo y no es el modelo ni un protocolo. */
+const puedeAtar = (b: Borrador): boolean => b.seccion === 'equipo' && Boolean(b.organizacion_id) && !b.modelo_contrato && !b.es_protocolo;
 
 const ORDEN_SECCION: Record<SeccionDocumento, number> = { servicio: 0, equipo: 1, otros: 2 };
 
@@ -51,14 +59,18 @@ export const Documentos: React.FC = () => {
   // Aviso por mail de un documento nuevo de una empresa. Se propone siempre y se puede destildar.
   const [avisar, setAvisar] = useState(true);
   const formulario = useRef<HTMLFormElement>(null);
+  // Equipo de todas las empresas, para atar un contrato a su persona y nombrarla en la lista.
+  const [equipo, setEquipo] = useState<IntegranteEquipo[]>([]);
 
   async function cargar() {
     if (!supabase) return;
-    const [d, o, a] = await Promise.all([
+    const [d, o, a, eq] = await Promise.all([
       supabase.from('documentos').select('*').order('orden').order('titulo'),
       supabase.from('organizaciones').select('*').order('nombre'),
       supabase.from('areas').select('*').order('orden'),
+      supabase.from('equipo_miembros').select('*').order('nombre'),
     ]);
+    setEquipo((eq.data as IntegranteEquipo[]) ?? []);
     if (d.error) setError(`${d.error.message}. Revisá que la migración 0005_documentos.sql esté corrida en Supabase.`);
     setLista((d.data as Documento[]) ?? []);
     setOrgs((o.data as Organizacion[]) ?? []);
@@ -99,6 +111,8 @@ export const Documentos: React.FC = () => {
       activo: true,
       es_protocolo: false,
       modelo_contrato: '',
+      equipo_miembro_id: '',
+      contrato_vence_el: '',
     });
   }
 
@@ -117,6 +131,8 @@ export const Documentos: React.FC = () => {
       activo: d.activo,
       es_protocolo: Boolean(d.es_protocolo),
       modelo_contrato: d.modelo_contrato ?? '',
+      equipo_miembro_id: d.equipo_miembro_id ?? '',
+      contrato_vence_el: d.contrato_vence_el ?? '',
     });
   }
 
@@ -166,6 +182,8 @@ export const Documentos: React.FC = () => {
     if (conArchivo && !archivo && !original?.archivo_ruta) return setError('Elegí el archivo que vas a subir.');
     // El contrato modelo es de un cliente y vive en Contratos con tu equipo.
     const modeloContrato = borrador.seccion === 'equipo' && borrador.organizacion_id && borrador.modelo_contrato ? borrador.modelo_contrato : null;
+    // El contrato de una persona: de un cliente, en Contratos con tu equipo, y no es el modelo ni un protocolo.
+    const persona = puedeAtar(borrador) ? borrador.equipo_miembro_id || null : null;
     setGuardando(true);
 
     // 0. Si pasa a ser el contrato modelo, el que lo era deja de serlo.
@@ -204,6 +222,8 @@ export const Documentos: React.FC = () => {
       activo: borrador.activo,
       es_protocolo: borrador.es_protocolo,
       modelo_contrato: modeloContrato,
+      // Solo si hay o hubo una persona, así el resto no depende de la migración 0068.
+      ...(persona || original?.equipo_miembro_id ? { equipo_miembro_id: persona, contrato_vence_el: persona ? borrador.contrato_vence_el || null : null } : {}),
       url: conArchivo ? null : url,
       archivo_ruta: conArchivo ? (rutaNueva ?? original?.archivo_ruta ?? null) : null,
       archivo_nombre: conArchivo ? (archivo?.name ?? original?.archivo_nombre ?? null) : null,
@@ -215,7 +235,7 @@ export const Documentos: React.FC = () => {
     if (err) {
       if (rutaNueva) await supabase.storage.from(BUCKET_DOCUMENTOS).remove([rutaNueva]);
       setGuardando(false);
-      return setError(err.message);
+      return setError(persona && /equipo_miembro_id|contrato_vence_el/.test(err.message) ? `${err.message}. Revisá que la migración 0068_contratos_equipo_y_modelos.sql esté corrida en Supabase.` : err.message);
     }
 
     // 3. El archivo anterior se borra si se reemplazó o si el documento pasó a ser un enlace.
@@ -252,6 +272,16 @@ export const Documentos: React.FC = () => {
     if (fallo) setError(fallo);
   }
 
+  // Activos de la empresa elegida, más la persona ya vinculada aunque esté desactivada.
+  const personas = borrador?.organizacion_id
+    ? equipo.filter((m) => m.organizacion_id === borrador.organizacion_id && (m.activo || m.id === borrador.equipo_miembro_id))
+    : [];
+  const conPersona = Boolean(borrador && puedeAtar(borrador) && borrador.equipo_miembro_id);
+
+  const personaDe = (id: string) => {
+    const m = equipo.find((x) => x.id === id);
+    return m ? `${m.nombre} · ${ROL_COMERCIAL[m.rol_comercial]}` : 'Persona del equipo';
+  };
   const nombreOrg = (id: string | null) => (id ? `Solo ${orgs.find((o) => o.id === id)?.nombre ?? 'un cliente'}` : 'Todos los clientes');
   const nombreAreas = (claves: string[]) =>
     claves.length === 0 ? 'Todo el equipo' : `Titular y ${claves.map((c) => areas.find((a) => a.clave === c)?.nombre ?? c).join(', ')}`;
@@ -279,7 +309,7 @@ export const Documentos: React.FC = () => {
               </select>
             </Campo>
             <Campo etiqueta="Visible para">
-              <select className={claseInput} value={borrador.organizacion_id ?? ''} onChange={(e) => setBorrador({ ...borrador, organizacion_id: e.target.value || null })}>
+              <select className={claseInput} value={borrador.organizacion_id ?? ''} onChange={(e) => setBorrador({ ...borrador, organizacion_id: e.target.value || null, equipo_miembro_id: '', contrato_vence_el: '' })}>
                 <option value="">Todos los clientes</option>
                 {orgs.map((o) => (
                   <option key={o.id} value={o.id}>
@@ -304,6 +334,30 @@ export const Documentos: React.FC = () => {
                 ))}
               </select>
             </Campo>
+          )}
+
+          {puedeAtar(borrador) && (
+            <div className="grid gap-5 tab:grid-cols-2">
+              <Campo
+                etiqueta="¿Es el contrato de alguien del equipo?"
+                ayuda="Sale en Contratos de tu equipo con su nombre, su rol y el vencimiento. Trae honorarios, así que lo ven solo el titular y las áreas Legales y Operaciones."
+              >
+                <select className={claseInput} value={borrador.equipo_miembro_id} onChange={(e) => setBorrador({ ...borrador, equipo_miembro_id: e.target.value, contrato_vence_el: e.target.value ? borrador.contrato_vence_el : '' })}>
+                  <option value="">No, es un documento de la sección</option>
+                  {personas.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.nombre} · {ROL_COMERCIAL[m.rol_comercial]}
+                      {m.activo ? '' : ' (desactivado)'}
+                    </option>
+                  ))}
+                </select>
+              </Campo>
+              {conPersona && (
+                <Campo etiqueta="Vencimiento del contrato (opcional)" ayuda="El día en que termina. Treinta días antes la tarjeta lo marca como «vence pronto».">
+                  <input type="date" className={claseInput} value={borrador.contrato_vence_el} onChange={(e) => setBorrador({ ...borrador, contrato_vence_el: e.target.value })} />
+                </Campo>
+              )}
+            </div>
           )}
 
           <Campo etiqueta="Título">
@@ -383,6 +437,12 @@ export const Documentos: React.FC = () => {
             </Campo>
           </div>
 
+          {conPersona ? (
+            <div>
+              <span className={claseEtiqueta}>Quién lo ve dentro de la empresa</span>
+              <p className="text-sm">El titular y quienes tienen el área Legales u Operaciones, como los contratos del equipo mandados a firmar.</p>
+            </div>
+          ) : (
           <div>
             <span className={claseEtiqueta}>Quién lo ve dentro de la empresa</span>
             <div className="flex flex-wrap gap-2">
@@ -405,6 +465,7 @@ export const Documentos: React.FC = () => {
               {borrador.areas.length === 0 ? 'Sin áreas marcadas lo ve todo el equipo. El titular ve todo siempre.' : 'Lo ven el titular y los miembros de las áreas marcadas.'}
             </span>
           </div>
+          )}
 
           <Interruptor activo={borrador.activo} alCambiar={(v) => setBorrador({ ...borrador, activo: v })} etiqueta="Visible en el portal" />
 
@@ -467,6 +528,12 @@ export const Documentos: React.FC = () => {
                       <Etiqueta tono="bosque">Modelo · {MODELOS[d.modelo_contrato].titulo.toLowerCase()}</Etiqueta>
                     </div>
                   )}
+                  {d.equipo_miembro_id && (
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-piedra">
+                      <Etiqueta tono="tinta">{personaDe(d.equipo_miembro_id)}</Etiqueta>
+                      {vencimientoContrato(d.contrato_vence_el)?.texto ?? 'Sin vencimiento cargado'}
+                    </div>
+                  )}
                   <div className="text-xs text-piedra mt-1 break-all">
                     {formatoDe(d)}
                     {d.archivo_bytes ? ` · ${tamano(d.archivo_bytes)}` : ''} · {d.archivo_nombre ?? d.url}
@@ -475,7 +542,7 @@ export const Documentos: React.FC = () => {
                 <td className="whitespace-nowrap">{SECCIONES.find((s) => s.clave === d.seccion)?.titulo ?? d.seccion}</td>
                 <td>
                   {nombreOrg(d.organizacion_id)}
-                  <div className="text-xs text-piedra mt-1">{nombreAreas(d.areas ?? [])}</div>
+                  <div className="text-xs text-piedra mt-1">{d.equipo_miembro_id ? 'Titular, Legales y Operaciones' : nombreAreas(d.areas ?? [])}</div>
                 </td>
                 <td className="whitespace-nowrap">
                   {d.version || '·'}

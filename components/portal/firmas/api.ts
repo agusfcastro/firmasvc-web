@@ -33,6 +33,8 @@ export interface Sobre {
   error_sellado: string | null;
   /** Persona del equipo a la que corresponde el contrato. Sin la migración 0064 no viene. */
   equipo_miembro_id?: string | null;
+  /** Fecha en que termina el contrato de esa persona, AAAA-MM-DD. No es el plazo para firmar. Sin la migración 0068 no viene. */
+  contrato_vence_el?: string | null;
   /** Sin la migración 0027 no viene y se toma como mail. */
   entrega?: 'mail' | 'enlace' | 'portal';
   /** Sello de tiempo en BFA. Sin la migración 0031 no viene. */

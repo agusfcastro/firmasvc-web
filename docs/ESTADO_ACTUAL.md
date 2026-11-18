@@ -99,6 +99,7 @@ Además, la migración 0038 hace que las tablas hijas apunten al padre por `(org
 | `crm_borradores`, `zapsign_cuentas` | Restos de flujos retirados, sin uso | Admin |
 | `asuntos`, `asunto_novedades`, `asunto_mensajes`, `asunto_archivos` | Trámites con FIRMA, bitácora, chat en vivo y archivos | `puede_ver_casos` o cartera del responsable. Notas internas solo admin |
 | `pedidos_contrato`, `esquemas_contrato` | Formulario de contrato de closer y esquemas guardados | Titular y csm. Bloqueado después de enviar |
+| `modelos_contrato` | Formularios de contrato que FIRMA arma para una empresa (0068) | Los escribe solo admin. Los leen titular y csm de la empresa |
 | `documentos` | Biblioteca, común o por empresa, con casilla de protocolo o formación | `documento_visible` según rol y áreas |
 | `firma_sobres`, `firma_firmantes`, `firma_eventos` | Firma electrónica con eventos encadenados e inmutables | Negocio y FIRMA. Eventos de solo lectura |
 | `abonos`, `abono_pagos` | Abono de cada empresa y sus cobros. Desde la 0061 con el esquema de la oferta (cuotas o pago completo, pesos al MEP) | Titular y FIRMA |

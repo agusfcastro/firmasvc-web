@@ -562,6 +562,34 @@ Para activarlo, corré `0034_pedidos_contrato.sql` y después `0035_esquemas_con
 | `components/portal/pedidos/closer.ts` | Preguntas del contrato de closer |
 | `components/portal/pedidos/Pedidos.tsx` | Formulario, tarjeta de Documentos y pestaña del asunto |
 
+### Formularios propios de una empresa
+
+Migración `0068_contratos_equipo_y_modelos.sql`. Además de closer y setter, FIRMA arma formularios de contrato para una empresa desde **Administración › Formularios**, sin tocar el código. El cliente los ve en **Documentos › Contratos con tu equipo** como «Pedir un…», al lado de los otros dos, y al enviarlos se abre el asunto igual que con closer y setter.
+
+- **Qué se carga.** La empresa, el nombre del contrato («Contrato de marketing»), cómo se nombra a la otra parte («prestador»), el texto de la tarjeta, un contrato modelo opcional (un documento de la empresa en Contratos con tu equipo, que el cliente baja desde la tarjeta) y las secciones con sus preguntas.
+- **Tipos de pregunta.** Texto corto, texto largo, una opción, varias opciones, sí o no y tabla. Las opciones y las columnas se escriben una por renglón. No hay preguntas condicionales ni alertas: eso sigue siendo de closer y setter.
+- **Datos de la persona.** Una sección se marca como «datos de la persona». El cliente puede dejarla vacía y completarla después de enviar, y su primera pregunta de texto le da el nombre al pedido y al asunto («Contrato de marketing · Santiago Ávalos»). Sus claves llevan el prefijo `propio_`, que es como la base las reconoce.
+- **Cambios.** Al enviar, el pedido guarda una copia del formulario (`pedidos_contrato.formulario`). Editar el formulario después no altera lo ya enviado. Un formulario con pedidos no se elimina: se oculta.
+- **Sin esquema ni formulario corto.** Los formularios propios no guardan esquema ni tienen «Sumar un … nuevo».
+
+| Archivo | Para qué |
+|---|---|
+| `supabase/migrations/0068_contratos_equipo_y_modelos.sql` | Tabla `modelos_contrato`, pedidos con modelo propio y copia del formulario |
+| `components/portal/pedidos/propio.ts` | Convierte lo guardado en un formulario como los de closer y setter |
+| `components/portal/admin/Formularios.tsx` | Pantalla de Administración para armarlos |
+| `supabase/pruebas/contratos_equipo_y_modelos.sql` | Pruebas |
+
+### Contratos de cada persona del equipo
+
+En **Documentos › Contratos con tu equipo**, el bloque «Contratos de tu equipo, firmados y en curso» muestra una tarjeta por contrato con el nombre completo de la persona, su rol y el vencimiento. Salen de dos lugares:
+
+- **Envíos a firma** atados a una persona en Firmas (migración 0064), con quién falta firmar y el PDF firmado.
+- **Documentos** que FIRMA carga en Administración › Documentos y ata a una persona con «¿Es el contrato de alguien del equipo?» (migración 0068, `documentos.equipo_miembro_id`).
+
+En los dos casos se elige entre las personas activas del equipo de la empresa, tengan o no usuario en el portal. Los ven FIRMA, el titular y quienes tienen el área Legales u Operaciones, sin importar las áreas marcadas en el documento.
+
+El **vencimiento del contrato** (`contrato_vence_el`, en `documentos` y en `firma_sobres`) es la fecha en que termina el contrato, no el plazo para firmar. Es opcional. En un documento lo carga FIRMA; en un envío a firma se carga al mandarlo o después desde la tarjeta (`firma_sobre_vencimiento`). Treinta días antes la tarjeta dice «Vence pronto» y, pasada la fecha, «Vencido». Todavía no manda avisos por mail ni push.
+
 ## Planes, agenda y firmas
 
 El plan de cada empresa se elige en Administración › Clientes › Editar: Starter o Eminent (migración 0059). Es obligatorio y no hay planes a medida. Lo único que puede salir de la norma es el monto, que se ajusta en el abono (Administración › Abonos, cambiando los montos de la oferta o con Monto especial).

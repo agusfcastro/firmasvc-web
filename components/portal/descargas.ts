@@ -107,9 +107,31 @@ export function visibleEnPantalla(d: Documento, rol: Perfil['rol'], areas: strin
   if (!d.activo) return false;
   if (d.organizacion_id !== null && d.organizacion_id !== orgId) return false;
   if (!d.es_protocolo && !permisosDe(rol).documentosLegales) return false;
+  // El contrato de una persona del equipo trae honorarios: la regla de los envíos a firma del equipo (0068).
+  if (d.equipo_miembro_id) return rol === 'admin' || rol === 'titular' || areas.some((a) => a === 'legales' || a === 'operaciones');
   const areasDoc = d.areas ?? [];
   if (rol === 'admin' || rol === 'titular' || areasDoc.length === 0) return true;
   return areasDoc.some((a) => areas.includes(a));
+}
+
+/** Cuánto antes del vencimiento de un contrato se marca como «vence pronto». */
+const DIAS_VENCE_PRONTO = 30;
+
+/**
+ * Vencimiento del contrato de una persona del equipo, para la tarjeta.
+ * La fecha viene como AAAA-MM-DD y se lee en el día local, sin corrimiento de zona.
+ */
+export function vencimientoContrato(fecha: string | null | undefined): { texto: string; estado: 'vigente' | 'pronto' | 'vencido' } | null {
+  if (!fecha) return null;
+  const [a, m, d] = fecha.slice(0, 10).split('-').map(Number);
+  const dia = new Date(a, m - 1, d);
+  if (Number.isNaN(dia.getTime())) return null;
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const faltan = Math.round((dia.getTime() - hoy.getTime()) / 86400000);
+  const largo = dia.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
+  if (faltan < 0) return { texto: `Venció el ${largo}`, estado: 'vencido' };
+  return { texto: `Vence el ${largo}`, estado: faltan <= DIAS_VENCE_PRONTO ? 'pronto' : 'vigente' };
 }
 
 /** Nombre con el que baja el archivo. Sin tildes ni símbolos para que llegue igual en cualquier sistema. */

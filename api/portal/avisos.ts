@@ -435,8 +435,11 @@ async function avisoDocumento(sb: SupabaseClient, quien: Quien, id: string, base
   const roles = doc.es_protocolo ? ['titular', 'csm', 'miembro', 'closer', 'setter'] : ['titular', 'csm', 'miembro'];
   const gente = await genteDe(sb, [doc.organizacion_id], roles);
   const areas: string[] = doc.areas ?? [];
-  const destinatarios = gente.filter(
-    (p) => areas.length === 0 || p.rol === 'titular' || (p.areas ?? []).some((a) => areas.includes(a)),
+  // El contrato de una persona del equipo lo ven solo el titular, Legales y Operaciones (migración 0068).
+  const destinatarios = gente.filter((p) =>
+    doc.equipo_miembro_id
+      ? p.rol === 'titular' || (p.areas ?? []).some((a) => a === 'legales' || a === 'operaciones')
+      : areas.length === 0 || p.rol === 'titular' || (p.areas ?? []).some((a) => areas.includes(a)),
   );
 
   const avisados = await avisarA(

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, ClipboardList, Copy, Download, Plus, Upload, Send, Trash2, TriangleAlert } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
@@ -7,7 +7,8 @@ import { useVistaPrevia } from '../vistaPrevia';
 import { avisarPorMail } from '../asuntos';
 import { Aviso, Encabezado, Enlace, Interruptor, Marco, claseInput } from '../ui';
 import { permisosDe, type Organizacion, type Perfil } from '../tipos';
-import { MODELOS, modeloDe } from './modelos';
+import { MODELOS, modeloDe, type ClaveModelo } from './modelos';
+import { idModeloPropio, modeloDesdePropio, rutaModeloPropio, type DefinicionFormulario, type ModeloPropio } from './propio';
 import { EXTENSIONES_ACEPTADAS, descargarArchivo, liberarModeloContrato, registrarDescarga, subirArchivoDocumento, BUCKET_DOCUMENTOS } from '../descargas';
 import type { Documento } from '../tipos';
 import {
@@ -43,12 +44,20 @@ import { mensajeAmable } from '../errores';
  * (documentos.modelo_contrato) y cada persona nueva se suma con el
  * formulario corto (paraSumar): sus datos, honorarios y una nota. Las
  * reglas de la base están en las migraciones 0034, 0035, 0062 y 0063.
+ * Además de closer y setter, cada empresa puede tener modelos propios que
+ * FIRMA arma desde Administración › Formularios (propio.ts, migración 0068),
+ * en /portal/pedidos/modelo-<id>. No llevan esquema ni formulario corto, y
+ * al enviarlos el pedido guarda una copia del formulario.
  */
 
 export interface PedidoContrato {
   id: string;
   organizacion_id: string;
-  modelo: keyof typeof MODELOS;
+  modelo: ClaveModelo | 'propio';
+  /** El modelo propio de la empresa con el que se responde (0068). */
+  modelo_propio_id?: string | null;
+  /** Copia del formulario al enviar. Sin enviar, se usa el modelo como esté. */
+  formulario?: DefinicionFormulario | null;
   titulo: string | null;
   respuestas: Respuestas;
   asunto_id: string | null;
@@ -63,6 +72,12 @@ export interface EsquemaContrato {
   modelo: keyof typeof MODELOS;
   respuestas: Respuestas;
   actualizado_en: string;
+}
+
+/** El formulario de un pedido ya creado. Nulo si es de un modelo propio que todavía no se cargó o ya no existe. */
+function modeloDePedido(p: Pick<PedidoContrato, 'modelo' | 'respuestas'>, propio: DefinicionFormulario | null): Modelo | null {
+  if (p.modelo === 'propio') return propio ? modeloDesdePropio(propio) : null;
+  return modeloDe(p.modelo, p.respuestas ?? {});
 }
 
 /** Marca en las respuestas de un pedido que arrancó de un esquema, con su fecha. */
@@ -86,6 +101,10 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
   const vista = useVistaPrevia();
   const parte = ruta.replace(/^\/portal\/pedidos\/?/, '');
   const modeloNuevo = parte in MODELOS ? (parte as keyof typeof MODELOS) : null;
+  // Formulario nuevo de un modelo propio de la empresa.
+  const propioNuevo = idModeloPropio(parte);
+  const [propio, setPropio] = useState<DefinicionFormulario | null>(null);
+  const propioId = useRef<string | null>(null);
   const orgId = vista?.orgId ?? organizacion?.id ?? null;
   const puedeEditar = !vista && perfil.rol !== 'admin' && permisosDe(perfil.rol).casos && Boolean(orgId);
 
@@ -106,11 +125,30 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
   const [editandoDatos, setEditandoDatos] = useState(() => new URLSearchParams(window.location.search).get('datos') === '1');
   const [nota, setNota] = useState<string | null>(null);
 
-  const clave = pedido ? pedido.modelo : modeloNuevo;
-  const modelo: Modelo | null = clave ? modeloDe(clave, respuestas) : null;
+  const clave = pedido ? pedido.modelo : propioNuevo ? 'propio' : modeloNuevo;
+  const esPropio = clave === 'propio';
+  // Se arma una sola vez por definición: el guardado automático depende de que el modelo no cambie en cada render.
+  const modeloPropio = useMemo(() => (propio ? modeloDesdePropio(propio) : null), [propio]);
+  const modelo: Modelo | null = !clave ? null : clave === 'propio' ? modeloPropio : modeloDe(clave, respuestas);
 
   useEffect(() => {
     if (!supabase) return;
+    if (propioNuevo) {
+      void supabase
+        .from('modelos_contrato')
+        .select('*')
+        .eq('id', propioNuevo)
+        .maybeSingle()
+        .then(({ data }) => {
+          const m = (data as ModeloPropio | null) ?? null;
+          propioId.current = m?.id ?? null;
+          setPropio(m);
+          setConEsquema(false);
+          if (m) setRespuestas(respuestasIniciales(modeloDesdePropio(m)));
+          setPedido(null);
+        });
+      return;
+    }
     if (modeloNuevo) {
       const iniciales = respuestasIniciales(MODELOS[modeloNuevo]);
       if (!orgId) {
@@ -142,7 +180,7 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
       .select('*')
       .eq('id', parte)
       .maybeSingle()
-      .then(({ data, error: e }) => {
+      .then(async ({ data, error: e }) => {
         if (e || !data) {
           setError(e && perfil.rol === 'admin' ? `${e.message}. Revisá que la migración 0034_pedidos_contrato.sql esté corrida en Supabase.` : 'No existe ese formulario o no tenés acceso.');
           setPedido(null);
@@ -150,9 +188,21 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
         }
         const p = data as PedidoContrato;
         idRef.current = p.id;
+        if (p.modelo === 'propio') {
+          // Enviado: la copia con la que se respondió. Borrador: el modelo como esté hoy.
+          let def: DefinicionFormulario | null = p.formulario ?? null;
+          if (!def && p.modelo_propio_id) {
+            const { data: m } = await supabase!.from('modelos_contrato').select('*').eq('id', p.modelo_propio_id).maybeSingle();
+            def = (m as ModeloPropio | null) ?? null;
+          }
+          propioId.current = p.modelo_propio_id ?? null;
+          setPropio(def);
+          setConEsquema(false);
+          if (!def) setError('Este formulario ya no está disponible. Escribinos por el chat de un asunto y lo vemos.');
+        }
         setPedido(p);
         setRespuestas(p.respuestas ?? {});
-        if (!p.enviado_en && orgId)
+        if (p.modelo !== 'propio' && !p.enviado_en && orgId)
           void supabase!
             .from('esquemas_contrato')
             .select('*')
@@ -164,7 +214,7 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
               setConEsquema(!d);
             });
       });
-  }, [parte, modeloNuevo]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [parte, modeloNuevo, propioNuevo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // FIRMA y Ver como abren el formulario nuevo para ver cómo es, sin guardar nada.
   const prueba = !puedeEditar && !pedido;
@@ -180,7 +230,11 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
       enCurso.current = enCurso.current.then(async () => {
         setGuardado('guardando');
         if (!idRef.current) {
-          const { data, error: e } = await sb.from('pedidos_contrato').insert({ organizacion_id: orgId, modelo: m.clave, titulo, respuestas: r }).select('*').single();
+          const { data, error: e } = await sb
+            .from('pedidos_contrato')
+            .insert({ organizacion_id: orgId, modelo: m.clave, titulo, respuestas: r, ...(m.clave === 'propio' ? { modelo_propio_id: propioId.current } : {}) })
+            .select('*')
+            .single();
           if (e || !data) return setGuardado('error');
           idRef.current = (data as PedidoContrato).id;
           setPedido(data as PedidoContrato);
@@ -263,7 +317,7 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
       return setError(`El asunto se abrió, pero el formulario no quedó vinculado. Probá enviar de nuevo. ${e2.message}`);
     }
     await avisarPorMail('asunto', asuntoId);
-    if (conEsquema) {
+    if (conEsquema && modelo.clave !== 'propio') {
       const fallo = await guardarEsquemaDe(modelo, orgId, respuestas, esquema);
       if (fallo) {
         setEnviando(false);
@@ -340,10 +394,17 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
         </Enlace>
       }
       titulo={
-        <>
-          {modelo.titulo.replace(new RegExp(` de ${modelo.persona}$`), ' de ')}
-          <span className="text-bosque">{nombre || modelo.persona}</span>
-        </>
+        esPropio ? (
+          <>
+            {modelo.titulo}
+            {nombre && <span className="text-bosque"> · {nombre}</span>}
+          </>
+        ) : (
+          <>
+            {modelo.titulo.replace(new RegExp(` de ${modelo.persona}$`), ' de ')}
+            <span className="text-bosque">{nombre || modelo.persona}</span>
+          </>
+        )
       }
       bajada={
         soloLectura
@@ -488,7 +549,7 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
                 </Aviso>
               )}
               <ListaRespuestas modelo={modelo} respuestas={respuestas} alEditar={(c) => irA(secciones.findIndex((s) => s.clave === c))} />
-              {!sumando && (
+              {!sumando && !esPropio && (
                 <div className="bg-marfil-oscuro p-5">
                   <Interruptor
                     activo={conEsquema}
@@ -745,8 +806,10 @@ export const FormularioDelAsunto: React.FC<{ pedido: PedidoContrato; empresa: st
     window.history.replaceState({}, '', url);
     return true;
   });
-  const modelo = modeloDe(pedido.modelo, pedido.respuestas);
+  const modelo = modeloDePedido(pedido, pedido.formulario ?? null);
+  if (!modelo) return <Aviso tipo="info">El formulario de este pedido ya no está disponible.</Aviso>;
   async function copiar() {
+    if (!modelo) return;
     const encabezado = `${modelo.tituloAsunto(pedido.respuestas)}${empresa ? ` · ${empresa}` : ''}${pedido.enviado_en ? ` · enviado el ${fecha(pedido.enviado_en)}` : ''}`;
     try {
       await navigator.clipboard.writeText(resumenTexto(modelo, pedido.respuestas, encabezado));
@@ -789,7 +852,7 @@ export const FormularioDelAsunto: React.FC<{ pedido: PedidoContrato; empresa: st
           Editar datos del {modelo.persona}
         </Enlace>
       )}
-      {esFirma && pedido.enviado_en && <EntregarModelo pedido={pedido} />}
+      {esFirma && pedido.enviado_en && pedido.modelo !== 'propio' && <EntregarModelo pedido={pedido} modelo={pedido.modelo} />}
       <ListaRespuestas modelo={modelo} respuestas={pedido.respuestas} />
     </div>
   );
@@ -801,8 +864,8 @@ export const FormularioDelAsunto: React.FC<{ pedido: PedidoContrato; empresa: st
  * (migración 0063). Si había otro modelo, sigue en la sección sin la marca.
  * Le avisa al cliente por el chat del asunto.
  */
-const EntregarModelo: React.FC<{ pedido: PedidoContrato }> = ({ pedido }) => {
-  const modelo = MODELOS[pedido.modelo];
+const EntregarModelo: React.FC<{ pedido: PedidoContrato; modelo: ClaveModelo }> = ({ pedido, modelo: clave }) => {
+  const modelo = MODELOS[clave];
   const [actual, setActual] = useState<Documento | null | undefined>(undefined);
   const [archivo, setArchivo] = useState<File | null>(null);
   const [subiendo, setSubiendo] = useState(false);
@@ -815,13 +878,13 @@ const EntregarModelo: React.FC<{ pedido: PedidoContrato }> = ({ pedido }) => {
       .from('documentos')
       .select('*')
       .eq('organizacion_id', pedido.organizacion_id)
-      .eq('modelo_contrato', pedido.modelo)
+      .eq('modelo_contrato', clave)
       .maybeSingle()
       .then(({ data, error: e }) => {
         if (e) setError(`${e.message}. Revisá que la migración 0063_contrato_modelo.sql esté corrida en Supabase.`);
         setActual((data as Documento | null) ?? null);
       });
-  }, [pedido.organizacion_id, pedido.modelo]);
+  }, [pedido.organizacion_id, clave]);
 
   useEffect(cargar, [cargar]);
 
@@ -836,7 +899,7 @@ const EntregarModelo: React.FC<{ pedido: PedidoContrato }> = ({ pedido }) => {
       setSubiendo(false);
       return setError(subida.error);
     }
-    const fallo = await liberarModeloContrato(pedido.organizacion_id, pedido.modelo);
+    const fallo = await liberarModeloContrato(pedido.organizacion_id, clave);
     if (fallo) {
       await sb.storage.from(BUCKET_DOCUMENTOS).remove([subida.ruta]);
       setSubiendo(false);
@@ -850,7 +913,7 @@ const EntregarModelo: React.FC<{ pedido: PedidoContrato }> = ({ pedido }) => {
       areas: ['direccion'],
       orden: 0,
       activo: true,
-      modelo_contrato: pedido.modelo,
+      modelo_contrato: clave,
       archivo_ruta: subida.ruta,
       archivo_nombre: archivo.name,
       archivo_bytes: archivo.size,
@@ -913,10 +976,30 @@ export const PedidosEquipo: React.FC<{ orgId: string | null; vistaPrevia: boolea
   const [borradores, setBorradores] = useState<PedidoContrato[]>([]);
   const [esquemas, setEsquemas] = useState<EsquemaContrato[]>([]);
   const [contratos, setContratos] = useState<Documento[]>([]);
+  // Modelos armados por FIRMA para esta empresa (0068), con su contrato modelo si lo tienen.
+  const [propios, setPropios] = useState<ModeloPropio[]>([]);
+  const [docsPropios, setDocsPropios] = useState<Documento[]>([]);
 
   useEffect(() => {
     if (!supabase || !orgId) return;
     let vivo = true;
+    // Sin la migración 0068 la consulta falla y quedan solo closer y setter.
+    void supabase
+      .from('modelos_contrato')
+      .select('*')
+      .eq('organizacion_id', orgId)
+      .eq('activo', true)
+      .order('orden')
+      .order('creado_en')
+      .then(async ({ data }) => {
+        const lista = (data as ModeloPropio[] | null) ?? [];
+        if (!vivo) return;
+        setPropios(lista);
+        const ids = lista.map((m) => m.documento_id).filter((x): x is string => Boolean(x));
+        if (!ids.length) return;
+        const { data: ds } = await supabase!.from('documentos').select('*').in('id', ids).eq('activo', true);
+        if (vivo) setDocsPropios((ds as Documento[] | null) ?? []);
+      });
     void supabase
       .from('pedidos_contrato')
       .select('*')
@@ -968,6 +1051,19 @@ export const PedidosEquipo: React.FC<{ orgId: string | null; vistaPrevia: boolea
           alBorrarEsquema={borrarEsquema}
         />
       ))}
+      {propios.map((m) => (
+        <TarjetaPedido
+          key={m.id}
+          modelo={modeloDesdePropio(m)}
+          ruta={rutaModeloPropio(m.id)}
+          descarga={docsPropios.find((d) => d.id === m.documento_id) ?? null}
+          contrato={null}
+          esquema={null}
+          borradores={borradores.filter((b) => b.modelo === 'propio' && b.modelo_propio_id === m.id)}
+          vistaPrevia={vistaPrevia}
+          alBorrarEsquema={borrarEsquema}
+        />
+      ))}
     </div>
   );
 };
@@ -980,7 +1076,12 @@ const TarjetaPedido: React.FC<{
   borradores: PedidoContrato[];
   vistaPrevia: boolean;
   alBorrarEsquema: (e: EsquemaContrato) => void;
-}> = ({ modelo, contrato, esquema, borradores, vistaPrevia, alBorrarEsquema }) => {
+  /** Modelo propio: la ruta de su formulario y, si FIRMA lo cargó, su contrato modelo para bajar. */
+  ruta?: string;
+  descarga?: Documento | null;
+}> = ({ modelo, contrato, esquema, borradores, vistaPrevia, alBorrarEsquema, ruta, descarga }) => {
+  const propio = modelo.clave === 'propio';
+  const preguntas = modelo.secciones.reduce((n, s) => n + s.preguntas.length, 0);
   const [error, setError] = useState<string | null>(null);
 
   async function descargar(d: Documento) {
@@ -996,7 +1097,7 @@ const TarjetaPedido: React.FC<{
         <div className="icon-box">
           <ClipboardList size={26} strokeWidth={1.8} />
         </div>
-        <span className="eyebrow text-[11px] text-calido">{contrato ? 'Contrato listo' : esquema ? 'Formulario · unos 3 minutos' : 'Formulario · unos 10 minutos'}</span>
+        <span className="eyebrow text-[11px] text-calido">{contrato ? 'Contrato listo' : propio ? `Formulario · ${preguntas} ${preguntas === 1 ? 'pregunta' : 'preguntas'}` : esquema ? 'Formulario · unos 3 minutos' : 'Formulario · unos 10 minutos'}</span>
       </div>
       <h3 className="h3 relative">{contrato ? `Tu ${modelo.titulo.toLowerCase()}` : `Pedir un ${modelo.titulo.toLowerCase()}`}</h3>
       {contrato ? (
@@ -1023,7 +1124,7 @@ const TarjetaPedido: React.FC<{
       {borradores.length > 0 && (
         <ul className="relative flex flex-col gap-2 text-[15px]">
           {borradores.map((b) => {
-            const { respondidas, total } = avance(modeloDe(b.modelo, b.respuestas ?? {}), b.respuestas ?? {});
+            const { respondidas, total } = avance(b.modelo === 'propio' ? modelo : modeloDe(b.modelo, b.respuestas ?? {}), b.respuestas ?? {});
             return (
               <li key={b.id} className="flex flex-wrap items-baseline gap-x-3">
                 <Enlace a={`/portal/pedidos/${b.id}`} className="font-medium text-marfil underline underline-offset-4 decoration-marfil/40 hover:decoration-marfil">
@@ -1054,17 +1155,28 @@ const TarjetaPedido: React.FC<{
             ) : null}
           </>
         ) : (
-          <Enlace a={`/portal/pedidos/${modelo.clave}`} className={claseAccion}>
-            {vistaPrevia ? (
-              <>
-                <ArrowRight size={16} aria-hidden="true" /> Ver el formulario
-              </>
-            ) : (
-              <>
-                <Plus size={16} aria-hidden="true" /> {borradores.length ? 'Empezar otro' : 'Completar el formulario'}
-              </>
-            )}
-          </Enlace>
+          <>
+            <Enlace a={ruta ?? `/portal/pedidos/${modelo.clave}`} className={claseAccion}>
+              {vistaPrevia ? (
+                <>
+                  <ArrowRight size={16} aria-hidden="true" /> Ver el formulario
+                </>
+              ) : (
+                <>
+                  <Plus size={16} aria-hidden="true" /> {borradores.length ? 'Empezar otro' : 'Completar el formulario'}
+                </>
+              )}
+            </Enlace>
+            {descarga?.archivo_ruta ? (
+              <button type="button" onClick={() => void descargar(descarga)} className="inline-flex items-center gap-2 h-11 px-4 text-sm font-medium text-marfil underline underline-offset-4 hover:text-white">
+                <Download size={16} aria-hidden="true" /> Descargar el modelo
+              </button>
+            ) : descarga?.url ? (
+              <a href={descarga.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 h-11 px-4 text-sm font-medium text-marfil underline underline-offset-4 hover:text-white">
+                <Download size={16} aria-hidden="true" /> Abrir el modelo
+              </a>
+            ) : null}
+          </>
         )}
       </div>
     </article>
