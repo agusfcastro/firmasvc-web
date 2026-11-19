@@ -187,7 +187,7 @@ export const Variables: React.FC<{ orgId: string; orgNombre: string; puedeGestio
               </Campo>
             </div>
             {borrador.tipo === 'opcion' && (
-              <Campo etiqueta="Opciones" ayuda="Una por renglón.">
+              <Campo etiqueta="Opciones" ayuda="Una por renglón. En el Word, {{#CLAVE=opción}}…{{/CLAVE}} deja un texto solo para esa opción.">
                 <textarea className={`${claseInput} min-h-[96px] py-3`} value={borrador.opciones} onChange={(e) => setBorrador({ ...borrador, opciones: e.target.value })} />
               </Campo>
             )}

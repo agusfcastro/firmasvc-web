@@ -516,7 +516,8 @@ async function crmVista(sb: SupabaseClient, q: Quien, cuerpo: Record<string, unk
     const word = completarWord(new Uint8Array(await blob.arrayBuffer()), valores);
 
     const avisos: string[] = [];
-    const vacias = word.usadas.filter((v) => !valores[v]?.trim() && !OPCIONALES.has(v) && !propias.opcionales.has(v));
+    // Una variable que solo decide un tramo que compara también tiene que estar, si no ninguna opción sale en el contrato.
+    const vacias = [...new Set([...word.usadas, ...word.comparadas])].filter((v) => !valores[v]?.trim() && !OPCIONALES.has(v) && !propias.opcionales.has(v));
     for (const v of vacias) avisos.push(`Falta {{${v}}}. Completalo en la ficha y volvé a generar el contrato.`);
     const nombraEmpresa = ['CLIENTE', 'RAZON_SOCIAL_CLIENTE'].some((v) => word.usadas.includes(v) || word.condicionales.includes(v));
     if (cliente.tipo === 'empresa' && !nombraEmpresa)

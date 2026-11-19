@@ -325,6 +325,15 @@ export const Servicios: React.FC<{ orgId: string; orgNombre: string; esAdmin: bo
               </code>
               .
             </p>
+            <p className="text-sm text-piedra mb-4">
+              Si el texto cambia según una opción de la ficha, como el plazo del programa, poné el valor después de un igual. Con{' '}
+              <code>{'{{#PLAZO_MESES=3}}3 (TRES){{/PLAZO_MESES}}{{#PLAZO_MESES=4}}4 (CUATRO){{/PLAZO_MESES}}'}</code> sale solo el de la opción elegida. Con{' '}
+              {'{{^PLAZO_MESES=4}}'} el texto sale si el dato es otro. Si la variable está vacía no sale ninguna opción y el portal avisa que falta.
+            </p>
+            <p className="text-sm text-piedra mb-4">
+              Para una cláusula que solo vale cuando se paga en cuotas, encerrá el párrafo entero entre {'{{#MODALIDAD=Cuotas}}'} y {'{{/MODALIDAD}}'}. Con pago total el
+              párrafo desaparece sin dejar un renglón vacío. Si tiene número, ponela al final de su cláusula así la numeración no salta.
+            </p>
             <ul className="flex flex-col">
               {VARIABLES.map(([clave, texto]) => (
                 <li key={clave} className="flex items-center justify-between gap-4 py-2.5 border-t border-tinta/8">

@@ -1,8 +1,10 @@
 /**
  * Contratos modelo en Word. Completa las variables {{...}} con los datos del
- * cliente, quita los tramos {{#...}}…{{/...}} que quedan sin dato y pasa el
- * resultado a PDF con Google Drive, la misma cuenta de servicio que ya usa el
- * portal. Solo corre en el servidor.
+ * cliente, quita los tramos {{#...}}…{{/...}} que quedan sin dato o que no
+ * coinciden con el valor pedido ({{#PLAZO_MESES=4}}…{{/PLAZO_MESES}}), borra el
+ * párrafo que un tramo deja sin texto y pasa el resultado a PDF con Google
+ * Drive, la misma cuenta de servicio que ya usa el portal. Solo corre en el
+ * servidor.
  */
 import { createSign } from 'node:crypto';
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate';
@@ -17,8 +19,11 @@ const PARRAFO = /<w:p(?:\s[^>]*)?>[\s\S]*?<\/w:p>/g;
 const TEXTO = /(<w:t(?:\s[^>]*[^/>])?>)([\s\S]*?)(<\/w:t>)|<w:t(?:\s[^>]*)?\/>/g;
 // {{NOMBRE}} es una variable. {{#DNI}}…{{/DNI}} es un tramo que solo queda
 // si el DNI tiene valor, y {{^DNI}}…{{/DNI}} uno que solo queda si está vacío.
+// Con un valor el tramo compara. {{#PLAZO_MESES=4}}…{{/PLAZO_MESES}} queda solo
+// si el dato es 4 y {{^PLAZO_MESES=4}}…{{/PLAZO_MESES}} solo si es otro o está
+// vacío. La comparación no distingue mayúsculas, tildes ni espacios de más.
 // El tramo abre y cierra dentro del mismo párrafo.
-const MARCA = /\{\{\s*([#^/]?)\s*([A-Za-z_ÁÉÍÓÚÑáéíóúñ0-9]+)\s*\}\}/g;
+const MARCA = /\{\{\s*([#^/]?)\s*([A-Za-z_ÁÉÍÓÚÑáéíóúñ0-9]+)\s*(?:=\s*([^{}]*?)\s*)?\}\}/g;
 
 function desescapar(s: string): string {
   return s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
@@ -34,6 +39,11 @@ export function claveDe(nombre: string): string {
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .toUpperCase();
+}
+
+/** Un dato listo para comparar: sin tildes, en mayúsculas y con los espacios justos. */
+function comparable(s: string): string {
+  return claveDe(s.trim().replace(/\s+/g, ' '));
 }
 
 /** Texto de un <w:t> ya escapado. Los saltos de línea pasan a <w:br/> dentro del mismo tramo. */
@@ -57,18 +67,24 @@ interface Marca {
   clave: string;
 }
 
-type Pieza = ({ tipo: 'variable' } & Marca) | { tipo: 'tramo'; inverso: boolean; abre: Marca; cierra: Marca; hijos: Pieza[] };
+/** En un tramo que compara, valor es contra qué. Sin valor, el tramo mira si el dato está vacío. */
+type Pieza = ({ tipo: 'variable' } & Marca) | { tipo: 'tramo'; inverso: boolean; valor?: string; abre: Marca; cierra: Marca; hijos: Pieza[] };
 
-/** Un cambio sobre el texto unido del párrafo: lo que va de inicio a fin pasa a valor. */
+/** Un cambio sobre el texto unido del párrafo: lo que va de inicio a fin pasa a valor. quita marca un tramo que no salió. */
 interface Cambio {
   inicio: number;
   fin: number;
   valor: string;
+  quita?: boolean;
 }
+
+// Lo que se ve en un párrafo aunque no tenga texto. Un párrafo así no se borra.
+const OTRO_CONTENIDO = /<w:(?:drawing|pict|object|sectPr|fldChar|fldSimple|footnoteReference|endnoteReference)\b|<w:br\b[^>]*w:type="page"/;
 
 interface Registro {
   usadas: Set<string>;
   condicionales: Set<string>;
+  comparadas: Set<string>;
   desconocidas: Set<string>;
   sinCerrar: Set<string>;
 }
@@ -76,11 +92,13 @@ interface Registro {
 /** Arma el árbol de variables y tramos del párrafo. Las marcas que no cierran quedan como texto. */
 function piezasDe(unido: string, reg: Registro): Pieza[] {
   const raiz: Pieza[] = [];
-  const pila: { abre: Marca; inverso: boolean; hijos: Pieza[] }[] = [];
+  const pila: { abre: Marca; inverso: boolean; valor?: string; hijos: Pieza[] }[] = [];
   const actual = () => (pila.length ? pila[pila.length - 1].hijos : raiz);
   for (const m of unido.matchAll(MARCA)) {
     const marca = { inicio: m.index ?? 0, fin: (m.index ?? 0) + m[0].length, clave: claveDe(m[2]) };
-    if (m[1] === '#' || m[1] === '^') pila.push({ abre: marca, inverso: m[1] === '^', hijos: [] });
+    // Solo un tramo compara. {{NOMBRE=algo}} no es una marca y queda como texto.
+    if (m[3] !== undefined && !m[1]) continue;
+    if (m[1] === '#' || m[1] === '^') pila.push({ abre: marca, inverso: m[1] === '^', valor: m[3], hijos: [] });
     else if (m[1] === '/') {
       const tope = pila[pila.length - 1];
       if (tope?.abre.clave !== marca.clave) {
@@ -88,7 +106,7 @@ function piezasDe(unido: string, reg: Registro): Pieza[] {
         continue;
       }
       pila.pop();
-      actual().push({ tipo: 'tramo', inverso: tope.inverso, abre: tope.abre, cierra: marca, hijos: tope.hijos });
+      actual().push({ tipo: 'tramo', inverso: tope.inverso, valor: tope.valor, abre: tope.abre, cierra: marca, hijos: tope.hijos });
     } else actual().push({ tipo: 'variable', ...marca });
   }
   // Un tramo sin cierre: su marca queda tal cual y lo de adentro se completa igual.
@@ -117,10 +135,13 @@ function cambiosDe(piezas: Pieza[], valores: Record<string, string>, reg: Regist
       continue;
     }
     reg.condicionales.add(p.abre.clave);
-    const vacia = !valores[p.abre.clave]?.trim();
-    if (p.inverso ? !vacia : vacia) {
+    const dato = valores[p.abre.clave] ?? '';
+    if (p.valor !== undefined) reg.comparadas.add(p.abre.clave);
+    // Se cumple si el dato tiene valor o, en un tramo que compara, si es igual.
+    const cumple = p.valor === undefined ? Boolean(dato.trim()) : comparable(dato) === comparable(p.valor);
+    if (p.inverso ? cumple : !cumple) {
       // El tramo entero se va, con lo que tenga adentro.
-      cambios.push({ inicio: p.abre.inicio, fin: p.cierra.fin, valor: '' });
+      cambios.push({ inicio: p.abre.inicio, fin: p.cierra.fin, valor: '', quita: true });
       continue;
     }
     cambios.push({ inicio: p.abre.inicio, fin: p.abre.fin, valor: '' });
@@ -163,6 +184,10 @@ function completarParrafo(p: string, valores: Record<string, string>, reg: Regis
     }
   }
 
+  // Si un tramo que no salió se llevó todo el texto, el párrafo se borra entero y no deja un renglón vacío.
+  // Así una cláusula que solo vale en cuotas desaparece con {{#MODALIDAD=Cuotas}}…{{/MODALIDAD}} alrededor de todo el párrafo.
+  if (cambios.some((c) => c.quita) && !textos.join('').trim() && !OTRO_CONTENIDO.test(p)) return '';
+
   let salida = '';
   let cursor = 0;
   nodos.forEach((n, i) => {
@@ -180,6 +205,8 @@ export interface WordCompletado {
   usadas: string[];
   /** Variables que abren un tramo {{#...}} o {{^...}}. */
   condicionales: string[];
+  /** Variables que abren un tramo que compara, {{#PLAZO_MESES=4}}. Si están vacías, ningún tramo se cumple. */
+  comparadas: string[];
   /** Tramos que no cierran en el mismo párrafo. Quedan como están. */
   sinCerrar: string[];
   /** Variables escritas en el modelo que el sistema no conoce. Quedan como están. */
@@ -195,18 +222,23 @@ export function completarWord(docx: Uint8Array, valores: Record<string, string>)
     throw new Error('El modelo no es un Word válido (.docx).');
   }
   if (!zip['word/document.xml']) throw new Error('El modelo no es un Word válido (.docx).');
-  const reg: Registro = { usadas: new Set(), condicionales: new Set(), desconocidas: new Set(), sinCerrar: new Set() };
+  const reg: Registro = { usadas: new Set(), condicionales: new Set(), comparadas: new Set(), desconocidas: new Set(), sinCerrar: new Set() };
   for (const nombre of Object.keys(zip)) {
     if (!/^word\/(document|header\d*|footer\d*|footnotes|endnotes)\.xml$/.test(nombre)) continue;
     const xml = strFromU8(zip[nombre]);
     // Las llaves pueden estar partidas entre tramos, así que alcanza con que haya una.
     if (!xml.includes('{')) continue;
-    zip[nombre] = strToU8(xml.replace(PARRAFO, (p) => completarParrafo(p, valores, reg)));
+    const completo = xml
+      .replace(PARRAFO, (p) => completarParrafo(p, valores, reg))
+      // Word no abre una celda sin párrafos. Si un tramo borró el único, queda uno vacío.
+      .replace(/(<w:tc(?:\s[^>]*)?>(?:<w:tcPr>[\s\S]*?<\/w:tcPr>)?)(<\/w:tc>)/g, '$1<w:p/>$2');
+    zip[nombre] = strToU8(completo);
   }
   return {
     bytes: zipSync(zip, { level: 6 }),
     usadas: [...reg.usadas],
     condicionales: [...reg.condicionales],
+    comparadas: [...reg.comparadas],
     desconocidas: [...reg.desconocidas],
     sinCerrar: [...reg.sinCerrar],
   };
