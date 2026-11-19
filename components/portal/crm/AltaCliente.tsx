@@ -6,7 +6,8 @@ import { navegar } from '../navegacion';
 import { Aviso, Campo, Encabezado, Enlace, TituloSeccion, claseInput } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
 import { generarContratoFirma } from './contratoFirma';
-import { rolDe, dinero, hoyISO, type IntegranteEquipo, type Servicio, type TipoCliente } from './tipos';
+import { rolDe, dinero, hoyISO, type IntegranteEquipo, type Servicio, type TipoCliente, type VariablePropia } from './tipos';
+import { CampoVariable, sinVacios } from './variablesPropias';
 import { DatosCliente, filaIdentidad } from './DatosCliente';
 
 /** Valor de la lista para asignar a alguien que todavía no está en Equipo. */
@@ -53,6 +54,9 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
     tipo: 'persona' as TipoCliente, nombre: '', id_fiscal: '', representante: '', cargo: '', dni: '', email: '', telefono: '', domicilio: '', servicio: '', monto_total: '', modalidad: 'Cuotas' as 'Cuotas' | 'PIF',
     fecha_onboarding: '', closer_id: '', responsable_id: '', closer_nuevo: '', responsable_nuevo: '', notas: '', condiciones: '', anticipo: '', cantidad: '2', primera: hoyISO(),
   });
+  // Datos propios de la empresa que van por cliente, como el plazo del programa.
+  const [variables, setVariables] = useState<VariablePropia[]>([]);
+  const [extra, setExtra] = useState<Record<string, unknown>>({});
   const [cuotas, setCuotas] = useState<Cuota[]>([]);
   const [manual, setManual] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,6 +78,15 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
       .eq('activo', true)
       .order('nombre')
       .then(({ data }) => setEquipo((data as IntegranteEquipo[]) ?? []));
+    supabase
+      ?.from('org_variables_def')
+      .select('*')
+      .eq('organizacion_id', orgId)
+      .eq('ambito', 'cliente')
+      .eq('activa', true)
+      .order('orden')
+      .order('etiqueta')
+      .then(({ data }) => setVariables((data as VariablePropia[]) ?? []));
   }, [orgId]);
 
   const total = aCentavos(f.monto_total);
@@ -127,6 +140,12 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
     e.preventDefault();
     if (!supabase) return;
     if (!valido) return setError(problema);
+    const datosExtra = sinVacios(extra);
+    const sinCargar = variables.filter((v) => v.obligatoria && !(v.clave in datosExtra));
+    if (sinCargar.length) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return setError(`Falta elegir ${sinCargar.map((v) => v.etiqueta).join(', ')}. Sin ese dato el contrato sale incompleto.`);
+    }
     setEtapa('guardando');
     setError(null);
     // Quien todavía no está en Equipo se suma ahora. Si ya hay alguien con ese nombre, se usa ese.
@@ -155,6 +174,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
         ...asignados,
         notas: f.notas.trim() || null,
         condiciones: f.condiciones.trim() || null,
+        datos_extra: datosExtra,
       })
       .select('id')
       .single();
@@ -301,6 +321,17 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
           </Enlace>
           . Si ya tiene cuenta en el portal o la abre después, se une sola por el nombre.
         </p>
+      )}
+
+      {variables.length > 0 && (
+        <div className="grid gap-5 tab:grid-cols-2 pt-6 border-t border-tinta/15">
+          <p className="tab:col-span-2 eyebrow text-piedra">Datos propios de la empresa</p>
+          {variables.map((v) => (
+            <Campo key={v.id} etiqueta={`${v.etiqueta}${v.obligatoria ? ' *' : ''}`} ayuda={v.ayuda ?? undefined}>
+              <CampoVariable v={v} valor={extra[v.clave] ?? null} alCambiar={(x) => setExtra({ ...extra, [v.clave]: x })} />
+            </Campo>
+          ))}
+        </div>
       )}
 
       <fieldset className="flex flex-col gap-6 pt-8 min-w-0 border-t border-tinta/15">

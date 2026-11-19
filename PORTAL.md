@@ -909,7 +909,7 @@ Etapa 2, migraciones 0036 a 0043.
 |---|---|
 | Barra lateral del portal | Selector de negocio en el bloque de la empresa, solo para quien es miembro de más de uno. Al cambiar, el portal vuelve al inicio con el negocio nuevo |
 | CRM › Equipo (`/portal/crm/equipo`) | Alta, edición y baja (desactivar) del equipo comercial. Lo administra el titular |
-| CRM › Servicios › Variables de la empresa (`/portal/crm/variables`) | Variables propias y los valores de las de ámbito empresa. Las de ámbito cliente se cargan en la ficha |
+| CRM › Servicios › Variables de la empresa (`/portal/crm/variables`) | Variables propias y los valores de las de ámbito empresa. Las de ámbito cliente se cargan en la ficha y en Nuevo cliente, bajo «Datos propios de la empresa»; una obligatoria sin elegir no deja crear el cliente |
 | Ficha del cliente | Closer, setter y responsable elegidos del equipo, y los datos propios de la empresa. El responsable anotado a mano se sigue viendo hasta que se elige a alguien |
 | Bitácora (`/portal/bitacora`) | Solo titular. Movimientos de su empresa, lo que hizo FIRMA marcado, y «Verificar» para recalcular la cadena |
 
