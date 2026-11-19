@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Check, Copy, Download, FileDown, MessageSquarePlus, RotateCcw, Sparkles, Trash2 } from 'lucide-react';
+import { ArrowLeft, Check, Copy, Download, FileDown, History, MessageSquarePlus, PencilLine, RotateCcw, Sparkles, Trash2 } from 'lucide-react';
 // Build legacy, como el visor de la firma: también corre en celulares con navegadores de hace algunos años.
 import { GlobalWorkerOptions, TextLayer, getDocument, type PDFDocumentProxy } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import trabajador from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
@@ -9,6 +9,8 @@ import { BUCKET_ASUNTOS, avisarPorMail, fechaHoraAsunto, type Archivo } from '..
 import { rangoDe, seleccionActual, ubicar, type Ancla, type Seleccion } from './anclas';
 import { nombreExportado, textoComentarios, wordComentarios } from './exportar';
 import { mensajeAmable } from '../errores';
+import { EditorWord, type EditorWordRef } from '../editor/EditorWord';
+import { BorradorCambiado, bajarArchivo, descartarBorrador, guardarBorrador, listarVersiones, publicarVersion, type Version } from '../editor/versiones';
 
 GlobalWorkerOptions.workerSrc = trabajador;
 
@@ -19,6 +21,10 @@ GlobalWorkerOptions.workerSrc = trabajador;
  * Quien ve el asunto resalta una frase y comenta, o comenta el documento
  * entero. Cada comentario abre un hilo con respuestas que se resuelve.
  * FIRMA puede dejar hilos internos. Tabla asunto_comentarios (0065).
+ *
+ * FIRMA además edita los Word acá mismo (components/portal/editor): lo
+ * que guarda queda como borrador y el cliente lo ve recién cuando se
+ * publica como versión nueva (migración 0071).
  */
 
 export interface Comentario {
@@ -76,7 +82,9 @@ export const VisorComentarios: React.FC<{
   conocerAutores: (ids: (string | null)[]) => void;
   alCerrar: () => void;
   alCambiar: () => void;
-}> = ({ archivo, esFirma, soloLectura, miId, nombreDe, conocerAutores, alCerrar, alCambiar }) => {
+  /** Se publicó una versión nueva del documento: hay que volver a leer los archivos del asunto. */
+  alPublicar?: (mensaje: string) => void;
+}> = ({ archivo, esFirma, soloLectura, miId, nombreDe, conocerAutores, alCerrar, alCambiar, alPublicar }) => {
   const tipo = tipoVisor(archivo.nombre);
   const [fuente, setFuente] = useState<{ url: string; blob?: Blob } | null>(null);
   const [errorCarga, setErrorCarga] = useState(false);
@@ -91,6 +99,42 @@ export const VisorComentarios: React.FC<{
   const [borradores, setBorradores] = useState<BorradorTina[]>([]);
   const areaDoc = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
+  // Edición del Word, solo FIRMA.
+  const puedeEditar = esFirma && !soloLectura && tipo === 'word';
+  const [versiones, setVersiones] = useState<Version[]>([]);
+  const [edicion, setEdicion] = useState<{ blob: Blob; clave: number; visto: string | null } | null>(null);
+  const [sucio, setSucio] = useState(false);
+  const [fijos, setFijos] = useState(0);
+  const [ocupadoDoc, setOcupadoDoc] = useState<'' | 'abrir' | 'guardar' | 'publicar' | 'descartar' | 'restaurar'>('');
+  const [errorDoc, setErrorDoc] = useState<string | null>(null);
+  const [verHistorial, setVerHistorial] = useState(false);
+  const [perdidos, setPerdidos] = useState<string[]>([]);
+  const editor = useRef<EditorWordRef>(null);
+  const borradorDoc = versiones.find((v) => v.estado === 'borrador') ?? null;
+  const publicadas = versiones.filter((v) => v.estado === 'publicada');
+
+  const cargarVersiones = useCallback(async () => {
+    const lista = await listarVersiones(archivo.id);
+    setVersiones(lista);
+    conocerAutores(lista.map((v) => v.creado_por));
+  }, [archivo.id, conocerAutores]);
+
+  useEffect(() => {
+    if (esFirma && tipo === 'word') void cargarVersiones();
+  }, [esFirma, tipo, cargarVersiones]);
+
+  // Con cambios sin guardar, el navegador pregunta antes de cerrar la pestaña.
+  useEffect(() => {
+    if (!sucio) return;
+    const aviso = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener('beforeunload', aviso);
+    return () => window.removeEventListener('beforeunload', aviso);
+  }, [sucio]);
+
+  const cerrar = useCallback(() => {
+    if (sucio && !window.confirm('Tenés cambios sin guardar. Si salís, se pierden. ¿Salir igual?')) return;
+    alCerrar();
+  }, [sucio, alCerrar]);
 
   // El archivo se baja con un enlace firmado. El PDF lo lee pdf.js de la URL; el Word hace falta entero.
   useEffect(() => {
@@ -163,18 +207,18 @@ export const VisorComentarios: React.FC<{
     const tecla = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
       if (borrador) setBorrador(null);
-      else alCerrar();
+      else if (!edicion) alCerrar();
     };
     window.addEventListener('keydown', tecla);
     return () => {
       document.body.style.overflow = antes;
       window.removeEventListener('keydown', tecla);
     };
-  }, [alCerrar, borrador]);
+  }, [alCerrar, borrador, edicion]);
 
   // Lo seleccionado en el documento, para mostrar el botón de comentar junto a la frase.
   useEffect(() => {
-    if (soloLectura) return;
+    if (soloLectura || edicion) return setSeleccion(null);
     let espera = 0;
     const revisar = () => {
       window.clearTimeout(espera);
@@ -188,7 +232,7 @@ export const VisorComentarios: React.FC<{
       document.removeEventListener('selectionchange', revisar);
       area?.removeEventListener('scroll', revisar);
     };
-  }, [soloLectura, fuente]);
+  }, [soloLectura, fuente, edicion]);
 
   const hilos: Hilo[] = useMemo(() => {
     const visibles = comentarios.filter((c) => esFirma || !c.interna);
@@ -233,6 +277,16 @@ export const VisorComentarios: React.FC<{
     [hilos, verResueltos],
   );
   const fallo = useCallback(() => setErrorCarga(true), []);
+  const marcarSucio = useCallback(() => setSucio(true), []);
+  const editorListo = useCallback((editables: number, sinEditar: number) => {
+    setFijos(sinEditar);
+    if (!editables) setErrorDoc('Este Word no se puede editar acá: sus párrafos tienen campos, notas o un formato que el editor no sabe conservar. Descargalo, corregilo en Word y subilo de nuevo.');
+  }, []);
+  const editorFallo = useCallback(() => {
+    setEdicion(null);
+    setSucio(false);
+    setErrorDoc('No se pudo abrir el documento para editarlo. Descargalo, corregilo en Word y subilo de nuevo.');
+  }, []);
 
   function irAlHilo(id: string) {
     setActivo(id);
@@ -254,6 +308,7 @@ export const VisorComentarios: React.FC<{
 
   // Un toque sobre una frase resaltada abre su hilo.
   function tocarDocumento(e: React.MouseEvent) {
+    if (edicion) return;
     const sel = window.getSelection();
     if (sel && !sel.isCollapsed) return;
     const marcas = areaDoc.current?.querySelectorAll<HTMLElement>('.resalte-comentario') ?? [];
@@ -363,19 +418,219 @@ export const VisorComentarios: React.FC<{
 
   const puedeBorrar = (c: Comentario) => !soloLectura && (esFirma || c.autor_id === miId);
 
+  /* ---- Edición del Word ---- */
+  const falloDoc = (e: unknown, respaldo: string) => setErrorDoc(e instanceof Error && e.message ? mensajeAmable(e.message, respaldo) : respaldo);
+
+  async function editar() {
+    if (!fuente?.blob) return;
+    setErrorDoc(null);
+    setOcupadoDoc('abrir');
+    try {
+      const blob = borradorDoc ? await bajarArchivo(borradorDoc.ruta) : fuente.blob;
+      setFijos(0);
+      setSucio(false);
+      setVerHistorial(false);
+      setEdicion({ blob, clave: Date.now(), visto: borradorDoc?.actualizado_en ?? null });
+    } catch (e) {
+      falloDoc(e, 'No se pudo abrir el borrador.');
+    }
+    setOcupadoDoc('');
+  }
+
+  function salirDeEditar() {
+    if (sucio && !window.confirm('Tenés cambios sin guardar. Si salís, se pierden. ¿Salir igual?')) return;
+    setEdicion(null);
+    setSucio(false);
+  }
+
+  /** Guarda lo que hay en pantalla como borrador. Devuelve si quedó guardado. */
+  async function guardar(): Promise<boolean> {
+    if (!edicion || !editor.current) return false;
+    setErrorDoc(null);
+    setOcupadoDoc('guardar');
+    let ok = false;
+    try {
+      const blob = editor.current.armar();
+      let visto: string;
+      try {
+        visto = await guardarBorrador(archivo, blob, edicion.visto);
+      } catch (e) {
+        if (!(e instanceof BorradorCambiado)) throw e;
+        if (!window.confirm('Otra persona de FIRMA guardó cambios en este documento mientras lo editabas. Si seguís, se pierden los suyos. ¿Guardar los tuyos igual?')) {
+          setOcupadoDoc('');
+          return false;
+        }
+        visto = await guardarBorrador(archivo, blob, null, true);
+      }
+      setEdicion((e) => e && { ...e, visto });
+      setSucio(false);
+      ok = true;
+      void cargarVersiones();
+    } catch (e) {
+      falloDoc(e, 'No se pudo guardar el borrador.');
+    }
+    setOcupadoDoc('');
+    return ok;
+  }
+
+  async function publicarDoc() {
+    if (!edicion && !borradorDoc) return;
+    if (!window.confirm(`¿Publicar esta versión de ${archivo.nombre}? Quienes ven el asunto van a ver este texto en lugar del anterior. La versión anterior queda en el historial.`)) return;
+    setErrorDoc(null);
+    setOcupadoDoc('publicar');
+    try {
+      // Editando, se publica lo que hay en pantalla. Si no, el borrador guardado.
+      const blob = edicion && editor.current ? editor.current.armar() : await bajarArchivo((borradorDoc as Version).ruta);
+      const numero = await publicarVersion(archivo, blob);
+      setEdicion(null);
+      setSucio(false);
+      void cargarVersiones();
+      alPublicar?.(`Versión ${numero} de ${archivo.nombre} publicada.`);
+    } catch (e) {
+      falloDoc(e, 'No se pudo publicar la versión.');
+    }
+    setOcupadoDoc('');
+  }
+
+  async function descartarDoc() {
+    if (!borradorDoc || !window.confirm('¿Descartar la edición sin publicar? No se puede deshacer.')) return;
+    setErrorDoc(null);
+    setOcupadoDoc('descartar');
+    try {
+      await descartarBorrador(archivo);
+      setEdicion(null);
+      setSucio(false);
+      await cargarVersiones();
+    } catch (e) {
+      falloDoc(e, 'No se pudo descartar el borrador.');
+    }
+    setOcupadoDoc('');
+  }
+
+  /** Una versión vieja vuelve como borrador: no se publica hasta que FIRMA lo decida. */
+  async function restaurar(v: Version) {
+    const aviso = borradorDoc ? ' Reemplaza la edición sin publicar que hay ahora.' : '';
+    if (!window.confirm(`¿Traer la versión ${v.numero} como borrador?${aviso} El cliente no ve nada hasta que la publiques.`)) return;
+    setErrorDoc(null);
+    setOcupadoDoc('restaurar');
+    try {
+      await guardarBorrador(archivo, await bajarArchivo(v.ruta), null, true);
+      setVerHistorial(false);
+      await cargarVersiones();
+    } catch (e) {
+      falloDoc(e, 'No se pudo traer esa versión.');
+    }
+    setOcupadoDoc('');
+  }
+
+  async function descargarVersion(v: Version) {
+    if (!supabase) return;
+    const nombre = archivo.nombre.replace(/\.docx$/i, '') + ` (versión ${v.numero}).docx`;
+    const { data } = await supabase.storage.from(BUCKET_ASUNTOS).createSignedUrl(v.ruta, 60, { download: nombre });
+    if (data) window.location.assign(data.signedUrl);
+    else setErrorDoc('No se pudo descargar esa versión.');
+  }
+
+  const botonBarra = 'inline-flex items-center gap-1.5 h-9 px-3.5 rounded-control text-sm font-medium disabled:opacity-50';
+
   return (
     <div className="portal fixed inset-0 z-50 flex flex-col bg-marfil" role="dialog" aria-modal="true" aria-label={`Comentarios en ${archivo.nombre}`}>
       <header className="flex items-center gap-3 px-4 tab:px-6 h-16 shrink-0 bg-papel border-b border-borde-suave">
-        <button type="button" onClick={alCerrar} className="inline-flex items-center gap-2 text-sm font-medium text-tinta hover:underline underline-offset-4">
+        <button type="button" onClick={cerrar} className="inline-flex items-center gap-2 text-sm font-medium text-tinta hover:underline underline-offset-4">
           <ArrowLeft size={16} aria-hidden="true" />
           <span className="hidden tab:inline">Volver al asunto</span>
         </button>
         <span className="flex-1 min-w-0 truncate font-semibold text-[15px] text-center tab:text-left tab:pl-4">{archivo.nombre}</span>
+        {esFirma && publicadas.length > 1 && !edicion && (
+          <button type="button" onClick={() => setVerHistorial((v) => !v)} aria-expanded={verHistorial} className="inline-flex items-center gap-2 text-sm font-medium text-tinta underline underline-offset-4">
+            <History size={14} aria-hidden="true" />
+            <span className="hidden tab:inline">Versiones</span>
+          </button>
+        )}
+        {puedeEditar && !edicion && !borradorDoc && fuente?.blob && !errorCarga && (
+          <button type="button" onClick={editar} disabled={ocupadoDoc !== ''} className="inline-flex items-center gap-2 text-sm font-medium text-tinta underline underline-offset-4 disabled:opacity-50">
+            <PencilLine size={14} aria-hidden="true" />
+            <span className="hidden tab:inline">Editar</span>
+          </button>
+        )}
         <button type="button" onClick={descargar} className="inline-flex items-center gap-2 text-sm font-medium text-tinta underline underline-offset-4">
           <Download size={14} aria-hidden="true" />
           <span className="hidden tab:inline">Descargar</span>
         </button>
       </header>
+
+      {/* Edición del Word, solo FIRMA: el borrador y sus botones. */}
+      {puedeEditar && (edicion || borradorDoc) && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 tab:px-6 py-2.5 shrink-0 bg-marfil border-b border-borde-suave text-sm">
+          {edicion ? (
+            <>
+              <p className="flex-1 min-w-[220px] leading-[1.45] text-tinta">
+                <strong>Estás editando.</strong> {sucio ? 'Hay cambios sin guardar.' : edicion.visto ? 'Borrador guardado.' : 'Todavía no cambiaste nada.'} El cliente no ve nada hasta que publiques.
+                {fijos > 0 && <span className="text-piedra"> {fijos === 1 ? 'Hay un párrafo' : `Hay ${fijos} párrafos`} en gris que no se {fijos === 1 ? 'puede' : 'pueden'} editar acá.</span>}
+              </p>
+              <button type="button" onClick={() => void guardar()} disabled={!sucio || ocupadoDoc !== ''} className={`${botonBarra} border border-tinta text-tinta`}>
+                {ocupadoDoc === 'guardar' ? 'Guardando…' : 'Guardar borrador'}
+              </button>
+              <button type="button" onClick={() => void publicarDoc()} disabled={(!sucio && !edicion.visto) || ocupadoDoc !== ''} className={`${botonBarra} bg-tinta text-marfil`}>
+                {ocupadoDoc === 'publicar' ? 'Publicando…' : 'Publicar'}
+              </button>
+              <button type="button" onClick={salirDeEditar} disabled={ocupadoDoc !== ''} className="text-sm text-piedra underline underline-offset-4 hover:text-tinta">
+                Salir
+              </button>
+            </>
+          ) : (
+            borradorDoc && (
+              <>
+                <p className="flex-1 min-w-[220px] leading-[1.45] text-tinta">
+                  <strong>Hay una edición sin publicar</strong>, guardada el {fechaHoraAsunto(borradorDoc.actualizado_en)} por {nombreDe(borradorDoc.creado_por)}. El cliente sigue viendo la versión de abajo.
+                </p>
+                <button type="button" onClick={editar} disabled={ocupadoDoc !== '' || !fuente?.blob} className={`${botonBarra} border border-tinta text-tinta`}>
+                  {ocupadoDoc === 'abrir' ? 'Abriendo…' : 'Seguir editando'}
+                </button>
+                <button type="button" onClick={() => void publicarDoc()} disabled={ocupadoDoc !== ''} className={`${botonBarra} bg-tinta text-marfil`}>
+                  {ocupadoDoc === 'publicar' ? 'Publicando…' : 'Publicar'}
+                </button>
+                <button type="button" onClick={() => void descartarDoc()} disabled={ocupadoDoc !== ''} className="text-sm text-piedra underline underline-offset-4 hover:text-tinta">
+                  Descartar
+                </button>
+              </>
+            )
+          )}
+        </div>
+      )}
+      {errorDoc && (
+        <div className="px-4 tab:px-6 py-2.5 shrink-0 bg-papel border-b border-borde-suave">
+          <Aviso tipo="error">{errorDoc}</Aviso>
+        </div>
+      )}
+      {verHistorial && !edicion && (
+        <div className="px-4 tab:px-6 py-3 shrink-0 max-h-[40vh] overflow-auto bg-papel border-b border-borde-suave">
+          <ul className="flex flex-col divide-y divide-borde-suave max-w-[720px]">
+            {publicadas.map((v) => (
+              <li key={v.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2 text-sm">
+                <span className="font-semibold text-tinta">Versión {v.numero}</span>
+                <span className="flex-1 min-w-[180px] text-piedra">
+                  {fechaHoraAsunto(v.publicado_en ?? v.creado_en)} · {nombreDe(v.creado_por)}
+                </span>
+                {v.ruta === archivo.ruta ? (
+                  <Etiqueta tono="tinta">La que se ve hoy</Etiqueta>
+                ) : (
+                  <>
+                    <button type="button" onClick={() => void descargarVersion(v)} className="font-medium text-tinta underline underline-offset-4">
+                      Descargar
+                    </button>
+                    {puedeEditar && (
+                      <button type="button" onClick={() => void restaurar(v)} disabled={ocupadoDoc !== ''} className="font-medium text-tinta underline underline-offset-4 disabled:opacity-50">
+                        {ocupadoDoc === 'restaurar' ? 'Trayendo…' : 'Traer como borrador'}
+                      </button>
+                    )}
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* En el celular, una cosa por vez. */}
       <div className="desk:hidden flex shrink-0 border-b border-borde-suave bg-papel" role="tablist">
@@ -403,8 +658,17 @@ export const VisorComentarios: React.FC<{
             <div className="p-8 eyebrow text-piedra animate-pulse">Cargando el documento</div>
           ) : tipo === 'pdf' ? (
             <VistaPdf url={fuente.url} marcas={marcas} activo={activo} alError={fallo} />
+          ) : edicion ? (
+            <EditorWord
+              key={edicion.clave}
+              ref={editor}
+              blob={edicion.blob}
+              alEditar={marcarSucio}
+              alListo={editorListo}
+              alError={editorFallo}
+            />
           ) : (
-            <VistaWord blob={fuente.blob as Blob} marcas={marcas} activo={activo} alError={fallo} />
+            <VistaWord blob={fuente.blob as Blob} marcas={marcas} activo={activo} alError={fallo} alPerdidos={setPerdidos} />
           )}
         </div>
 
@@ -444,6 +708,7 @@ export const VisorComentarios: React.FC<{
                 key={h.id}
                 hilo={h}
                 activo={activo === h.id}
+                sinTexto={!edicion && perdidos.includes(h.id)}
                 soloLectura={soloLectura}
                 nombreDe={nombreDe}
                 puedeBorrar={puedeBorrar}
@@ -466,7 +731,7 @@ export const VisorComentarios: React.FC<{
         </aside>
       </div>
 
-      {seleccion && !soloLectura && (
+      {seleccion && !soloLectura && !edicion && (
         <button
           type="button"
           // Sin perder la selección al tocar el botón.
@@ -547,6 +812,8 @@ const NuevoComentario: React.FC<{
 const TarjetaHilo: React.FC<{
   hilo: Hilo;
   activo: boolean;
+  /** La frase comentada ya no está en el documento, porque se publicó una versión nueva. */
+  sinTexto: boolean;
   soloLectura: boolean;
   nombreDe: (autorId: string | null) => string;
   puedeBorrar: (c: Comentario) => boolean;
@@ -557,7 +824,7 @@ const TarjetaHilo: React.FC<{
   borrador: BorradorTina | null;
   alPublicarBorrador: (texto: string) => Promise<boolean>;
   alDescartarBorrador: () => void;
-}> = ({ hilo, activo, soloLectura, nombreDe, puedeBorrar, alElegir, alResponder, alResolver, alBorrar, borrador, alPublicarBorrador, alDescartarBorrador }) => {
+}> = ({ hilo, activo, sinTexto, soloLectura, nombreDe, puedeBorrar, alElegir, alResponder, alResolver, alBorrar, borrador, alPublicarBorrador, alDescartarBorrador }) => {
   const [respuesta, setRespuesta] = useState('');
   const [ocupado, setOcupado] = useState(false);
 
@@ -609,6 +876,7 @@ const TarjetaHilo: React.FC<{
         </div>
       )}
       {hilo.cita ? <Cita texto={hilo.cita} /> : <span className="text-[12px] font-medium text-piedra">Sobre el documento entero</span>}
+      {sinTexto && <span className="text-[12px] leading-[1.4] text-piedra">Esta frase cambió o ya no está en la versión actual del documento.</span>}
       <Mensaje c={hilo} />
       {hilo.respuestas.map((r) => (
         <div key={r.id} className="pl-3 border-l border-borde-suave">
@@ -901,7 +1169,13 @@ const HojaPdf: React.FC<{ doc: PDFDocumentProxy; numero: number; ancho: number; 
 /* ------------------------------------------------------------------ */
 /* Word                                                                */
 /* ------------------------------------------------------------------ */
-const VistaWord: React.FC<{ blob: Blob; marcas: Marca[]; activo: string | null; alError: () => void }> = ({ blob, marcas, activo, alError }) => {
+const VistaWord: React.FC<{ blob: Blob; marcas: Marca[]; activo: string | null; alError: () => void; alPerdidos: (ids: string[]) => void }> = ({
+  blob,
+  marcas,
+  activo,
+  alError,
+  alPerdidos,
+}) => {
   const [cuerpo, setCuerpo] = useState<HTMLDivElement | null>(null);
   const estilos = useRef<HTMLDivElement>(null);
   const [listo, setListo] = useState(0);
@@ -931,6 +1205,13 @@ const VistaWord: React.FC<{ blob: Blob; marcas: Marca[]; activo: string | null; 
       est.replaceChildren();
     };
   }, [blob, cuerpo, alError]);
+
+  // Los comentarios cuya frase ya no está en el documento, para avisarlo en su hilo.
+  useEffect(() => {
+    if (!cuerpo || !listo) return;
+    const ids = marcas.filter((m) => !ubicar(cuerpo, m.ancla, m.cita)).map((m) => m.id);
+    alPerdidos(ids);
+  }, [cuerpo, listo, marcas, alPerdidos]);
 
   return (
     <div className="vista-word py-4 tab:py-6 px-3 tab:px-6">

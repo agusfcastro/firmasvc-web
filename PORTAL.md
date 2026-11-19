@@ -687,6 +687,18 @@ En el visor, FIRMA ve el borrador debajo del comentario, corrige la respuesta y 
 
 Necesita `ANTHROPIC_API_KEY` en Vercel y la cola en marcha (sección Llamadas de Fathom y cola de trabajos). No suma funciones. Pruebas en `supabase/pruebas/borradores_comentarios.sql`.
 
+## Editar los Word de un asunto
+
+FIRMA corrige un Word de un asunto dentro del portal, sin bajarlo y volver a subirlo. Solo `admin`, solo `.docx` y solo si el asunto no está cerrado. Los PDF siguen siendo para leer y comentar.
+
+**Cómo se usa.** En el visor del documento, «Editar» vuelve editable cada párrafo: se escribe encima, Enter parte un párrafo y Borrar al comienzo lo une con el anterior. «Guardar borrador» guarda sin que el cliente vea nada; «Publicar» lo convierte en la versión que ve todo el mundo y deja la novedad en la bitácora del asunto. Con un borrador guardado, el visor muestra un aviso con «Seguir editando», «Publicar» y «Descartar». «Versiones» lista las publicadas, deja descargarlas y «Traer como borrador» una anterior. Los comentarios siguen en el documento; si la frase resaltada cambió, el hilo lo avisa.
+
+**Cómo está hecho.** El Word no se convierte: `components/portal/editor/wordXml.ts` cambia solo las letras que cambiaron dentro de `word/document.xml`, así negrita, numeración, tablas y estilos quedan como estaban. `EditorWord.tsx` dibuja el documento con docx-preview y empareja cada párrafo dibujado con el del archivo; solo deja editar los que coinciden letra por letra. Los párrafos con campos, notas al pie, imágenes o control de cambios quedan en gris, sin editar. Las tablas e imágenes nuevas se siguen haciendo en Word.
+
+**Versiones (migración 0071).** `asunto_archivos.ruta` apunta siempre a la versión publicada, por eso el resto del portal no cambió. `asunto_archivo_versiones` guarda un borrador por documento y las publicadas numeradas (la 1 es el archivo como se subió). Solo FIRMA la lee y nadie la escribe a mano: todo pasa por `version_borrador_guardar`, `version_borrador_descartar` y `version_publicar`. Los borradores van al bucket `asuntos`, carpeta `borradores/`, que solo abre FIRMA. Si dos personas de FIRMA editan a la vez, la segunda recibe un aviso antes de pisar. Al borrar un documento o un asunto se borran también los archivos de sus versiones (`rutasDeVersiones` en `components/portal/editor/versiones.ts`).
+
+No suma funciones en Vercel. Pruebas: `supabase/pruebas/versiones_documentos.sql` y `node scripts/pruebas/wordXml.mjs`. Publicar no manda mail al cliente; queda en la bitácora.
+
 ## Mail de los lunes y alertas
 
 Mails que el portal manda solo, sin que nadie los pida, desde `/api/portal/resumen`. Corre todos los días a las 9 de Buenos Aires con Vercel Cron. En el plan Hobby de Vercel la tarea puede salir en cualquier momento entre las 9 y las 10. Las empresas desactivadas y la demo no reciben nada.

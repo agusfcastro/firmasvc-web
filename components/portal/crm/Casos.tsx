@@ -3,6 +3,7 @@ import { ArrowLeft, ExternalLink, Plus, Trash2 } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { BUCKET_ASUNTOS } from '../asuntos';
+import { rutasDeVersiones } from '../editor/versiones';
 import { navegar } from '../navegacion';
 import { Aviso, Campo, Cifras, Encabezado, Enlace, Etiqueta, Pestanas, TituloSeccion, claseInput, type Cifra } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
@@ -402,9 +403,11 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
     const { data: archivos } = borrador.asunto_id
       ? await supabase.from('asunto_archivos').select('ruta').eq('asunto_id', borrador.asunto_id)
       : { data: null };
+    const versiones = borrador.asunto_id ? await rutasDeVersiones('asunto_id', [borrador.asunto_id]) : [];
     const { error: err } = await supabase.from('crm_casos').delete().eq('id', borrador.id);
     if (err) return setError(mensajeError(err));
-    if (archivos?.length) await supabase.storage.from(BUCKET_ASUNTOS).remove(archivos.map((a) => a.ruta));
+    const rutas = [...new Set([...(archivos ?? []).map((a) => a.ruta as string), ...versiones])];
+    if (rutas.length) await supabase.storage.from(BUCKET_ASUNTOS).remove(rutas);
     setOk('Caso eliminado, junto con su asunto.');
     setBorrador(null);
     setVersion((n) => n + 1);

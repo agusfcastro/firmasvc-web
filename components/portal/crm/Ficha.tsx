@@ -6,6 +6,7 @@ import { Aviso, Campo, Cifras, Encabezado, Enlace, Etiqueta, Monto, TituloSeccio
 import { useVistaPrevia } from '../vistaPrevia';
 import { navegar } from '../navegacion';
 import { BUCKET_ASUNTOS } from '../asuntos';
+import { rutasDeVersiones } from '../editor/versiones';
 import { rolDe, TONO_FIRMA, dinero, hoyISO, type CambioHistorial, type ClienteCrm, type ContratoReservado, type IntegranteEquipo, type Pago, type Servicio, type VariablePropia } from './tipos';
 import { CampoVariable, sinVacios } from './variablesPropias';
 import { CAMPOS_CASO, VALORES_CASO } from './reglasCasos';
@@ -185,12 +186,14 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
     const { data: asuntos } = await supabase.from('asuntos').select('id').eq('cliente_id', id);
     const ids = (asuntos ?? []).map((a) => a.id as string);
     const { data: archivos } = ids.length ? await supabase.from('asunto_archivos').select('ruta').in('asunto_id', ids) : { data: null };
+    const versiones = await rutasDeVersiones('asunto_id', ids);
     const { error } = await supabase.from('crm_clientes').delete().eq('id', id);
     if (error) {
       setGuardando(false);
       return setMensaje({ tipo: 'error', texto: error.message });
     }
-    if (archivos?.length) await supabase.storage.from(BUCKET_ASUNTOS).remove(archivos.map((a) => a.ruta as string));
+    const rutas = [...new Set([...(archivos ?? []).map((a) => a.ruta as string), ...versiones])];
+    if (rutas.length) await supabase.storage.from(BUCKET_ASUNTOS).remove(rutas);
     navegar('/portal/crm');
   }
 

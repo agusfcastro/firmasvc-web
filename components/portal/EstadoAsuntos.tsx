@@ -22,6 +22,7 @@ import { dinero, hoyISO } from './crm/tipos';
 import { FormularioDelAsunto, type PedidoContrato } from './pedidos/Pedidos';
 import { registrarLectura } from './lecturas';
 import { VisorComentarios, tipoVisor } from './comentarios/VisorComentarios';
+import { rutasDeVersiones } from './editor/versiones';
 import {
   BUCKET_ASUNTOS,
   ESTADOS,
@@ -758,6 +759,7 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
     setError(null);
     // Los archivos se leen antes, porque al borrar el asunto la base borra su lista.
     const { data: lista } = await supabase.from('asunto_archivos').select('ruta').eq('asunto_id', asunto.id);
+    const versiones = await rutasDeVersiones('asunto_id', [asunto.id]);
     // Con caso, se borra el caso y la base borra su asunto (migración 0026).
     const { error: e } = caso
       ? await supabase.from('crm_casos').delete().eq('id', caso.id)
@@ -766,7 +768,8 @@ const Detalle: React.FC<{ id: string; perfil: Perfil }> = ({ id, perfil }) => {
       setOcupado('');
       return setError(mensajeAmable(e));
     }
-    if (lista?.length) await supabase.storage.from(BUCKET_ASUNTOS).remove(lista.map((a) => a.ruta));
+    const rutas = [...new Set([...(lista ?? []).map((a) => a.ruta as string), ...versiones])];
+    if (rutas.length) await supabase.storage.from(BUCKET_ASUNTOS).remove(rutas);
     navegar('/portal/asuntos');
   }
 
@@ -1351,8 +1354,10 @@ const Documentos: React.FC<{
   async function borrar(a: Archivo) {
     if (!supabase || !window.confirm(`¿Borrar ${a.nombre}? No se puede deshacer.`)) return;
     setOcupado(`borrar-${a.id}`);
+    // Las versiones se leen antes, porque al borrar el documento la base borra su lista.
+    const versiones = await rutasDeVersiones('archivo_id', [a.id]);
     const { error } = await supabase.from('asunto_archivos').delete().eq('id', a.id);
-    if (!error) await supabase.storage.from(BUCKET_ASUNTOS).remove([a.ruta]);
+    if (!error) await supabase.storage.from(BUCKET_ASUNTOS).remove([...new Set([a.ruta, ...versiones])]);
     setOcupado('');
     if (error) return alError(mensajeAmable(error));
     alCambiar('Archivo borrado.');
@@ -1429,6 +1434,7 @@ const Documentos: React.FC<{
           conocerAutores={conocerAutores}
           alCerrar={cerrarVisor}
           alCambiar={() => void contarComentarios()}
+          alPublicar={alCambiar}
         />
       )}
     </section>

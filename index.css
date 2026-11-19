@@ -527,3 +527,8 @@ a.card { color: inherit; text-decoration: none; }
 .resalte-comentario.activo { background: rgb(242 193 78 / 0.75); box-shadow: 0 2px 0 0 rgb(184 134 11); }
 .vista-word .docx-wrapper { background: transparent; padding: 0; }
 .vista-word .docx-wrapper > section.docx { box-shadow: 0 1px 3px rgb(0 0 0 / 0.12); margin-bottom: 24px; }
+/* Editor de Word (components/portal/editor). Cada párrafo es un campo: el que tiene el cursor se marca al costado. */
+.editor-word .docx p.parrafo-editable { outline: none; cursor: text; white-space: pre-wrap; border-radius: 2px; transition: background-color 120ms; }
+.editor-word .docx p.parrafo-editable:hover { background: rgb(0 0 0 / 0.035); }
+.editor-word .docx p.parrafo-editable:focus { background: rgb(242 193 78 / 0.16); box-shadow: -4px 0 0 0 rgb(224 169 46); }
+.editor-word .docx p.parrafo-fijo { opacity: 0.5; cursor: not-allowed; }
