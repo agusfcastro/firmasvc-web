@@ -13,7 +13,8 @@ import { openCalendly } from '../lib/calendly';
  * En celular va todo apilado (promesa, video, botones). Desde `wide` la promesa
  * y los botones quedan a la izquierda y el video a la derecha.
  */
-export const Hero: React.FC = () => (
+/** sinServicios saca el botón que baja a Servicios, para /landing, que no tiene esa sección. */
+export const Hero: React.FC<{ sinServicios?: boolean }> = ({ sinServicios = false }) => (
   <section id="top" className="relative overflow-hidden text-center wide:text-left pt-8 desk:pt-9 pb-16 desk:pb-20">
     <div className="wrap relative flex flex-col items-center gap-6">
       <div className="w-full grid grid-cols-1 wide:grid-cols-[5fr_6fr] gap-6 wide:gap-x-12 wide:gap-y-7 items-center">
@@ -35,9 +36,11 @@ export const Hero: React.FC = () => (
           <Button size="lg" onClick={openCalendly}>
             Agendar auditoría <ArrowRight size={18} aria-hidden="true" />
           </Button>
-          <Button size="lg" variant="ghost" onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })}>
-            Conocer servicios
-          </Button>
+          {!sinServicios && (
+            <Button size="lg" variant="ghost" onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })}>
+              Conocer servicios
+            </Button>
+          )}
         </div>
       </div>
 

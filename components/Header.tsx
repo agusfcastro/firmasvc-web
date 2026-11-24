@@ -18,50 +18,55 @@ const clasePortal =
 const getLinkAttributes = (href: string) =>
   href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {};
 
-export const Header: React.FC = () => {
+/** soloLogo es para /landing: sin navegación ni botones, y el logo lleva al home. */
+export const Header: React.FC<{ soloLogo?: boolean }> = ({ soloLogo = false }) => {
   return (
     <header
       className="sticky top-0 z-50 bg-marfil"
       style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-tinta) 12%, transparent)' }}
     >
       <div className="wrap flex items-center justify-between gap-4 h-28">
-        <a href="#top" className="flex items-center min-w-0">
+        <a href={soloLogo ? '/' : '#top'} aria-label={soloLogo ? 'Ir al inicio de firma' : undefined} className="flex items-center min-w-0">
           <Logo className="h-[72px] max-w-[48vw] tab:max-w-[62vw] desk:h-[60px] desk:max-w-full min-[1200px]:h-[72px]" />
         </a>
 
-        {/* Nav desktop (≥900px) */}
-        <nav className="hidden desk:flex shrink-0 items-center gap-5 min-[1200px]:gap-7 text-sm font-medium">
-          {navLinks.map((link) => (
-            <a
-              key={link.name}
-              href={link.href}
-              className="underline-offset-[6px] decoration-2 hover:underline"
-              {...getLinkAttributes(link.href)}
-            >
-              {link.name}
-            </a>
-          ))}
-          <a href="/portal" className={`${clasePortal} px-[18px]`}>
-            <LockKeyhole size={14} aria-hidden="true" />
-            {/* Entre 900 y 1200 px no entra el texto largo al lado del logo. */}
-            <span className="min-[1200px]:hidden">Portal</span>
-            <span className="hidden min-[1200px]:inline">Portal de clientes</span>
-          </a>
-          <Button size="sm" onClick={openCalendly}>
-            Agenda
-          </Button>
-        </nav>
+        {!soloLogo && (
+          <>
+            {/* Nav desktop (≥900px) */}
+            <nav className="hidden desk:flex shrink-0 items-center gap-5 min-[1200px]:gap-7 text-sm font-medium">
+              {navLinks.map((link) => (
+                <a
+                  key={link.name}
+                  href={link.href}
+                  className="underline-offset-[6px] decoration-2 hover:underline"
+                  {...getLinkAttributes(link.href)}
+                >
+                  {link.name}
+                </a>
+              ))}
+              <a href="/portal" className={`${clasePortal} px-[18px]`}>
+                <LockKeyhole size={14} aria-hidden="true" />
+                {/* Entre 900 y 1200 px no entra el texto largo al lado del logo. */}
+                <span className="min-[1200px]:hidden">Portal</span>
+                <span className="hidden min-[1200px]:inline">Portal de clientes</span>
+              </a>
+              <Button size="sm" onClick={openCalendly}>
+                Agenda
+              </Button>
+            </nav>
 
-        {/* Mobile: portal y CTA, sin menú desplegable */}
-        <div className="desk:hidden flex items-center gap-2 shrink-0">
-          <a href="/portal" className={`${clasePortal} px-3`} aria-label="Portal de clientes">
-            <LockKeyhole size={14} aria-hidden="true" />
-            <span className="hidden tab:inline">Portal</span>
-          </a>
-          <Button size="sm" className="px-4" onClick={openCalendly}>
-            Agenda
-          </Button>
-        </div>
+            {/* Mobile: portal y CTA, sin menú desplegable */}
+            <div className="desk:hidden flex items-center gap-2 shrink-0">
+              <a href="/portal" className={`${clasePortal} px-3`} aria-label="Portal de clientes">
+                <LockKeyhole size={14} aria-hidden="true" />
+                <span className="hidden tab:inline">Portal</span>
+              </a>
+              <Button size="sm" className="px-4" onClick={openCalendly}>
+                Agenda
+              </Button>
+            </div>
+          </>
+        )}
       </div>
     </header>
   );

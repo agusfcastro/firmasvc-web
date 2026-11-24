@@ -37,9 +37,9 @@ const Herramienta = lazy(() => import('./components/comprobantes/Herramienta'));
 function App({ ruta }: { ruta?: string }) {
   const path = (ruta ?? window.location.pathname).replace(/\/$/, '');
 
-  // El home y el portal usan la tipografía propia. El resto todavía pide Archivo y Bitter a Google.
+  // El home, /landing y el portal usan la tipografía propia. El resto todavía pide Archivo y Bitter a Google.
   useEffect(() => {
-    if (path !== '' && path !== '/portal' && !path.startsWith('/portal/')) cargarFuentesWeb();
+    if (path !== '' && path !== '/landing' && path !== '/portal' && !path.startsWith('/portal/')) cargarFuentesWeb();
   }, [path]);
   if (path === '/privacidad' || path === '/privacy') {
     return <PrivacyPolicy />;
@@ -94,6 +94,24 @@ function App({ ruta }: { ruta?: string }) {
       <Suspense fallback={<div className="min-h-screen bg-marfil" />}>
         <PaginaProtocolo ruta={path} />
       </Suspense>
+    );
+  }
+
+  // Landing para campañas: el home resumido, sin navegación, sin Servicios y sin la carta.
+  if (path === '/landing') {
+    return (
+      <div className="landing landing-corta min-h-screen bg-marfil">
+        <Header soloLogo />
+        <PromoBanner />
+        <main>
+          <Hero sinServicios />
+          <Testimonials />
+          <Process />
+          <Contact />
+        </main>
+        <Footer />
+        <WhatsAppButton />
+      </div>
     );
   }
 

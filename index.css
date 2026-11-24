@@ -509,6 +509,14 @@ a.card { color: inherit; text-decoration: none; }
 /* Con el círculo lleno, el número de agua se asomaba por el borde. */
 .landing .step-badge .wm { display: none; }
 
+/* /landing: la misma página con menos aire entre secciones, para que se recorra rápido. */
+.landing-corta .section { padding: 48px 0; }
+.landing-corta #top { padding-bottom: 40px; }
+@media (min-width: 900px) {
+  .landing-corta .section { padding: 64px 0; }
+  .landing-corta #top { padding-bottom: 48px; }
+}
+
 /* Carita de Tina (components/portal/tina/CaraTina.tsx): parpadea y, mientras piensa, mira a los costados. */
 .tina-ojos { transform-box: fill-box; transform-origin: center; animation: tina-parpadeo 5s infinite; }
 .tina-ojos-pensando { animation: tina-mirar 1.6s ease-in-out infinite, tina-parpadeo 5s infinite; }
