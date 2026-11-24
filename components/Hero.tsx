@@ -13,8 +13,8 @@ import { openCalendly } from '../lib/calendly';
  * En celular va todo apilado (promesa, video, botones). Desde `wide` la promesa
  * y los botones quedan a la izquierda y el video a la derecha.
  */
-/** sinServicios saca el botón que baja a Servicios, para /landing, que no tiene esa sección. */
-export const Hero: React.FC<{ sinServicios?: boolean }> = ({ sinServicios = false }) => (
+/** deLanding es para /landing: saca el botón que baja a Servicios, que ahí no existe, y suma el logo al contador. */
+export const Hero: React.FC<{ deLanding?: boolean }> = ({ deLanding = false }) => (
   <section id="top" className="relative overflow-hidden text-center wide:text-left pt-8 desk:pt-9 pb-16 desk:pb-20">
     <div className="wrap relative flex flex-col items-center gap-6">
       <div className="w-full grid grid-cols-1 wide:grid-cols-[5fr_6fr] gap-6 wide:gap-x-12 wide:gap-y-7 items-center">
@@ -36,7 +36,7 @@ export const Hero: React.FC<{ sinServicios?: boolean }> = ({ sinServicios = fals
           <Button size="lg" onClick={openCalendly}>
             Agendar auditoría <ArrowRight size={18} aria-hidden="true" />
           </Button>
-          {!sinServicios && (
+          {!deLanding && (
             <Button size="lg" variant="ghost" onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })}>
               Conocer servicios
             </Button>
@@ -44,7 +44,7 @@ export const Hero: React.FC<{ sinServicios?: boolean }> = ({ sinServicios = fals
         </div>
       </div>
 
-      <Counter />
+      <Counter conLogo={deLanding} />
     </div>
   </section>
 );

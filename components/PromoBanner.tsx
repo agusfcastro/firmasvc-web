@@ -25,7 +25,8 @@ function partes(ms: number) {
   };
 }
 
-export const PromoBanner: React.FC = () => {
+/** blackFriday es la versión de /landing: va arriba de todo, queda fija al bajar y anuncia el 50% off. */
+export const PromoBanner: React.FC<{ blackFriday?: boolean }> = ({ blackFriday = false }) => {
   // Null hasta montar: el home se prerenderiza en el build y ahí no se sabe la hora de quien entra.
   const [ahora, setAhora] = useState<number | null>(null);
 
@@ -49,11 +50,19 @@ export const PromoBanner: React.FC = () => {
   ];
 
   return (
-    <aside aria-label="Promoción del plan Eminent" className="bg-urgente text-white">
+    <aside aria-label="Promoción del plan Eminent" className={`bg-urgente text-white ${blackFriday ? 'sticky top-0 z-50' : ''}`}>
       <div className="wrap flex flex-col items-center gap-2.5 py-3 text-center desk:flex-row desk:justify-between desk:gap-6 desk:text-left">
         <p className="whitespace-nowrap text-[14px] leading-snug min-[400px]:text-[15px] desk:text-[16px]">
-          <strong className="font-semibold underline decoration-white/60 underline-offset-[3px]">USD 1.500 de descuento</strong> en el plan
-          Eminent trimestral
+          {blackFriday ? (
+            <>
+              <strong className="font-semibold underline decoration-white/60 underline-offset-[3px]">50% OFF Black Friday</strong> en el plan Eminent
+            </>
+          ) : (
+            <>
+              <strong className="font-semibold underline decoration-white/60 underline-offset-[3px]">USD 1.500 de descuento</strong> en el plan
+              Eminent trimestral
+            </>
+          )}
         </p>
 
         <div className="flex shrink-0 items-center justify-center gap-3 desk:gap-5">

@@ -96,7 +96,7 @@ Los abonos cobran esta oferta desde la migración 0061 (`abonos.modalidad`, `eta
 
 ## Landing de campañas
 
-`/landing` es el home resumido para campañas (`App.tsx`): encabezado con el logo solo, que lleva a `/`, el banner del descuento, el hero con el contador, clientes, cómo ayudamos y la agenda. No lleva Servicios ni la carta, usa menos aire entre secciones (`.landing-corta` en `index.css`) y va con `noindex` en `vercel.json`. Comparte los componentes del home, así que un cambio en ellos se ve en las dos.
+`/landing` es el home resumido para campañas (`App.tsx`): arriba de todo y fijo el banner «50% OFF Black Friday en el plan Eminent» (`PromoBanner blackFriday`; el home sigue con el de USD 1.500), el hero con el contador y el logo al lado, que lleva a `/`, clientes, cómo ayudamos y la agenda. No lleva Servicios ni la carta, usa menos aire entre secciones (`.landing-corta` en `index.css`) y va con `noindex` en `vercel.json`. Comparte los componentes del home, así que un cambio en ellos se ve en las dos.
 
 ## Estilo visual
 

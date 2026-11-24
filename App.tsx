@@ -101,10 +101,9 @@ function App({ ruta }: { ruta?: string }) {
   if (path === '/landing') {
     return (
       <div className="landing landing-corta min-h-screen bg-marfil">
-        <Header soloLogo />
-        <PromoBanner />
+        <PromoBanner blackFriday />
         <main>
-          <Hero sinServicios />
+          <Hero deLanding />
           <Testimonials />
           <Process />
           <Contact />
