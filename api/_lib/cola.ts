@@ -9,6 +9,9 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { analizarLlamada, type DatosAnalisis } from './analisis/analizar.js';
 import { avisarBrief, prepararBorradores } from './tina/borradores.js';
+import { partesDelAnalizador } from './analisis/prompt.js';
+import { huellaPrompt, registrarCorrida } from './ia/registro.js';
+import { costoEstimado } from './tina/precios.js';
 
 export interface Trabajo {
   id: number;
@@ -41,11 +44,24 @@ const PROCESADORES: Record<string, Procesador> = {
       await sb.rpc('analisis_error', { p_analisis: id, p_error: 'La llamada ya no tiene la transcripción guardada.' });
       return;
     }
+    // Auditoría de la IA (0074): la corrida queda anotada, salga bien o mal. El análisis ya lo revisa FIRMA antes de mostrarlo.
+    const inicio = Date.now();
+    const corrida = { agente: 'analisis_venta' as const, versionPrompt: huellaPrompt(partesDelAnalizador(), datos.version), referencia: { tabla: 'interaccion_analisis' as const, id }, revision: 'sin_revision' as const };
     try {
       const resultado = await analizarLlamada(datos);
       const { error: e } = await sb.rpc('analisis_guardar', { p_analisis: id, p_resultado: resultado });
       if (e) throw new Error(e.message);
+      await registrarCorrida(sb, {
+        ...corrida,
+        agente: resultado.etapa === 'venta' ? 'analisis_venta' : 'analisis_clasificacion',
+        modelo: resultado.modelo,
+        tokensEntrada: resultado.tokens_entrada,
+        tokensSalida: resultado.tokens_salida,
+        costoUsd: costoEstimado(resultado.modelo, resultado.tokens_entrada, resultado.tokens_salida),
+        duracionMs: Date.now() - inicio,
+      });
     } catch (e) {
+      await registrarCorrida(sb, { ...corrida, duracionMs: Date.now() - inicio, error: e instanceof Error ? e.message : String(e) });
       if (trabajo.intentos >= trabajo.max_intentos) {
         await sb.rpc('analisis_error', { p_analisis: id, p_error: e instanceof Error ? e.message : String(e) });
       }

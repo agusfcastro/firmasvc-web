@@ -26,6 +26,7 @@ import { SIN_ACCESO, SIN_CLIENTE_USUARIO, accesoVigente, clienteDelUsuario } fro
 import { armarPrompt } from '../_lib/tina/prompt.js';
 import { CAMINO_DE, definiciones, ejecutar, type Sesion } from '../_lib/tina/herramientas.js';
 import { consumoVacio, sumarUso } from '../_lib/tina/precios.js';
+import { huellaPrompt, registrarCorrida } from '../_lib/ia/registro.js';
 
 const MODELO = 'claude-opus-5-5';
 const MAX_VUELTAS = 6;
@@ -219,6 +220,7 @@ export async function POST(request: Request): Promise<Response> {
       enviar({ tipo: 'inicio', conversacion_id: cid });
 
       const consumo = consumoVacio();
+      const inicioCorrida = Date.now();
       const usadas: { nombre: string; entrada: unknown; resultado: string; error?: boolean }[] = [];
       let respuesta = '';
       let modeloUsado: string = MODELO;
@@ -311,6 +313,20 @@ export async function POST(request: Request): Promise<Response> {
         costo_usd: Number(consumo.costoUsd.toFixed(6)),
       });
       await sb.from('tina_conversaciones').update({ actualizado_en: new Date().toISOString() }).eq('id', cid);
+      // Auditoría de la IA (0074): se anota después de responder y nunca frena la respuesta.
+      await registrarCorrida(sb, {
+        agente: 'tina',
+        // Solo la parte fija del prompt: el contexto cambia con cada persona y empresa.
+        versionPrompt: huellaPrompt(prompt.estatico),
+        modelo: modeloUsado,
+        organizacionId: sesion.orgId,
+        referencia: { tabla: 'tina_conversaciones', id: String(cid) },
+        tokensEntrada: consumo.entrada + consumo.escrituraCache + consumo.lecturaCache,
+        tokensSalida: consumo.salida,
+        costoUsd: consumo.costoUsd,
+        duracionMs: Date.now() - inicioCorrida,
+        error: fallo,
+      });
 
       if (fallo) enviar({ tipo: 'error', mensaje: fallo });
       enviar({ tipo: 'fin', camino, costo_usd: Number(consumo.costoUsd.toFixed(6)) });
