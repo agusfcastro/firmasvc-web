@@ -60,19 +60,6 @@ export function chequeosFijos(agente, salida, esperado = {}) {
     return lista;
   }
 
-  if (agente === 'borradores_comentarios') {
-    const borradores = Array.isArray(salida.borradores) ? salida.borradores : [];
-    const pedidos = (salida.hilos ?? []).map((h) => h.id);
-    const ids = borradores.map((b) => b.id);
-    const respuestas = borradores.map((b) => b.respuesta ?? '').join('\n');
-    return [
-      chequeo('un borrador por hilo', pedidos.length === ids.length && pedidos.every((id) => ids.includes(id)), `Hilos ${pedidos.join(', ')}, borradores ${ids.join(', ')}.`),
-      chequeo('pedido y respuesta completos', borradores.every((b) => String(b.pedido ?? '').trim() && String(b.respuesta ?? '').trim()), 'Hay un borrador sin pedido o sin respuesta.'),
-      chequeo('texto plano, sin Markdown', !/\*\*|^#{1,6}\s/m.test(borradores.map((b) => `${b.respuesta}\n${b.clausula}\n${b.nota}`).join('\n')), 'Usa Markdown.'),
-      ...textos(e, respuestas),
-    ];
-  }
-
   return [chequeo('agente conocido', false, `No sé evaluar ${agente}.`)];
 }
 
