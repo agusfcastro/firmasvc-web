@@ -770,6 +770,13 @@ Cada empresa carga lo que vende en **CRM legal › Servicios** (`/portal/crm/ser
 
 - **Nombre** y **código**. El código no se cambia después del alta porque lo usan las ventas ya cargadas.
 - **Ticket**, opcional. Si está, aparece como monto sugerido al cargar una venta y se puede cambiar por un descuento. Si no hay precio fijo, se deja vacío y el monto se carga en cada venta.
+- **Moneda del ticket**, solo si la empresa cobra en más de una moneda. Al elegir el servicio en una venta se propone su moneda, y el ticket se precarga solo si la venta queda en esa misma moneda.
+
+### Monedas de cada empresa
+
+FIRMA habilita en **Administración › Clientes › Editar** las monedas en que cobra cada empresa (hoy dólares y soles peruanos). Por defecto es solo USD y no cambia nada. Con más de una, el alta del cliente, **Editar datos** de la ficha y los servicios muestran un selector, y la primera de la lista es la que se propone. La moneda del cliente es la del contrato y la del plan de pagos: `{{MONEDA}}` sale USD o S/, `{{MONEDA_LETRAS}}` DÓLARES ESTADOUNIDENSES o SOLES, y `{{ESQUEMA_PAGOS}}` y `{{DETALLE_CUOTAS}}` usan la misma. Cambiar la moneda de un cliente no convierte los montos cargados. En la lista del CRM los totales van por moneda, sin convertir, y el CSV suma la columna Moneda.
+
+La base rechaza un cliente o un servicio en una moneda que su empresa no tiene habilitada, también si lo carga Tina. Lo controla solo cuando la moneda cambia, así un cliente que quedó en una moneda después deshabilitada se sigue editando (migración 0072, pruebas en `supabase/pruebas/monedas.sql` y `scripts/pruebas/monedas.mjs`).
 - **Modelo de contrato**, solo FIRMA. Un Word con los datos a completar marcados, por ejemplo `[NOMBRE Y APELLIDO]`. Opcionalmente, uno distinto para pago total; si no está, Claude adapta el general.
 
 ## Contratos del CRM con firma electrónica

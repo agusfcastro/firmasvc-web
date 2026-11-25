@@ -24,7 +24,7 @@ export const VARIABLES: [string, string][] = [
   ['MODALIDAD', 'Cuotas o Pago total'],
   ['EMPRESA', 'Razón social de la empresa, o su nombre'],
   ['RESPONSABLE', 'CSM o AM a cargo'],
-  ['MONEDA', 'Moneda, por ejemplo USD'],
+  ['MONEDA', 'Moneda, por ejemplo USD, o S/ si son soles'],
   ['MONEDA_LETRAS', 'Moneda en letras, por ejemplo DÓLARES ESTADOUNIDENSES'],
   ['MONTO_TOTAL', 'Monto total en números, por ejemplo 3.000'],
   ['MONTO_TOTAL_LETRAS', 'Monto total en letras, por ejemplo TRES MIL'],
@@ -130,9 +130,20 @@ export const NOMBRE_MONEDA: Record<string, string> = {
   PEN: 'SOLES',
 };
 
-/** «USD 1.000 (DÓLARES ESTADOUNIDENSES MIL)», el formato de los contratos de FIRMA. */
-function montoContrato(moneda: string, nombreMoneda: string, monto: number): string {
-  return `${moneda} ${numero(monto)} (${nombreMoneda} ${montoEnLetras(monto)})`;
+/** Cómo se escribe cada moneda delante del monto. Las que no están van con su código, como USD. */
+export const SIMBOLO_MONEDA: Record<string, string> = {
+  PEN: 'S/',
+};
+
+/** «S/» para soles, el código para el resto. */
+export function simboloMoneda(moneda: string | null | undefined): string {
+  const m = (moneda || 'USD').toUpperCase();
+  return SIMBOLO_MONEDA[m] ?? m;
+}
+
+/** «USD 1.000 (DÓLARES ESTADOUNIDENSES MIL)» o «S/ 1.000 (SOLES MIL)», el formato de los contratos de FIRMA. */
+function montoContrato(simbolo: string, nombreMoneda: string, monto: number): string {
+  return `${simbolo} ${numero(monto)} (${nombreMoneda} ${montoEnLetras(monto)})`;
 }
 
 function fechaCorta(iso: string): string {
@@ -182,21 +193,22 @@ export function valoresDelContrato(c: ClienteContrato, pagos: PagoContrato[], em
     .sort((a, b) => (a.vencimiento ?? '9999').localeCompare(b.vencimiento ?? '9999') || (a.creado_en ?? '').localeCompare(b.creado_en ?? ''));
   const saldo = cuotas.reduce((a, p) => a + Number(p.monto), 0);
   const nombreMoneda = NOMBRE_MONEDA[moneda.toUpperCase()] ?? moneda;
+  const simbolo = simboloMoneda(moneda);
   // Un renglón por pago. El anticipo ya está cobrado cuando se arma el contrato.
   const renglones: string[] = [];
   if (anticipo > 0) {
     const unico = cuotas.length === 0;
-    renglones.push(`Un (1) ${unico ? 'único pago' : 'pago'} de ${montoContrato(moneda, nombreMoneda, anticipo)}, que LA EMPRESA declara haber recibido a la fecha del presente.`);
+    renglones.push(`Un (1) ${unico ? 'único pago' : 'pago'} de ${montoContrato(simbolo, nombreMoneda, anticipo)}, que LA EMPRESA declara haber recibido a la fecha del presente.`);
   }
   for (const p of cuotas) {
-    const monto = montoContrato(moneda, nombreMoneda, Number(p.monto));
+    const monto = montoContrato(simbolo, nombreMoneda, Number(p.monto));
     const cuando = p.vencimiento ? `, con vencimiento el ${fechaLargaIso(p.vencimiento)}` : '';
     const unico = anticipo <= 0 && cuotas.length === 1;
     renglones.push(`Un (1) ${unico ? 'único pago' : 'pago'} de ${monto}${cuando}.`);
   }
   const detalle = cuotas.length
     ? cuotas
-        .map((p, i) => `${i === 0 ? 'Cuota' : 'cuota'} ${i + 1} de ${moneda} ${numero(Number(p.monto))}${p.vencimiento ? ` con vencimiento el ${fechaCorta(p.vencimiento)}` : ''}`)
+        .map((p, i) => `${i === 0 ? 'Cuota' : 'cuota'} ${i + 1} de ${simbolo} ${numero(Number(p.monto))}${p.vencimiento ? ` con vencimiento el ${fechaCorta(p.vencimiento)}` : ''}`)
         .join('; ') + '.'
     : 'Sin cuotas. El precio se cancela con el anticipo.';
   const esEmpresa = c.tipo === 'empresa';
@@ -215,7 +227,7 @@ export function valoresDelContrato(c: ClienteContrato, pagos: PagoContrato[], em
     MODALIDAD: c.modalidad === 'PIF' ? 'Pago total' : 'Cuotas',
     EMPRESA: empresa,
     RESPONSABLE: c.responsable || '',
-    MONEDA: moneda,
+    MONEDA: simbolo,
     MONEDA_LETRAS: nombreMoneda,
     MONTO_TOTAL: numero(total),
     MONTO_TOTAL_LETRAS: montoEnLetras(total),

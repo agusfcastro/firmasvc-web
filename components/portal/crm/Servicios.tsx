@@ -5,8 +5,8 @@ import { supabase } from '../supabase';
 import { Aviso, Campo, Encabezado, Enlace, Etiqueta, claseInput } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
 import { BotonCopiar } from './firma';
-import { VARIABLES } from '../../../api/_lib/variables';
-import { dinero, type Servicio } from './tipos';
+import { VARIABLES, simboloMoneda } from '../../../api/_lib/variables';
+import { dinero, nombreMonedaCrm, opcionesMoneda, type Servicio } from './tipos';
 import { mensajeAmable } from '../errores';
 
 /**
@@ -36,12 +36,13 @@ interface Borrador {
   clave: string;
   nombre: string;
   precio: string;
+  moneda: string;
   activo: boolean;
   documento_id: string;
   documento_pif_id: string;
 }
 
-const VACIO: Borrador = { clave: '', nombre: '', precio: '', activo: true, documento_id: '', documento_pif_id: '' };
+const VACIO: Borrador = { clave: '', nombre: '', precio: '', moneda: 'USD', activo: true, documento_id: '', documento_pif_id: '' };
 
 /** Código corto a partir del nombre: "Mentoría 3 meses" pasa a MENTORIA-3-MESES. */
 function codigoDe(nombre: string): string {
@@ -64,19 +65,22 @@ export const Servicios: React.FC<{ orgId: string; orgNombre: string; esAdmin: bo
   const [modelos, setModelos] = useState<Modelo[]>([]);
   const [firmante, setFirmante] = useState({ nombre: '', email: '' });
   const [guardandoFirmante, setGuardandoFirmante] = useState(false);
+  // Monedas que FIRMA le habilitó a la empresa (migración 0072). Con una sola no hay selector.
+  const [monedas, setMonedas] = useState<string[]>(['USD']);
 
   async function cargar() {
     if (!supabase) return;
     const [{ data, error: e }, { data: docs }, { data: org }] = await Promise.all([
       supabase.from('crm_servicios').select('*').eq('organizacion_id', orgId).order('activo', { ascending: false }).order('nombre'),
       supabase.from('documentos').select('id, titulo, archivo_nombre, organizacion_id').eq('seccion', 'servicio').eq('activo', true).not('archivo_ruta', 'is', null).order('orden').order('titulo'),
-      supabase.from('organizaciones').select('firmante_nombre, firmante_email').eq('id', orgId).maybeSingle(),
+      supabase.from('organizaciones').select('*').eq('id', orgId).maybeSingle(),
     ]);
     if (e) setError(mensajeAmable(e));
     setLista((data as Fila[]) ?? []);
     // Solo Word, y de la biblioteca común o de esta empresa.
     setModelos(((docs ?? []) as Modelo[]).filter((d) => /\.docx$/i.test(d.archivo_nombre ?? '') && (!d.organizacion_id || d.organizacion_id === orgId)));
     setFirmante({ nombre: (org?.firmante_nombre as string | null) ?? '', email: (org?.firmante_email as string | null) ?? '' });
+    setMonedas(((org?.monedas as string[] | null) ?? []).length ? (org!.monedas as string[]) : ['USD']);
   }
 
   async function guardarFirmante(e: React.FormEvent) {
@@ -116,6 +120,8 @@ export const Servicios: React.FC<{ orgId: string; orgNombre: string; esAdmin: bo
     const datos: Record<string, unknown> = {
       nombre,
       precio,
+      // Con una sola moneda habilitada no se manda: queda la de la base (USD por defecto).
+      ...(opcionesMoneda(monedas, borrador.moneda).length > 1 ? { moneda: borrador.moneda } : {}),
       activo: borrador.activo,
       documento_id: borrador.documento_id || null,
       documento_pif_id: borrador.documento_pif_id || null,
@@ -160,7 +166,7 @@ export const Servicios: React.FC<{ orgId: string; orgNombre: string; esAdmin: bo
         bajada="Lo que vende la empresa. El ticket es opcional: si no hay precio fijo o hubo descuento, el monto se carga en cada venta."
         acciones={
           !soloLectura && !borrador ? (
-            <Button size="lg" onClick={() => setBorrador({ ...VACIO })} className="self-end">
+            <Button size="lg" onClick={() => setBorrador({ ...VACIO, moneda: monedas[0] })} className="self-end">
               <Plus size={18} /> Nuevo servicio
             </Button>
           ) : null
@@ -187,7 +193,18 @@ export const Servicios: React.FC<{ orgId: string; orgNombre: string; esAdmin: bo
                 onChange={(e) => setBorrador({ ...borrador, clave: e.target.value })}
               />
             </Campo>
-            <Campo etiqueta="Ticket (USD, opcional)" ayuda="Precio de lista. Al cargar una venta aparece como monto sugerido y se puede cambiar.">
+            {opcionesMoneda(monedas, borrador.moneda).length > 1 && (
+              <Campo etiqueta="Moneda del ticket" ayuda="Al cargar una venta de este servicio se propone esta moneda.">
+                <select className={claseInput} value={borrador.moneda} onChange={(e) => setBorrador({ ...borrador, moneda: e.target.value })}>
+                  {opcionesMoneda(monedas, borrador.moneda).map((m) => (
+                    <option key={m} value={m}>
+                      {nombreMonedaCrm(m)}
+                    </option>
+                  ))}
+                </select>
+              </Campo>
+            )}
+            <Campo etiqueta={`Ticket (${simboloMoneda(borrador.moneda)}, opcional)`} ayuda="Precio de lista. Al cargar una venta aparece como monto sugerido y se puede cambiar.">
               <input type="number" step="0.01" min="0" className={claseInput} value={borrador.precio} onChange={(e) => setBorrador({ ...borrador, precio: e.target.value })} />
             </Campo>
             <fieldset className="space-y-4 pt-5 border-t border-tinta/15">
@@ -241,7 +258,7 @@ export const Servicios: React.FC<{ orgId: string; orgNombre: string; esAdmin: bo
                     <div className="font-heading font-bold text-[16px] leading-tight">{s.nombre || s.clave}</div>
                     <div className="text-xs text-piedra">{s.clave}</div>
                   </td>
-                  <td className="tabular-nums">{s.precio ? dinero(Number(s.precio)) : <span className="text-piedra">A definir en cada venta</span>}</td>
+                  <td className="tabular-nums">{s.precio ? dinero(Number(s.precio), s.moneda) : <span className="text-piedra">A definir en cada venta</span>}</td>
                   <td>
                     {nombreModelo(s.documento_id) ? (
                       <div className="flex flex-col gap-1">
@@ -264,6 +281,7 @@ export const Servicios: React.FC<{ orgId: string; orgNombre: string; esAdmin: bo
                             clave: s.clave,
                             nombre: s.nombre ?? '',
                             precio: s.precio === null ? '' : String(s.precio),
+                            moneda: s.moneda ?? 'USD',
                             activo: s.activo !== false,
                             documento_id: s.documento_id ?? '',
                             documento_pif_id: s.documento_pif_id ?? '',

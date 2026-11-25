@@ -1,3 +1,5 @@
+import { simboloMoneda } from '../../../api/_lib/variables';
+
 export type EstadoFirma = 'Pendiente' | 'En firma' | 'Firmado' | 'Baja';
 export type TipoCliente = 'persona' | 'empresa';
 
@@ -122,7 +124,24 @@ export interface Servicio {
   clave: string;
   nombre: string | null;
   precio: number | null;
+  /** Moneda del ticket (migración 0072). */
+  moneda?: string;
   activo?: boolean;
+}
+
+/** Monedas que FIRMA le puede habilitar a una empresa en Administración › Clientes (migración 0072). */
+export const MONEDAS_CRM: [string, string][] = [
+  ['USD', 'Dólares estadounidenses'],
+  ['PEN', 'Soles peruanos'],
+];
+
+export function nombreMonedaCrm(m: string): string {
+  return MONEDAS_CRM.find(([k]) => k === m)?.[1] ?? m;
+}
+
+/** Las monedas habilitadas, más la que ya tiene el dato si quedó afuera, para no perderla al editar. */
+export function opcionesMoneda(habilitadas: string[], actual?: string | null): string[] {
+  return actual && !habilitadas.includes(actual) ? [...habilitadas, actual] : habilitadas;
 }
 
 export interface CambioHistorial {
@@ -137,7 +156,7 @@ export interface CambioHistorial {
 export function dinero(n: number | null | undefined, moneda = 'USD'): string {
   if (n === null || n === undefined) return '·';
   const v = Number(n).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-  return `${moneda} ${v}`;
+  return `${simboloMoneda(moneda)} ${v}`;
 }
 
 export function fecha(d: string | null | undefined): string {

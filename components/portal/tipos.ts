@@ -59,6 +59,8 @@ export interface Organizacion {
   plan?: 'starter' | 'eminent' | null;
   /** Empresa ficticia para grabar procesos (migración 0029). No manda mails. */
   demo?: boolean;
+  /** Monedas en que cobra la empresa, la primera es la propuesta (migración 0072). */
+  monedas?: string[];
 }
 
 export interface Perfil {

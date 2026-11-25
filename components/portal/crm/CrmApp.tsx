@@ -120,7 +120,7 @@ export const CrmApp: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
       {!orgId ? (
         <Encabezado eyebrow="CRM legal" titulo="Sin clientes todavía" bajada="Cuando des de alta una empresa en Administración, su CRM aparece acá." />
       ) : sub === 'nuevo' ? (
-        <AltaCliente orgId={orgId} esAdmin={esAdmin} orgNombre={orgActual?.nombre ?? ''} cobranza={cobranza} />
+        <AltaCliente orgId={orgId} esAdmin={esAdmin} orgNombre={orgActual?.nombre ?? ''} cobranza={cobranza} monedas={orgActual?.monedas?.length ? orgActual.monedas : ['USD']} />
       ) : sub === 'servicios' ? (
         <Servicios orgId={orgId} orgNombre={orgActual?.nombre ?? ''} esAdmin={esAdmin} puedeGestionar={puedeGestionar} />
       ) : sub === 'equipo' ? (

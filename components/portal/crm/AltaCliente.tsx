@@ -6,7 +6,8 @@ import { navegar } from '../navegacion';
 import { Aviso, Campo, Encabezado, Enlace, TituloSeccion, claseInput } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
 import { generarContratoFirma } from './contratoFirma';
-import { rolDe, dinero, hoyISO, type IntegranteEquipo, type Servicio, type TipoCliente, type VariablePropia } from './tipos';
+import { rolDe, dinero, hoyISO, nombreMonedaCrm, type IntegranteEquipo, type Servicio, type TipoCliente, type VariablePropia } from './tipos';
+import { simboloMoneda } from '../../../api/_lib/variables';
 import { CampoVariable, sinVacios } from './variablesPropias';
 import { DatosCliente, filaIdentidad } from './DatosCliente';
 
@@ -47,11 +48,11 @@ function repartir(saldo: number, cantidad: number, primera: string): Cuota[] {
   return Array.from({ length: cantidad }, (_, i) => ({ monto: aTexto(i === cantidad - 1 ? base + resto : base), vencimiento: sumarMeses(primera, i) }));
 }
 
-export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre: string; cobranza: boolean }> = ({ orgId, esAdmin, orgNombre }) => {
+export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre: string; cobranza: boolean; monedas: string[] }> = ({ orgId, esAdmin, orgNombre, monedas }) => {
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [equipo, setEquipo] = useState<IntegranteEquipo[]>([]);
   const [f, setF] = useState({
-    tipo: 'persona' as TipoCliente, nombre: '', id_fiscal: '', representante: '', cargo: '', dni: '', email: '', telefono: '', domicilio: '', servicio: '', monto_total: '', modalidad: 'Cuotas' as 'Cuotas' | 'PIF',
+    tipo: 'persona' as TipoCliente, nombre: '', id_fiscal: '', representante: '', cargo: '', dni: '', email: '', telefono: '', domicilio: '', servicio: '', monto_total: '', moneda: monedas[0] ?? 'USD', modalidad: 'Cuotas' as 'Cuotas' | 'PIF',
     fecha_onboarding: '', closer_id: '', responsable_id: '', closer_nuevo: '', responsable_nuevo: '', notas: '', condiciones: '', anticipo: '', cantidad: '2', primera: hoyISO(),
   });
   // Datos propios de la empresa que van por cliente, como el plazo del programa.
@@ -62,6 +63,12 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
   const [error, setError] = useState<string | null>(null);
   const [etapa, setEtapa] = useState<'' | 'guardando'>('');
   const soloLectura = Boolean(useVistaPrevia());
+  // Las monedas de la empresa llegan después del primer render. Si la elegida no está habilitada, se usa la primera.
+  const claveMonedas = monedas.join(',');
+  useEffect(() => {
+    setF((x) => (monedas.includes(x.moneda) ? x : { ...x, moneda: monedas[0] ?? 'USD' }));
+  }, [claveMonedas]); // eslint-disable-line react-hooks/exhaustive-deps
+  const simbolo = simboloMoneda(f.moneda);
 
   useEffect(() => {
     supabase
@@ -110,7 +117,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
   else if (montos.some((m) => m <= 0)) problema = 'Cada cuota necesita un monto mayor a cero.';
   else if (cuotas.some((c) => !FECHA_VALIDA.test(c.vencimiento))) problema = 'Cada cuota necesita su fecha de vencimiento.';
   else if (diferencia !== 0)
-    problema = `Anticipo más cuotas suman ${dinero(suma / 100)} y el monto acordado es ${dinero(total / 100)}. ${diferencia > 0 ? 'Faltan' : 'Sobran'} ${dinero(Math.abs(diferencia) / 100)}.`;
+    problema = `Anticipo más cuotas suman ${dinero(suma / 100, f.moneda)} y el monto acordado es ${dinero(total / 100, f.moneda)}. ${diferencia > 0 ? 'Faltan' : 'Sobran'} ${dinero(Math.abs(diferencia) / 100, f.moneda)}.`;
   const valido = problema === null;
   const tonoResumen = valido ? 'ok' : total <= 0 ? 'info' : 'error';
 
@@ -169,6 +176,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
         ...filaIdentidad(f),
         servicio: f.servicio || null,
         monto_total: total / 100,
+        moneda: f.moneda,
         modalidad: f.modalidad,
         fecha_onboarding: f.fecha_onboarding ? new Date(f.fecha_onboarding).toISOString() : null,
         ...asignados,
@@ -247,7 +255,10 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
             value={f.servicio}
             onChange={(e) => {
               const s = servicios.find((x) => x.clave === e.target.value);
-              setF({ ...f, servicio: e.target.value, monto_total: s?.precio ? String(s.precio) : f.monto_total });
+              // El servicio trae su moneda. El ticket se precarga solo si queda en esa misma moneda.
+              const moneda = s?.moneda && monedas.includes(s.moneda) ? s.moneda : f.moneda;
+              const precio = s?.precio && (s.moneda ?? 'USD') === moneda ? String(s.precio) : f.monto_total;
+              setF({ ...f, servicio: e.target.value, moneda, monto_total: precio });
             }}
           >
             <option value="">Elegí</option>
@@ -259,7 +270,18 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
             ))}
           </select>
         </Campo>
-        <Campo etiqueta="Monto total acordado (USD)" ayuda="Arranca con el ticket del servicio, si tiene. Cambialo si hubo descuento.">
+        {monedas.length > 1 && (
+          <Campo etiqueta="Moneda" ayuda="Es la del contrato y la del plan de pagos.">
+            <select className={claseInput} value={f.moneda} onChange={(e) => set('moneda', e.target.value)}>
+              {monedas.map((m) => (
+                <option key={m} value={m}>
+                  {nombreMonedaCrm(m)}
+                </option>
+              ))}
+            </select>
+          </Campo>
+        )}
+        <Campo etiqueta={`Monto total acordado (${simbolo})`} ayuda="Arranca con el ticket del servicio, si tiene. Cambialo si hubo descuento.">
           <input required type="number" step="0.01" min="1" className={claseInput} value={f.monto_total} onChange={(e) => set('monto_total', e.target.value)} />
         </Campo>
         <Campo etiqueta="Onboarding">
@@ -350,7 +372,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
               <option value="PIF">PIF (pago total)</option>
             </select>
           </Campo>
-          <Campo etiqueta="Anticipo (USD) *" ayuda="* Todo lo que se pague antes del día del onboarding.">
+          <Campo etiqueta={`Anticipo (${simbolo}) *`} ayuda="* Todo lo que se pague antes del día del onboarding.">
             <input
               type="number"
               step="0.01"
@@ -385,7 +407,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
           {cuotas.length > 0 && (
             <div className="grid grid-cols-[36px_minmax(0,1fr)_minmax(0,1fr)_44px] gap-3 text-[12.5px] font-medium text-piedra">
               <span>#</span>
-              <span>Monto (USD)</span>
+              <span>Monto ({simbolo})</span>
               <span>Vencimiento</span>
               <span />
             </div>
@@ -434,12 +456,12 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
 
         <div role="status" aria-live="polite" className={`border-l-[3px] px-4 py-3 text-sm leading-[1.5] ${estiloResumen}`}>
           <div className="flex flex-wrap gap-x-6 gap-y-1 tabular-nums">
-            <span>Anticipo {dinero(anticipo / 100)}</span>
+            <span>Anticipo {dinero(anticipo / 100, f.moneda)}</span>
             <span>
-              Cuotas {dinero(sumaCuotas / 100)} en {cuotas.length} {cuotas.length === 1 ? 'pago' : 'pagos'}
+              Cuotas {dinero(sumaCuotas / 100, f.moneda)} en {cuotas.length} {cuotas.length === 1 ? 'pago' : 'pagos'}
             </span>
             <span>
-              Total {dinero(suma / 100)} de {dinero(total / 100)}
+              Total {dinero(suma / 100, f.moneda)} de {dinero(total / 100, f.moneda)}
             </span>
           </div>
           <p className="mt-1 font-medium">{problema ?? 'El plan cierra exacto con el monto acordado.'}</p>

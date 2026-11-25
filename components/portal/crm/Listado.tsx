@@ -3,7 +3,7 @@ import { AlertTriangle, ChevronLeft, ChevronRight, Download, Layers, Phone, Plus
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
-import { Aviso, Cifras, Encabezado, Enlace, Etiqueta, Monto, Pestanas, claseInput } from '../ui';
+import { Aviso, Cifras, Encabezado, Enlace, Etiqueta, MontosPorMoneda, Pestanas, claseInput } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
 import { TONO_FIRMA, dinero, fecha, hoyISO, type ClienteResumen, type IntegranteEquipo } from './tipos';
 import { mensajeAmable } from '../errores';
@@ -30,6 +30,7 @@ function csv(filas: ClienteResumen[], nombre: (id: string | null | undefined) =>
     ['DNI', (c) => c.dni],
     ['Email', (c) => c.email],
     ['Servicio', (c) => c.servicio],
+    ['Moneda', (c) => c.moneda],
     ['Monto total', (c) => c.monto_total],
     ['Cobrado', (c) => c.cobrado],
     ['Pendiente', (c) => c.pendiente],
@@ -149,14 +150,23 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
 
   const activos = filas.filter((f) => f.estado_firma !== 'Baja');
   const conVencidas = activos.filter((f) => f.cuotas_vencidas > 0);
+  // Los montos se suman por moneda y no se convierten: dólares y soles van en renglones separados.
+  const porMoneda = (valor: (f: ClienteResumen) => number) =>
+    activos.reduce<Record<string, number>>((a, f) => {
+      const m = f.moneda || 'USD';
+      a[m] = (a[m] ?? 0) + valor(f);
+      return a;
+    }, {});
   const resumen = {
     firmados: filas.filter((f) => f.estado_firma === 'Firmado').length,
     pendientes: filas.filter((f) => f.estado_firma === 'Pendiente' || f.estado_firma === 'En firma').length,
-    acordado: activos.reduce((a, f) => a + (f.monto_total ?? 0), 0),
-    cobrado: activos.reduce((a, f) => a + f.cobrado, 0),
-    porCobrar: activos.reduce((a, f) => a + f.pendiente, 0),
-    proximos30: activos.reduce((a, f) => a + f.por_cobrar_30_dias, 0),
+    acordado: porMoneda((f) => f.monto_total ?? 0),
+    cobrado: porMoneda((f) => f.cobrado),
+    porCobrar: porMoneda((f) => f.pendiente),
+    proximos30: porMoneda((f) => f.por_cobrar_30_dias),
   };
+  const monedasActivas = Object.keys(resumen.acordado);
+  const variasMonedas = monedasActivas.length > 1;
   const cuenta = (c: Filtro) =>
     c === 'todos' ? filas.length : c === 'vencidas' ? conVencidas.length : c === 'revisar' ? filas.filter((f) => f.revisar_pagos).length : filas.filter((f) => f.estado_firma === c).length;
 
@@ -198,7 +208,10 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
     URL.revokeObjectURL(a.href);
   }
 
-  const pct = resumen.acordado ? Math.round((resumen.cobrado / resumen.acordado) * 100) : 0;
+  // El porcentaje cobrado solo tiene sentido con una sola moneda.
+  const unica = monedasActivas[0];
+  const pct = !variasMonedas && unica && resumen.acordado[unica] ? Math.round(((resumen.cobrado[unica] ?? 0) / resumen.acordado[unica]) * 100) : 0;
+  const notaMonedas = variasMonedas ? 'Por moneda, sin convertir' : undefined;
 
   return (
     <>
@@ -254,14 +267,14 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
           items={cobranza ? [
             { titulo: 'Contratos firmados', valor: resumen.firmados },
             { titulo: 'Firmas pendientes', valor: resumen.pendientes },
-            { titulo: 'Monto acordado', valor: <Monto n={resumen.acordado} /> },
-            { titulo: 'Cobrado', valor: <Monto n={resumen.cobrado} />, nota: `${pct}% del acordado` },
-            { titulo: 'Por cobrar el próximo mes', valor: <Monto n={resumen.proximos30} />, nota: 'Vence en los próximos 30 días' },
+            { titulo: 'Monto acordado', valor: <MontosPorMoneda montos={resumen.acordado} />, nota: notaMonedas },
+            { titulo: 'Cobrado', valor: <MontosPorMoneda montos={resumen.cobrado} />, nota: variasMonedas ? notaMonedas : `${pct}% del acordado` },
+            { titulo: 'Por cobrar el próximo mes', valor: <MontosPorMoneda montos={resumen.proximos30} />, nota: 'Vence en los próximos 30 días' },
             { titulo: 'Con cuotas vencidas', valor: conVencidas.length, alerta: conVencidas.length > 0 },
           ] : [
             { titulo: 'Contratos firmados', valor: resumen.firmados },
             { titulo: 'Firmas pendientes', valor: resumen.pendientes },
-            { titulo: 'Monto acordado', valor: <Monto n={resumen.acordado} /> },
+            { titulo: 'Monto acordado', valor: <MontosPorMoneda montos={resumen.acordado} />, nota: notaMonedas },
             { titulo: 'Planes a revisar', valor: filas.filter((f) => f.revisar_pagos).length, alerta: filas.some((f) => f.revisar_pagos) },
           ]}
         />

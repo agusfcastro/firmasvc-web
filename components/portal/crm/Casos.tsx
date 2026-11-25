@@ -8,6 +8,7 @@ import { navegar } from '../navegacion';
 import { Aviso, Campo, Cifras, Encabezado, Enlace, Etiqueta, Pestanas, TituloSeccion, claseInput, type Cifra } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
 import { dinero, fecha, hoyISO } from './tipos';
+import { simboloMoneda } from '../../../api/_lib/variables';
 import {
   AYUDA_SEMAFORO,
   CANALES_SUGERIDOS,
@@ -434,7 +435,7 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
               <span className="flex flex-col gap-1.5">
                 {ind.concesiones.map((x) => (
                   <span key={x.moneda}>
-                    <Unidad antes>{x.moneda}</Unidad>
+                    <Unidad antes>{simboloMoneda(x.moneda)}</Unidad>
                     {x.pct === null ? '·' : porcentaje(x.pct)}
                   </span>
                 ))}

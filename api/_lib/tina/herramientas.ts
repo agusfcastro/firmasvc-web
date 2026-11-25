@@ -103,7 +103,7 @@ export function definiciones(plan: 'starter' | 'eminent'): Anthropic.Beta.BetaTo
           domicilio: { type: 'string' },
           servicio: { type: 'string', description: 'Nombre o código del servicio que compró.' },
           monto_total: { type: 'number', description: 'Monto total acordado.' },
-          moneda: { type: 'string', enum: ['USD', 'ARS', 'EUR', 'PEN', 'MXN', 'CLP', 'COP'] },
+          moneda: { type: 'string', enum: ['USD', 'ARS', 'EUR', 'PEN', 'MXN', 'CLP', 'COP'], description: 'Solo si el usuario la dice. Tiene que estar habilitada para la empresa. Si no se dice, va la del servicio o la primera de la empresa.' },
           modalidad: { type: 'string', enum: ['PIF', 'Cuotas'], description: 'PIF es pago completo.' },
           cuotas: {
             type: 'array',
@@ -377,8 +377,8 @@ async function crearFichaCierre(s: Sesion, e: Entrada): Promise<Resultado> {
   if (!nombre) return invalido('Falta el nombre del cliente.');
   const email = texto(e.email, 200);
   if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return invalido('El mail no es válido.');
-  const moneda = e.moneda === undefined ? 'USD' : opcion(e.moneda, ['USD', 'ARS', 'EUR', 'PEN', 'MXN', 'CLP', 'COP'] as const);
-  if (!moneda) return invalido('Moneda desconocida.');
+  const monedaPedida = e.moneda === undefined ? null : opcion(e.moneda, ['USD', 'ARS', 'EUR', 'PEN', 'MXN', 'CLP', 'COP'] as const);
+  if (e.moneda !== undefined && !monedaPedida) return invalido('Moneda desconocida.');
   const modalidad = e.modalidad === undefined ? null : opcion(e.modalidad, ['PIF', 'Cuotas'] as const);
   const montoTotal = numero(e.monto_total);
   const cuotas: { monto: number; vencimiento: string }[] = [];
@@ -396,10 +396,18 @@ async function crearFichaCierre(s: Sesion, e: Entrada): Promise<Resultado> {
   if (fechaOnb && !onboarding) return invalido('La fecha de onboarding no se entiende. Usá AAAA-MM-DD HH:MM.');
 
   // Servicio: tiene que ser uno de los que carga la empresa.
-  const { data: servs } = await s.db.from('crm_servicios').select('clave, nombre, precio').eq('organizacion_id', s.orgId).eq('activo', true);
-  const servicios = (servs ?? []) as { clave: string; nombre: string | null; precio: number | null }[];
+  const { data: servs } = await s.db.from('crm_servicios').select('*').eq('organizacion_id', s.orgId).eq('activo', true);
+  const servicios = (servs ?? []) as { clave: string; nombre: string | null; precio: number | null; moneda?: string | null }[];
   const pedido = texto(e.servicio, 120);
   const servicio = pedido ? servicios.find((x) => normalizar(x.clave) === normalizar(pedido) || normalizar(x.nombre ?? '') === normalizar(pedido)) ?? servicios.find((x) => normalizar(x.nombre ?? x.clave).includes(normalizar(pedido))) : undefined;
+
+  // Moneda: la que dijo el usuario, si no la del servicio, si no la primera de la empresa. Tiene que estar habilitada (migración 0072).
+  const { data: org } = await s.db.from('organizaciones').select('monedas').eq('id', s.orgId).maybeSingle();
+  const habilitadas = ((org?.monedas as string[] | null) ?? []).length ? (org!.monedas as string[]) : ['USD'];
+  const moneda = monedaPedida ?? (servicio?.moneda && habilitadas.includes(servicio.moneda) ? servicio.moneda : habilitadas[0]);
+  if (!habilitadas.includes(moneda)) return invalido(`La empresa no cobra en ${moneda}. Puede cargar en ${habilitadas.join(' o ')}.`);
+  // El ticket del servicio sirve de monto solo si está en la misma moneda.
+  const ticket = servicio?.precio && (servicio.moneda ?? 'USD') === moneda ? servicio.precio : null;
 
   const datos = {
     nombre,
@@ -408,7 +416,7 @@ async function crearFichaCierre(s: Sesion, e: Entrada): Promise<Resultado> {
     dni: texto(e.dni, 30),
     domicilio: texto(e.domicilio, 300),
     servicio: servicio?.clave ?? null,
-    monto_total: montoTotal ?? servicio?.precio ?? null,
+    monto_total: montoTotal ?? ticket,
     moneda,
     modalidad: modalidad ?? (cuotas.length > 1 ? 'Cuotas' : cuotas.length === 1 ? 'PIF' : null),
     fecha_onboarding: onboarding,

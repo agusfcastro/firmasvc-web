@@ -9,6 +9,7 @@ import { BotonCopiar } from '../crm/firma';
 import { PAISES, ROLES_CLIENTE, ROTULO_ROL, type Organizacion, type RolCliente } from '../tipos';
 import { TIPOS_LOGO, borrarArchivoLogo, fijarLogo, subirLogo } from '../logos';
 import { INCLUYE_PLAN, ROTULO_PLAN, type Plan } from '../planes';
+import { MONEDAS_CRM } from '../crm/tipos';
 
 type Borrador = Pick<Organizacion, 'nombre' | 'razon_social' | 'pais' | 'activa' | 'notas'> & {
   id?: string;
@@ -17,6 +18,8 @@ type Borrador = Pick<Organizacion, 'nombre' | 'razon_social' | 'pais' | 'activa'
   logo_url?: string | null;
   drive_carpeta_revision?: string | null;
   plan?: Plan | null;
+  /** Monedas en que cobra la empresa (migración 0072). La primera es la que se propone en el CRM. */
+  monedas?: string[];
   /** Logo elegido y todavía sin subir. null quita el actual. */
   logoNuevo?: File | null;
 };
@@ -77,6 +80,8 @@ export const Clientes: React.FC = () => {
       drive_carpeta_revision: borrador.drive_carpeta_revision?.trim() || null,
       // El plan es obligatorio (0054). Sin elegir, la base pone Eminent.
       ...(borrador.plan ? { plan: borrador.plan } : {}),
+      // Sin tocar las monedas, la base deja las que tenía (o USD si es nueva).
+      ...(borrador.monedas?.length ? { monedas: borrador.monedas } : {}),
     };
     const { data: fila, error: err } = borrador.id
       ? await supabase.from('organizaciones').update(datos).eq('id', borrador.id).select('id').single()
@@ -211,6 +216,37 @@ export const Clientes: React.FC = () => {
           <Campo etiqueta="Prefijo de códigos del CRM" ayuda="Por ejemplo TB para TB-001, TB-002.">
             <input className={`${claseInput} uppercase`} maxLength={6} value={borrador.prefijo_crm ?? ''} onChange={(e) => setBorrador({ ...borrador, prefijo_crm: e.target.value })} />
           </Campo>
+          <fieldset>
+            <legend className="block text-[13px] font-medium text-tinta mb-1.5">Monedas del CRM</legend>
+            <div className="flex flex-wrap gap-x-6 gap-y-2">
+              {MONEDAS_CRM.map(([m, nombre]) => {
+                const actuales = borrador.monedas?.length ? borrador.monedas : ['USD'];
+                const marcada = actuales.includes(m);
+                return (
+                  <label key={m} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={marcada}
+                      disabled={marcada && actuales.length === 1}
+                      onChange={(e) =>
+                        setBorrador({
+                          ...borrador,
+                          // Se respeta el orden de la lista, así USD queda primero y es la que se propone.
+                          monedas: e.target.checked
+                            ? [...MONEDAS_CRM.map(([k]) => k).filter((k) => k === m || actuales.includes(k)), ...actuales.filter((k) => !MONEDAS_CRM.some(([x]) => x === k))]
+                            : actuales.filter((k) => k !== m),
+                        })
+                      }
+                    />
+                    {nombre}
+                  </label>
+                );
+              })}
+            </div>
+            <span className="block text-[12.5px] leading-[1.45] text-piedra mt-1.5">
+              En qué cobra la empresa. Con más de una, el alta, la ficha y los servicios del CRM muestran un selector. La primera es la que se propone.
+            </span>
+          </fieldset>
           <Interruptor
             activo={Boolean(borrador.seguimiento_cobranza)}
             alCambiar={(v) => setBorrador({ ...borrador, seguimiento_cobranza: v })}

@@ -37,6 +37,7 @@ import { CampanaAvisos, PanelAvisos, vaciarAvisos } from './avisos/CentroAvisos'
 import { Buscador, abrirBuscador, atajoBuscador, type AccesoSeccion } from './Buscador';
 import { desactivarPush } from './push';
 import { LimiteError } from './LimiteError';
+import { simboloMoneda } from '../../api/_lib/variables';
 
 import simboloClaro from '../../assets/brand/simbolo-claro.png';
 import simboloOscuro from '../../assets/brand/simbolo-oscuro.png';
@@ -652,13 +653,28 @@ export interface Cifra {
   nota?: React.ReactNode;
 }
 
-/** Monto con la moneda chica adelante, como el contador del hero. */
+/** Monto con la moneda chica adelante, como el contador del hero. Los soles van con S/. */
 export const Monto: React.FC<{ n: number | null | undefined; moneda?: string }> = ({ n, moneda = 'USD' }) => (
   <>
-    <span className="text-[0.48em] font-bold text-piedra mr-1.5 align-[0.3em] tracking-normal">{moneda}</span>
+    <span className="text-[0.48em] font-bold text-piedra mr-1.5 align-[0.3em] tracking-normal">{simboloMoneda(moneda)}</span>
     {n === null || n === undefined ? '·' : Math.round(Number(n)).toLocaleString('es-AR')}
   </>
 );
+
+/** Totales de varias monedas, uno por renglón y sin convertir. Con una sola moneda es un Monto común. */
+export const MontosPorMoneda: React.FC<{ montos: Record<string, number> }> = ({ montos }) => {
+  const claves = Object.keys(montos).sort((a, b) => (a === 'USD' ? -1 : b === 'USD' ? 1 : a.localeCompare(b)));
+  if (claves.length <= 1) return <Monto n={claves.length ? montos[claves[0]] : 0} moneda={claves[0] ?? 'USD'} />;
+  return (
+    <span className="flex flex-col gap-1.5">
+      {claves.map((m) => (
+        <span key={m}>
+          <Monto n={montos[m]} moneda={m} />
+        </span>
+      ))}
+    </span>
+  );
+};
 
 export const Cifras: React.FC<{ items: Cifra[]; cargando?: boolean }> = ({ items, cargando }) => (
   <div className="cifras">

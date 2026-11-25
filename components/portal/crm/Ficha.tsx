@@ -7,7 +7,8 @@ import { useVistaPrevia } from '../vistaPrevia';
 import { navegar } from '../navegacion';
 import { BUCKET_ASUNTOS } from '../asuntos';
 import { rutasDeVersiones } from '../editor/versiones';
-import { rolDe, TONO_FIRMA, dinero, hoyISO, type CambioHistorial, type ClienteCrm, type ContratoReservado, type IntegranteEquipo, type Pago, type Servicio, type VariablePropia } from './tipos';
+import { simboloMoneda } from '../../../api/_lib/variables';
+import { rolDe, TONO_FIRMA, dinero, hoyISO, nombreMonedaCrm, opcionesMoneda, type CambioHistorial, type ClienteCrm, type ContratoReservado, type IntegranteEquipo, type Pago, type Servicio, type VariablePropia } from './tipos';
 import { CampoVariable, sinVacios } from './variablesPropias';
 import { CAMPOS_CASO, VALORES_CASO } from './reglasCasos';
 import { CasosCliente } from './Casos';
@@ -83,6 +84,8 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
   const [historial, setHistorial] = useState<CambioHistorial[]>([]);
   const [equipo, setEquipo] = useState<IntegranteEquipo[]>([]);
   const [variables, setVariables] = useState<VariablePropia[]>([]);
+  // Monedas habilitadas para la empresa del cliente (migración 0072).
+  const [monedas, setMonedas] = useState<string[]>(['USD']);
   const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [nueva, setNueva] = useState<{ anticipo: boolean; monto: string; fecha: string; nota: string } | null>(null);
@@ -114,12 +117,15 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
     setServicios((s.data as Servicio[]) ?? []);
     setContrato((k.data as ContratoReservado) ?? { cliente_id: id, link_contrato_cliente: null, link_documento: null });
     setHistorial((h.data as CambioHistorial[]) ?? []);
-    const [eq, vs] = await Promise.all([
+    const [eq, vs, org] = await Promise.all([
       supabase.from('equipo_miembros').select('*').eq('organizacion_id', c.organizacion_id).order('nombre'),
       supabase.from('org_variables_def').select('*').eq('organizacion_id', c.organizacion_id).eq('ambito', 'cliente').eq('activa', true).order('orden').order('etiqueta'),
+      supabase.from('organizaciones').select('monedas').eq('id', c.organizacion_id).maybeSingle(),
     ]);
     setEquipo((eq.data as IntegranteEquipo[]) ?? []);
     setVariables((vs.data as VariablePropia[]) ?? []);
+    const habilitadas = (org.data?.monedas as string[] | null) ?? [];
+    setMonedas(habilitadas.length ? habilitadas : ['USD']);
   }
 
   useEffect(() => {
@@ -151,6 +157,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
       ...filaIdentidad(identidadDe(borrador)),
       servicio: borrador.servicio || null,
       monto_total: borrador.monto_total === null || (borrador.monto_total as unknown) === '' ? null : Number(borrador.monto_total),
+      moneda: borrador.moneda,
       modalidad: borrador.modalidad,
       fecha_onboarding: borrador.fecha_onboarding || null,
       responsable: borrador.responsable?.trim() || null,
@@ -483,7 +490,18 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                       {borrador.servicio && !servicios.some((sv) => sv.clave === borrador.servicio) && <option value={borrador.servicio}>{borrador.servicio}</option>}
                     </select>
                   </Campo>
-                  <Campo etiqueta={`Monto total (${moneda})`}>
+                  {opcionesMoneda(monedas, cliente.moneda).length > 1 && (
+                    <Campo etiqueta="Moneda" ayuda="Es la del contrato y la del plan de pagos. Cambiarla no convierte los montos cargados.">
+                      <select className={claseInput} value={borrador.moneda} onChange={(e) => set('moneda', e.target.value)}>
+                        {opcionesMoneda(monedas, cliente.moneda).map((m) => (
+                          <option key={m} value={m}>
+                            {nombreMonedaCrm(m)}
+                          </option>
+                        ))}
+                      </select>
+                    </Campo>
+                  )}
+                  <Campo etiqueta={`Monto total (${simboloMoneda(borrador.moneda)})`}>
                     <input type="number" step="0.01" className={claseInput} value={borrador.monto_total ?? ''} onChange={(e) => set('monto_total', e.target.value === '' ? null : (e.target.value as unknown as number))} />
                   </Campo>
                   <Campo etiqueta="Modalidad">
@@ -685,7 +703,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
             {cobranza ? tablaPagos : tablaPlan}
             {nueva ? (
               <form onSubmit={agregarPago} className="mt-6 grid gap-4 tab:grid-cols-[160px_180px_1fr_auto_auto] items-end bg-marfil-oscuro p-5">
-                <Campo etiqueta={`Monto (${moneda})`}>
+                <Campo etiqueta={`Monto (${simboloMoneda(moneda)})`}>
                   <input required type="number" step="0.01" min="0.01" className={claseInput} value={nueva.monto} onChange={(e) => setNueva({ ...nueva, monto: e.target.value })} />
                 </Campo>
                 <Campo etiqueta={nueva.anticipo ? 'Fecha de pago' : 'Vencimiento'}>
