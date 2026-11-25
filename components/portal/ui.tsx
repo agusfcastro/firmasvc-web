@@ -604,8 +604,8 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
           </>
         )}
 
-        {/* Tina atiende a los usuarios de los clientes. FIRMA y la vista previa no la ven. */}
-        {perfil && perfil.rol !== 'admin' && !vista && perfil.organizacion_id && (
+        {/* Tina atiende a los usuarios de los clientes Eminent. FIRMA, la vista previa y Starter no la ven. */}
+        {perfil && perfil.rol !== 'admin' && !vista && perfil.organizacion_id && org?.plan !== 'starter' && (
           // Si el chat falla, se oculta la burbuja y el resto del portal sigue andando.
           <LimiteError respaldo={null}>
             <BurbujaTina nombre={perfil.nombre ?? null} />

@@ -121,6 +121,8 @@ async function historial(sb: SupabaseClient, conversacionId: string): Promise<An
   return filas.map((f) => ({ role: f.autor === 'usuario' ? 'user' : 'assistant', content: f.contenido }));
 }
 
+const SOLO_EMINENT = 'Tina viene con el plan Eminent. Si querés sumarla, escribile a tu responsable en FIRMA.';
+
 const RESPUESTA_RECHAZO = 'Perdón, eso no lo puedo responder. Si es un tema de tu negocio, contame un poco más o escribile a tu responsable en FIRMA.';
 
 export async function POST(request: Request): Promise<Response> {
@@ -143,6 +145,8 @@ export async function POST(request: Request): Promise<Response> {
 
   const { data: org } = await sb.from('organizaciones').select('id, nombre, razon_social, pais, plan, activa, responsable_id').eq('id', perfil.organizacion_id).maybeSingle();
   if (!org || !org.activa) return error(SIN_ACCESO, 403);
+  // Tina es solo de Eminent desde el 25 de noviembre de 2026. La burbuja tampoco se muestra en Starter.
+  if (org.plan === 'starter') return error(SOLO_EMINENT, 403);
   const plan: 'starter' | 'eminent' = org.plan === 'starter' ? 'starter' : 'eminent';
 
   let cuerpo: { mensaje?: unknown; conversacion_id?: unknown };
