@@ -675,17 +675,13 @@ Los textos no llevan nombres de clientes ni títulos de documentos, porque se ve
 | `components/portal/TarjetaAvisos.tsx` | Tarjeta de Inicio y campana de la barra lateral |
 | `api/_lib/push.ts` | Firma con VAPID y cifra (RFC 8291) sin dependencias. Marca inactivas las suscripciones vencidas |
 
-## Comentarios de documentos: exportar y brief de Tina
+## Comentarios de documentos: exportar
 
-Los comentarios que deja un cliente en un documento de un asunto (migración 0065) se trabajan de dos maneras, las dos solo para FIRMA.
+Los comentarios que deja un cliente en un documento de un asunto (migración 0065) se exportan, solo para FIRMA.
 
 **Exportar.** En el visor, arriba del panel de comentarios, «Copiar todos» y «Descargar en Word» sacan todos los hilos del documento en orden, primero los abiertos y después los resueltos, con la hoja, la frase resaltada, quién escribió, cuándo y las respuestas. Se arma en el navegador (`components/portal/comentarios/exportar.ts`).
 
-**Brief de Tina.** De lunes a viernes, la tarea diaria (`api/portal/resumen.ts`) busca los hilos abiertos, no internos, cuyo último mensaje es de alguien que no es de FIRMA y tiene menos de 30 días (`comentarios_para_borrador()`), y encola un trabajo `comentarios_borrador` por documento. Cada trabajo (`api/_lib/tina/borradores.ts`) le manda a `claude-opus-5-5` el documento (el PDF entero o el texto del Word) y los hilos, sin nombres ni mails de quien comentó, y guarda un borrador por hilo en `comentario_borradores` (migración 0070): qué pide el cliente, la respuesta sugerida, el texto nuevo de la cláusula si corresponde y una nota con lo que hay que revisar. Diez minutos después, el trabajo `comentarios_brief` manda a FIRMA un mail y un aviso con los documentos que tienen borradores.
-
-En el visor, FIRMA ve el borrador debajo del comentario, corrige la respuesta y la publica como respuesta del hilo, o lo descarta. El cliente no ve nada hasta que se publica. Un borrador deja de mostrarse si alguien escribe en el hilo después; si el que escribe es el cliente, a la mañana siguiente se prepara otro. Lo publicado o descartado no se vuelve a preparar. El prompt está en el mismo archivo (`SISTEMA`): si se cambia, cambia lo que redacta Tina.
-
-Necesita `ANTHROPIC_API_KEY` en Vercel y la cola en marcha (sección Llamadas de Fathom y cola de trabajos). No suma funciones. Pruebas en `supabase/pruebas/borradores_comentarios.sql`.
+**Brief de Tina, retirado.** Desde la migración 0070 Tina dejaba cada mañana un borrador de respuesta por hilo sin contestar. Se retiró el 25 de noviembre de 2026 para no gastar en la API: ya no lo encola la tarea diaria, no hay trabajos `comentarios_borrador` ni `comentarios_brief` en la cola y el visor no muestra borradores. Las tablas y funciones de la 0070 quedaron en la base sin uso, con sus pruebas en `supabase/pruebas/borradores_comentarios.sql`.
 
 ## Editar los Word de un asunto
 
@@ -1145,7 +1141,6 @@ Migraciones 0074 y 0075. Cada llamada a Claude del portal queda anotada, FIRMA l
 |---|---|---|---|---|
 | `tina` | `api/tina/chat.ts` | La parte fija de `docs/TINA_SYSTEM_PROMPT.md` y las herramientas | La conversación | Pendiente, en Calidad de la IA |
 | `analisis_clasificacion`, `analisis_venta` | La cola, `interaccion_analizar` | `docs/ANALIZADOR_VENTA.md` y la versión del libro de códigos | El análisis de la llamada | Aparte, en CRM › Llamadas |
-| `borradores_comentarios` | La cola, `comentarios_borrador` | Las instrucciones de `api/_lib/tina/borradores.ts` | El archivo del asunto | Aparte, en el visor del documento |
 
 La versión es la huella del texto (`api/_lib/ia/versiones.ts`): si el prompt cambia, la versión cambia sola. La corrida no copia el contenido. Desde la 0075 la base completa la empresa desde el registro original cuando el servidor no la manda.
 
@@ -1154,7 +1149,7 @@ La versión es la huella del texto (`api/_lib/ia/versiones.ts`): si el prompt ca
 Administración › Calidad de la IA (`/portal/admin/calidad`, `components/portal/admin/CalidadIa.tsx`), solo FIRMA.
 
 - **Aprobadas sin cambios.** Por agente y versión, las corridas, las revisadas y el porcentaje aprobado sin cambios (`ia_resumen`), con el costo. Con 20 revisadas y 90 % o más, la versión se marca como lista.
-- **Para revisar.** Las corridas pendientes. Al abrir una se ve la conversación de Tina con la respuesta de esa corrida marcada, o el enlace al análisis (`/portal/crm/llamadas?org=…&analisis=…`) o al documento de los borradores. Se aprueba sin cambios, se corrige con una nota de qué tenía que hacer o se rechaza con el motivo (`ia_corrida_revisar`).
+- **Para revisar.** Las corridas pendientes. Al abrir una se ve la conversación de Tina con la respuesta de esa corrida marcada, o el enlace al análisis (`/portal/crm/llamadas?org=…&analisis=…`). Se aprueba sin cambios, se corrige con una nota de qué tenía que hacer o se rechaza con el motivo (`ia_corrida_revisar`).
 - **Crear caso de prueba.** Desde una corrida corregida. `/api/admin/ia` (acción `preparar_caso`) arma la entrada con los nombres de la empresa, su gente y sus clientes cambiados por alias, y sin mails, teléfonos ni documentos (`api/_lib/ia/anonimizar.ts`). De una llamada usa la transcripción con roles en lugar de nombres, la misma que vio el modelo (`ia_contenido_analisis`, solo servidor). FIRMA revisa la entrada, escribe los criterios y los chequeos fijos y lo guarda en `ia_casos`. La lectura queda en la bitácora de la empresa.
 - **Casos de prueba.** Los casos de cada agente, para pausarlos o activarlos, y un botón por agente que baja el archivo para `scripts/ia/casos/`.
 
@@ -1170,33 +1165,29 @@ Viven en `scripts/ia/casos/*.json`, así cada pull request muestra qué se mide 
 |---|---|
 | `tina` | `plan`, `rol`, `mensajes` (el último de la persona) y `herramientas`, con lo que devuelve cada herramienta. Sin eso devuelve una respuesta simulada y nunca toca la base |
 | `analisis_*` | `contenido.transcripcion` con roles y `contenido.roles`, como lo arma `preparar_caso` |
-| `borradores_comentarios` | `hilos` y, si hace falta, `documento` en texto |
 
 `esperado` lleva los chequeos fijos (`camino`, `herramientas`, `sin_herramientas`, `etapa`, `codigos`, `sin_codigos`, `incluye`, `excluye`) y la `rubrica`, una lista de criterios con su peso. El formato está en `components/portal/admin/casosIa.ts`.
 
 ### Evaluador
 
-```bash
-npm run ia:evaluar -- --agente tina
-```
+Es lo único de la auditoría que gasta crédito de la API, así que corre solo a pedido y una sola vez por versión.
 
-1. Corre el agente con el código y el prompt de esta carpeta y, aparte, con los de la base (`origin/main` o `--base`), en una copia del repo en ese commit (`scripts/ia/correr.mjs`).
+1. Corre el agente una vez con el código y el prompt de la rama (`scripts/ia/correr.mjs`).
 2. Chequeos fijos por código. Un caso que falla uno vale 0.
 3. Si el caso tiene rúbrica, Claude como juez dice por cada criterio si se cumple, en parte o no (`scripts/ia/juez.mjs`). El puntaje lo calcula el código (`scripts/ia/puntaje.mjs`): cumple 1, en parte 0,5, no 0, por el peso.
-4. El agente vale el promedio de sus casos. No pasa si baja más de 2 puntos contra la base, si queda debajo del `umbral` del archivo, si ningún caso corrió o si el juez no respondió.
+4. El agente vale el promedio de sus casos y se compara con su **referencia**, el último puntaje medido, guardado en `scripts/ia/referencias.json` con la huella del prompt y la de los casos con que se midió. No pasa si baja más de 2 puntos contra la referencia, si queda debajo del `umbral` del archivo de casos, si ningún caso corrió o si el juez no respondió. Si los casos cambiaron desde la referencia, se compara solo con el umbral.
 
-`--si-cambia` mide solo los agentes cuyo prompt cambió, `--sin-base` mide solo contra el umbral y `--salida` guarda el informe. Necesita `ANTHROPIC_API_KEY` y no toca la base. Las pruebas del evaluador, sin llamar a Claude, son `npm run ia:probar`.
+`--actualizar-referencia` guarda el puntaje nuevo cuando pasa y cambió el prompt o los casos. `--verificar-referencias` no llama a Claude: falla si un prompt con casos no coincide con su referencia. `--sin-base` mide solo contra el umbral, `--si-cambia` mide solo los agentes cuyo prompt no coincide con su referencia y `--base origin/main` vuelve a correr también esa versión (gasta el doble, no hace falta). Necesita `ANTHROPIC_API_KEY` y no toca la base. Las pruebas del evaluador, sin llamar a Claude, son `npm run ia:probar`.
 
 ### En GitHub
 
-`.github/workflows/verificar.yml` corre `ia:probar` en cada push. En un pull request corre `ia:evaluar --si-cambia` contra la base: si no cambió ningún prompt termina enseguida, y si cambió, el chequeo `codigo` falla cuando el puntaje baja. El informe queda como artefacto `evaluacion-ia` y el resumen en la página de la corrida. Necesita el secreto `ANTHROPIC_API_KEY` en Settings › Secrets and variables › Actions.
-
-`.github/workflows/medir-ia.yml` mide un agente a mano, sin comparar con otra versión (`ia:evaluar --agente <agente> --sin-base`). Se corre desde **Actions › Medir IA › Run workflow** eligiendo el agente, con el mismo secreto, así la clave nunca pasa por una computadora. Sirve para fijar el umbral la primera vez y para ver cómo está un agente sin tocar su prompt. Gasta crédito de la API (la batería de Tina ronda los USD 2). El resumen queda en la página de la corrida y el informe como artefacto `medicion-ia-<agente>`.
+- **Verificar** (`.github/workflows/verificar.yml`) corre en cada push y pull request, y no gasta: `ia:probar` y `ia:evaluar --verificar-referencias`. Si un pull request cambia un prompt y no se midió, el chequeo `codigo` falla y pide correr Medir IA en la rama.
+- **Medir IA** (`.github/workflows/medir-ia.yml`) se corre desde **Actions › Medir IA › Run workflow**, eligiendo la rama y el agente, con el secreto `ANTHROPIC_API_KEY` de Settings › Secrets and variables › Actions. En una rama que no es main, si pasa, guarda la referencia nueva en la rama y vuelve a pedir Verificar, así el pull request queda listo para unir. El resumen queda en la página de la corrida y el informe como artefacto `medicion-ia-<agente>`.
 
 ### Puesta en marcha
 
 1. Correr la 0075 después de la 0074.
 2. Cargar el secreto `ANTHROPIC_API_KEY` en GitHub.
-3. La primera vez, correr **Medir IA** con `tina` y fijar el `umbral` de `tina.bateria.json` con ese resultado. Hecho el 25 de noviembre de 2026, Tina sacó 81,7 y el umbral quedó en 78, unos puntos abajo para que el ruido del juez no frene un pull request.
+3. Hecho el 25 de noviembre de 2026. La primera medición de Tina dio 81,7 y el umbral quedó en 78. La referencia actual es 96,5 con los 26 casos de Eminent.
 
 Pruebas en `supabase/pruebas/ia_corridas.sql`, `supabase/pruebas/ia_calidad.sql` y `scripts/pruebas/evaluador.mjs`.

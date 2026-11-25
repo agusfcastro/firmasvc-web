@@ -10,7 +10,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { chequeosFijos, puntajeAgente, puntajeCaso, puntajeRubrica, veredicto } from '../ia/puntaje.mjs';
-import { leerCasos } from '../ia/evaluar.mjs';
+import { faltanMedir, huellaCasos, leerCasos } from '../ia/evaluar.mjs';
 import { AGENTES } from '../ia/correr.mjs';
 import { anonimizador } from '../../api/_lib/ia/anonimizar.ts';
 import { esperadoDesde, problemaDeEntrada, archivoParaEvaluador } from '../../components/portal/admin/casosIa.ts';
@@ -22,7 +22,7 @@ const prueba = (nombre, f) => {
   console.log(`✓ ${nombre}`);
 };
 
-// Tres casos falsos que pasan y uno que falla.
+// Dos casos falsos que pasan y uno que falla.
 const casos = [
   {
     id: 'pasa-tina',
@@ -39,13 +39,6 @@ const casos = [
     veredictos: [],
   },
   {
-    id: 'pasa-borradores',
-    agente: 'borradores_comentarios',
-    esperado: { excluye: ['te garantizo'], rubrica: [{ criterio: 'Propone una alternativa', peso: 2 }, { criterio: 'Marca la duda en la nota', peso: 1 }] },
-    salida: { hilos: [{ id: 'h1' }], borradores: [{ id: 'h1', pedido: 'Cambiar el plazo.', respuesta: 'Lo pasamos a 15 días.', clausula: '', nota: 'Revisar plazo.' }] },
-    veredictos: [{ id: 'c1', nivel: 'cumple', motivo: '' }, { id: 'c2', nivel: 'parcial', motivo: '' }],
-  },
-  {
     id: 'falla-tina',
     agente: 'tina',
     esperado: { sin_herramientas: ['crear_ficha_cierre'], excluye: ['{{'], rubrica: [{ criterio: 'Se niega', peso: 1 }] },
@@ -55,12 +48,12 @@ const casos = [
 ];
 const puntajes = casos.map((c) => puntajeCaso(chequeosFijos(c.agente, c.salida, c.esperado), c.esperado.rubrica, c.veredictos));
 
-prueba('tres casos pasan y uno falla', () => {
-  assert.deepEqual(puntajes, [100, 100, 83.3, 0]);
+prueba('dos casos pasan y uno falla', () => {
+  assert.deepEqual(puntajes, [100, 100, 0]);
 });
 
 prueba('un chequeo fijo que falla deja el caso en cero aunque el juez diga que cumple', () => {
-  const ch = chequeosFijos('tina', casos[3].salida, casos[3].esperado);
+  const ch = chequeosFijos('tina', casos[2].salida, casos[2].esperado);
   assert.deepEqual(ch.filter((x) => !x.ok).map((x) => x.nombre), ['no usa crear_ficha_cierre', 'no dice «{{»']);
 });
 
@@ -70,17 +63,12 @@ prueba('la rúbrica pondera por peso y un criterio sin veredicto vale cero', () 
 });
 
 prueba('el agente vale el promedio de sus casos', () => {
-  assert.equal(puntajeAgente(puntajes), 70.8);
+  assert.equal(puntajeAgente(puntajes), 66.7);
   assert.equal(puntajeAgente([]), null);
 });
 
 prueba('un error del agente falla el caso', () => {
   assert.equal(puntajeCaso(chequeosFijos('tina', { error: 'API caída' }, {}), [], []), 0);
-});
-
-prueba('los borradores tienen que contestar cada hilo, en texto plano', () => {
-  const ch = chequeosFijos('borradores_comentarios', { hilos: [{ id: 'h1' }, { id: 'h2' }], borradores: [{ id: 'h1', pedido: 'x', respuesta: '**Sí**', clausula: '', nota: '' }] }, {});
-  assert.deepEqual(ch.filter((x) => !x.ok).map((x) => x.nombre), ['un borrador por hilo', 'texto plano, sin Markdown']);
 });
 
 prueba('el analizador no puede inventar códigos', () => {
@@ -109,6 +97,21 @@ prueba('los casos se leen de la carpeta, sin los pausados y sin ids repetidos', 
   assert.equal(g.umbral, 70);
   writeFileSync(path.join(dir, 'tina.repetido.json'), JSON.stringify({ agente: 'tina', casos: [{ id: 'a', entrada: {}, esperado: {} }] }));
   assert.throws(() => leerCasos(dir), /repetido/);
+});
+
+prueba('la huella de los casos no depende del orden y cambia si cambia un caso', () => {
+  const a = { id: 'a', entrada: { x: 1 }, esperado: {} };
+  const b = { id: 'b', entrada: { x: 2 }, esperado: {} };
+  assert.equal(huellaCasos([a, b]), huellaCasos([b, a]));
+  assert.notEqual(huellaCasos([a, b]), huellaCasos([a, { ...b, entrada: { x: 3 } }]));
+});
+
+prueba('un prompt que cambió sin medirse pide Medir IA, y uno sin casos no', () => {
+  const todos = new Map([['tina', { umbral: 78, casos: [{ id: 'a' }] }], ['analisis_venta', { umbral: null, casos: [] }]]);
+  const referencias = { tina: { version: 'v1', puntaje: 90 } };
+  assert.deepEqual(faltanMedir({ agentes: ['tina', 'analisis_venta'], todos, versiones: { tina: 'v1', analisis_venta: 'x' }, referencias }), []);
+  assert.deepEqual(faltanMedir({ agentes: ['tina'], todos, versiones: { tina: 'v2' }, referencias }).map((f) => f.agente), ['tina']);
+  assert.match(faltanMedir({ agentes: ['tina'], todos, versiones: { tina: 'v1' }, referencias: {} })[0].motivo, /referencia/);
 });
 
 prueba('el caso que arma FIRMA desde el formulario', () => {
@@ -169,13 +172,6 @@ await (async () => {
   await AGENTES.tina(starter, { plan: 'starter', mensajes: [{ autor: 'usuario', contenido: 'Hola' }] });
   prueba('en Starter Tina no tiene crear_ticket', () => {
     assert.ok(!starter.pedidos[0].tools.some((t) => t.name === 'crear_ticket'));
-  });
-  const b = claudeFalso([{ model: 'm', stop_reason: 'end_turn', content: [{ type: 'text', text: JSON.stringify({ borradores: [{ id: 'h1', pedido: 'p', respuesta: 'r', clausula: '', nota: '' }] }) }] }]);
-  const sb = await AGENTES.borradores_comentarios(b, { hilos: [{ id: 'h1', sobre: 'el documento entero', mensajes: [{ de: 'cliente', texto: '¿Se puede?' }] }] });
-  prueba('los borradores corren con su prompt', () => {
-    assert.deepEqual(sb.hilos, [{ id: 'h1' }]);
-    assert.equal(sb.borradores[0].respuesta, 'r');
-    assert.match(b.pedidos[0].system[0].text, /borrador/);
   });
 })();
 

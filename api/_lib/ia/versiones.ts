@@ -8,7 +8,6 @@ import { huellaPrompt } from './registro.js';
 import { partesDelPrompt } from '../tina/prompt.js';
 import { definiciones } from '../tina/herramientas.js';
 import { partesDelAnalizador } from '../analisis/prompt.js';
-import { SISTEMA } from '../tina/borradores.js';
 
 /**
  * Tina. La parte fija de docs/TINA_SYSTEM_PROMPT.md sin completar y la
@@ -20,5 +19,3 @@ export const versionTina = (): string => huellaPrompt(partesDelPrompt().estatico
 /** Analizador de llamadas. Las dos partes de docs/ANALIZADOR_VENTA.md y la versión del libro de códigos. */
 export const versionAnalizador = (libro: string): string => huellaPrompt(partesDelAnalizador(), libro);
 
-/** Borradores de respuesta a comentarios. Las instrucciones de api/_lib/tina/borradores.ts. */
-export const versionBorradores = (): string => huellaPrompt(SISTEMA);

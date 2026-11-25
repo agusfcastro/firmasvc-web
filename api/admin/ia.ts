@@ -10,7 +10,6 @@
  *                             respuesta y lo que devolvieron sus herramientas
  *     analisis_*              la llamada con roles en lugar de nombres
  *                             (ia_contenido_analisis, migración 0075)
- *     borradores_comentarios  los hilos que Tina contestó en esa tanda
  *   La lectura queda en la bitácora de la empresa.
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
@@ -147,50 +146,6 @@ async function desdeAnalisis(sb: SupabaseClient, c: Corrida, anon: (s: string) =
   };
 }
 
-async function desdeBorradores(sb: SupabaseClient, c: Corrida, anon: (s: string) => string): Promise<Preparado> {
-  // Los borradores de la tanda se guardan segundos después de anotar la corrida.
-  const t = Date.parse(c.creado_en);
-  const { data: borradores } = await sb
-    .from('comentario_borradores')
-    .select('comentario_id, hasta, pedido, respuesta, clausula, nota')
-    .eq('archivo_id', c.referencia_id)
-    .gte('creado_en', new Date(t - 60_000).toISOString())
-    .lte('creado_en', new Date(t + 10 * 60_000).toISOString())
-    .limit(25);
-  const lista = (borradores ?? []) as { comentario_id: string; hasta: string; pedido: string; respuesta: string; clausula: string | null; nota: string | null }[];
-  if (!lista.length) throw new Error('Ya no están los borradores de esta corrida: se volvieron a preparar o se borró el documento.');
-  const ids = lista.map((b) => b.comentario_id);
-  const [{ data: raices }, { data: respuestas }, { data: admins }] = await Promise.all([
-    sb.from('asunto_comentarios').select('id, padre_id, cita, ancla, texto, autor_id, creado_en').in('id', ids),
-    sb.from('asunto_comentarios').select('id, padre_id, cita, ancla, texto, autor_id, creado_en').in('padre_id', ids).order('creado_en', { ascending: true }),
-    sb.from('perfiles').select('id').eq('rol', 'admin'),
-  ]);
-  type Fila = { id: string; padre_id: string | null; cita: string | null; ancla: { pagina?: number | null } | null; texto: string; autor_id: string | null; creado_en: string };
-  const deFirma = new Set(((admins ?? []) as { id: string }[]).map((a) => a.id));
-  const raizDe = new Map(((raices ?? []) as Fila[]).map((r) => [r.id, r]));
-  const hilos: Record<string, unknown>[] = [];
-  const salida: Record<string, unknown>[] = [];
-  lista.forEach((b, i) => {
-    const raiz = raizDe.get(b.comentario_id);
-    if (!raiz) return;
-    const id = `h${i + 1}`;
-    const mensajes = [raiz, ...((respuestas ?? []) as Fila[]).filter((r) => r.padre_id === raiz.id && r.creado_en <= b.hasta)];
-    hilos.push({
-      id,
-      sobre: raiz.cita ? 'una frase resaltada' : 'el documento entero',
-      ...(raiz.ancla?.pagina ? { hoja: raiz.ancla.pagina } : {}),
-      ...(raiz.cita ? { frase_resaltada: anon(raiz.cita) } : {}),
-      mensajes: mensajes.map((m) => ({ de: m.autor_id && deFirma.has(m.autor_id) ? 'FIRMA' : 'cliente', texto: anon(m.texto) })),
-    });
-    salida.push(anonimizarJson({ id, pedido: b.pedido, respuesta: b.respuesta, clausula: b.clausula ?? '', nota: b.nota ?? '' }, anon));
-  });
-  return {
-    entrada: { hilos },
-    salida,
-    aviso: 'El documento no entra al caso. Si hace falta, pegá el texto que importa en documento.',
-  };
-}
-
 export async function POST(request: Request): Promise<Response> {
   const sb = clienteServicio();
   if (!sb) return error('El servidor no tiene configuradas las variables de Supabase.', 500);
@@ -229,9 +184,7 @@ export async function POST(request: Request): Promise<Response> {
         ? await desdeTina(sb, corrida, anon)
         : corrida.agente.startsWith('analisis_')
           ? await desdeAnalisis(sb, corrida, anon)
-          : corrida.agente === 'borradores_comentarios'
-            ? await desdeBorradores(sb, corrida, anon)
-            : null;
+          : null;
     if (!preparado) return error('Todavía no sé armar casos de este agente.');
     if (corrida.organizacion_id) {
       await sb.from('registro_accesos').insert({

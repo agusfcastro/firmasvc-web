@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Check, Copy, Download, FileDown, History, MessageSquarePlus, PencilLine, RotateCcw, Sparkles, Trash2 } from 'lucide-react';
+import { ArrowLeft, Check, Copy, Download, FileDown, History, MessageSquarePlus, PencilLine, RotateCcw, Trash2 } from 'lucide-react';
 // Build legacy, como el visor de la firma: también corre en celulares con navegadores de hace algunos años.
 import { GlobalWorkerOptions, TextLayer, getDocument, type PDFDocumentProxy } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import trabajador from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
@@ -47,16 +47,6 @@ interface Hilo extends Comentario {
   respuestas: Comentario[];
 }
 
-/** Borrador de respuesta que Tina deja para FIRMA (migración 0070). */
-interface BorradorTina {
-  comentario_id: string;
-  hasta: string;
-  pedido: string;
-  respuesta: string;
-  clausula: string | null;
-  nota: string | null;
-}
-
 interface Marca {
   id: string;
   ancla: Ancla;
@@ -97,7 +87,6 @@ export const VisorComentarios: React.FC<{
   const [vistaMovil, setVistaMovil] = useState<'documento' | 'comentarios'>('documento');
   const [error, setError] = useState<string | null>(null);
   const [copiado, setCopiado] = useState(false);
-  const [borradores, setBorradores] = useState<BorradorTina[]>([]);
   const areaDoc = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   // Edición del Word, solo FIRMA.
@@ -173,21 +162,6 @@ export const VisorComentarios: React.FC<{
     void cargar();
   }, [cargar]);
 
-  // Borradores de Tina, solo FIRMA. Sin la migración 0070 la tabla no existe: no se muestra nada.
-  useEffect(() => {
-    if (!supabase || !esFirma) return;
-    let vivo = true;
-    void supabase
-      .from('comentario_borradores')
-      .select('comentario_id, hasta, pedido, respuesta, clausula, nota')
-      .eq('archivo_id', archivo.id)
-      .eq('estado', 'pendiente')
-      .then(({ data }) => vivo && setBorradores((data as BorradorTina[]) ?? []));
-    return () => {
-      vivo = false;
-    };
-  }, [archivo.id, esFirma]);
-
   // Comentarios en vivo: lo que escribe la otra parte aparece sin recargar.
   useEffect(() => {
     const sb = supabase;
@@ -247,28 +221,6 @@ export const VisorComentarios: React.FC<{
         return pa - pb || ia - ib || a.creado_en.localeCompare(b.creado_en);
       });
   }, [comentarios, esFirma]);
-
-  // El borrador vale mientras nadie haya escrito en el hilo después de que Tina lo leyó.
-  const borradorDe = (h: Hilo): BorradorTina | null => {
-    if (h.resuelto_en) return null;
-    const b = borradores.find((x) => x.comentario_id === h.id);
-    if (!b) return null;
-    const ultimo = h.respuestas.length ? h.respuestas[h.respuestas.length - 1].creado_en : h.creado_en;
-    return Date.parse(ultimo) <= Date.parse(b.hasta) ? b : null;
-  };
-
-  async function cerrarBorrador(h: Hilo, estado: 'publicado' | 'descartado') {
-    if (!supabase) return;
-    const { error: e } = await supabase.rpc('borrador_cerrar', { p_comentario: h.id, p_estado: estado });
-    if (e) return setError(mensajeAmable(e));
-    setBorradores((l) => l.filter((b) => b.comentario_id !== h.id));
-  }
-
-  async function publicarBorrador(h: Hilo, texto: string): Promise<boolean> {
-    if (!(await responder(h, texto))) return false;
-    await cerrarBorrador(h, 'publicado');
-    return true;
-  }
 
   const abiertos = hilos.filter((h) => !h.resuelto_en);
   const resueltos = hilos.filter((h) => h.resuelto_en);
@@ -713,9 +665,6 @@ export const VisorComentarios: React.FC<{
                 soloLectura={soloLectura}
                 nombreDe={nombreDe}
                 puedeBorrar={puedeBorrar}
-                borrador={soloLectura ? null : borradorDe(h)}
-                alPublicarBorrador={(t) => publicarBorrador(h, t)}
-                alDescartarBorrador={() => void cerrarBorrador(h, 'descartado')}
                 alElegir={() => irALaFrase(h)}
                 alResponder={(t) => responder(h, t)}
                 alResolver={(r) => resolver(h, r)}
@@ -822,10 +771,7 @@ const TarjetaHilo: React.FC<{
   alResponder: (texto: string) => Promise<boolean>;
   alResolver: (resuelto: boolean) => void;
   alBorrar: (c: Comentario) => void;
-  borrador: BorradorTina | null;
-  alPublicarBorrador: (texto: string) => Promise<boolean>;
-  alDescartarBorrador: () => void;
-}> = ({ hilo, activo, sinTexto, soloLectura, nombreDe, puedeBorrar, alElegir, alResponder, alResolver, alBorrar, borrador, alPublicarBorrador, alDescartarBorrador }) => {
+}> = ({ hilo, activo, sinTexto, soloLectura, nombreDe, puedeBorrar, alElegir, alResponder, alResolver, alBorrar }) => {
   const [respuesta, setRespuesta] = useState('');
   const [ocupado, setOcupado] = useState(false);
 
@@ -885,11 +831,9 @@ const TarjetaHilo: React.FC<{
         </div>
       ))}
 
-      {borrador && <BorradorDeTina key={borrador.hasta} borrador={borrador} alPublicar={alPublicarBorrador} alDescartar={alDescartarBorrador} />}
-
       {!soloLectura && (
         <div className="flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
-          {activo && !hilo.resuelto_en && !borrador && (
+          {activo && !hilo.resuelto_en && (
             <form onSubmit={enviar} className="flex flex-col gap-2">
               <textarea
                 rows={2}
@@ -920,70 +864,6 @@ const TarjetaHilo: React.FC<{
         </div>
       )}
     </article>
-  );
-};
-
-/** Lo que Tina preparó para un hilo. FIRMA lo corrige y lo publica como respuesta, o lo descarta. */
-const BorradorDeTina: React.FC<{ borrador: BorradorTina; alPublicar: (texto: string) => Promise<boolean>; alDescartar: () => void }> = ({ borrador, alPublicar, alDescartar }) => {
-  const [texto, setTexto] = useState(borrador.respuesta);
-  const [ocupado, setOcupado] = useState(false);
-  const [copiada, setCopiada] = useState(false);
-
-  async function publicar() {
-    if (!texto.trim()) return;
-    setOcupado(true);
-    await alPublicar(texto.trim());
-    setOcupado(false);
-  }
-
-  async function copiarClausula() {
-    try {
-      await navigator.clipboard.writeText(borrador.clausula ?? '');
-      setCopiada(true);
-      window.setTimeout(() => setCopiada(false), 2500);
-    } catch {
-      /* Sin permiso para copiar: el texto queda a la vista para seleccionarlo. */
-    }
-  }
-
-  return (
-    <div className="flex flex-col gap-2.5 rounded-control border border-dashed border-borde bg-marfil p-3 cursor-default" onClick={(e) => e.stopPropagation()}>
-      <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-tinta">
-        <Sparkles size={13} aria-hidden="true" /> Borrador de Tina, solo lo ves vos
-      </span>
-      <p className="text-[13px] leading-[1.45] text-tinta">
-        <strong>Qué pide:</strong> {borrador.pedido}
-      </p>
-      {borrador.nota && (
-        <p className="text-[13px] leading-[1.45] text-tinta">
-          <strong>Para revisar:</strong> {borrador.nota}
-        </p>
-      )}
-      <label className="flex flex-col gap-1 text-[12px] font-medium text-piedra">
-        Respuesta para el cliente
-        <textarea rows={5} maxLength={4000} value={texto} onChange={(e) => setTexto(e.target.value)} className={claseCampo} />
-      </label>
-      {borrador.clausula && (
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[12px] font-medium text-piedra">Texto sugerido para el documento</span>
-            <button type="button" onClick={copiarClausula} className="inline-flex items-center gap-1 text-[12px] font-medium text-tinta underline underline-offset-4">
-              {copiada ? <Check size={12} aria-hidden="true" /> : <Copy size={12} aria-hidden="true" />}
-              {copiada ? 'Copiado' : 'Copiar'}
-            </button>
-          </div>
-          <p className="max-h-48 overflow-auto rounded-control border border-borde-suave bg-papel px-3 py-2 text-[13px] leading-[1.5] text-tinta whitespace-pre-wrap break-words">{borrador.clausula}</p>
-        </div>
-      )}
-      <div className="flex items-center gap-3">
-        <button type="button" onClick={publicar} disabled={ocupado || !texto.trim()} className="h-9 px-3.5 rounded-control bg-tinta text-marfil text-sm font-medium disabled:opacity-50">
-          {ocupado ? 'Publicando…' : 'Publicar respuesta'}
-        </button>
-        <button type="button" onClick={alDescartar} disabled={ocupado} className="text-sm text-piedra underline underline-offset-4 hover:text-tinta">
-          Descartar
-        </button>
-      </div>
-    </div>
   );
 };
 
