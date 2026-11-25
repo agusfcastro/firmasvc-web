@@ -365,6 +365,9 @@ export const Clientes: React.FC = () => {
                   <Enlace a={`/portal/admin/documentos?empresa=${o.id}`} className="underline underline-offset-4 hover:text-bosque mr-4">
                     Documentos
                   </Enlace>
+                  <Enlace a={`/portal/firmas?empresa=${o.id}`} className="underline underline-offset-4 hover:text-bosque mr-4">
+                    Firmas
+                  </Enlace>
                   <button type="button" className="underline underline-offset-4 hover:text-bosque" onClick={() => setBorrador({ ...o })}>
                     Editar
                   </button>

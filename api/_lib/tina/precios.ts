@@ -40,6 +40,11 @@ function costo(modelo: string | null | undefined, entrada: number, salida: numbe
   return (entrada * p.entrada + escritura * p.entrada * 1.25 + lectura * p.lecturaCache + salida * p.salida) / 1_000_000;
 }
 
+/** Costo estimado de una llamada sin caché, para anotar las corridas de los agentes que no la detallan. */
+export function costoEstimado(modelo: string | null | undefined, entrada: number, salida: number): number {
+  return costo(modelo, entrada, salida, 0, 0);
+}
+
 /** Suma al acumulado el uso de una respuesta. */
 export function sumarUso(acumulado: Consumo, mensaje: Anthropic.Beta.BetaMessage): void {
   const u = mensaje.usage;

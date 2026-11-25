@@ -104,7 +104,7 @@ export function definiciones(plan: 'starter' | 'eminent'): Anthropic.Beta.BetaTo
           servicio: { type: 'string', description: 'Nombre o código del servicio que compró.' },
           monto_total: { type: 'number', description: 'Monto total acordado.' },
           moneda: { type: 'string', enum: ['USD', 'ARS', 'EUR', 'PEN', 'MXN', 'CLP', 'COP'], description: 'Solo si el usuario la dice. Tiene que estar habilitada para la empresa. Si no se dice, va la del servicio o la primera de la empresa.' },
-          modalidad: { type: 'string', enum: ['PIF', 'Cuotas'], description: 'PIF es pago completo.' },
+          modalidad: { type: 'string', enum: ['PIF', 'Cuotas'], description: 'PIF es pago completo ya abonado: no lleva cuotas, anticipo ni vencimiento. No preguntes cuánto pagó ni cuándo vence el saldo.' },
           cuotas: {
             type: 'array',
             description: 'Plan de pagos, si es en cuotas. Cada cuota con su monto y su vencimiento (AAAA-MM-DD).',
@@ -418,7 +418,7 @@ async function crearFichaCierre(s: Sesion, e: Entrada): Promise<Resultado> {
     servicio: servicio?.clave ?? null,
     monto_total: montoTotal ?? ticket,
     moneda,
-    modalidad: modalidad ?? (cuotas.length > 1 ? 'Cuotas' : cuotas.length === 1 ? 'PIF' : null),
+    modalidad: modalidad ?? (cuotas.length ? 'Cuotas' : null),
     fecha_onboarding: onboarding,
     notas: texto(e.notas, 1000),
   };
@@ -435,10 +435,18 @@ async function crearFichaCierre(s: Sesion, e: Entrada): Promise<Resultado> {
   )
     .filter(([k]) => datos[k] === null)
     .map(([, rotulo]) => rotulo);
+  // Con PIF no hay cuotas: se registra un solo pago por el total, ya abonado.
+  const esPif = datos.modalidad === 'PIF';
+  if (esPif) cuotas.length = 0;
   const sumaCuotas = cuotas.reduce((t, c) => t + c.monto, 0);
   const avisos: string[] = [];
   if (pedido && !servicio) avisos.push(`El servicio «${pedido}» no está en la lista de la empresa.`);
   if (cuotas.length && datos.monto_total !== null && Math.abs(sumaCuotas - datos.monto_total) > 0.01) avisos.push('La suma de las cuotas no coincide con el monto total.');
+
+  // Un cliente por nombre en cada empresa (migración 0073), sin distinguir mayúsculas, tildes ni espacios.
+  const { data: mismoNombre } = await s.db.rpc('crm_cliente_con_nombre', { org: s.orgId, buscado: nombre });
+  const repetido = ((mismoNombre as { id: string; codigo: string | null }[] | null) ?? [])[0];
+  if (repetido) avisos.push(`Ya hay un cliente con ese nombre (${repetido.codigo ?? 'sin código'}). Si es otra persona, pedí un segundo apellido.`);
 
   const resumen = { ...datos, cuotas, servicios_disponibles: servicios.map((x) => x.nombre || x.clave), faltan, avisos };
 
@@ -446,6 +454,12 @@ async function crearFichaCierre(s: Sesion, e: Entrada): Promise<Resultado> {
     return {
       modelo: JSON.stringify({ guardado: false, resumen, instruccion: 'Mostrale este resumen al usuario y preguntale si lo cargás. No lo cargues sin su confirmación.' }),
       pantalla: { tipo: 'ficha', estado: 'borrador', resumen },
+    };
+  }
+
+  if (repetido) {
+    return {
+      modelo: JSON.stringify({ guardado: false, motivo: 'Ya hay un cliente con ese nombre. Si es otra persona, pedile un segundo apellido para distinguirlo.', codigo: repetido.codigo, enlace: `${s.base}/portal/crm/${repetido.id}` }),
     };
   }
 
@@ -481,10 +495,14 @@ async function crearFichaCierre(s: Sesion, e: Entrada): Promise<Resultado> {
   if (error || !creado) return invalido(`No se pudo cargar el cliente. ${error?.message ?? ''}`.trim());
 
   let planCargado = true;
-  if (cuotas.length) {
-    const { error: e2 } = await s.db
-      .from('crm_pagos')
-      .insert(cuotas.map((c) => ({ cliente_id: creado.id, organizacion_id: s.orgId, monto: c.monto, vencimiento: c.vencimiento, estado: 'pendiente' })));
+  const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+  const filasPlan: Record<string, unknown>[] = esPif
+    ? datos.monto_total
+      ? [{ cliente_id: creado.id, organizacion_id: s.orgId, monto: datos.monto_total, estado: 'pagado', fecha_pago: hoy, nota: 'Pago total' }]
+      : []
+    : cuotas.map((c) => ({ cliente_id: creado.id, organizacion_id: s.orgId, monto: c.monto, vencimiento: c.vencimiento, estado: 'pendiente' }));
+  if (filasPlan.length) {
+    const { error: e2 } = await s.db.from('crm_pagos').insert(filasPlan);
     planCargado = !e2;
   }
   const enlace = `${s.base}/portal/crm/${creado.id}`;
@@ -494,7 +512,7 @@ async function crearFichaCierre(s: Sesion, e: Entrada): Promise<Resultado> {
       guardado: true,
       codigo: creado.codigo,
       enlace,
-      plan_de_pagos: cuotas.length ? (planCargado ? 'cargado' : 'no se pudo cargar, que lo carguen en la ficha') : 'sin cuotas',
+      plan_de_pagos: filasPlan.length ? (planCargado ? (esPif ? 'pago total registrado' : 'cargado') : 'no se pudo cargar, que lo carguen en la ficha') : 'sin cuotas',
       puede_mandar_a_firmar: firma,
       siguiente_paso: firma
         ? 'Desde la ficha genera el contrato y lo manda con «Mandar a firmar».'

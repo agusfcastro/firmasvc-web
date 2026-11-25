@@ -10,6 +10,7 @@ import { rangoDe, seleccionActual, ubicar, type Ancla, type Seleccion } from './
 import { nombreExportado, textoComentarios, wordComentarios } from './exportar';
 import { mensajeAmable } from '../errores';
 import { EditorWord, type EditorWordRef } from '../editor/EditorWord';
+import { cargarFuentesDocumentos } from '../editor/fuentes';
 import { BorradorCambiado, bajarArchivo, descartarBorrador, guardarBorrador, listarVersiones, publicarVersion, type Version } from '../editor/versiones';
 
 GlobalWorkerOptions.workerSrc = trabajador;
@@ -1184,6 +1185,7 @@ const VistaWord: React.FC<{ blob: Blob; marcas: Marca[]; activo: string | null; 
     if (!cuerpo || !estilos.current) return;
     let vivo = true;
     const est = estilos.current;
+    cargarFuentesDocumentos();
     void import('docx-preview')
       .then(({ renderAsync }) =>
         renderAsync(blob, cuerpo, est, {

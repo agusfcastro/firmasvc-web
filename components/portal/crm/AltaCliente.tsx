@@ -62,6 +62,24 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
   const [manual, setManual] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [etapa, setEtapa] = useState<'' | 'guardando'>('');
+  // Un cliente por nombre en cada empresa (migración 0073). Se avisa mientras se escribe, con la ficha que ya existe.
+  const [repetido, setRepetido] = useState<{ id: string; codigo: string | null } | null>(null);
+  useEffect(() => {
+    const buscado = f.nombre.trim();
+    if (!supabase || buscado.length < 3) {
+      setRepetido(null);
+      return;
+    }
+    let vivo = true;
+    const espera = window.setTimeout(async () => {
+      const { data } = await supabase!.rpc('crm_cliente_con_nombre', { org: orgId, buscado });
+      if (vivo) setRepetido(((data as { id: string; codigo: string | null }[] | null) ?? [])[0] ?? null);
+    }, 350);
+    return () => {
+      vivo = false;
+      window.clearTimeout(espera);
+    };
+  }, [f.nombre, orgId]);
   const soloLectura = Boolean(useVistaPrevia());
   // Las monedas de la empresa llegan después del primer render. Si la elegida no está habilitada, se usa la primera.
   const claveMonedas = monedas.join(',');
@@ -96,15 +114,18 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
       .then(({ data }) => setVariables((data as VariablePropia[]) ?? []));
   }, [orgId]);
 
+  // PIF es pago total ya abonado: no se pregunta cuánto pagó ni cuándo vence un saldo, porque no hay saldo.
+  // Se registra un solo pago por el total, como abonado al contratar.
+  const esPif = f.modalidad === 'PIF';
   const total = aCentavos(f.monto_total);
-  const anticipo = aCentavos(f.anticipo);
-  const cantidad = f.modalidad === 'PIF' ? 1 : Math.max(1, Math.min(36, parseInt(f.cantidad, 10) || 1));
+  const anticipo = esPif ? total : aCentavos(f.anticipo);
+  const cantidad = Math.max(1, Math.min(36, parseInt(f.cantidad, 10) || 1));
 
   // Mientras no se toquen las cuotas a mano, el plan se reparte solo.
   useEffect(() => {
     if (manual) return;
-    setCuotas(repartir(total - anticipo, cantidad, f.primera));
-  }, [manual, total, anticipo, cantidad, f.primera]);
+    setCuotas(esPif ? [] : repartir(total - anticipo, cantidad, f.primera));
+  }, [manual, esPif, total, anticipo, cantidad, f.primera]);
 
   // Validación. Anticipo más la suma de las cuotas tiene que dar el monto acordado.
   const montos = cuotas.map((c) => aCentavos(c.monto));
@@ -112,7 +133,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
   const suma = anticipo + sumaCuotas;
   const diferencia = total - suma;
   let problema: string | null = null;
-  if (total <= 0) problema = 'Cargá el monto total acordado para armar el plan.';
+  if (total <= 0) problema = esPif ? 'Cargá el monto total que pagó.' : 'Cargá el monto total acordado para armar el plan.';
   else if (anticipo > total) problema = 'El anticipo supera el monto total acordado.';
   else if (montos.some((m) => m <= 0)) problema = 'Cada cuota necesita un monto mayor a cero.';
   else if (cuotas.some((c) => !FECHA_VALIDA.test(c.vencimiento))) problema = 'Cada cuota necesita su fecha de vencimiento.';
@@ -147,6 +168,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
     e.preventDefault();
     if (!supabase) return;
     if (!valido) return setError(problema);
+    if (repetido) return setError('Ya hay un cliente con ese nombre en la empresa. Abrí su ficha o sumale un segundo apellido.');
     const datosExtra = sinVacios(extra);
     const sinCargar = variables.filter((v) => v.obligatoria && !(v.clave in datosExtra));
     if (sinCargar.length) {
@@ -191,7 +213,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
       return setError(e1?.message ?? 'No se pudo crear.');
     }
     const filas = [
-      ...(anticipo > 0 ? [{ cliente_id: data.id, organizacion_id: orgId, monto: anticipo / 100, estado: 'pagado', fecha_pago: hoyISO(), nota: 'Anticipo' }] : []),
+      ...(anticipo > 0 ? [{ cliente_id: data.id, organizacion_id: orgId, monto: anticipo / 100, estado: 'pagado', fecha_pago: hoyISO(), nota: esPif ? 'Pago total' : 'Anticipo' }] : []),
       ...cuotas.map((c) => ({ cliente_id: data.id, organizacion_id: orgId, monto: aCentavos(c.monto) / 100, vencimiento: c.vencimiento, estado: 'pendiente' })),
     ];
     let planOk = true;
@@ -246,6 +268,15 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
       )}
 
       <DatosCliente d={f} alCambiar={set} mailObligatorio nombreGrupo="tipo-alta" />
+      {repetido && (
+        <Aviso tipo="error">
+          Ya hay un cliente con ese nombre en {orgNombre || 'la empresa'}.{' '}
+          <Enlace a={`/portal/crm/${repetido.id}`} className="underline underline-offset-4">
+            Abrir su ficha{repetido.codigo ? ` ${repetido.codigo}` : ''}
+          </Enlace>
+          . Si es otra persona, sumale el segundo apellido.
+        </Aviso>
+      )}
 
       <div className="grid gap-5 tab:grid-cols-2">
         <Campo etiqueta="Servicio">
@@ -372,18 +403,20 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
               <option value="PIF">PIF (pago total)</option>
             </select>
           </Campo>
-          <Campo etiqueta={`Anticipo (${simbolo}) *`} ayuda="* Todo lo que se pague antes del día del onboarding.">
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              className={claseInput}
-              title="Todo lo que se pague antes del día del onboarding."
-              value={f.anticipo}
-              onChange={(e) => set('anticipo', e.target.value)}
-            />
-          </Campo>
-          {f.modalidad === 'Cuotas' && (
+          {!esPif && (
+            <Campo etiqueta={`Anticipo (${simbolo}) *`} ayuda="* Todo lo que se pague antes del día del onboarding.">
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                className={claseInput}
+                title="Todo lo que se pague antes del día del onboarding."
+                value={f.anticipo}
+                onChange={(e) => set('anticipo', e.target.value)}
+              />
+            </Campo>
+          )}
+          {!esPif && (
             <Campo etiqueta="Cantidad de cuotas">
               <input
                 type="number"
@@ -398,11 +431,14 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
               />
             </Campo>
           )}
-          <Campo etiqueta={f.modalidad === 'PIF' ? 'Vence el saldo' : 'Primera cuota'}>
-            <input type="date" className={claseInput} value={f.primera} onChange={(e) => cambiarPrimera(e.target.value)} />
-          </Campo>
+          {!esPif && (
+            <Campo etiqueta="Primera cuota">
+              <input type="date" className={claseInput} value={f.primera} onChange={(e) => cambiarPrimera(e.target.value)} />
+            </Campo>
+          )}
         </div>
 
+        {!esPif && (
         <div className="flex flex-col gap-3">
           {cuotas.length > 0 && (
             <div className="grid grid-cols-[36px_minmax(0,1fr)_minmax(0,1fr)_44px] gap-3 text-[12.5px] font-medium text-piedra">
@@ -453,20 +489,27 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
             )}
           </div>
         </div>
+        )}
 
         <div role="status" aria-live="polite" className={`border-l-[3px] px-4 py-3 text-sm leading-[1.5] ${estiloResumen}`}>
-          <div className="flex flex-wrap gap-x-6 gap-y-1 tabular-nums">
-            <span>Anticipo {dinero(anticipo / 100, f.moneda)}</span>
-            <span>
-              Cuotas {dinero(sumaCuotas / 100, f.moneda)} en {cuotas.length} {cuotas.length === 1 ? 'pago' : 'pagos'}
-            </span>
-            <span>
-              Total {dinero(suma / 100, f.moneda)} de {dinero(total / 100, f.moneda)}
-            </span>
-          </div>
-          <p className="mt-1 font-medium">{problema ?? 'El plan cierra exacto con el monto acordado.'}</p>
+          {esPif ? (
+            <p className="font-medium">{problema ?? `Pago total de ${dinero(total / 100, f.moneda)}, registrado como abonado al contratar.`}</p>
+          ) : (
+            <>
+              <div className="flex flex-wrap gap-x-6 gap-y-1 tabular-nums">
+                <span>Anticipo {dinero(anticipo / 100, f.moneda)}</span>
+                <span>
+                  Cuotas {dinero(sumaCuotas / 100, f.moneda)} en {cuotas.length} {cuotas.length === 1 ? 'pago' : 'pagos'}
+                </span>
+                <span>
+                  Total {dinero(suma / 100, f.moneda)} de {dinero(total / 100, f.moneda)}
+                </span>
+              </div>
+              <p className="mt-1 font-medium">{problema ?? 'El plan cierra exacto con el monto acordado.'}</p>
+            </>
+          )}
         </div>
-        <p className="text-xs text-piedra">Después podés ajustar montos y fechas de cada cuota desde la ficha.</p>
+        {!esPif && <p className="text-xs text-piedra">Después podés ajustar montos y fechas de cada cuota desde la ficha.</p>}
       </fieldset>
 
       <Campo
@@ -487,10 +530,10 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
       </Campo>
 
       <div className="flex flex-col gap-3 items-start">
-        <Button type="submit" size="lg" disabled={!valido || etapa !== ''} className="disabled:opacity-45 disabled:cursor-not-allowed">
+        <Button type="submit" size="lg" disabled={!valido || etapa !== '' || Boolean(repetido)} className="disabled:opacity-45 disabled:cursor-not-allowed">
           {etapa === 'guardando' ? 'Guardando…' : 'Crear cliente'}
         </Button>
-        {!valido && <p className="text-xs text-piedra">Se habilita cuando anticipo más cuotas suman exacto el monto acordado.</p>}
+        {!valido && <p className="text-xs text-piedra">{esPif ? 'Se habilita cuando cargás el monto total.' : 'Se habilita cuando anticipo más cuotas suman exacto el monto acordado.'}</p>}
       </div>
     </form>
     </>

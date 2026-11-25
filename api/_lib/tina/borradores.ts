@@ -14,6 +14,7 @@
  * borrador en el visor del documento.
  */
 import Anthropic from '@anthropic-ai/sdk';
+import { huellaPrompt, registrarCorrida } from '../ia/registro.js';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { enviarMail, mailDisponible, plantillaMail } from '../mail.js';
 import { COLOR } from '../marca.js';
@@ -221,7 +222,18 @@ export async function prepararBorradores(sb: SupabaseClient, archivoId: string):
   let guardados = 0;
   for (let i = 0; i < hilos.length; i += POR_TANDA) {
     const tanda = hilos.slice(i, i + POR_TANDA);
+    const inicio = Date.now();
     const borradores = await pedirBorradores(api, documento, tanda.map((h) => h.paraClaude));
+    // Auditoría de la IA (0074). FIRMA ya corrige o descarta cada borrador en el visor antes de publicarlo.
+    await registrarCorrida(sb, {
+      agente: 'borradores_comentarios',
+      versionPrompt: huellaPrompt(SISTEMA),
+      modelo: MODELO,
+      organizacionId: tanda[0]?.fila.organizacion_id ?? null,
+      referencia: { tabla: 'asunto_archivos', id: archivoId },
+      duracionMs: Date.now() - inicio,
+      revision: 'sin_revision',
+    });
     const porId = new Map(borradores.map((b) => [b.id, b]));
     const nuevos = tanda.flatMap((h) => {
       const b = porId.get(h.paraClaude.id);
