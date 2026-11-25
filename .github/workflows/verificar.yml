@@ -1,5 +1,7 @@
 # Corre en cada push y en cada pull request.
-#   codigo       tipos, colores de marca y pruebas de permisos sobre PGlite (sin Docker)
+#   codigo       tipos, colores de marca, pruebas de permisos sobre PGlite (sin Docker),
+#                pruebas del evaluador de la IA y, en un pull request que cambia un
+#                prompt, la evaluación de ese agente contra la versión de la base
 #   migraciones  aplica todas las migraciones sobre la imagen real de Supabase
 name: Verificar
 
@@ -12,6 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # El evaluador compara con la versión de la base del pull request.
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -20,6 +25,21 @@ jobs:
       - run: npm run typecheck
       - run: npm run marca:verificar
       - run: npm run db:probar
+      - run: npm run ia:probar
+      # Solo corre agentes si el pull request cambia un prompt (docs/TINA_SYSTEM_PROMPT.md,
+      # docs/ANALIZADOR_VENTA.md, las herramientas de Tina o los borradores). Falla si el
+      # puntaje baja más de 2 puntos contra la base o queda debajo del umbral del agente.
+      # Necesita el secreto ANTHROPIC_API_KEY en Settings › Secrets and variables › Actions.
+      - name: Evaluar prompts
+        if: github.event_name == 'pull_request'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: npm run ia:evaluar -- --si-cambia --base ${{ github.event.pull_request.base.sha }} --salida evaluacion-ia.json
+      - uses: actions/upload-artifact@v4
+        if: always() && hashFiles('evaluacion-ia.json') != ''
+        with:
+          name: evaluacion-ia
+          path: evaluacion-ia.json
 
   migraciones:
     runs-on: ubuntu-latest

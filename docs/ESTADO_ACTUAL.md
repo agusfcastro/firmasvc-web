@@ -2,6 +2,8 @@
 
 Relevamiento del 5 de noviembre de 2026, antes de empezar la Fase 1 de Tina. Sale de leer el código, las 58 migraciones de `supabase/migrations/` y `PORTAL.md`, que es la documentación de uso y puesta en marcha de cada módulo. No se cambió código.
 
+Actualizado el 25 de noviembre de 2026 con el plan de Vercel, las migraciones 0073 a 0075 y la auditoría de la IA.
+
 ## Glosario, cómo se llama cada cosa en el código
 
 `CLAUDE.md` usa nombres genéricos. En el repo las cosas ya tienen nombre propio, y conviene construir a Tina con estos.
@@ -33,10 +35,10 @@ Relevamiento del 5 de noviembre de 2026, antes de empezar la Fase 1 de Tina. Sal
 | `api/_lib/` | Código compartido del servidor (mail, acceso, cola, variables de contratos, Word a PDF, colores de marca) |
 | `supabase/migrations/` | 58 migraciones numeradas `NNNN_descripcion.sql` |
 | `supabase/pruebas/` | Pruebas SQL de permisos que corren con `npm run db:probar` |
-| `scripts/` | Prerender, pruebas de base sobre PGlite y verificación de colores |
+| `scripts/` | Prerender, pruebas de base sobre PGlite, verificación de colores y el evaluador de la IA (`scripts/ia/`, con sus casos en `scripts/ia/casos/`) |
 | `public/` | Robots, sitemap, imágenes de los mails y videos |
 | `design_handoff_firma_home/` | Material de diseño de la home |
-| `.github/workflows/verificar.yml` | En cada push corre typecheck, verificación de marca, pruebas de base y las migraciones sobre la imagen real de Supabase |
+| `.github/workflows/verificar.yml` | En cada push corre typecheck, verificación de marca, pruebas de base, pruebas del evaluador y las migraciones sobre la imagen real de Supabase. En un pull request que cambia un prompt evalúa ese agente contra la base |
 
 ## Backend
 
@@ -45,6 +47,8 @@ Todo el backend son **rutas `/api` de Vercel** en TypeScript. No hay Edge Functi
 | Ruta | Para qué |
 | --- | --- |
 | `api/admin/usuarios.ts` | Invitar, editar, activar y desactivar usuarios |
+| `api/admin/ia.ts` | Arma la entrada anonimizada de un caso de prueba desde una corrida de la IA (0075) |
+| `api/tina/chat.ts` | Chat de Tina con sus herramientas |
 | `api/portal/avisos.ts` | Avisos por mail de asuntos, chat y documentos |
 | `api/portal/recuperar.ts` | Mail de «Olvidé mi contraseña» |
 | `api/portal/resumen.ts` | Tarea diaria con alertas de vencimientos y el mail de los lunes |
@@ -63,7 +67,9 @@ Patrón que siguen las funciones que atienden a usuarios.
 
 Los imports relativos dentro de `api/` llevan la extensión `.js`.
 
-**Tareas programadas.** Vercel Cron corre dos tareas una vez por día (`vercel.json`), la firma a las 13 UTC y el resumen a las 12 UTC. Además, `pg_cron` en Supabase corre `cola_barrer` cada minuto. El plan Hobby de Vercel solo permite crons diarios, así que un proceso «cada hora» para el resumen de las 7 tendría que ir por `pg_cron` o requerir Vercel Pro.
+**Plan de Vercel.** El proyecto está en el plan Pro. No hay tope de 12 funciones, así que una ruta nueva en `api/` no necesita consulta previa.
+
+**Tareas programadas.** Vercel Cron corre dos tareas una vez por día (`vercel.json`), la firma a las 13 UTC y el resumen a las 12 UTC. Además, `pg_cron` en Supabase corre `cola_barrer` cada minuto. Con Pro un cron sale en el minuto programado y puede correr hasta una vez por minuto, así que un proceso «cada hora» puede ir por Vercel Cron.
 
 ## Tablas y permisos
 
@@ -111,13 +117,15 @@ Además, la migración 0038 hace que las tablas hijas apunten al padre por `(org
 | `integraciones`, `webhook_recepciones`, `interacciones` | Conexiones de Fathom y llamadas cifradas | Según rol, ver `PORTAL.md` |
 | `analisis_codigos`, `interaccion_analisis` | Libro de códigos versionado y análisis de las llamadas de venta, con el informe cifrado | Catálogo, lectura. Análisis, solo por funciones: FIRMA todo, titular y CSM lo aprobado |
 | `cola_trabajos` | Cola de trabajos del servidor | Solo FIRMA lee. Escribe el servidor |
+| `ia_corridas` | Una fila por llamada a Claude, con agente, versión del prompt, modelo, tokens, costo y revisión de FIRMA (0074). Toma la empresa del registro original (0075) | Solo FIRMA lee. Escribe el servidor y revisa FIRMA con `ia_corrida_revisar` |
+| `ia_casos` | Casos de prueba de cada agente, con la entrada anonimizada y lo esperado (0074) | Solo FIRMA |
 | `comprobantes`, `comprobantes_emisor`, `comprobantes_numeracion` | Recibos y comprobantes de cada negocio | Negocio |
 
 Buckets de Storage `asuntos`, `documentos`, `firmas` y `modelos` (privados) y `logos` (público).
 
 Secretos en Supabase Vault `crm_datos` y `crm_indices` (cifrado del CRM), `interacciones_contenido`, y `cola_url` y `cola_secreto` (barrido de la cola).
 
-**Estado en producción.** Según el registro de trabajo, están aplicadas hasta la 0056 y la 0058. La **0057 (asuntos de la cartera) está pendiente** desde el 4 de noviembre.
+**Estado en producción.** Al 25 de noviembre de 2026 están aplicadas la 0073 (un nombre de cliente por empresa) y la 0074 (registro de corridas de la IA). La 0075 (Calidad de la IA) se aplica al publicar esa pantalla. En producción quedan dos nombres de cliente repetidos de antes de la 0073, que se pueden editar pero no se duplican más.
 
 ## Roles
 
@@ -160,7 +168,7 @@ Starter reemplazó a Gold y Black en la 0059. Los abonos cobran la oferta de `CL
 | Agenda | `/portal/agenda` | En producción |
 | Pagos | `/portal/pagos` | En producción con dLocal Go. Cuotas, pago completo y pesos al MEP desde la 0061, pendientes de probar en sandbox |
 | Bitácora | `/portal/bitacora` | En producción, solo titular |
-| Administración | `/portal/admin/...` | Clientes, Usuarios, Agendas, Documentos, Abonos, Newsletter y Registro |
+| Administración | `/portal/admin/...` | Clientes, Usuarios, Agendas, Documentos, Formularios, Abonos, Newsletter, Calidad de la IA y Registro |
 
 **App instalable y notificaciones push** desde el 14/11/2026: manifest, service worker y avisos de asuntos, documentos, onboardings, firmas y derivaciones de Tina. Detalle en `PORTAL.md`, sección App instalable y notificaciones. Necesita `VAPID_PRIVATE_KEY` en Vercel.
 
@@ -189,6 +197,8 @@ Solo nombres. Las que empiezan con `VITE_` llegan al navegador; el resto vive so
 | `COLA_SECRETO` | Opcional, barrido de la cola |
 
 Para Tina van a hacer falta, como mínimo, `ANTHROPIC_API_KEY` y las claves VAPID de push.
+
+El evaluador de la IA corre en GitHub Actions y necesita `ANTHROPIC_API_KEY` como secreto del repositorio (Settings › Secrets and variables › Actions). No usa claves de Supabase.
 
 ## Decisiones de Agustín, 5 de noviembre de 2026
 

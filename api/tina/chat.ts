@@ -26,7 +26,8 @@ import { SIN_ACCESO, SIN_CLIENTE_USUARIO, accesoVigente, clienteDelUsuario } fro
 import { armarPrompt } from '../_lib/tina/prompt.js';
 import { CAMINO_DE, definiciones, ejecutar, type Sesion } from '../_lib/tina/herramientas.js';
 import { consumoVacio, sumarUso } from '../_lib/tina/precios.js';
-import { huellaPrompt, registrarCorrida } from '../_lib/ia/registro.js';
+import { registrarCorrida } from '../_lib/ia/registro.js';
+import { versionTina } from '../_lib/ia/versiones.js';
 
 const MODELO = 'claude-opus-5-5';
 const MAX_VUELTAS = 6;
@@ -316,8 +317,8 @@ export async function POST(request: Request): Promise<Response> {
       // Auditoría de la IA (0074): se anota después de responder y nunca frena la respuesta.
       await registrarCorrida(sb, {
         agente: 'tina',
-        // Solo la parte fija del prompt: el contexto cambia con cada persona y empresa.
-        versionPrompt: huellaPrompt(prompt.estatico),
+        // La parte fija del prompt y las herramientas: el contexto cambia con cada persona y empresa.
+        versionPrompt: versionTina(),
         modelo: modeloUsado,
         organizacionId: sesion.orgId,
         referencia: { tabla: 'tina_conversaciones', id: String(cid) },

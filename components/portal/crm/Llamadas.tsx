@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, Copy, MessageCircle } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
@@ -149,6 +149,8 @@ export const Llamadas: React.FC<{ orgId: string; orgNombre: string; puedeGestion
   const [conAnalisis, setConAnalisis] = useState(false);
   const [esStaff, setEsStaff] = useState(false);
   const [abierto, setAbierto] = useState<string | null>(null);
+  // Desde Administración › Calidad de la IA se llega con ?analisis=<id>: abre ese informe en el negocio con el que se entró.
+  const analisisPedido = useRef({ id: new URLSearchParams(window.location.search).get('analisis'), org: orgId });
   const [cargandoManual, setCargandoManual] = useState(false);
   const [soloRevision, setSoloRevision] = useState(false);
 
@@ -194,7 +196,7 @@ export const Llamadas: React.FC<{ orgId: string; orgNombre: string; puedeGestion
     setNueva(null);
     setEnlace(null);
     setSecreto(null);
-    setAbierto(null);
+    setAbierto(orgId === analisisPedido.current.org ? analisisPedido.current.id : null);
     setCargandoManual(false);
     void cargar();
   }, [orgId]); // eslint-disable-line react-hooks/exhaustive-deps
