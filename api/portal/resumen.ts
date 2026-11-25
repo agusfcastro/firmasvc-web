@@ -10,8 +10,6 @@
  *   todas las empresas. Cada alerta sale una vez por umbral. En pago completo,
  *   7 días antes de que venza lo pagado y el día anterior, el titular recibe
  *   el aviso para autorizar el débito de la cuota posterior.
- *   De lunes a viernes encola el brief de Tina: los borradores de respuesta
- *   a los comentarios de clientes en documentos (api/_lib/tina/borradores.ts).
  *   Además dispara la tarea diaria de los abonos (/api/pagos/gestionar), que
  *   corre aparte con las claves de dLocal Go.
  *   Los lunes, además, el mail de la semana: la newsletter (video y artículo
@@ -39,7 +37,6 @@ import { genteDe } from '../_lib/acceso.js';
 import { enviarMail, mailDisponible, plantillaMail } from '../_lib/mail.js';
 import { COLOR } from '../_lib/marca.js';
 import { enviarPush, pushDisponible } from '../_lib/push.js';
-import { encolarBrief } from '../_lib/tina/borradores.js';
 
 const ZONA = 'America/Argentina/Buenos_Aires';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -722,8 +719,6 @@ export async function GET(request: Request): Promise<Response> {
   if (!clave || !iguales(request.headers.get('authorization') || '', `Bearer ${clave}`)) return error('No autorizado.', 401);
   // Abonos en cuotas y en pesos al MEP. Corre en su propia función, sin demorar los mails.
   waitUntil(fetch(`${basePortal()}/api/pagos/gestionar`, { headers: { authorization: `Bearer ${clave}` }, signal: AbortSignal.timeout(55_000) }).catch(() => undefined));
-  // Brief de Tina, de lunes a viernes: encola los borradores de respuesta a los comentarios de clientes. Si falla, lo demás sale igual.
-  if (diaDeSemana(diaDe(new Date())) <= 4) await encolarBrief(sb, diaDe(new Date())).catch(() => undefined);
   if (!process.env.PORTAL_CLAVE_AVISOS) return error('El servidor no tiene configurada PORTAL_CLAVE_AVISOS.', 500);
   if (!mailDisponible()) return error('El envío de mails no está configurado.', 503);
   try {
