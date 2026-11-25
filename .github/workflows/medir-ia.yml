@@ -1,0 +1,51 @@
+# Medición a mano de un agente de IA contra sus casos de scripts/ia/casos, sin
+# comparar con otra versión. Sirve para fijar el umbral de un agente la primera
+# vez y para ver cómo está hoy sin tocar su prompt.
+#
+# Se corre desde GitHub › Actions › Medir IA › Run workflow, eligiendo el agente.
+# Usa el secreto ANTHROPIC_API_KEY y gasta crédito de la API (la batería de Tina
+# ronda los USD 2). No toca la base. El resumen queda en la página de la corrida
+# y el informe completo como artefacto.
+name: Medir IA
+
+on:
+  workflow_dispatch:
+    inputs:
+      agente:
+        description: Agente a medir
+        type: choice
+        options:
+          - tina
+          - analisis_clasificacion
+          - analisis_venta
+          - borradores_comentarios
+        default: tina
+
+permissions:
+  contents: read
+
+concurrency:
+  group: medir-ia-${{ inputs.agente }}
+  cancel-in-progress: false
+
+jobs:
+  medir:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Medir
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AGENTE: ${{ inputs.agente }}
+        run: npm run ia:evaluar -- --agente "$AGENTE" --sin-base --salida evaluacion-ia.json
+      - uses: actions/upload-artifact@v4
+        if: always() && hashFiles('evaluacion-ia.json') != ''
+        with:
+          name: medicion-ia-${{ inputs.agente }}
+          path: evaluacion-ia.json

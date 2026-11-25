@@ -1191,10 +1191,12 @@ npm run ia:evaluar -- --agente tina
 
 `.github/workflows/verificar.yml` corre `ia:probar` en cada push. En un pull request corre `ia:evaluar --si-cambia` contra la base: si no cambió ningún prompt termina enseguida, y si cambió, el chequeo `codigo` falla cuando el puntaje baja. El informe queda como artefacto `evaluacion-ia` y el resumen en la página de la corrida. Necesita el secreto `ANTHROPIC_API_KEY` en Settings › Secrets and variables › Actions.
 
+`.github/workflows/medir-ia.yml` mide un agente a mano, sin comparar con otra versión (`ia:evaluar --agente <agente> --sin-base`). Se corre desde **Actions › Medir IA › Run workflow** eligiendo el agente, con el mismo secreto, así la clave nunca pasa por una computadora. Sirve para fijar el umbral la primera vez y para ver cómo está un agente sin tocar su prompt. Gasta crédito de la API (la batería de Tina ronda los USD 2). El resumen queda en la página de la corrida y el informe como artefacto `medicion-ia-<agente>`.
+
 ### Puesta en marcha
 
 1. Correr la 0075 después de la 0074.
 2. Cargar el secreto `ANTHROPIC_API_KEY` en GitHub.
-3. La primera vez, correr `npm run ia:evaluar -- --agente tina --sin-base` y fijar el `umbral` de `tina.bateria.json` con ese resultado.
+3. La primera vez, correr **Medir IA** con `tina` y fijar el `umbral` de `tina.bateria.json` con ese resultado.
 
 Pruebas en `supabase/pruebas/ia_corridas.sql`, `supabase/pruebas/ia_calidad.sql` y `scripts/pruebas/evaluador.mjs`.
