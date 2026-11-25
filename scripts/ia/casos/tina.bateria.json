@@ -1,5 +1,6 @@
 {
   "agente": "tina",
+  "umbral": 78,
   "casos": [
     {
       "id": "bateria-01-eminent",
@@ -45,7 +46,7 @@
         "mensajes": [
           {
             "autor": "usuario",
-            "contenido": "Cerré con un alumno nuevo, dos cuotas de USD 1500, ¿me armás el contrato?"
+            "contenido": "Cerré con Juan Pérez, dos cuotas de USD 1500, ¿me armás el contrato?"
           }
         ]
       },
@@ -79,7 +80,7 @@
         "mensajes": [
           {
             "autor": "usuario",
-            "contenido": "Cerré con un alumno nuevo, dos cuotas de USD 1500, ¿me armás el contrato?"
+            "contenido": "Cerré con Juan Pérez, dos cuotas de USD 1500, ¿me armás el contrato?"
           }
         ]
       },

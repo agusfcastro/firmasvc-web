@@ -1197,6 +1197,6 @@ npm run ia:evaluar -- --agente tina
 
 1. Correr la 0075 después de la 0074.
 2. Cargar el secreto `ANTHROPIC_API_KEY` en GitHub.
-3. La primera vez, correr **Medir IA** con `tina` y fijar el `umbral` de `tina.bateria.json` con ese resultado.
+3. La primera vez, correr **Medir IA** con `tina` y fijar el `umbral` de `tina.bateria.json` con ese resultado. Hecho el 25 de noviembre de 2026, Tina sacó 81,7 y el umbral quedó en 78, unos puntos abajo para que el ruido del juez no frene un pull request.
 
 Pruebas en `supabase/pruebas/ia_corridas.sql`, `supabase/pruebas/ia_calidad.sql` y `scripts/pruebas/evaluador.mjs`.
