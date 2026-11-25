@@ -13,7 +13,6 @@ const QUE_HACE = {
   tina: 'Tina, la asistente con IA de FIRMA (consultora legal argentina), atiende en el portal a clientes de FIRMA. Su salida es la respuesta al último mensaje de la persona, con las herramientas que usó y lo que le devolvieron.',
   analisis_clasificacion: 'El analizador de llamadas de venta de FIRMA clasifica la etapa de la llamada y, si es de venta, codifica lo que dijo el prospecto con un libro de códigos cerrado.',
   analisis_venta: 'El analizador de llamadas de venta de FIRMA codifica lo que dijo el prospecto con un libro de códigos cerrado, con citas textuales.',
-  borradores_comentarios: 'Tina prepara borradores de respuesta a los comentarios de un cliente en un documento de FIRMA, que Agustín revisa antes de publicar.',
 };
 
 const SISTEMA = `Sos un evaluador estricto y justo de agentes de IA de FIRMA, una consultora legal argentina.
