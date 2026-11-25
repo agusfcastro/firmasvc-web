@@ -1,11 +1,12 @@
-# Medición a mano de un agente de IA contra sus casos de scripts/ia/casos, sin
-# comparar con otra versión. Sirve para fijar el umbral de un agente la primera
-# vez y para ver cómo está hoy sin tocar su prompt.
+# Medición de un agente de IA contra sus casos de scripts/ia/casos, a pedido.
+# Es lo único que gasta crédito de la API. Corre el agente una sola vez y lo
+# compara con su referencia (el último puntaje medido, scripts/ia/referencias.json).
 #
-# Se corre desde GitHub › Actions › Medir IA › Run workflow, eligiendo el agente.
-# Usa el secreto ANTHROPIC_API_KEY y gasta crédito de la API (la batería de Tina
-# ronda los USD 2). No toca la base. El resumen queda en la página de la corrida
-# y el informe completo como artefacto.
+# Se corre desde GitHub › Actions › Medir IA › Run workflow, eligiendo la rama y
+# el agente. En una rama que no es main, si pasa y el prompt o los casos cambiaron,
+# guarda la referencia nueva en la rama y vuelve a pedir Verificar, así el pull
+# request queda listo para unir. El resumen queda en la página de la corrida y el
+# informe como artefacto.
 name: Medir IA
 
 on:
@@ -18,14 +19,14 @@ on:
           - tina
           - analisis_clasificacion
           - analisis_venta
-          - borradores_comentarios
         default: tina
 
 permissions:
-  contents: read
+  contents: write
+  actions: write
 
 concurrency:
-  group: medir-ia-${{ inputs.agente }}
+  group: medir-ia-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -43,7 +44,39 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           AGENTE: ${{ inputs.agente }}
-        run: npm run ia:evaluar -- --agente "$AGENTE" --sin-base --salida evaluacion-ia.json
+        run: npm run ia:evaluar -- --agente "$AGENTE" --actualizar-referencia --salida evaluacion-ia.json
+      - name: Guardar la referencia en la rama
+        if: success() && github.ref_name != 'main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RAMA: ${{ github.ref_name }}
+          AGENTE: ${{ inputs.agente }}
+        run: |
+          if git diff --quiet -- scripts/ia/referencias.json; then
+            echo "La referencia no cambió."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/ia/referencias.json
+          git commit -m "Referencia de $AGENTE medida con Medir IA"
+          git push origin "HEAD:$RAMA"
+          # Lo que empuja el token de Actions no dispara workflows: se pide Verificar para el commit nuevo.
+          gh workflow run verificar.yml --ref "$RAMA"
+      - name: Avisar si cambió la referencia en main
+        if: success() && github.ref_name == 'main'
+        run: |
+          if ! git diff --quiet -- scripts/ia/referencias.json; then
+            {
+              echo "### Referencia nueva sin guardar"
+              echo
+              echo "Se midió en main y la referencia cambió. Cargala en un pull request:"
+              echo
+              echo '```json'
+              cat scripts/ia/referencias.json
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
       - uses: actions/upload-artifact@v4
         if: always() && hashFiles('evaluacion-ia.json') != ''
         with:
