@@ -210,7 +210,9 @@ export function valoresDelContrato(c: ClienteContrato, pagos: PagoContrato[], em
     ? cuotas
         .map((p, i) => `${i === 0 ? 'Cuota' : 'cuota'} ${i + 1} de ${simbolo} ${numero(Number(p.monto))}${p.vencimiento ? ` con vencimiento el ${fechaCorta(p.vencimiento)}` : ''}`)
         .join('; ') + '.'
-    : 'Sin cuotas. El precio se cancela con el anticipo.';
+    : c.modalidad === 'PIF'
+      ? 'Sin cuotas. El precio se cancela en un único pago.'
+      : 'Sin cuotas. El precio se cancela con el anticipo.';
   const esEmpresa = c.tipo === 'empresa';
   return {
     CLIENTE: c.nombre,

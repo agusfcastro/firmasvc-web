@@ -2,6 +2,7 @@ import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } f
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate';
 import { FORMATOS_ASUNTO } from '../asuntos';
 import { armarDocumento, editarParrafo, leerDocumento, limpiar, parrafoBorrado, parrafoNuevo, type Documento } from './wordXml';
+import { cargarFuentesDocumentos } from './fuentes';
 
 /**
  * Editor de un Word del asunto, solo FIRMA. El documento se dibuja igual
@@ -140,6 +141,8 @@ export const EditorWord = forwardRef<
       if (!xml) throw new Error('Sin documento');
       const doc = leerDocumento(strFromU8(xml));
       const { renderAsync } = await import('docx-preview');
+      // Las letras del Word (Archivo, Calibri) aunque no estén instaladas en la compu.
+      cargarFuentesDocumentos();
       // Sin cortar en páginas: así cada párrafo del archivo se dibuja una sola vez.
       await renderAsync(blob, cuerpo, est, {
         className: 'docx',

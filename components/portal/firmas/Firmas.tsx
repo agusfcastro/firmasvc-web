@@ -33,6 +33,11 @@ import {
 /** Valor del desplegable para escribir a mano a alguien que no está en el equipo. */
 const OTRA_PERSONA = 'otra';
 
+/** Filtro de FIRMA por cliente: todos, los envíos propios de FIRMA o los de una empresa. */
+const PROPIOS = 'propios';
+/** La empresa con la que se abre la lista, cuando se llega desde Administración › Clientes (?empresa=). */
+const empresaInicial = (): string => new URLSearchParams(window.location.search).get('empresa') || 'todas';
+
 export const Firmas: React.FC<{ perfil: Perfil; organizacion: Organizacion | null; ruta: string }> = ({ perfil, organizacion, ruta }) => {
   const resto = ruta.replace(/^\/portal\/firmas\/?/, '');
   return (
@@ -86,6 +91,8 @@ const Listado: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> =
   const [orgs, setOrgs] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<Filtro>('en_curso');
+  const [filtroOrg, setFiltroOrg] = useState(empresaInicial);
+  const [busqueda, setBusqueda] = useState('');
   // Orden por fecha de envío: primero los más recientes, o primero los más antiguos.
   const [recientesPrimero, setRecientesPrimero] = useState(true);
   const cupo = useCupoFirmas(esAdmin ? null : vista?.orgId ?? organizacion?.id);
@@ -126,7 +133,13 @@ const Listado: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> =
     return m;
   }, [firmantes]);
 
-  const todos = sobres ?? [];
+  // La empresa y la búsqueda se aplican primero, así las cifras y las pestañas cuentan lo que se está viendo.
+  const q = busqueda.trim().toLowerCase();
+  const todos = (sobres ?? []).filter((s) => {
+    if (esAdmin && filtroOrg !== 'todas' && (filtroOrg === PROPIOS ? s.organizacion_id !== null : s.organizacion_id !== filtroOrg)) return false;
+    return !q || s.titulo.toLowerCase().includes(q) || (porSobre.get(s.id) ?? []).some((f) => f.nombre.toLowerCase().includes(q));
+  });
+  const hayFiltros = q !== '' || (esAdmin && filtroOrg !== 'todas');
   const cuenta = {
     en_curso: todos.filter((s) => s.estado === 'en_curso').length,
     completado: todos.filter((s) => s.estado === 'completado').length,
@@ -178,6 +191,22 @@ const Listado: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> =
         {error && <Aviso tipo="error">{error}</Aviso>}
 
         <div className="flex flex-col gap-6">
+          <div className="flex flex-wrap items-end gap-3">
+            {esAdmin && (
+              <select className={`${claseInput} !w-auto min-w-[220px]`} value={filtroOrg} onChange={(e) => setFiltroOrg(e.target.value)} aria-label="Filtrar por cliente">
+                <option value="todas">Todos los clientes</option>
+                <option value={PROPIOS}>Propios de FIRMA</option>
+                {Object.entries(orgs)
+                  .sort((a, b) => a[1].localeCompare(b[1], 'es'))
+                  .map(([id, nombre]) => (
+                    <option key={id} value={id}>
+                      {nombre}
+                    </option>
+                  ))}
+              </select>
+            )}
+            <input className={`${claseInput} !w-full tab:!w-72`} placeholder="Buscar por documento o firmante" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} aria-label="Buscar envíos" />
+          </div>
           <Pestanas<Filtro>
             activa={filtro}
             alCambiar={setFiltro}
@@ -193,8 +222,8 @@ const Listado: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> =
             <p className="eyebrow text-piedra">Cargando</p>
           ) : lista.length === 0 ? (
             <div className="bg-marfil-oscuro p-8 flex flex-col gap-3 max-w-[640px]">
-              <p className="h3">{todos.length === 0 ? 'Todavía no mandaste nada a firmar' : 'No hay envíos en esta pestaña'}</p>
-              {todos.length === 0 && !vista && !sinCupo && (
+              <p className="h3">{(sobres ?? []).length === 0 ? 'Todavía no mandaste nada a firmar' : hayFiltros ? 'No hay envíos con ese filtro' : 'No hay envíos en esta pestaña'}</p>
+              {(sobres ?? []).length === 0 && !vista && !sinCupo && (
                 <Enlace a="/portal/firmas/nuevo" className="text-sm font-medium underline underline-offset-4 self-start">
                   Mandar el primero
                 </Enlace>

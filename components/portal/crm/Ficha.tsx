@@ -350,6 +350,8 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
   // Sin seguimiento de cobranza: el plan es una condición contractual (anticipo y cuotas pactadas).
   const anticipos = pagos.filter((p) => p.estado === 'pagado');
   const cuotasPactadas = pagos.filter((p) => p.estado === 'pendiente');
+  // PIF es pago total ya abonado: lo pagado no es un anticipo y no hay cuotas que sumar.
+  const esPif = cliente.modalidad === 'PIF';
   const tablaPlan = (
     <div className="overflow-x-auto">
       <table className="tabla tabla-media min-w-[720px]">
@@ -371,7 +373,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
             return (
               <tr key={p.id}>
                 <td>
-                  <span className="font-heading font-bold text-[15px]">{esAnticipo ? 'Anticipo' : `Cuota ${n}`}</span>
+                  <span className="font-heading font-bold text-[15px]">{esAnticipo ? (esPif ? 'Pago total' : 'Anticipo') : `Cuota ${n}`}</span>
                   {esAnticipo && <span className="block text-xs text-piedra">Abonado al contratar</span>}
                 </td>
                 <td className="!py-2.5">
@@ -694,9 +696,11 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
           <Cifras
             items={[
               { titulo: 'Acordado', valor: <Monto n={cliente.monto_total} moneda={moneda} /> },
-              { titulo: cobranza ? 'Cobrado' : 'Anticipo', valor: <Monto n={cobrado} moneda={moneda} /> },
-              { titulo: cobranza ? 'Pendiente' : 'Saldo en cuotas', valor: <Monto n={pendiente} moneda={moneda} />, nota: cobranza ? undefined : `${cuotasPactadas.length} ${cuotasPactadas.length === 1 ? 'cuota' : 'cuotas'}` },
-              { titulo: 'Diferencia', valor: diferencia === 0 ? 'Cierra' : <Monto n={Math.abs(diferencia)} moneda={moneda} />, alerta: diferencia !== 0, nota: diferencia === 0 ? undefined : diferencia > 0 ? 'Falta asignar en cuotas' : 'Las cuotas superan el total' },
+              { titulo: cobranza ? 'Cobrado' : esPif ? 'Pagado' : 'Anticipo', valor: <Monto n={cobrado} moneda={moneda} /> },
+              ...(esPif && !cobranza && cuotasPactadas.length === 0
+                ? []
+                : [{ titulo: cobranza ? 'Pendiente' : 'Saldo en cuotas', valor: <Monto n={pendiente} moneda={moneda} />, nota: cobranza ? undefined : `${cuotasPactadas.length} ${cuotasPactadas.length === 1 ? 'cuota' : 'cuotas'}` }]),
+              { titulo: 'Diferencia', valor: diferencia === 0 ? 'Cierra' : <Monto n={Math.abs(diferencia)} moneda={moneda} />, alerta: diferencia !== 0, nota: diferencia === 0 ? undefined : esPif && !cobranza ? (diferencia > 0 ? 'Falta registrar el pago total' : 'Lo pagado supera el total') : diferencia > 0 ? 'Falta asignar en cuotas' : 'Las cuotas superan el total' },
             ]}
           />
           <fieldset disabled={soloLectura} className="mt-8 min-w-0">
@@ -712,7 +716,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                 <Campo etiqueta="Nota">
                   <input className={claseInput} value={nueva.nota} onChange={(e) => setNueva({ ...nueva, nota: e.target.value })} />
                 </Campo>
-                <Button type="submit">{nueva.anticipo ? 'Agregar anticipo' : 'Agregar cuota'}</Button>
+                <Button type="submit">{nueva.anticipo ? (esPif ? 'Registrar pago' : 'Agregar anticipo') : 'Agregar cuota'}</Button>
                 <Button type="button" variant="ghost" onClick={() => setNueva(null)}>
                   Cancelar
                 </Button>
@@ -720,11 +724,13 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
             ) : (
               !soloLectura && (
                 <div className="mt-6 flex flex-wrap gap-3">
-                  <Button variant="ghost" size="sm" onClick={() => setNueva({ anticipo: false, monto: diferencia > 0 ? String(diferencia) : '', fecha: '', nota: '' })}>
-                    <Plus size={16} /> Agregar cuota
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => setNueva({ anticipo: true, monto: diferencia > 0 ? String(diferencia) : '', fecha: hoy, nota: 'Anticipo' })}>
-                    <Plus size={16} /> Agregar anticipo
+                  {!esPif && (
+                    <Button variant="ghost" size="sm" onClick={() => setNueva({ anticipo: false, monto: diferencia > 0 ? String(diferencia) : '', fecha: '', nota: '' })}>
+                      <Plus size={16} /> Agregar cuota
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="sm" onClick={() => setNueva({ anticipo: true, monto: diferencia > 0 ? String(diferencia) : '', fecha: hoy, nota: esPif ? 'Pago total' : 'Anticipo' })}>
+                    <Plus size={16} /> {esPif ? 'Registrar el pago total' : 'Agregar anticipo'}
                   </Button>
                 </div>
               )
