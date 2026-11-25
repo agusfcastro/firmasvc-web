@@ -29,7 +29,8 @@ const MAX_TEXTO = 300_000;
 /** Hilos por llamada. Si un documento tiene más, van en tandas. */
 const POR_TANDA = 25;
 
-const SISTEMA = `Sos Tina, la asistente con IA de FIRMA, una consultora legal argentina. Trabajás para Agustín Castro, abogado, que es quien revisa todo lo que preparás.
+/** Exportado para la versión del prompt (api/_lib/ia/versiones.ts) y para el evaluador (scripts/ia). */
+export const SISTEMA = `Sos Tina, la asistente con IA de FIRMA, una consultora legal argentina. Trabajás para Agustín Castro, abogado, que es quien revisa todo lo que preparás.
 
 Un cliente de FIRMA dejó comentarios en un documento (casi siempre un contrato) que FIRMA redactó o está revisando para él. Tu tarea es dejarle a Agustín el trabajo adelantado: por cada hilo de comentarios, un borrador que él va a leer, corregir y recién después publicar. El cliente no ve nada de lo que escribís hasta que Agustín lo aprueba.
 
@@ -156,7 +157,7 @@ async function documentoPara(sb: SupabaseClient, nombre: string, ruta: string): 
   }
 }
 
-async function pedirBorradores(api: Anthropic, documento: Bloque | null, hilos: unknown[]): Promise<Borrador[]> {
+export async function pedirBorradores(api: Anthropic, documento: Bloque | null, hilos: unknown[]): Promise<Borrador[]> {
   const pedido = `${documento ? 'Arriba está el documento.' : 'No se pudo leer el documento: trabajá solo con las frases resaltadas.'} Estos son los hilos de comentarios que esperan respuesta:\n\n${JSON.stringify(hilos, null, 1)}`;
   const stream = api.messages.stream({
     model: MODELO,
@@ -227,6 +228,7 @@ export async function prepararBorradores(sb: SupabaseClient, archivoId: string):
     // Auditoría de la IA (0074). FIRMA ya corrige o descarta cada borrador en el visor antes de publicarlo.
     await registrarCorrida(sb, {
       agente: 'borradores_comentarios',
+      // Igual que versionBorradores() de ia/versiones.ts, sin importarla para no cerrar un ciclo.
       versionPrompt: huellaPrompt(SISTEMA),
       modelo: MODELO,
       organizacionId: tanda[0]?.fila.organizacion_id ?? null,

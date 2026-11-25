@@ -62,4 +62,5 @@ export const ACCIONES: Record<string, string> = {
   analisis_aprobado: 'Aprobó el análisis de una llamada',
   analisis_descartado: 'Descartó el análisis de una llamada',
   lectura_analisis: 'Consultó el análisis de una llamada',
+  ia_caso_preparado: 'Armó un caso de prueba de la IA',
 };

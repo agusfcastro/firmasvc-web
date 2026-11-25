@@ -701,7 +701,7 @@ No suma funciones en Vercel. Pruebas: `supabase/pruebas/versiones_documentos.sql
 
 ## Mail de los lunes y alertas
 
-Mails que el portal manda solo, sin que nadie los pida, desde `/api/portal/resumen`. Corre todos los días a las 9 de Buenos Aires con Vercel Cron. En el plan Hobby de Vercel la tarea puede salir en cualquier momento entre las 9 y las 10. Las empresas desactivadas y la demo no reciben nada.
+Mails que el portal manda solo, sin que nadie los pida, desde `/api/portal/resumen`. Corre todos los días a las 9 de Buenos Aires con Vercel Cron. El proyecto está en el plan Pro de Vercel, así que sale en el minuto programado. Las empresas desactivadas y la demo no reciben nada.
 
 **Alertas de vencimientos.** Todos los días, un solo mail por persona con todo lo que vence pronto en su empresa, y uno a FIRMA con todas las empresas.
 
@@ -1127,8 +1127,74 @@ values ('starter', 'analisis_llamadas', '{"llamadas_mes": 10}');
 ### Puesta en marcha
 
 1. Correr la 0067, después de todas las anteriores. En producción se aplicó el 17 de noviembre de 2026 desde el SQL Editor.
-2. En Vercel no hay variables nuevas: usa `ANTHROPIC_API_KEY`, la de Tina. `vercel.json` sube `/api/cola/procesar` a 300 segundos e incluye `docs/ANALIZADOR_VENTA.md`. 300 segundos es el máximo de Hobby con Fluid Compute, activo por defecto en proyectos nuevos; si el proyecto no lo tiene, se activa en Settings › Functions. La cola ahora toma de a un trabajo y lo reserva 5 minutos.
+2. En Vercel no hay variables nuevas: usa `ANTHROPIC_API_KEY`, la de Tina. `vercel.json` sube `/api/cola/procesar` a 300 segundos e incluye `docs/ANALIZADOR_VENTA.md`. El plan Pro de Vercel lo permite con Fluid Compute, activo por defecto en proyectos nuevos; si el proyecto no lo tiene, se activa en Settings › Functions. La cola ahora toma de a un trabajo y lo reserva 5 minutos.
 3. Probar con «Cargar transcripción» y mirar la cola: `select tipo, estado, intentos, error from cola_trabajos where tipo = 'interaccion_analizar' order by id desc limit 10;`.
 4. Cada análisis guarda `modelo`, `tokens_entrada` y `tokens_salida` para seguir el costo. Toda llamada pasa por Haiku y solo las de venta por Opus.
 
 Pruebas en `supabase/pruebas/analisis_llamadas.sql`.
+
+## Calidad de la IA
+
+Migraciones 0074 y 0075. Cada llamada a Claude del portal queda anotada, FIRMA la revisa, cada corrección se convierte en un caso de prueba y ningún cambio de prompt entra a `main` si empeora los resultados. Toma como modelo el circuito del analizador de llamadas.
+
+### Cómo se anota una corrida
+
+`registrarCorrida()` de `api/_lib/ia/registro.ts` deja una fila en `ia_corridas` después de cada respuesta. Si anotar falla, la respuesta sale igual.
+
+| Agente | Dónde corre | Versión del prompt | Registro original | Revisión |
+|---|---|---|---|---|
+| `tina` | `api/tina/chat.ts` | La parte fija de `docs/TINA_SYSTEM_PROMPT.md` y las herramientas | La conversación | Pendiente, en Calidad de la IA |
+| `analisis_clasificacion`, `analisis_venta` | La cola, `interaccion_analizar` | `docs/ANALIZADOR_VENTA.md` y la versión del libro de códigos | El análisis de la llamada | Aparte, en CRM › Llamadas |
+| `borradores_comentarios` | La cola, `comentarios_borrador` | Las instrucciones de `api/_lib/tina/borradores.ts` | El archivo del asunto | Aparte, en el visor del documento |
+
+La versión es la huella del texto (`api/_lib/ia/versiones.ts`): si el prompt cambia, la versión cambia sola. La corrida no copia el contenido. Desde la 0075 la base completa la empresa desde el registro original cuando el servidor no la manda.
+
+### Pantalla
+
+Administración › Calidad de la IA (`/portal/admin/calidad`, `components/portal/admin/CalidadIa.tsx`), solo FIRMA.
+
+- **Aprobadas sin cambios.** Por agente y versión, las corridas, las revisadas y el porcentaje aprobado sin cambios (`ia_resumen`), con el costo. Con 20 revisadas y 90 % o más, la versión se marca como lista.
+- **Para revisar.** Las corridas pendientes. Al abrir una se ve la conversación de Tina con la respuesta de esa corrida marcada, o el enlace al análisis (`/portal/crm/llamadas?org=…&analisis=…`) o al documento de los borradores. Se aprueba sin cambios, se corrige con una nota de qué tenía que hacer o se rechaza con el motivo (`ia_corrida_revisar`).
+- **Crear caso de prueba.** Desde una corrida corregida. `/api/admin/ia` (acción `preparar_caso`) arma la entrada con los nombres de la empresa, su gente y sus clientes cambiados por alias, y sin mails, teléfonos ni documentos (`api/_lib/ia/anonimizar.ts`). De una llamada usa la transcripción con roles en lugar de nombres, la misma que vio el modelo (`ia_contenido_analisis`, solo servidor). FIRMA revisa la entrada, escribe los criterios y los chequeos fijos y lo guarda en `ia_casos`. La lectura queda en la bitácora de la empresa.
+- **Casos de prueba.** Los casos de cada agente, para pausarlos o activarlos, y un botón por agente que baja el archivo para `scripts/ia/casos/`.
+
+### Casos de prueba
+
+Viven en `scripts/ia/casos/*.json`, así cada pull request muestra qué se mide y la versión anterior se mide con los mismos casos. `tina.bateria.json` tiene la batería de `docs/TINA_BATERIA.md` (40 casos entre Eminent, Starter y seguridad). Los que salen de las correcciones se bajan desde la pantalla como `<agente>.json`.
+
+```json
+{ "agente": "tina", "umbral": 80, "casos": [{ "id": "db-12", "etiqueta": "No promete plazos", "entrada": {}, "esperado": {} }] }
+```
+
+| Agente | entrada |
+|---|---|
+| `tina` | `plan`, `rol`, `mensajes` (el último de la persona) y `herramientas`, con lo que devuelve cada herramienta. Sin eso devuelve una respuesta simulada y nunca toca la base |
+| `analisis_*` | `contenido.transcripcion` con roles y `contenido.roles`, como lo arma `preparar_caso` |
+| `borradores_comentarios` | `hilos` y, si hace falta, `documento` en texto |
+
+`esperado` lleva los chequeos fijos (`camino`, `herramientas`, `sin_herramientas`, `etapa`, `codigos`, `sin_codigos`, `incluye`, `excluye`) y la `rubrica`, una lista de criterios con su peso. El formato está en `components/portal/admin/casosIa.ts`.
+
+### Evaluador
+
+```bash
+npm run ia:evaluar -- --agente tina
+```
+
+1. Corre el agente con el código y el prompt de esta carpeta y, aparte, con los de la base (`origin/main` o `--base`), en una copia del repo en ese commit (`scripts/ia/correr.mjs`).
+2. Chequeos fijos por código. Un caso que falla uno vale 0.
+3. Si el caso tiene rúbrica, Claude como juez dice por cada criterio si se cumple, en parte o no (`scripts/ia/juez.mjs`). El puntaje lo calcula el código (`scripts/ia/puntaje.mjs`): cumple 1, en parte 0,5, no 0, por el peso.
+4. El agente vale el promedio de sus casos. No pasa si baja más de 2 puntos contra la base, si queda debajo del `umbral` del archivo, si ningún caso corrió o si el juez no respondió.
+
+`--si-cambia` mide solo los agentes cuyo prompt cambió, `--sin-base` mide solo contra el umbral y `--salida` guarda el informe. Necesita `ANTHROPIC_API_KEY` y no toca la base. Las pruebas del evaluador, sin llamar a Claude, son `npm run ia:probar`.
+
+### En GitHub
+
+`.github/workflows/verificar.yml` corre `ia:probar` en cada push. En un pull request corre `ia:evaluar --si-cambia` contra la base: si no cambió ningún prompt termina enseguida, y si cambió, el chequeo `codigo` falla cuando el puntaje baja. El informe queda como artefacto `evaluacion-ia` y el resumen en la página de la corrida. Necesita el secreto `ANTHROPIC_API_KEY` en Settings › Secrets and variables › Actions.
+
+### Puesta en marcha
+
+1. Correr la 0075 después de la 0074.
+2. Cargar el secreto `ANTHROPIC_API_KEY` en GitHub.
+3. La primera vez, correr `npm run ia:evaluar -- --agente tina --sin-base` y fijar el `umbral` de `tina.bateria.json` con ese resultado.
+
+Pruebas en `supabase/pruebas/ia_corridas.sql`, `supabase/pruebas/ia_calidad.sql` y `scripts/pruebas/evaluador.mjs`.

@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "db:probar": "node scripts/db/probar.mjs",
-    "marca:verificar": "node scripts/marca/verificar.mjs"
+    "marca:verificar": "node scripts/marca/verificar.mjs",
+    "ia:probar": "node --import ./scripts/ia/cargador.mjs scripts/pruebas/evaluador.mjs",
+    "ia:evaluar": "node --import ./scripts/ia/cargador.mjs scripts/ia/evaluar.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.5.0",

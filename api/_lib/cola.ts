@@ -9,8 +9,8 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { analizarLlamada, type DatosAnalisis } from './analisis/analizar.js';
 import { avisarBrief, prepararBorradores } from './tina/borradores.js';
-import { partesDelAnalizador } from './analisis/prompt.js';
-import { huellaPrompt, registrarCorrida } from './ia/registro.js';
+import { registrarCorrida } from './ia/registro.js';
+import { versionAnalizador } from './ia/versiones.js';
 import { costoEstimado } from './tina/precios.js';
 
 export interface Trabajo {
@@ -46,7 +46,13 @@ const PROCESADORES: Record<string, Procesador> = {
     }
     // Auditoría de la IA (0074): la corrida queda anotada, salga bien o mal. El análisis ya lo revisa FIRMA antes de mostrarlo.
     const inicio = Date.now();
-    const corrida = { agente: 'analisis_venta' as const, versionPrompt: huellaPrompt(partesDelAnalizador(), datos.version), referencia: { tabla: 'interaccion_analisis' as const, id }, revision: 'sin_revision' as const };
+    const corrida = {
+      agente: 'analisis_venta' as const,
+      versionPrompt: versionAnalizador(datos.version),
+      organizacionId: trabajo.organizacion_id,
+      referencia: { tabla: 'interaccion_analisis' as const, id },
+      revision: 'sin_revision' as const,
+    };
     try {
       const resultado = await analizarLlamada(datos);
       const { error: e } = await sb.rpc('analisis_guardar', { p_analisis: id, p_resultado: resultado });
