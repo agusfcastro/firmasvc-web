@@ -132,21 +132,13 @@ async function analisis(_api, entrada) {
   };
 }
 
-async function borradores(api, entrada) {
-  const m = await cargar('api/_lib/tina/borradores.ts');
-  if (typeof m.pedirBorradores !== 'function') throw new Error('Esta versión no expone pedirBorradores.');
-  const documento = entrada.documento ? { type: 'text', text: `<documento>\n${entrada.documento}\n</documento>` } : null;
-  const lista = await m.pedirBorradores(api, documento, entrada.hilos ?? []);
-  return { borradores: lista, hilos: (entrada.hilos ?? []).map((h) => ({ id: h.id })) };
-}
-
-export const AGENTES = { tina, analisis_clasificacion: analisis, analisis_venta: analisis, borradores_comentarios: borradores };
+export const AGENTES = { tina, analisis_clasificacion: analisis, analisis_venta: analisis };
 
 export async function versiones() {
   if (!existsSync(path.join(RAIZ, 'api/_lib/ia/versiones.ts'))) return null;
   const v = await cargar('api/_lib/ia/versiones.ts');
   const analizador = v.versionAnalizador('venta-1.1');
-  return { tina: v.versionTina(), analisis_clasificacion: analizador, analisis_venta: analizador, borradores_comentarios: v.versionBorradores() };
+  return { tina: v.versionTina(), analisis_clasificacion: analizador, analisis_venta: analizador };
 }
 
 async function casos(pedido) {
