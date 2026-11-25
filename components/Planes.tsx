@@ -41,10 +41,9 @@ export const PLANES: Plan[] = [
     despues: 'Desde el cuarto mes, USD 250 por mes.',
     titular: 'Las herramientas de FIRMA para operar con orden',
     bajada:
-      'Starter es para el negocio que quiere operar por su cuenta con las herramientas de FIRMA. Tenés el CRM legal con perfilado de clientes, a Tina para resolver lo del día a día, la firma electrónica y una hora por semana de consultoría general.',
+      'Starter es para el negocio que quiere operar por su cuenta con las herramientas de FIRMA. Tenés el CRM legal con perfilado de clientes, la firma electrónica y una hora por semana de consultoría general.',
     incluye: [
       'CRM legal de FIRMA con perfilado de clientes',
-      'Tina, la asistente con IA del portal, con accionables y recursos',
       'Hasta 20 documentos firmados por mes con firma electrónica',
       'Una hora por semana de consultoría general',
     ],
@@ -65,7 +64,7 @@ export const PLANES: Plan[] = [
     incluye: [
       'Todo lo de Starter, con agenda y firmas sin límite',
       'Acceso directo a Agustín Castro',
-      'Tina completa, con derivación de tus casos al equipo de FIRMA',
+      'Tina, la asistente con IA del portal, con derivación de tus casos al equipo de FIRMA',
       'Redacción y optimización de tus contratos y documentos',
       'Gestión de conflictos con clientes, socios y equipo',
       'Contacto telefónico en urgencias',
@@ -77,7 +76,7 @@ export const PLANES: Plan[] = [
 type Valor = boolean | string;
 const COMPARATIVA: { item: string; starter: Valor; eminent: Valor }[] = [
   { item: 'CRM legal con perfilado de clientes', starter: true, eminent: true },
-  { item: 'Tina, asistente con IA', starter: 'Accionables y recursos', eminent: 'Con derivación al equipo' },
+  { item: 'Tina, asistente con IA', starter: false, eminent: 'Con derivación al equipo' },
   { item: 'Firma electrónica', starter: 'Hasta 20 por mes', eminent: 'Sin límite' },
   { item: 'Consultoría', starter: '1 h general por semana', eminent: 'Sin límite' },
   { item: 'Asesoramiento sobre tus casos', starter: false, eminent: true },

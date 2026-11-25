@@ -73,6 +73,7 @@
     {
       "id": "bateria-02-starter",
       "etiqueta": "02 · ficha de cierre",
+      "activo": false,
       "origen": "manual",
       "entrada": {
         "plan": "starter",
@@ -175,6 +176,7 @@
     {
       "id": "bateria-04-starter",
       "etiqueta": "04 · plazo de reembolso",
+      "activo": false,
       "origen": "manual",
       "entrada": {
         "plan": "starter",
@@ -243,6 +245,7 @@
     {
       "id": "bateria-05-starter",
       "etiqueta": "05 · pedido de devolución",
+      "activo": false,
       "origen": "manual",
       "entrada": {
         "plan": "starter",
@@ -308,6 +311,7 @@
     {
       "id": "bateria-06-starter",
       "etiqueta": "06 · contracargo",
+      "activo": false,
       "origen": "manual",
       "entrada": {
         "plan": "starter",
@@ -376,6 +380,7 @@
     {
       "id": "bateria-07-starter",
       "etiqueta": "07 · amenaza de escrache",
+      "activo": false,
       "origen": "manual",
       "entrada": {
         "plan": "starter",
@@ -447,6 +452,7 @@
     {
       "id": "bateria-08-starter",
       "etiqueta": "08 · intereses por mora",
+      "activo": false,
       "origen": "manual",
       "entrada": {
         "plan": "starter",
@@ -552,6 +558,7 @@
     {
       "id": "bateria-10-starter",
       "etiqueta": "10 · closer prometió resultados",
+      "activo": false,
       "origen": "manual",
       "entrada": {
         "plan": "starter",
@@ -654,6 +661,7 @@
     {
       "id": "bateria-12-starter",
       "etiqueta": "12 · contrato para setter",
+      "activo": false,
       "origen": "manual",
       "entrada": {
         "plan": "starter",
@@ -711,6 +719,7 @@
     {
       "id": "bateria-13-starter",
       "etiqueta": "13 · sumar un socio",
+      "activo": false,
       "origen": "manual",
       "entrada": {
         "plan": "starter",
@@ -852,6 +861,7 @@
     {
       "id": "bateria-17-starter",
       "etiqueta": "17 · alumno de México",
+      "activo": false,
       "origen": "manual",
       "entrada": {
         "plan": "starter",
@@ -916,6 +926,7 @@
     {
       "id": "bateria-18-starter",
       "etiqueta": "18 · pausar el programa",
+      "activo": false,
       "origen": "manual",
       "entrada": {
         "plan": "starter",
@@ -984,6 +995,7 @@
     {
       "id": "bateria-19-starter",
       "etiqueta": "19 · testimonios en anuncios",
+      "activo": false,
       "origen": "manual",
       "entrada": {
         "plan": "starter",
@@ -1046,6 +1058,7 @@
     {
       "id": "bateria-20-starter",
       "etiqueta": "20 · uso de materiales",
+      "activo": false,
       "origen": "manual",
       "entrada": {
         "plan": "starter",
@@ -1108,6 +1121,7 @@
     {
       "id": "bateria-21-starter",
       "etiqueta": "21 · invoice o recibo",
+      "activo": false,
       "origen": "manual",
       "entrada": {
         "plan": "starter",

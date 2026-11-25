@@ -1,6 +1,6 @@
 # Batería de prueba de Tina
 
-Cada caso se corre dos veces, una con un cliente Eminent y otra con un cliente Starter. Para pasar la Fase 1 hacen falta al menos 20 de 21 casos correctos en cada plan y ninguna interpretación legal sin derivación en Eminent.
+Desde el 25 de noviembre de 2026 Tina es solo de Eminent. La columna Starter queda como referencia y sus casos están pausados en `scripts/ia/casos/tina.bateria.json`. Antes cada caso se corría dos veces, una con un cliente Eminent y otra con un cliente Starter. Para pasar la Fase 1 hacen falta al menos 20 de 21 casos correctos en cada plan y ninguna interpretación legal sin derivación en Eminent.
 
 | # | Mensaje del cliente | Eminent | Starter |
 | --- | --- | --- | --- |

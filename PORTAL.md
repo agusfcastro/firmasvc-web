@@ -1160,7 +1160,7 @@ Administración › Calidad de la IA (`/portal/admin/calidad`, `components/porta
 
 ### Casos de prueba
 
-Viven en `scripts/ia/casos/*.json`, así cada pull request muestra qué se mide y la versión anterior se mide con los mismos casos. `tina.bateria.json` tiene la batería de `docs/TINA_BATERIA.md` (40 casos entre Eminent, Starter y seguridad). Los que salen de las correcciones se bajan desde la pantalla como `<agente>.json`.
+Viven en `scripts/ia/casos/*.json`, así cada pull request muestra qué se mide y la versión anterior se mide con los mismos casos. `tina.bateria.json` tiene la batería de `docs/TINA_BATERIA.md` (40 casos entre Eminent, Starter y seguridad; los 14 de Starter están pausados desde que Tina es solo de Eminent). Los que salen de las correcciones se bajan desde la pantalla como `<agente>.json`.
 
 ```json
 { "agente": "tina", "umbral": 80, "casos": [{ "id": "db-12", "etiqueta": "No promete plazos", "entrada": {}, "esperado": {} }] }

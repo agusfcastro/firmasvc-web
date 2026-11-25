@@ -63,15 +63,16 @@ El pago completo suma el cuarto mes sin cargo y la cuota congelada por 12 meses.
 
 Los abonos cobran esta oferta desde la migración 0061 (`abonos.modalidad`, `etapa`, `al_mep` y afines). Las opciones están en `OFERTAS` de `components/portal/abonos.ts` y la página pública en `components/Planes.tsx`. Si cambia un precio, se cambia en los dos. El detalle y lo que falta verificar en el sandbox de dLocal Go está en `PORTAL.md`, sección Oferta de noviembre de 2026.
 
-**Eminent** incluye acceso directo a Agustín, Tina completa con derivaciones, documentos, gestión de conflictos y contacto telefónico en urgencias.
+**Eminent** incluye acceso directo a Agustín, Tina con derivaciones, documentos, gestión de conflictos y contacto telefónico en urgencias.
 
-**Starter** no incluye asesoramiento sobre casos ni redacción de documentos. Incluye perfilado de clientes, Tina limitada sin derivaciones, hasta 20 firmas y 10 llamadas analizadas por mes (estas últimas recién cuando el analizador esté validado), una hora semanal de consultoría general y no recibe alertas por WhatsApp. La hora adicional cuesta USD 100, más un porcentaje de éxito sobre el caso cuando corresponda.
+**Starter** no incluye a Tina, asesoramiento sobre casos ni redacción de documentos. Incluye perfilado de clientes, hasta 20 firmas y 10 llamadas analizadas por mes (estas últimas recién cuando el analizador esté validado), una hora semanal de consultoría general y no recibe alertas por WhatsApp. La hora adicional cuesta USD 100, más un porcentaje de éxito sobre el caso cuando corresponda.
 
 ## Tina
 
 - Es la asistente con IA de FIRMA. Se presenta siempre como asistente, nunca como persona. Tiene una sola versión, femenina.
 - Tono cercano, como escribiría Agustín, explicando con ejemplos sin perder rigor.
-- Clasifica cada mensaje en tres caminos, accionable para el cliente, recurso precargado o derivación al responsable. La derivación existe solo en Eminent.
+- Es solo del plan Eminent desde el 25 de noviembre de 2026. En Starter no se ve la burbuja y `api/tina/chat.ts` rechaza el pedido.
+- Clasifica cada mensaje en tres caminos, accionable para el cliente, recurso precargado o derivación al responsable.
 - Antes de actuar, repregunta cuando el pedido se puede resolver de forma más simple.
 - El comportamiento completo está en `docs/TINA_SYSTEM_PROMPT.md` y la batería de pruebas en `docs/TINA_BATERIA.md`.
 
