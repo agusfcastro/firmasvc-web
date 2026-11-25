@@ -3,21 +3,26 @@
  *
  *   node --import ./scripts/ia/cargador.mjs scripts/ia/evaluar.mjs [opciones]
  *
- *   --agente tina         Solo esos agentes (se puede repetir o separar con comas)
- *   --base origin/main    Contra qué versión comparar. Por defecto origin/main
- *   --si-cambia           Solo los agentes cuyo prompt cambió desde la base
- *   --sin-base            No corre la versión anterior: mide contra el umbral
- *   --salida informe.json Guarda el informe completo
- *   --casos carpeta       Otra carpeta de casos. Por defecto scripts/ia/casos
+ *   --agente tina            Solo esos agentes (se puede repetir o separar con comas)
+ *   --actualizar-referencia  Si pasa, guarda el puntaje en scripts/ia/referencias.json
+ *   --verificar-referencias  No llama a Claude: falla si un prompt cambió y su
+ *                            referencia no (falta medirlo)
+ *   --si-cambia              Solo los agentes cuyo prompt no coincide con su referencia
+ *   --sin-base               Mide solo contra el umbral, sin la referencia
+ *   --base origin/main       Vuelve a correr también la versión de esa base. Gasta
+ *                            el doble y no hace falta: la referencia ya la midió
+ *   --salida informe.json    Guarda el informe completo
+ *   --casos carpeta          Otra carpeta de casos. Por defecto scripts/ia/casos
  *
  * Para cada agente con casos en scripts/ia/casos/*.json:
- *   1. Corre el agente con la versión nueva (esta carpeta) y con la anterior
- *      (una copia del repo en la base), cada una con su propio prompt.
+ *   1. Corre el agente una vez, con el prompt de esta carpeta.
  *   2. Chequeos fijos por código (formato, campos, etiquetas, herramientas).
  *   3. Si el caso tiene rúbrica, Claude como juez dice qué criterios se
  *      cumplen. El puntaje lo calcula el código (scripts/ia/puntaje.mjs).
- *   4. Falla si el puntaje nuevo baja más de 2 puntos contra el anterior o
- *      queda debajo del umbral del agente, si el archivo de casos lo fija.
+ *   4. Falla si el puntaje baja más de 2 puntos contra la referencia (el último
+ *      puntaje medido, en scripts/ia/referencias.json) o queda debajo del umbral
+ *      del agente. Si los casos cambiaron desde la referencia, mide solo contra
+ *      el umbral.
  *
  * Archivo de casos: { agente, umbral?, casos: [{ id, etiqueta, entrada, esperado, activo? }] }.
  * El formato de esperado está en components/portal/admin/casosIa.ts. Los
@@ -27,6 +32,7 @@
  * Necesita ANTHROPIC_API_KEY. No toca la base de datos.
  */
 import { spawn, execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync, appendFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -40,23 +46,25 @@ const RAIZ = path.resolve(AQUI, '../..');
 const CARGADOR = pathToFileURL(path.join(AQUI, 'cargador.mjs')).href;
 const CORRER = path.join(AQUI, 'correr.mjs');
 const JUECES_EN_PARALELO = 3;
+const REFERENCIAS = path.join(AQUI, 'referencias.json');
 
 /** Qué archivos guían a cada agente. Si ninguno cambió, el prompt no cambió. */
 const ARCHIVOS = {
   tina: ['docs/TINA_SYSTEM_PROMPT.md', 'api/_lib/tina/prompt.ts', 'api/_lib/tina/herramientas.ts'],
   analisis_clasificacion: ['docs/ANALIZADOR_VENTA.md', 'api/_lib/analisis/'],
   analisis_venta: ['docs/ANALIZADOR_VENTA.md', 'api/_lib/analisis/'],
-  borradores_comentarios: ['api/_lib/tina/borradores.ts'],
 };
 
 function opciones(argv) {
-  const o = { agentes: [], base: null, siCambia: false, sinBase: false, salida: null, casos: null };
+  const o = { agentes: [], base: null, siCambia: false, sinBase: false, salida: null, casos: null, actualizar: false, verificar: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--agente') o.agentes.push(...argv[++i].split(','));
     else if (a === '--base') o.base = argv[++i];
     else if (a === '--si-cambia') o.siCambia = true;
     else if (a === '--sin-base') o.sinBase = true;
+    else if (a === '--actualizar-referencia') o.actualizar = true;
+    else if (a === '--verificar-referencias') o.verificar = true;
     else if (a === '--salida') o.salida = argv[++i];
     else if (a === '--casos') o.casos = path.resolve(argv[++i]);
     else throw new Error(`Opción desconocida: ${a}`);
@@ -84,6 +92,33 @@ export function leerCasos(carpeta = path.join(AQUI, 'casos')) {
     porAgente.set(archivo.agente, g);
   }
   return porAgente;
+}
+
+/**
+ * Último puntaje medido de cada agente: { agente: { version, puntaje, casos, n, fecha } }.
+ * `version` es la huella del prompt y `casos` la de los casos activos con que se midió.
+ */
+export function leerReferencias(archivo = REFERENCIAS) {
+  if (!existsSync(archivo)) return {};
+  return JSON.parse(readFileSync(archivo, 'utf8'));
+}
+
+/** Huella de los casos activos de un agente, sin importar el orden de los archivos. */
+export function huellaCasos(casos) {
+  const orden = [...casos].sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  return createHash('sha256').update(JSON.stringify(orden.map(({ id, entrada, esperado }) => ({ id, entrada, esperado })))).digest('hex').slice(0, 12);
+}
+
+/** Agentes con casos cuyo prompt cambió y no tiene referencia medida. No llama a Claude. */
+export function faltanMedir({ agentes, todos, versiones, referencias }) {
+  const faltan = [];
+  for (const agente of agentes) {
+    if (!todos.get(agente)?.casos.length || !versiones[agente]) continue;
+    const r = referencias[agente];
+    if (!r) faltan.push({ agente, motivo: 'no tiene referencia medida.' });
+    else if (r.version !== versiones[agente]) faltan.push({ agente, motivo: `el prompt cambió (${r.version} → ${versiones[agente]}) y no está medido.` });
+  }
+  return faltan;
 }
 
 /** Corre correr.mjs en una carpeta y devuelve lo que escribe. */
@@ -150,7 +185,7 @@ async function puntuar(api, agente, casos, resultados) {
 
 function tablaMarkdown(informe) {
   const filas = informe.agentes.map((a) =>
-    `| ${a.agente} | ${a.version_nueva ?? '·'} | ${a.casos} | ${a.anterior?.puntaje ?? '·'} | ${a.nueva?.puntaje ?? '·'} | ${a.umbral ?? '·'} | ${a.ok ? 'Pasa' : 'No pasa'} |`,
+    `| ${a.agente} | ${a.version_nueva ?? '·'} | ${a.casos} | ${a.anterior?.puntaje ?? a.referencia_puntaje ?? '·'} | ${a.nueva?.puntaje ?? '·'} | ${a.umbral ?? '·'} | ${a.ok ? 'Pasa' : 'No pasa'} |`,
   );
   const detalle = informe.agentes.flatMap((a) => [
     ...(a.motivos ?? []).map((m) => `- **${a.agente}**: ${m}`),
@@ -165,7 +200,7 @@ function tablaMarkdown(informe) {
   return [
     '## Evaluación de prompts',
     '',
-    '| Agente | Versión | Casos | Anterior | Nueva | Umbral | Resultado |',
+    '| Agente | Versión | Casos | Referencia | Nueva | Umbral | Resultado |',
     '| --- | --- | --- | --- | --- | --- | --- |',
     ...filas,
     '',
@@ -179,17 +214,30 @@ async function principal() {
   const todos = o.casos ? leerCasos(o.casos) : leerCasos();
   let agentes = o.agentes.length ? o.agentes : [...todos.keys()];
 
-  let baseSha = null;
-  if (!o.sinBase || o.siCambia) {
-    const ref = o.base ?? 'origin/main';
-    try {
-      baseSha = git('merge-base', ref, 'HEAD');
-    } catch {
-      throw new Error(`No encuentro la base ${ref}. Pasá --base o --sin-base.`);
+  const referencias = leerReferencias();
+  const nuevas = (await correrEn(RAIZ, 'versiones')).versiones ?? {};
+
+  if (o.verificar) {
+    const faltan = faltanMedir({ agentes, todos, versiones: nuevas, referencias });
+    if (!faltan.length) {
+      console.log('Cada prompt con casos coincide con su referencia medida.');
+      return 0;
     }
+    const lineas = [...faltan.map((f) => `${f.agente}: ${f.motivo}`), 'Corré GitHub › Actions › Medir IA en esta rama. Si pasa, guarda la referencia nueva y este chequeo pasa.'];
+    for (const l of lineas) console.log(l);
+    if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Falta medir\n\n${lineas.map((l) => `- ${l}`).join('\n')}\n`);
+    return 1;
   }
 
-  const nuevas = (await correrEn(RAIZ, 'versiones')).versiones ?? {};
+  // Volver a correr la versión anterior solo si se pide con --base: gasta el doble.
+  let baseSha = null;
+  if (o.base && !o.sinBase) {
+    try {
+      baseSha = git('merge-base', o.base, 'HEAD');
+    } catch {
+      throw new Error(`No encuentro la base ${o.base}.`);
+    }
+  }
   let copia = null;
   let anteriores = null;
   if (baseSha) {
@@ -199,16 +247,10 @@ async function principal() {
     anteriores = await correrEn(copia, 'versiones').then((r) => r.versiones, () => null);
   }
 
-  if (o.siCambia) {
-    const cambiados = new Set([...git('diff', '--name-only', `${baseSha}...HEAD`).split('\n'), ...git('diff', '--name-only', 'HEAD').split('\n')].filter(Boolean));
-    agentes = agentes.filter((a) => {
-      const tocado = (ARCHIVOS[a] ?? []).some((p) => [...cambiados].some((f) => (p.endsWith('/') ? f.startsWith(p) : f === p)));
-      const misma = anteriores?.[a] && nuevas[a] && anteriores[a] === nuevas[a];
-      return tocado && !misma;
-    });
-  }
+  if (o.siCambia) agentes = agentes.filter((a) => nuevas[a] && referencias[a]?.version !== nuevas[a]);
 
   const informe = { fecha: new Date().toISOString(), base: baseSha, agentes: [] };
+  let cambioReferencia = false;
   if (!agentes.length) {
     console.log('Ningún prompt cambió. No hay nada para evaluar.');
   } else {
@@ -229,7 +271,13 @@ async function principal() {
       ]);
       const nueva = await puntuar(api, agente, g.casos, corridaNueva.resultados);
       const anterior = corridaAnterior?.resultados ? await puntuar(api, agente, g.casos, corridaAnterior.resultados) : null;
-      const v = veredicto({ nuevo: nueva.puntaje, anterior: anterior?.puntaje ?? null, umbral: g.umbral });
+      // Contra qué se compara: la versión anterior si se corrió con --base, si no la referencia guardada.
+      const ref = referencias[agente] ?? null;
+      const huella = huellaCasos(g.casos);
+      const refVale = !anterior && !o.sinBase && ref && ref.casos === huella;
+      const v = veredicto({ nuevo: nueva.puntaje, anterior: anterior?.puntaje ?? (refVale ? ref.puntaje : null), umbral: g.umbral });
+      if (!anterior && !o.sinBase && ref && !refVale) v.motivos.push(`Los casos cambiaron desde la referencia (${ref.puntaje}, ${ref.fecha}). Se compara solo con el umbral.`);
+      if (!anterior && !o.sinBase && !ref) v.motivos.push('Sin referencia guardada. Se compara solo con el umbral.');
       if (corridaAnterior?.error) v.motivos.push(`La versión anterior no corrió (${corridaAnterior.error}). Se mide solo contra el umbral.`);
       // Si no se pudo medir, no pasa: un 0 contra 0 por una caída de la API no prueba nada.
       const errores = nueva.casos.filter((c) => c.salida?.error);
@@ -248,16 +296,23 @@ async function principal() {
         version_anterior: anteriores?.[agente] ?? null,
         casos: g.casos.length,
         umbral: g.umbral,
+        referencia_puntaje: refVale ? ref.puntaje : null,
         tolerancia: TOLERANCIA,
         ok: v.ok,
         motivos: v.motivos,
         nueva,
         anterior,
       });
-      console.log(`  anterior ${anterior?.puntaje ?? '·'} · nueva ${nueva.puntaje} · ${v.ok ? 'pasa' : 'no pasa'}${v.motivos.length ? ` · ${v.motivos.join(' ')}` : ''}`);
+      console.log(`  ${anterior ? 'anterior' : 'referencia'} ${anterior?.puntaje ?? (refVale ? ref.puntaje : '·')} · nueva ${nueva.puntaje} · ${v.ok ? 'pasa' : 'no pasa'}${v.motivos.length ? ` · ${v.motivos.join(' ')}` : ''}`);
+      if (o.actualizar && v.ok && nuevas[agente] && (!ref || ref.version !== nuevas[agente] || ref.casos !== huella)) {
+        referencias[agente] = { version: nuevas[agente], puntaje: nueva.puntaje, casos: huella, n: g.casos.length, fecha: new Date().toISOString().slice(0, 10) };
+        cambioReferencia = true;
+        console.log(`  referencia nueva de ${agente}: ${nueva.puntaje}`);
+      }
     }
   }
 
+  if (cambioReferencia) writeFileSync(REFERENCIAS, `${JSON.stringify(Object.fromEntries(Object.entries(referencias).sort(([a], [b]) => a.localeCompare(b))), null, 2)}\n`);
   if (o.salida) writeFileSync(o.salida, `${JSON.stringify(informe, null, 2)}\n`);
   if (process.env.GITHUB_STEP_SUMMARY && informe.agentes.length) appendFileSync(process.env.GITHUB_STEP_SUMMARY, tablaMarkdown(informe));
   return informe.agentes.every((a) => a.ok) ? 0 : 1;
