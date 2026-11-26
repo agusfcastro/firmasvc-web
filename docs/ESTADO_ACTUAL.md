@@ -110,7 +110,7 @@ Además, la migración 0038 hace que las tablas hijas apunten al padre por `(org
 | `modelos_contrato` | Formularios de contrato que FIRMA arma para una empresa (0068) | Los escribe solo admin. Los leen titular y csm de la empresa |
 | `documentos` | Biblioteca, común o por empresa, con casilla de protocolo o formación | `documento_visible` según rol y áreas |
 | `firma_sobres`, `firma_firmantes`, `firma_eventos` | Firma electrónica con eventos encadenados e inmutables | Negocio y FIRMA. Eventos de solo lectura |
-| `abonos`, `abono_pagos` | Abono de cada empresa y sus cobros. Desde la 0061 con el esquema de la oferta (cuotas o pago completo, pesos al MEP) | Titular y FIRMA |
+| `abonos`, `abono_pagos` | Abono de cada empresa y sus cobros. Desde la 0061 con el esquema de la oferta (cuotas o pago completo, pesos al dólar cripto) | Titular y FIRMA |
 | `agendas`, `agenda_consumos` | Enlaces de agenda y minutos consumidos por plan | Negocio. Carga FIRMA |
 | `newsletters`, `avisos_programados` | Mail de los lunes y registro de lo que ya salió | Admin. `avisos_programados` solo servidor |
 | `org_variables_def`, `org_variables_valor` | Variables propias de los contratos de cada negocio | Negocio. Edita el titular |
@@ -173,7 +173,7 @@ Starter reemplazó a Gold y Black en la 0059. Los abonos cobran la oferta de `CL
 | Asuntos | `/portal/asuntos` | En producción, con chat en vivo, bitácora y documentos. Cartera del responsable pendiente de la 0057 |
 | Pedidos de contrato | `/portal/pedidos/closer` | En producción, solo modelo de closer |
 | Agenda | `/portal/agenda` | En producción |
-| Pagos | `/portal/pagos` | En producción con dLocal Go. Cuotas, pago completo y pesos al MEP desde la 0061, pendientes de probar en sandbox |
+| Pagos | `/portal/pagos` | En producción con dLocal Go. Cuotas, pago completo y pesos desde la 0061, al dólar cripto desde el 26/11/2026, pendientes de probar en sandbox |
 | Bitácora | `/portal/bitacora` | En producción, solo titular |
 | Administración | `/portal/admin/...` | Clientes, Usuarios, Agendas, Documentos, Formularios, Abonos, Newsletter, Calidad de la IA y Registro |
 

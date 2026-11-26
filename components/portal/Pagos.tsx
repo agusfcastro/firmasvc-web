@@ -15,7 +15,7 @@ import {
   activable,
   cambiandoMedio,
   consultarDisponibilidad,
-  consultarMep,
+  consultarDolar,
   cuotaPorAutorizar,
   desdeAutoriza,
   enPagoUnico,
@@ -24,7 +24,7 @@ import {
   monedaReferencia,
   montoReferencia,
   pagosAprobados,
-  pesosAlMep,
+  pesosAlDolar,
   fechaCorta,
   fechaDia,
   fechaLarga,
@@ -132,7 +132,7 @@ const TarjetaAbono: React.FC<{
   const [nota, setNota] = useState<string | null>(null);
   const [mep, setMep] = useState<number | null>(null);
   useEffect(() => {
-    if (abono.al_mep && abono.estado !== 'cancelado') void consultarMep().then((m) => setMep(m?.valor ?? null));
+    if (abono.al_mep && abono.estado !== 'cancelado') void consultarDolar().then((m) => setMep(m?.valor ?? null));
   }, [abono.al_mep, abono.estado]);
   const unico = enPagoUnico(abono);
   const porAutorizar = cuotaPorAutorizar(abono);
@@ -141,8 +141,8 @@ const TarjetaAbono: React.FC<{
   const moneda = monedaReferencia(abono);
   const referencia = montoTexto(montoReferencia(abono), moneda);
   const posterior = montoTexto(Number(abono.monto_posterior), moneda);
-  // En pesos al MEP, los pesos de hoy. Sin cotización, los del último cálculo.
-  const pesosHoy = abono.al_mep ? montoTexto(mep ? pesosAlMep(montoReferencia(abono), mep) : Number(abono.monto), 'ARS') : null;
+  // En pesos, los de hoy al dólar cripto. Sin cotización, los del último cálculo.
+  const pesosHoy = abono.al_mep ? montoTexto(mep ? pesosAlDolar(montoReferencia(abono), mep) : Number(abono.monto), 'ARS') : null;
   const monto = abono.al_mep ? referencia : montoTexto(abono.monto, abono.moneda);
   const trimestral = abono.periodo_meses === 3;
   const manual = abonoManual(abono) && !porAutorizar;
@@ -172,21 +172,23 @@ const TarjetaAbono: React.FC<{
     esquema =
       abono.etapa === 'inicial'
         ? `Un solo pago que cubre ${abono.meses_cubiertos} meses. Después la cuota es de ${posterior} por mes${abono.congela_meses ? `, congelada ${abono.congela_meses} meses` : ''}.`
-        : `Pago completo acreditado. La cuota de ${posterior} por mes queda congelada${abono.congelado_hasta ? ` hasta el ${fechaDia(abono.congelado_hasta, true)}` : ''}.`;
+        : abono.congela_meses
+          ? `Pago completo acreditado. La cuota de ${posterior} por mes queda congelada${abono.congelado_hasta ? ` hasta el ${fechaDia(abono.congelado_hasta, true)}` : ''}.`
+          : `Pago completo acreditado. Después la cuota es de ${posterior} por mes.`;
   }
   if (esquema && abono.precio_fundador) esquema += ' Con precio fundador.';
-  if (esquema && abono.al_mep) esquema += ' En pesos se cobra al dólar MEP.';
+  if (esquema && abono.al_mep) esquema += ' En pesos se cobra al dólar cripto del día, promedio entre compra y venta.';
 
   // Cómo convierte cada cobro.
   const conversion = abono.al_mep
-    ? `, en pesos al dólar MEP de los días previos a cada cobro${pesosHoy ? ` (hoy ${pesosHoy})` : ''},`
+    ? `, en pesos al dólar cripto de los días previos a cada cobro${pesosHoy ? ` (hoy ${pesosHoy})` : ''},`
     : abono.moneda === 'USD'
       ? ', convertidos a mi moneda local al momento de cada pago,'
       : '';
   const textoAutorizacion = unico ? (
     <>
       Acepto pagar <strong className="font-semibold">{referencia}</strong> por única vez
-      {abono.al_mep ? `, que hoy son ${pesosHoy} al dólar MEP,` : abono.moneda === 'USD' ? ', convertidos a mi moneda local al momento del pago,' : ''} con la
+      {abono.al_mep ? `, que hoy son ${pesosHoy} al dólar cripto,` : abono.moneda === 'USD' ? ', convertidos a mi moneda local al momento del pago,' : ''} con la
       tarjeta que cargue en dLocal Go, en concepto de {abono.concepto}. Cubre {abono.meses_cubiertos} meses. Después la cuota es de {posterior} por mes
       {abono.congela_meses ? `, congelada ${abono.congela_meses} meses,` : ''} y su débito lo autorizo aparte desde este portal.
     </>
@@ -465,7 +467,7 @@ const TarjetaAbono: React.FC<{
         <dl className="grid gap-x-10 gap-y-5 tab:grid-cols-2">
           <Dato titulo={unico ? 'Pago completo' : trimestral ? 'Monto trimestral' : 'Monto mensual'}>
             <span className="font-heading font-black text-[22px] text-bosque tabular-nums">{monto}</span>
-            {pesosHoy && <span className="block text-[13px] text-piedra">En pesos al dólar MEP, hoy {pesosHoy}</span>}
+            {pesosHoy && <span className="block text-[13px] text-piedra">En pesos al dólar cripto, hoy {pesosHoy}</span>}
           </Dato>
           <Dato titulo="Periodicidad">{unico ? 'Un solo pago, por adelantado' : trimestral ? 'Un débito cada 3 meses, por adelantado' : 'Mensual, un débito por mes'}</Dato>
           {esquema && (

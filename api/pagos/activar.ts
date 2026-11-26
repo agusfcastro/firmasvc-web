@@ -16,7 +16,7 @@
  *   con lo que contestó dLocal Go, sin claves, y lo deja en el registro.
  *
  * GET  /api/pagos/activar?mep=1
- *   Responde { valor, fuente, fecha } con el dólar MEP del día. Requiere sesión.
+ *   Responde { valor, fuente, fecha } con el dólar cripto del día. Requiere sesión.
  *
  * POST /api/pagos/activar  { abono_id, acepto: true, monto? }
  *   Deja constancia de la aceptación del débito, crea el plan del
@@ -24,7 +24,7 @@
  *   de suscripción del plan con el mail del pagador.
  *   Lo pide el titular de la empresa del abono o FIRMA. monto, si viene, es
  *   el que vio la persona y tiene que coincidir con el del abono. En pesos al
- *   MEP es el monto en dólares, y los pesos salen de la cotización del día.
+ *   dólar cripto es el monto en dólares, y los pesos salen de la cotización del día.
  *   Si el plan ya tiene una suscripción vigente no da otro enlace, así nadie
  *   se suscribe dos veces. Actualiza el estado y responde 409 con actualizar.
  *   Pago completo. Primero crea un pago único por el monto inicial y responde
@@ -35,6 +35,7 @@
 import { createHmac } from 'node:crypto';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { FALTA_SEGUNDO_FACTOR, nivelDe } from '../_lib/nivel.js';
+import { cotizacionDolar, pesosAlDolar as pesos, type Cotizacion } from '../_lib/cotizacion.js';
 import { SIN_ACCESO, SIN_CLIENTE_USUARIO, accesoVigente, clienteDelUsuario } from '../_lib/acceso.js';
 
 /* ================================================================== */
@@ -81,7 +82,7 @@ interface Abono {
   congela_meses?: number | null;
   congelado_hasta?: string | null;
   precio_fundador?: boolean | null;
-  /** En pesos al dólar MEP: monto es pesos y monto_usd la referencia en dólares. */
+  /** En pesos al dólar cripto (api/_lib/cotizacion.ts): monto es pesos y monto_usd la referencia en dólares. */
   al_mep?: boolean | null;
   monto_usd?: number | string | null;
   cotizacion_mep?: number | string | null;
@@ -483,7 +484,7 @@ async function actualizarAbono(sb: SupabaseClient, abono: Abono, cambios: Record
 }
 
 /* ------------------------------------------------------------------ */
-/* Oferta de noviembre de 2026: cuotas, pago completo y dólar MEP       */
+/* Oferta de noviembre de 2026: cuotas, pago completo y dólar cripto    */
 /* ------------------------------------------------------------------ */
 
 /** Suma meses sin pasarse de mes: 31 de enero más un mes es 28 o 29 de febrero. */
@@ -497,44 +498,6 @@ function sumarMeses(iso: string, meses: number): string {
   return d.toISOString();
 }
 
-/** Dólares a pesos con el MEP, sin centavos. */
-function pesos(usd: number, mep: number): number {
-  return Math.round(usd * mep);
-}
-
-interface Mep {
-  valor: number;
-  fuente: string;
-  fecha: string;
-}
-
-/**
- * Dólar MEP (bolsa), precio de venta. Primero dolarapi.com y, si no responde,
- * argentinadatos.com. Solo vale una cotización de la última semana.
- */
-async function cotizacionMep(): Promise<Mep | null> {
-  const reciente = (f: string) => Date.parse(f) > Date.now() - 7 * DIA_MS;
-  try {
-    const r = await fetch('https://dolarapi.com/v1/dolares/bolsa', { signal: AbortSignal.timeout(8000) });
-    const j = r.ok ? ((await r.json()) as { venta?: unknown; fechaActualizacion?: unknown } | null) : null;
-    const v = Number(j?.venta);
-    const f = typeof j?.fechaActualizacion === 'string' ? j.fechaActualizacion : '';
-    if (Number.isFinite(v) && v > 0 && reciente(f)) return { valor: Math.round(v * 100) / 100, fuente: 'dolarapi.com', fecha: new Date(Date.parse(f)).toISOString() };
-  } catch {
-    /* sigue con la otra fuente */
-  }
-  try {
-    const r = await fetch('https://api.argentinadatos.com/v1/cotizaciones/dolares/bolsa', { signal: AbortSignal.timeout(8000) });
-    const j = r.ok ? ((await r.json()) as { venta?: unknown; fecha?: unknown }[] | null) : null;
-    const u = Array.isArray(j) && j.length ? j[j.length - 1] : null;
-    const v = Number(u?.venta);
-    const f = typeof u?.fecha === 'string' ? `${u.fecha}T12:00:00-03:00` : '';
-    if (Number.isFinite(v) && v > 0 && reciente(f)) return { valor: Math.round(v * 100) / 100, fuente: 'argentinadatos.com', fecha: new Date(Date.parse(f)).toISOString() };
-  } catch {
-    /* sin cotización */
-  }
-  return null;
-}
 
 /** Pago único de dLocal Go, para el pago completo. Forma supuesta, verificar en sandbox. */
 interface PagoUnico {
@@ -676,9 +639,9 @@ async function cuotaPosterior(sb: SupabaseClient, abono: Abono): Promise<Abono> 
   const referencia = Number(abono.monto_posterior);
   const cambios: Record<string, unknown> = { etapa: 'posterior' };
   if (abono.al_mep) {
-    const mep = await cotizacionMep();
+    const mep = await cotizacionDolar();
     if (!mep) {
-      await registrar(sb, 'abono_error', abono, { etapa: 'cuota_posterior', mensaje: 'No se pudo traer el dólar MEP. Se reintenta en la próxima sincronización.' });
+      await registrar(sb, 'abono_error', abono, { etapa: 'cuota_posterior', mensaje: 'No se pudo traer el dólar cripto. Se reintenta en la próxima sincronización.' });
       return abono;
     }
     Object.assign(cambios, { monto: pesos(referencia, mep.valor), monto_usd: referencia, cotizacion_mep: mep.valor, cotizado_en: new Date().toISOString() });
@@ -922,7 +885,7 @@ async function crearPagoUnico(sb: SupabaseClient, abono: Abono, empresa: string,
   return json({ url });
 }
 
-/** Lo que vio la persona al aceptar: en pesos al MEP el monto en dólares, si no el del abono. */
+/** Lo que vio la persona al aceptar: en pesos el monto en dólares, si no el del abono. */
 function referencia(abono: Abono): number {
   return abono.al_mep ? Number(abono.monto_usd) : Number(abono.monto);
 }
@@ -1025,7 +988,7 @@ async function diagnostico(sb: SupabaseClient, actor: string, base: string): Pro
     await desactivar(r);
   }
 
-  // 8. Cambiar el monto de un plan, para las cuotas y el dólar MEP.
+  // 8. Cambiar el monto de un plan, para las cuotas y el dólar cripto.
   const plan8 = await probar('POST', '/v1/subscription/plan', minimo);
   if (anotar('8a. Plan de USD 10 para cambiarle el monto', plan8)) {
     const id8 = idDe(plan8.json as { id?: number | string | null } | null);
@@ -1068,8 +1031,8 @@ export async function GET(request: Request): Promise<Response> {
   const quien = await quienLlama(sb, request);
   if (quien instanceof Response) return quien;
   if (new URL(request.url).searchParams.get('mep') === '1') {
-    const mep = await cotizacionMep();
-    if (!mep) return error('No se pudo traer la cotización del dólar MEP. Probá de nuevo en unos minutos.', 502);
+    const mep = await cotizacionDolar();
+    if (!mep) return error('No se pudo traer la cotización del dólar cripto. Probá de nuevo en unos minutos.', 502);
     return json(mep);
   }
   if (new URL(request.url).searchParams.get('diagnostico') === '1') {
@@ -1153,10 +1116,10 @@ export async function POST(request: Request): Promise<Response> {
     if (count) return json({ error: 'El pago completo ya está acreditado. Actualizamos el estado.', actualizar: true }, 409);
   }
 
-  // En pesos al MEP los pesos salen de la cotización del día. Con el plan ya creado rige el del plan, que se actualiza antes de cada cobro.
+  // En pesos al dólar cripto los pesos salen de la cotización del día. Con el plan ya creado rige el del plan, que se actualiza antes de cada cobro.
   if (actual.al_mep && !actual.plan_id) {
-    const mep = await cotizacionMep();
-    if (!mep) return error('No pudimos traer la cotización del dólar MEP. Probá de nuevo en unos minutos.', 503);
+    const mep = await cotizacionDolar();
+    if (!mep) return error('No pudimos traer la cotización del dólar cripto. Probá de nuevo en unos minutos.', 503);
     const cambios = { monto: pesos(Number(actual.monto_usd), mep.valor), cotizacion_mep: mep.valor, cotizado_en: new Date().toISOString() };
     const { error: errMep } = await sb.from('abonos').update(cambios).eq('id', actual.id).is('plan_id', null);
     if (errMep) return error('No se pudo actualizar el monto en pesos. Probá de nuevo.', 500);

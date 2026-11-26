@@ -34,8 +34,8 @@ En el código el cliente de FIRMA es `organizaciones` y `client_id` es `organiza
 
 | Plan | Tres cuotas | Pago completo | Después de los tres meses |
 | --- | --- | --- | --- |
-| Eminent | USD 750 por mes | USD 1800 | USD 500 por mes, o bajar a Starter |
-| Starter | USD 400 por mes | USD 1000 | USD 250 por mes |
+| Eminent | USD 1000 por mes | USD 2500 | USD 500 por mes, o bajar a Starter |
+| Starter | USD 500 por mes | USD 1000 | USD 250 por mes |
 
 En el código (`organizaciones.plan`) los planes de servicio son `starter` y `eminent` desde la migración 0059, que retiró Gold y Black. Starter trae 60 minutos de agenda por semana y 20 firmas por mes. Hoy todos los clientes son Eminent.
 
@@ -69,7 +69,7 @@ Equipo arranca en Personas: tarjetas con lo que cada uno tiene entre manos, cale
 
 Desde la 0080 cada persona conecta su Google Calendar (OAuth, permiso `calendar.events.owned`). Los tokens de actualización quedan cifrados en `google_conexiones` y solo los leen las funciones del servidor (`google_conexion_token`). Servidor en `api/google/calendario.ts`, `api/google/callback.ts` y `api/_lib/google.ts`; portal en `components/portal/google.ts`. Variables `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET`. El detalle está en `PORTAL.md`, sección Google Calendar.
 
-El pago completo suma el cuarto mes sin cargo y la cuota congelada por 12 meses. Precio fundador, para los primeros 5 clientes o hasta el 31/12/2026, es Eminent USD 1500 y Starter USD 800, solo con pago completo. En pesos se cobra al equivalente del dólar MEP.
+Desde el 26 de noviembre de 2026 se publican solo los precios de lista, sin ofertas. El pago completo cubre los tres meses y el descuento se arregla en la llamada de venta. Ya no hay precio fundador, cuarto mes sin cargo ni cuota congelada; los abonos que los tienen siguen igual. En pesos se cobra al dólar cripto del día, promedio entre compra y venta, en todos los abonos (`api/_lib/cotizacion.ts`, primero dolarhoy.com y después dolarapi.com y argentinadatos.com). Las columnas siguen llamándose `al_mep` y `cotizacion_mep`.
 
 Los abonos cobran esta oferta desde la migración 0061 (`abonos.modalidad`, `etapa`, `al_mep` y afines). Las opciones están en `OFERTAS` de `components/portal/abonos.ts` y la página pública en `components/Planes.tsx`. Si cambia un precio, se cambia en los dos. El detalle y lo que falta verificar en el sandbox de dLocal Go está en `PORTAL.md`, sección Oferta de noviembre de 2026.
 
@@ -114,7 +114,7 @@ Los abonos cobran esta oferta desde la migración 0061 (`abonos.modalidad`, `eta
 
 ## Landing de campañas
 
-`/landing` es el home resumido para campañas (`App.tsx`): arriba de todo y fijo el banner «50% OFF Black Friday en el plan Eminent» (`PromoBanner blackFriday`; el home sigue con el de USD 1.500), el hero con el contador y el logo a la derecha de la firma de Agustín debajo del video (`conLogo` en `components/VideoVSL.tsx`), que lleva a `/`, clientes, cómo ayudamos y la agenda. El video del hero va sin la barra del reproductor y sin pausa una vez activado el sonido, en el home y en la landing (`components/VideoVSL.tsx`). No lleva Servicios ni la carta, usa menos aire entre secciones (`.landing-corta` en `index.css`) y va con `noindex` en `vercel.json`. Comparte los componentes del home, así que un cambio en ellos se ve en las dos.
+`/landing` es el home resumido para campañas (`App.tsx`): arriba de todo y fijo el banner «50% OFF Black Friday en el plan Eminent» (`PromoBanner fijo`; el home muestra el mismo banner, sin fijar), el hero con el contador y el logo a la derecha de la firma de Agustín debajo del video (`conLogo` en `components/VideoVSL.tsx`), que lleva a `/`, clientes, cómo ayudamos y la agenda. El video del hero va sin la barra del reproductor y sin pausa una vez activado el sonido, en el home y en la landing (`components/VideoVSL.tsx`). No lleva Servicios ni la carta, usa menos aire entre secciones (`.landing-corta` en `index.css`) y va con `noindex` en `vercel.json`. Comparte los componentes del home, así que un cambio en ellos se ve en las dos.
 
 ## Estilo visual
 

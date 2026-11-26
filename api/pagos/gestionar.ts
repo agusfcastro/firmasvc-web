@@ -40,11 +40,12 @@
  * GET /api/pagos/gestionar  tarea diaria con CRON_SECRET. La dispara
  *   /api/portal/resumen. Sincroniza los abonos vigentes con dLocal Go, así la
  *   cuota baja a tiempo aunque se haya perdido un aviso, y en los abonos en
- *   pesos al MEP con un cobro en los próximos 3 días pasa el plan al MEP del día.
+ *   pesos con un cobro en los próximos 3 días pasa el plan al dólar cripto del día.
  */
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { FALTA_SEGUNDO_FACTOR, nivelDe } from '../_lib/nivel.js';
+import { cotizacionDolar, pesosAlDolar as pesos, type Cotizacion } from '../_lib/cotizacion.js';
 import { SIN_ACCESO, SIN_CLIENTE_USUARIO, accesoVigente, clienteDelUsuario } from '../_lib/acceso.js';
 
 /* ================================================================== */
@@ -91,7 +92,7 @@ interface Abono {
   congela_meses?: number | null;
   congelado_hasta?: string | null;
   precio_fundador?: boolean | null;
-  /** En pesos al dólar MEP: monto es pesos y monto_usd la referencia en dólares. */
+  /** En pesos al dólar cripto (api/_lib/cotizacion.ts): monto es pesos y monto_usd la referencia en dólares. */
   al_mep?: boolean | null;
   monto_usd?: number | string | null;
   cotizacion_mep?: number | string | null;
@@ -493,7 +494,7 @@ async function actualizarAbono(sb: SupabaseClient, abono: Abono, cambios: Record
 }
 
 /* ------------------------------------------------------------------ */
-/* Oferta de noviembre de 2026: cuotas, pago completo y dólar MEP       */
+/* Oferta de noviembre de 2026: cuotas, pago completo y dólar cripto    */
 /* ------------------------------------------------------------------ */
 
 /** Suma meses sin pasarse de mes: 31 de enero más un mes es 28 o 29 de febrero. */
@@ -507,44 +508,6 @@ function sumarMeses(iso: string, meses: number): string {
   return d.toISOString();
 }
 
-/** Dólares a pesos con el MEP, sin centavos. */
-function pesos(usd: number, mep: number): number {
-  return Math.round(usd * mep);
-}
-
-interface Mep {
-  valor: number;
-  fuente: string;
-  fecha: string;
-}
-
-/**
- * Dólar MEP (bolsa), precio de venta. Primero dolarapi.com y, si no responde,
- * argentinadatos.com. Solo vale una cotización de la última semana.
- */
-async function cotizacionMep(): Promise<Mep | null> {
-  const reciente = (f: string) => Date.parse(f) > Date.now() - 7 * DIA_MS;
-  try {
-    const r = await fetch('https://dolarapi.com/v1/dolares/bolsa', { signal: AbortSignal.timeout(8000) });
-    const j = r.ok ? ((await r.json()) as { venta?: unknown; fechaActualizacion?: unknown } | null) : null;
-    const v = Number(j?.venta);
-    const f = typeof j?.fechaActualizacion === 'string' ? j.fechaActualizacion : '';
-    if (Number.isFinite(v) && v > 0 && reciente(f)) return { valor: Math.round(v * 100) / 100, fuente: 'dolarapi.com', fecha: new Date(Date.parse(f)).toISOString() };
-  } catch {
-    /* sigue con la otra fuente */
-  }
-  try {
-    const r = await fetch('https://api.argentinadatos.com/v1/cotizaciones/dolares/bolsa', { signal: AbortSignal.timeout(8000) });
-    const j = r.ok ? ((await r.json()) as { venta?: unknown; fecha?: unknown }[] | null) : null;
-    const u = Array.isArray(j) && j.length ? j[j.length - 1] : null;
-    const v = Number(u?.venta);
-    const f = typeof u?.fecha === 'string' ? `${u.fecha}T12:00:00-03:00` : '';
-    if (Number.isFinite(v) && v > 0 && reciente(f)) return { valor: Math.round(v * 100) / 100, fuente: 'argentinadatos.com', fecha: new Date(Date.parse(f)).toISOString() };
-  } catch {
-    /* sin cotización */
-  }
-  return null;
-}
 
 /** Pago único de dLocal Go, para el pago completo. Forma supuesta, verificar en sandbox. */
 interface PagoUnico {
@@ -686,9 +649,9 @@ async function cuotaPosterior(sb: SupabaseClient, abono: Abono): Promise<Abono> 
   const referencia = Number(abono.monto_posterior);
   const cambios: Record<string, unknown> = { etapa: 'posterior' };
   if (abono.al_mep) {
-    const mep = await cotizacionMep();
+    const mep = await cotizacionDolar();
     if (!mep) {
-      await registrar(sb, 'abono_error', abono, { etapa: 'cuota_posterior', mensaje: 'No se pudo traer el dólar MEP. Se reintenta en la próxima sincronización.' });
+      await registrar(sb, 'abono_error', abono, { etapa: 'cuota_posterior', mensaje: 'No se pudo traer el dólar cripto. Se reintenta en la próxima sincronización.' });
       return abono;
     }
     Object.assign(cambios, { monto: pesos(referencia, mep.valor), monto_usd: referencia, cotizacion_mep: mep.valor, cotizado_en: new Date().toISOString() });
@@ -1038,11 +1001,11 @@ function iguales(a: string, b: string): boolean {
 }
 
 /**
- * En pesos al MEP, antes de cada cobro el plan pasa al MEP del día. Cambia
+ * En pesos, antes de cada cobro el plan pasa al dólar cripto del día. Cambia
  * solo si la diferencia supera el medio por ciento. Verificar en sandbox que
  * el PATCH del plan acepte amount y rija para la suscripción vigente.
  */
-async function cotizarAntesDelCobro(sb: SupabaseClient, abono: Abono, mep: Mep): Promise<boolean> {
+async function cotizarAntesDelCobro(sb: SupabaseClient, abono: Abono, mep: Cotizacion): Promise<boolean> {
   if (!abono.al_mep || !abono.plan_id) return false;
   const nuevo = pesos(Number(abono.monto_usd), mep.valor);
   const anterior = Number(abono.monto);
@@ -1065,7 +1028,7 @@ async function tareaDiaria(sb: SupabaseClient): Promise<Response> {
   let sincronizados = 0;
   let cotizados = 0;
   const errores: string[] = [];
-  let mep: Mep | null | undefined;
+  let mep: Cotizacion | null | undefined;
   for (const a of abonos) {
     try {
       let actual = a;
@@ -1080,7 +1043,7 @@ async function tareaDiaria(sb: SupabaseClient): Promise<Response> {
       }
       const cobro = actual.proximo_cobro ? Date.parse(actual.proximo_cobro) : NaN;
       if (actual.al_mep && actual.plan_id && (actual.estado === 'activo' || actual.estado === 'con_error') && cobro - Date.now() < 3 * DIA_MS) {
-        if (mep === undefined) mep = await cotizacionMep();
+        if (mep === undefined) mep = await cotizacionDolar();
         if (mep && (await cotizarAntesDelCobro(sb, actual, mep))) cotizados++;
       }
     } catch (err) {
