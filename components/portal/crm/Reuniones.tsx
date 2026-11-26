@@ -20,6 +20,7 @@ import {
   type TipoReunion,
 } from './reuniones';
 import { FilaReunion, FormReunion, type ClienteOpcion } from './ReunionUI';
+import { useConexionesGoogle } from '../google';
 
 type Vista = 'proximas' | 'completar' | 'pasadas' | 'todas';
 type Periodo = '30' | '90' | '365';
@@ -49,6 +50,7 @@ export const Reuniones: React.FC<{ orgId: string; orgNombre: string; puedeGestio
   const [form, setForm] = useState<Reunion | 'nueva' | null>(null);
   const [mostrar, setMostrar] = useState(60);
   const soloLectura = Boolean(useVistaPrevia());
+  const google = useConexionesGoogle(orgId);
 
   useEffect(() => {
     if (!supabase) return;
@@ -170,6 +172,7 @@ export const Reuniones: React.FC<{ orgId: string; orgNombre: string; puedeGestio
             clientes={clientes}
             clienteId={clienteFijo ?? undefined}
             miembroPorDefecto={persona && persona !== 'sin' ? persona : miIntegrante}
+            conectados={google.activas}
             alGuardar={(r) => {
               reemplazar(r);
               setForm(null);
