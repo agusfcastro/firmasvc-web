@@ -19,9 +19,9 @@ export const Hero: React.FC<{ deLanding?: boolean }> = ({ deLanding = false }) =
     <div className="wrap relative flex flex-col items-center gap-6">
       <div className="w-full grid grid-cols-1 wide:grid-cols-[5fr_6fr] gap-6 wide:gap-x-12 wide:gap-y-7 items-center">
         <div className="flex flex-col items-center wide:items-start gap-3 wide:col-start-1 wide:row-start-1 wide:self-end">
-          <p className="eyebrow text-piedra">Dueño de negocio que vende</p>
+          <p className="eyebrow text-piedra">Coach, infoproductor y dueño de agencia</p>
           <h1 className="font-extrabold leading-[1.06] tracking-[-0.045em] max-w-[24ch]" style={{ fontSize: 'clamp(30px, 3.2vw, 46px)', textWrap: 'balance' }}>
-            Escalá a <span className="inline-block bg-tinta text-marfil px-[0.12em] pb-[0.04em]">USD 50.000 por mes</span> delegando en tu equipo sin perder dinero en reembolsos y morosos.
+            No devuelvas <span className="inline-block bg-tinta text-marfil px-[0.12em] pb-[0.04em]">ni un dólar más.</span> Blindamos tu negocio contra reembolsos, morosos y problemas con el equipo.
           </h1>
           <p className="text-piedra max-w-[30em]" style={{ fontSize: 'clamp(17px,1.6vw,20px)', lineHeight: 1.4, textWrap: 'balance' }}>
             El sistema legal que utilizan los negocios de alta facturación.
