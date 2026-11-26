@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { ExternalLink, Pencil } from 'lucide-react';
+import { ExternalLink, Pencil, Video } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { Aviso, Campo, Enlace, Etiqueta, claseInput } from '../ui';
 import { mensajeAmable } from '../errores';
+import { pedirGoogle } from '../google';
 import { rolDe, type IntegranteEquipo } from './tipos';
 import {
   COLUMNAS_REUNION,
@@ -45,7 +46,7 @@ interface Borrador {
   notas: string;
 }
 
-function borradorDe(r: Reunion | undefined, clienteId: string | undefined, miembroId: string | undefined): Borrador {
+function borradorDe(r: Reunion | undefined, clienteId: string | undefined, miembroId: string | undefined, inicio?: string): Borrador {
   const enUnaHora = new Date(Date.now() + 3600_000);
   enUnaHora.setMinutes(0, 0, 0);
   return {
@@ -54,7 +55,7 @@ function borradorDe(r: Reunion | undefined, clienteId: string | undefined, miemb
     prospecto: r?.prospecto ?? '',
     titulo: r?.titulo ?? '',
     tipo: r?.tipo ?? '',
-    inicio: aInputLocal(r?.inicio ?? enUnaHora.toISOString()),
+    inicio: aInputLocal(r?.inicio ?? inicio ?? enUnaHora.toISOString()),
     duracion_min: r?.duracion_min ? String(r.duracion_min) : '',
     miembro_id: r?.miembro_id ?? miembroId ?? '',
     agendada_por: r?.agendada_por ?? '',
@@ -77,17 +78,27 @@ export const FormReunion: React.FC<{
   clienteId?: string;
   inicial?: Reunion;
   miembroPorDefecto?: string;
+  /** Para una reunión nueva, la hora elegida en el calendario. */
+  inicioPorDefecto?: string;
+  /** Personas del equipo con Google Calendar conectado (0080). */
+  conectados?: Set<string>;
   puedeBorrar?: boolean;
   alGuardar: (r: Reunion) => void;
   alBorrar?: (id: string) => void;
   alCancelar: () => void;
-}> = ({ orgId, equipo, clientes, clienteId, inicial, miembroPorDefecto, puedeBorrar, alGuardar, alBorrar, alCancelar }) => {
-  const [b, setB] = useState<Borrador>(() => borradorDe(inicial, clienteId, miembroPorDefecto));
+}> = ({ orgId, equipo, clientes, clienteId, inicial, miembroPorDefecto, inicioPorDefecto, conectados, puedeBorrar, alGuardar, alBorrar, alCancelar }) => {
+  const [b, setB] = useState<Borrador>(() => borradorDe(inicial, clienteId, miembroPorDefecto, inicioPorDefecto));
   const [estadoTocado, setEstadoTocado] = useState(Boolean(inicial));
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   const set = <K extends keyof Borrador>(k: K, v: Borrador[K]) => setB((x) => ({ ...x, [k]: v }));
   const pasada = Boolean(b.inicio) && Date.parse(desdeInputLocal(b.inicio)) <= Date.now() + 3600_000;
+  // Crearla también en el Google Calendar de la persona, con Meet (0080).
+  const [enGoogle, setEnGoogle] = useState(true);
+  const [invitar, setInvitar] = useState(true);
+  const [avisoGoogle, setAvisoGoogle] = useState<{ texto: string; guardada: Reunion } | null>(null);
+  const puedeGoogle = !inicial && Boolean(b.miembro_id) && Boolean(conectados?.has(b.miembro_id)) && b.estado === 'agendada';
+  const nombrePersona = equipo.find((m) => m.id === b.miembro_id)?.nombre.split(' ')[0] ?? '';
   const conCliente = Boolean(clienteId) && !clientes;
 
   function cambiarInicio(v: string) {
@@ -138,9 +149,23 @@ export const FormReunion: React.FC<{
       ? supabase.from('crm_reuniones').update(datos).eq('id', inicial.id).select(COLUMNAS_REUNION).single()
       : supabase.from('crm_reuniones').insert(datos).select(COLUMNAS_REUNION).single();
     const { data, error: e2 } = await consulta;
+    if (e2 || !data) {
+      setGuardando(false);
+      return setError(mensajeAmable(e2, 'No se pudo guardar la reunión.'));
+    }
+    const guardada = data as Reunion;
+    if (puedeGoogle && enGoogle) {
+      try {
+        const res = await pedirGoogle<{ enlace: string | null; evento: string }>('crear', { org: orgId, reunion_id: guardada.id, invitar: invitar && Boolean(cliente) });
+        setGuardando(false);
+        return alGuardar({ ...guardada, google_evento_id: res.evento, enlace_reunion: res.enlace });
+      } catch (e) {
+        setGuardando(false);
+        return setAvisoGoogle({ texto: e instanceof Error ? e.message : 'No se pudo crear en Google.', guardada });
+      }
+    }
     setGuardando(false);
-    if (e2 || !data) return setError(mensajeAmable(e2, 'No se pudo guardar la reunión.'));
-    alGuardar(data as Reunion);
+    alGuardar(guardada);
   }
 
   async function borrar() {
@@ -156,6 +181,18 @@ export const FormReunion: React.FC<{
 
   const personas = paraElegir(equipo, b.miembro_id);
   const agendadores = paraElegir(equipo, b.agendada_por);
+
+  if (avisoGoogle)
+    return (
+      <div className="bg-marfil-oscuro p-6 desk:p-7 flex flex-col gap-4">
+        <Aviso tipo="error">La reunión quedó guardada en el portal, pero no se pudo crear en Google Calendar. {avisoGoogle.texto}</Aviso>
+        <div>
+          <Button type="button" onClick={() => alGuardar(avisoGoogle.guardada)}>
+            Cerrar
+          </Button>
+        </div>
+      </div>
+    );
 
   return (
     <form onSubmit={guardar} className="bg-marfil-oscuro p-6 desk:p-7 flex flex-col gap-5">
@@ -265,6 +302,21 @@ export const FormReunion: React.FC<{
           </Campo>
         </div>
       </div>
+      {puedeGoogle && (
+        <div className="flex flex-col gap-2 bg-papel border border-borde-suave rounded-[12px] p-3.5">
+          <label className="flex items-center gap-2.5 text-sm">
+            <input type="checkbox" className="w-4 h-4 accent-bosque" checked={enGoogle} onChange={(e) => setEnGoogle(e.target.checked)} />
+            Crearla en el Google Calendar de {nombrePersona} con link de Meet
+          </label>
+          {enGoogle && (conCliente || (!b.conProspecto && b.cliente_id)) && (
+            <label className="flex items-center gap-2.5 text-sm">
+              <input type="checkbox" className="w-4 h-4 accent-bosque" checked={invitar} onChange={(e) => setInvitar(e.target.checked)} />
+              Mandarle la invitación al cliente por mail
+            </label>
+          )}
+        </div>
+      )}
+      {inicial?.google_evento_id && <p className="text-[12.5px] text-piedra">Está en Google Calendar. Si cambiás la fecha o la hora, cambiala también allá.</p>}
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" disabled={guardando}>
           {guardando ? 'Guardando' : inicial ? 'Guardar cambios' : 'Guardar reunión'}
@@ -339,6 +391,11 @@ export const FilaReunion: React.FC<{
           {r.notas && <p className="text-[13.5px] mt-1.5 max-w-[70ch] whitespace-pre-line">{r.notas}</p>}
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          {r.enlace_reunion && Date.parse(r.inicio) > Date.now() - 2 * 3600_000 && r.estado === 'agendada' && (
+            <a href={r.enlace_reunion} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[9px] bg-tinta text-marfil text-[13px] font-semibold hover:bg-carbon">
+              <Video size={14} aria-hidden="true" /> Unirse
+            </a>
+          )}
           {r.enlace && (
             <a href={r.enlace} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1.5 text-[13px] font-medium underline underline-offset-4 hover:text-bosque">
               <ExternalLink size={14} aria-hidden="true" /> Grabación

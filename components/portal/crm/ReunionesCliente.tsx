@@ -6,6 +6,7 @@ import { Bloque, Enlace } from '../ui';
 import { type IntegranteEquipo } from './tipos';
 import { COLUMNAS_REUNION, TIPO_REUNION, asistencia, claveDia, dia, fechaHora, porcentaje, yaPaso, type Reunion } from './reuniones';
 import { FilaReunion, FormReunion } from './ReunionUI';
+import { useConexionesGoogle } from '../google';
 
 /** Reuniones del equipo con un cliente, en su ficha: las que vienen, las que pasaron y su asistencia. */
 export const ReunionesCliente: React.FC<{
@@ -21,6 +22,7 @@ export const ReunionesCliente: React.FC<{
   const [form, setForm] = useState<Reunion | 'nueva' | null>(null);
   const [todas, setTodas] = useState(false);
   const [yo, setYo] = useState<string | null>(null);
+  const google = useConexionesGoogle(orgId);
 
   useEffect(() => {
     if (!supabase) return;
@@ -106,6 +108,7 @@ export const ReunionesCliente: React.FC<{
               equipo={equipo}
               clienteId={clienteId}
               miembroPorDefecto={responsableId ?? miIntegrante}
+              conectados={google.activas}
               alGuardar={(n) => {
                 reemplazar(n);
                 setForm(null);

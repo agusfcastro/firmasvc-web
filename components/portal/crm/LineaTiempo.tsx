@@ -10,7 +10,8 @@ export const AVISO_VENCE_DIAS = 45;
 const ONBOARDING_DIAS = 14;
 const MESES_VISIBLES = 12;
 
-const verde = 'color-mix(in srgb, var(--color-bosque) 72%, white)';
+// Verde del onboarding, el de las capturas aprobadas.
+const verde = '#3f7a5f';
 const rayado = 'repeating-linear-gradient(135deg, var(--color-borde-suave) 0 6px, var(--color-separador) 6px 12px)';
 
 /** Fin del contrato: la fecha de onboarding más la duración del servicio. Sin alguna de las dos, no hay fin. */
@@ -127,7 +128,9 @@ export const LineaTiempo: React.FC<{
     );
   };
 
-  const rotuloRango = `${meses[0].toLocaleDateString('es-AR', { month: 'short', year: 'numeric' })} a ${meses[MESES_VISIBLES - 1].toLocaleDateString('es-AR', { month: 'short', year: 'numeric' })}`.replace(/\./g, '');
+  const mesAnio = (d: Date) => d.toLocaleDateString('es-AR', { month: 'short', year: 'numeric' }).replace(/\./g, '');
+  const rango = `${mesAnio(meses[0])} a ${mesAnio(meses[MESES_VISIBLES - 1])}`;
+  const rotuloRango = rango.charAt(0).toUpperCase() + rango.slice(1);
   const flecha = 'w-9 h-9 inline-flex items-center justify-center border border-borde-suave bg-papel rounded-[10px] hover:border-tinta';
 
   return (
@@ -140,7 +143,7 @@ export const LineaTiempo: React.FC<{
           <button type="button" aria-label="Tres meses después" className={flecha} onClick={() => setCorrimiento((n) => n + 3)}>
             <ChevronRight size={16} aria-hidden="true" />
           </button>
-          <span className="text-sm font-medium capitalize ml-1">{rotuloRango}</span>
+          <span className="text-sm font-medium ml-1">{rotuloRango}</span>
           {corrimiento !== 0 && (
             <button type="button" className="text-sm text-piedra underline underline-offset-4 hover:text-bosque ml-2" onClick={() => setCorrimiento(0)}>
               Volver a hoy

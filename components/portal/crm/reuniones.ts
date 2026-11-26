@@ -26,6 +26,10 @@ export interface Reunion {
   enlace: string | null;
   interaccion_id: string | null;
   notas: string | null;
+  /** Evento creado en el Google Calendar de la persona (0080). */
+  google_evento_id?: string | null;
+  /** Link para entrar a la reunión, el Meet del evento de Google (0080). */
+  enlace_reunion?: string | null;
   creado_por: string | null;
   creado_en: string;
   actualizado_en: string;
@@ -55,7 +59,7 @@ export const RESULTADO_VENTA: Record<ResultadoVenta, string> = {
 };
 
 export const COLUMNAS_REUNION =
-  'id, organizacion_id, cliente_id, prospecto, titulo, tipo, inicio, duracion_min, miembro_id, agendada_por, estado, resultado, enlace, interaccion_id, notas, creado_por, creado_en, actualizado_en';
+  'id, organizacion_id, cliente_id, prospecto, titulo, tipo, inicio, duracion_min, miembro_id, agendada_por, estado, resultado, enlace, interaccion_id, notas, google_evento_id, enlace_reunion, creado_por, creado_en, actualizado_en';
 
 export const yaPaso = (r: Pick<Reunion, 'inicio'>) => Date.parse(r.inicio) <= Date.now();
 

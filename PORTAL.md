@@ -1232,9 +1232,43 @@ Migración 0079. En Clientes hay dos vistas, Lista y Línea de tiempo, y queda g
 
 La ficha del cliente usa bloques con un solo título (`Bloque` en `components/portal/ui.tsx`), sin volanta arriba, y ya no muestra Asuntos: los asuntos son de FIRMA con el dueño del negocio y viven en su sección, abajo en Tu negocio. El menú lateral quedó con Inicio, Clientes, Equipo y Agenda arriba, sin título, y Pagos, Protocolos, Documentos, Firmas y Asuntos abajo, en Tu negocio.
 
+## Google Calendar
+
+Migración 0080. Cada persona del equipo conecta su propio Google Calendar desde Equipo (el aviso arriba de las tarjetas o el bloque Contacto de su ficha), una vez por negocio, porque puede usar una cuenta distinta en cada uno. Nadie conecta el calendario de otra persona.
+
+### Cómo funciona
+
+`/api/google/calendario` arma la dirección de Google con un estado firmado (quién, en qué negocio y para qué persona del equipo, vence a los 15 minutos) y deja una cookie con un nonce. `/api/google/callback` verifica el estado y la cookie, canjea el código, confirma que se dio el permiso del calendario y guarda la conexión con `google_conexion_guardar`: el token de actualización queda cifrado con la clave `google_tokens` de Vault y solo lo leen las funciones del servidor. El token de acceso se pide en cada uso y no se guarda.
+
+Con la conexión, el calendario del equipo trae la agenda de Google de cada persona (punteado, con su color) junto a las reuniones del portal. Quien lidera ve a todos y el resto solo la suya; lo que en Google es privado se muestra como Ocupado a los demás. Al agendar una reunión desde el portal para alguien conectado, se puede crear el evento en su Google Calendar con link de Meet e invitar al cliente por mail; la reunión guarda `google_evento_id` y `enlace_reunion` y muestra el botón Unirse. Cambiar la hora en el portal todavía no la cambia en Google. Desconectar revoca el permiso en Google y borra el token. Si Google deja de aceptar el token, la conexión queda en error y la persona ve el aviso para volver a conectar.
+
+Permisos que se piden: `openid`, `userinfo.email` y `calendar.events.owned`. La política de privacidad (`/privacidad`, sección 4) explica el uso de los datos de Google como pide la revisión.
+
+### Ingreso con Google
+
+En la pantalla de ingreso está el botón Continuar con Google (Supabase Auth, proveedor Google). Las altas siguen siendo por invitación: en Supabase está apagado «Allow new users to sign up», así que una cuenta de Google que no corresponde a un usuario invitado no entra y ve el aviso. Si el mail de Google es el de la invitación, Supabase lo vincula a la misma cuenta y entra con sus permisos de siempre. Las cuentas de FIRMA siguen pidiendo el segundo factor. El ingreso con Google queda anotado en la bitácora igual que el ingreso con contraseña.
+
+Para prenderlo, en Google Cloud (mismo proyecto FIRMA Portal) se crea otro cliente OAuth web con la dirección de regreso `https://jkmraudlfwgrjnyhxblm.supabase.co/auth/v1/callback`, y su ID y secreto se cargan en Supabase › Authentication › Sign In / Providers › Google. Mientras la app de Google esté en prueba, solo pueden ingresar con Google las personas de prueba; para abrirlo a todos hay que publicarla, y para ingresar solo se piden permisos básicos (mail y perfil).
+
+### Puesta en marcha
+
+1. En Google Cloud, proyecto FIRMA Portal dentro de la organización firmasvc.com, con Google Calendar API activada.
+2. Google Auth Platform: branding con página principal https://firmasvc.com y política https://firmasvc.com/privacidad, dominio autorizado firmasvc.com (verificado en Search Console), público Externo, los tres permisos de arriba y personas de prueba mientras esté en prueba.
+3. Cliente OAuth de tipo Aplicación web con la dirección de regreso `https://www.firmasvc.com/api/google/callback`.
+4. En Vercel, `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET`. `GOOGLE_REDIRECT_URI` es opcional y solo hace falta si la dirección de regreso es otra.
+5. Correr `supabase/migrations/0080_google_calendario.sql` en SQL Editor. Pruebas en `supabase/pruebas/google_calendario.sql`.
+6. Para publicar la app a todos, la revisión de Google pide un video con la conexión funcionando y la pantalla de permisos en inglés.
+
 ## Equipo: objetivos, victorias y reportes
 
 Sección Equipo del portal (`/portal/equipo`, `components/portal/equipo/`), migración 0076. Es lo que el equipo de cada empresa usa todos los días y no llama a la IA. La ve toda la gente de la empresa, también closers y setters; FIRMA elige la empresa arriba.
+
+
+### Personas y calendario del equipo
+
+La primera pestaña de Equipo es Personas (`components/portal/equipo/Personas.tsx`). Cada persona tiene una tarjeta con la lista numerada de lo que tiene entre manos, un ícono por estado (necesita atención, falta completar, agendada, en curso, hecha), tres números según su rol y la barra de rendimiento. A un Account Manager le aparecen sus clientes, con el contrato que vence en 45 días o menos, cuotas vencidas, firma pendiente, onboarding en curso, la próxima reunión o que no tiene ninguna agendada. A un closer o un setter le aparecen sus reuniones, lo que falta marcar o clasificar y los cierres de la semana. A todos se les suman los objetivos suyos y de su rol. El rendimiento es el promedio de la asistencia a sus reuniones de los últimos 90 días y del avance de sus objetivos. La lógica está en `equipo/personas.ts`.
+
+Quien lidera el equipo ve a todos y filtra por rol. El resto ve solo su tarjeta. La vista Calendario del equipo muestra la semana con un color por persona y las reuniones del portal; tocando un hueco se agenda a esa hora. La ficha de cada persona (`/portal/equipo/persona/<id>`, `FichaPersona.tsx`) suma sus reuniones, victorias, números, objetivos y, solo para quien lidera, el riesgo legal del vínculo. Ese puntaje orientativo sube si no hay contrato firmado en el portal, si se mandó a firmar y no se firmó, si venció o vence en 30 días y si su rol tiene un reporte diario. Cuando se conecte Google Calendar, el calendario va a sumar la agenda de cada persona.
 
 ### Quién hace qué
 
