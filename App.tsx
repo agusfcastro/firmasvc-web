@@ -6,6 +6,7 @@ import { PromoBanner } from './components/PromoBanner';
 import { Hero } from './components/Hero';
 import { Services } from './components/Services';
 import { Process } from './components/Process';
+import { PortalClientes } from './components/PortalClientes';
 import { Testimonials } from './components/Testimonials';
 import { Letter } from './components/Letter';
 import { Contact } from './components/Contact';
@@ -123,6 +124,7 @@ function App({ ruta }: { ruta?: string }) {
         <Hero />
         <Services />
         <Process />
+        <PortalClientes />
         <Testimonials />
         <Letter />
         <Contact />

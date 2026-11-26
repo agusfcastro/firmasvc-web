@@ -3,6 +3,8 @@
  * 1. Guarda el HTML vacío como dist/app.html. Es el que Vercel sirve para
  *    el portal, la firma y el resto de las rutas de la aplicación.
  * 2. Dibuja el home y lo deja en dist/index.html, que Vercel sirve en «/».
+ * 3. Dibuja la política de privacidad y los términos en dist/privacidad.html y
+ *    dist/terminos.html, que vercel.json sirve en /privacidad y /terminos.
  * Así el home llega con contenido y las demás rutas no muestran el home un
  * instante antes de cargar.
  */
@@ -25,5 +27,23 @@ const html = render('/');
 if (html.length < 2000) throw new Error(`El prerender del home salió casi vacío (${html.length} caracteres).`);
 writeFileSync(resolve(dist, 'index.html'), plantilla.replace(VACIO, `<div id="root">${html}</div>`));
 
+// Política de privacidad y términos: llegan con el texto en el HTML, sin esperar a JavaScript, porque
+// los lee la revisión de Google (pantalla de consentimiento de OAuth). vercel.json las sirve con un rewrite.
+const legales = [
+  { ruta: '/privacidad', archivo: 'privacidad.html', titulo: 'Política de Privacidad | Firma' },
+  { ruta: '/terminos', archivo: 'terminos.html', titulo: 'Términos y Condiciones | Firma' },
+];
+for (const { ruta, archivo, titulo } of legales) {
+  const cuerpo = render(ruta);
+  if (cuerpo.length < 2000) throw new Error(`El prerender de ${ruta} salió casi vacío (${cuerpo.length} caracteres).`);
+  const url = `https://www.firmasvc.com${ruta}`;
+  const pagina = plantilla
+    .replace(/<title>[^<]*<\/title>/, `<title>${titulo}</title>`)
+    .replace(/(<link rel="canonical" href=")[^"]*(")/, `$1${url}$2`)
+    .replace(/(<meta property="og:url" content=")[^"]*(")/, `$1${url}$2`)
+    .replace(VACIO, `<div id="root">${cuerpo}</div>`);
+  writeFileSync(resolve(dist, archivo), pagina);
+}
+
 rmSync(ssr, { recursive: true, force: true });
-console.log(`Prerender del home listo: ${Math.round(html.length / 1024)} KB de HTML.`);
+console.log(`Prerender listo: home de ${Math.round(html.length / 1024)} KB, más privacidad y términos.`);
