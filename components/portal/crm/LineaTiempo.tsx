@@ -136,8 +136,19 @@ export const LineaTiempo: React.FC<{
   const pos = (d: Date) => ((d.getTime() - desde.getTime()) / (hasta.getTime() - desde.getTime())) * 100;
   const recorte = (x: number) => Math.max(0, Math.min(100, x));
   const posHoy = pos(hoy);
+  const angosta = !window.matchMedia('(min-width: 900px)').matches;
 
   const ordenadas = filas;
+
+  // En el celular la línea se desliza de costado y arranca con hoy a la vista, no en el primer mes.
+  const desliza = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = desliza.current;
+    if (!el || el.scrollWidth <= el.clientWidth) return;
+    const col = parseFloat(getComputedStyle(el).getPropertyValue('--col')) || 0;
+    const x = col + ((el.scrollWidth - col) * recorte(pos(new Date()))) / 100;
+    el.scrollLeft = Math.max(0, x - col - (el.clientWidth - col) * 0.45);
+  }, [corrimiento]);
   const marcas = useMarcas(
     filas.map((f) => f.id),
     conPagos,
@@ -235,7 +246,8 @@ export const LineaTiempo: React.FC<{
     const regla = inicio
       ? [30, 60, 90, 120, 150, 180]
           .map((n) => ({ n, x: pos(new Date(inicio.getTime() + n * DIA)) }))
-          .filter(({ x }) => x > 2 && x < 98 && Math.abs(x - posHoy) > 4.5)
+          // Sin las que caen debajo del rótulo de hoy, que va a su izquierda. En el celular la línea es más angosta y el rótulo ocupa más.
+          .filter(({ x }) => x > 2 && x < 98 && (x < posHoy - (angosta ? 20 : 10) || x > posHoy + 4.5))
       : [];
     const diaDeHoy = inicio ? Math.round((diaHoy() - inicio.getTime()) / DIA) : null;
     type Evento = { t: number; clave: string; texto: string; color: 'default' | 'success' | 'warning' | 'danger' };
@@ -426,13 +438,17 @@ export const LineaTiempo: React.FC<{
             </button>
           )}
         </div>
-        <span className="text-[13px] text-piedra">Pasá el cursor por un cliente para ver sus reuniones, cuotas y casos</span>
+        <span className="text-[13px] text-piedra">
+          <span className="desk:hidden">Tocá un cliente para ver sus reuniones, cuotas y casos</span>
+          <span className="hidden desk:inline">Pasá el cursor por un cliente para ver sus reuniones, cuotas y casos</span>
+        </span>
       </div>
 
-      <div className="overflow-x-auto">
-        <div className="min-w-[900px]">
-          <div className="grid grid-cols-[240px_1fr] border-b border-borde-suave">
-            <span className="py-2 text-[12px] font-semibold text-piedra">Cliente</span>
+      {/* En el celular la columna del nombre es más angosta y queda fija mientras se desliza la línea. */}
+      <div ref={desliza} className="overflow-x-auto [--col:148px] desk:[--col:240px]">
+        <div className="min-w-[760px] desk:min-w-[900px]">
+          <div className="grid grid-cols-[var(--col)_1fr] border-b border-borde-suave">
+            <span className="py-2 text-[12px] font-semibold text-piedra max-desk:sticky max-desk:left-0 max-desk:z-[4] max-desk:bg-marfil max-desk:shadow-[1px_0_0_var(--color-separador),0_1px_0_var(--color-borde-suave)]">Cliente</span>
             <div className="grid" style={{ gridTemplateColumns: `repeat(${MESES_VISIBLES}, 1fr)` }}>
               {meses.map((d, i) => (
                 <span key={i} className="py-2 pl-1.5 border-l border-separador text-[12px] font-semibold text-piedra capitalize">
@@ -443,18 +459,19 @@ export const LineaTiempo: React.FC<{
             </div>
           </div>
           <div className="relative">
-            <div className="absolute inset-y-0 left-[240px] right-0 grid pointer-events-none" style={{ gridTemplateColumns: `repeat(${MESES_VISIBLES}, 1fr)` }} aria-hidden="true">
+            <div className="absolute inset-y-0 left-[var(--col)] right-0 grid pointer-events-none" style={{ gridTemplateColumns: `repeat(${MESES_VISIBLES}, 1fr)` }} aria-hidden="true">
               {meses.map((_, i) => (
                 <span key={i} className="border-l border-separador" />
               ))}
             </div>
             {posHoy >= 0 && posHoy <= 100 && (
-              <div className="absolute top-0 bottom-0 w-0.5 bg-peligro z-[1] pointer-events-none" style={{ left: `calc(240px + (100% - 240px) * ${posHoy / 100})` }} aria-hidden="true" />
+              <div className="absolute top-0 bottom-0 w-0.5 bg-peligro z-[1] pointer-events-none" style={{ left: `calc(var(--col) + (100% - var(--col)) * ${posHoy / 100})` }} aria-hidden="true" />
             )}
             {ordenadas.length === 0 && <p className="py-10 text-piedra">{cargando ? 'Cargando los clientes…' : 'No hay clientes para mostrar con este filtro.'}</p>}
             {ordenadas.map((c) => {
               const am = nombreEquipo(c.responsable_id);
               const expandido = abierto === c.id;
+              const d = expandido ? detalle(c) : null;
               return (
                 <div
                   key={c.id}
@@ -474,30 +491,28 @@ export const LineaTiempo: React.FC<{
                     navegar(`/portal/crm/${c.id}`);
                   }}
                   onKeyDown={(e) => e.key === 'Enter' && navegar(`/portal/crm/${c.id}`)}
-                  className={`grid grid-cols-[240px_1fr] border-b border-separador cursor-pointer transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-bosque/40 ${expandido ? 'bg-niebla/70 shadow-[inset_3px_0_0_var(--color-tinta)]' : 'hover:bg-niebla/50'}`}
+                  className={`grid grid-cols-[var(--col)_1fr] border-b border-separador cursor-pointer transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-bosque/40 ${expandido ? 'bg-niebla/70 shadow-[inset_3px_0_0_var(--color-tinta)]' : 'hover:bg-niebla/50'}`}
                 >
-                  <div className={`pr-4 flex flex-col min-w-0 ${expandido ? 'pl-3.5 pt-3 pb-4 justify-start' : 'py-2.5 justify-center'}`}>
+                  <div className={`pr-3 desk:pr-4 flex flex-col min-w-0 max-desk:sticky max-desk:left-0 max-desk:z-[4] ${expandido ? 'pl-3.5 pt-3 pb-4 justify-start max-desk:bg-niebla max-desk:shadow-[inset_3px_0_0_var(--color-tinta),1px_0_0_var(--color-separador),0_1px_0_var(--color-separador)]' : 'py-2.5 justify-center max-desk:bg-marfil max-desk:shadow-[1px_0_0_var(--color-separador),0_1px_0_var(--color-separador)]'}`}>
                     <span className={`font-heading font-bold text-[15px] leading-tight truncate ${c.estado_firma === 'Baja' ? 'text-piedra' : ''}`}>{c.nombre}</span>
                     <span className="text-[12px] text-piedra mt-0.5 truncate">
                       {c.servicio || 'Sin servicio'} · {am ?? 'Sin Account Manager'}
                     </span>
                     {expandido && resumen(c)}
                   </div>
-                  <div className={`relative ${expandido ? '' : 'h-[68px]'}`}>
+                  <div className={`relative ${expandido ? 'max-desk:min-h-[124px]' : 'h-[68px]'}`}>
                     {barra(c)}
                     {marcasDe(c, expandido).elementos}
-                    {expandido &&
-                      (() => {
-                        const d = detalle(c);
-                        return (
-                          <>
-                            {d.capas}
-                            {/* La cronología va debajo de los carriles y la fila crece lo que haga falta. */}
-                            <div className="relative z-[2] pt-[116px] pb-4 px-1">{d.cronologia}</div>
-                          </>
-                        );
-                      })()}
+                    {d && (
+                      <>
+                        {d.capas}
+                        {/* La cronología va debajo de los carriles y la fila crece lo que haga falta. */}
+                        <div className="hidden desk:block relative z-[2] pt-[116px] pb-4 px-1">{d.cronologia}</div>
+                      </>
+                    )}
                   </div>
+                  {/* En el celular va debajo de toda la fila y queda fija a la izquierda, para que la línea no la corte. */}
+                  {d && <div className="desk:hidden col-span-2 sticky left-0 z-[4] w-[calc(100vw-2rem)] pl-3.5 pr-1 pb-4 bg-niebla shadow-[inset_3px_0_0_var(--color-tinta)]">{d.cronologia}</div>}
                 </div>
               );
             })}

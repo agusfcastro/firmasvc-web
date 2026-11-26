@@ -54,7 +54,39 @@ class Consulta implements PromiseLike<{ data: any; error: null; count: number }>
     this.filtros.push((f) => String(f[c] ?? '') <= v);
     return this;
   }
-  or() {
+  /** campo.op.valor separados por coma, con and(...) adentro, como los usa el portal. */
+  or(expr: string) {
+    const partes = (t: string): string[] => {
+      const out: string[] = [];
+      let nivel = 0;
+      let desde = 0;
+      for (let i = 0; i < t.length; i++) {
+        if (t[i] === '(') nivel++;
+        else if (t[i] === ')') nivel--;
+        else if (t[i] === ',' && nivel === 0) {
+          out.push(t.slice(desde, i));
+          desde = i + 1;
+        }
+      }
+      out.push(t.slice(desde));
+      return out;
+    };
+    const prueba = (t: string): ((f: any) => boolean) => {
+      if (t.startsWith('and(')) {
+        const ps = partes(t.slice(4, -1)).map(prueba);
+        return (f) => ps.every((p) => p(f));
+      }
+      const [c, op, ...resto] = t.split('.');
+      const v = resto.join('.');
+      return (f) => {
+        const x = f[c] == null ? null : String(f[c]);
+        if (op === 'is') return v === 'null' ? x === null : x === v;
+        if (x === null) return false;
+        return op === 'eq' ? x === v : op === 'neq' ? x !== v : op === 'lt' ? x < v : op === 'lte' ? x <= v : op === 'gt' ? x > v : op === 'gte' ? x >= v : true;
+      };
+    };
+    const ps = partes(expr).map(prueba);
+    this.filtros.push((f) => ps.some((p) => p(f)));
     return this;
   }
   ilike() {

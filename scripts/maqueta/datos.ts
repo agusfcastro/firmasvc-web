@@ -103,7 +103,7 @@ NOMBRES.forEach((nombre, i) => {
     fecha_onboarding: iso(onboarding),
     estado_firma: estado,
     link_contrato_servicio: null,
-    responsable: am ? null : i % 8 === 7 ? 'Martina (CSM)' : null,
+    responsable: am ? null : i % 8 === 7 ? 'Martina' : null,
     responsable_id: am,
     closer_id: equipo[2 + (i % 2)].id,
     setter_id: i % 3 === 1 ? 'se-1' : null,
