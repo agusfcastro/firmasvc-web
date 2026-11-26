@@ -456,13 +456,19 @@ export const LineaTiempo: React.FC<{
         <div className="min-w-[760px] desk:min-w-[900px]">
           <div className="grid grid-cols-[var(--col)_1fr] border-b border-borde-suave">
             <span className="py-2 text-[12px] font-semibold text-piedra max-desk:sticky max-desk:left-0 max-desk:z-[4] max-desk:bg-marfil max-desk:shadow-[1px_0_0_var(--color-separador),0_1px_0_var(--color-borde-suave)]">Cliente</span>
-            <div className="grid" style={{ gridTemplateColumns: `repeat(${MESES_VISIBLES}, 1fr)` }}>
+            <div className="relative grid" style={{ gridTemplateColumns: `repeat(${MESES_VISIBLES}, 1fr)` }}>
               {meses.map((d, i) => (
-                <span key={i} className="py-2 pl-1.5 border-l border-separador text-[12px] font-semibold text-piedra capitalize">
+                <span key={i} className="pt-2 pb-4 pl-1.5 border-l border-separador text-[12px] font-semibold text-piedra capitalize">
                   {d.toLocaleDateString('es-AR', { month: 'short' }).replace('.', '')}
                   {i === 0 || d.getMonth() === 0 ? ` ${String(d.getFullYear()).slice(2)}` : ''}
                 </span>
               ))}
+              {/* Dónde está hoy: solo un rótulo debajo de los meses, sin línea que cruce los clientes. */}
+              {posHoy >= 0 && posHoy <= 100 && (
+                <span className={`absolute bottom-0.5 text-[10.5px] font-semibold leading-none text-peligro ${posHoy > 95 ? '-translate-x-full' : posHoy < 5 ? '' : '-translate-x-1/2'}`} style={{ left: `${posHoy}%` }}>
+                  hoy
+                </span>
+              )}
             </div>
           </div>
           <div className="relative">
@@ -471,9 +477,6 @@ export const LineaTiempo: React.FC<{
                 <span key={i} className="border-l border-separador" />
               ))}
             </div>
-            {posHoy >= 0 && posHoy <= 100 && (
-              <div className="absolute top-0 bottom-0 w-0.5 bg-peligro z-[1] pointer-events-none" style={{ left: `calc(var(--col) + (100% - var(--col)) * ${posHoy / 100})` }} aria-hidden="true" />
-            )}
             {ordenadas.length === 0 && <p className="py-10 text-piedra">{cargando ? 'Cargando los clientes…' : 'No hay clientes para mostrar con este filtro.'}</p>}
             {ordenadas.map((c) => {
               const am = nombreEquipo(c.responsable_id);
@@ -530,9 +533,6 @@ export const LineaTiempo: React.FC<{
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span className="w-5 h-3 rounded-[4px]" style={{ background: rayado }} /> Baja
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="w-0.5 h-3 bg-peligro" /> Hoy
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span className="w-[9px] h-[9px] rounded-full bg-tinta" /> Reunión hecha
