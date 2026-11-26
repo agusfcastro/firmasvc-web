@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Chip } from '@heroui/react';
 import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
 import { Enlace } from '../ui';
@@ -169,6 +168,10 @@ export const LineaTiempo: React.FC<{
   };
   useEffect(() => () => void (espera.current && window.clearTimeout(espera.current)), []);
 
+  // Punto del cliente abierto que muestra su detalle: al pasar el cursor, con el foco o con un toque.
+  const [punto, setPunto] = useState<string | null>(null);
+  useEffect(() => setPunto(null), [abierto]);
+
   /** Marcas de un cliente sobre la franja de debajo de la barra, o en sus carriles cuando está abierto. */
   const marcasDe = (c: ClienteResumen, expandido: boolean) => {
     const reuniones = marcas.reuniones.filter((r) => r.cliente_id === c.id);
@@ -184,6 +187,45 @@ export const LineaTiempo: React.FC<{
       return n !== null && n >= 0 && d.getTime() <= Date.now() ? `día ${n}` : corta(d);
     };
     const elementos: React.ReactNode[] = [];
+    /** Con el cliente abierto, cada marca se puede señalar y muestra arriba un cartel corto con su detalle. */
+    const senalable = (clave: string, x: number, top: number, titulo: string, sub: string, ancho?: string) => {
+      if (!expandido) return;
+      elementos.push(
+        <button
+          key={`s-${clave}`}
+          // Debajo de la columna fija del nombre en el celular, así no tapa sus enlaces.
+          type="button"
+          aria-label={`${titulo}, ${sub}`}
+          className="absolute z-[3] h-6 -translate-x-1/2 -translate-y-1/2 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-tinta/50"
+          style={{ left: `${x}%`, top, width: ancho ?? '24px' }}
+          onMouseEnter={() => setPunto(clave)}
+          onMouseLeave={() => setPunto((v) => (v === clave ? null : v))}
+          onFocus={() => setPunto(clave)}
+          onBlur={() => setPunto((v) => (v === clave ? null : v))}
+          onClick={(e) => {
+            // No abre la ficha: en el celular el toque muestra el cartel.
+            e.stopPropagation();
+            setPunto(clave);
+          }}
+          onKeyDown={(e) => e.stopPropagation()}
+        />,
+      );
+      if (punto !== clave) return;
+      // Cerca de los bordes el cartel se corre hacia adentro, así no se corta.
+      const lado = x > 70 ? 'derecha' : x < 30 ? 'izquierda' : 'centro';
+      elementos.push(
+        <span
+          key={`g-${clave}`}
+          aria-hidden="true"
+          className={`absolute z-[6] pointer-events-none -translate-y-full px-2.5 py-1.5 rounded-[10px] bg-tinta text-marfil shadow-flotante whitespace-nowrap leading-tight ${lado === 'derecha' ? '-translate-x-full' : lado === 'centro' ? '-translate-x-1/2' : ''}`}
+          style={{ left: lado === 'derecha' ? `calc(${x}% + 14px)` : lado === 'izquierda' ? `calc(${x}% - 14px)` : `${x}%`, top: top - 12 }}
+        >
+          <span className="block text-[12.5px] font-semibold">{titulo}</span>
+          <span className="block text-[11.5px] text-lateral-tenue">{sub}</span>
+        </span>,
+      );
+    };
+    const fecha = (d: Date) => (cuando(d).startsWith('día') ? `${cuando(d)} · ${corta(d)}` : corta(d));
     for (const x of casos) {
       const a = new Date(x.abierto_en);
       const b = x.cerrado_en ? new Date(x.cerrado_en) : hoy;
@@ -197,6 +239,14 @@ export const LineaTiempo: React.FC<{
           className="absolute h-[5px] rounded-pastilla z-[2]"
           style={{ left: `${x0}%`, width: `max(6px, ${x1 - x0}%)`, top: y.casos, background: COLOR_CASO[x.semaforo], opacity: x.cerrado_en ? 0.45 : 1 }}
         />,
+      );
+      senalable(
+        `c-${x.abierto_en}`,
+        (x0 + x1) / 2,
+        y.casos + 2.5,
+        `Caso ${x.cerrado_en ? 'cerrado' : 'en curso'}`,
+        `${ROTULO_CAUSA[x.causa]} · desde ${cuando(a).startsWith('día') ? `el ${cuando(a)}` : `el ${corta(a)}`}`,
+        `max(24px, ${x1 - x0}%)`,
       );
     }
     for (const r of reuniones) {
@@ -215,6 +265,7 @@ export const LineaTiempo: React.FC<{
           style={{ left: `calc(${x}% - 4.5px)`, top: y.reuniones, background: relleno, border: `1.75px solid ${borde}` }}
         />,
       );
+      senalable(`r-${r.inicio}`, x, y.reuniones + 4.5, `${tipo}, ${estado}`, fecha(d));
     }
     for (const p of pagos) {
       const d = new Date(`${fechaPago(p)}T12:00:00`);
@@ -235,53 +286,24 @@ export const LineaTiempo: React.FC<{
           }}
         />,
       );
+      senalable(`p-${p.vencimiento}-${p.fecha_pago}-${p.monto}`, x, y.pagos + 4.5, `Cuota ${estado}`, `${dinero(p.monto, c.moneda || 'USD')} · ${fecha(d)}`);
     }
     return { elementos, reuniones, pagos, casos, cuando };
   };
 
-  /** Lo que se ve al abrir un cliente: carriles, regla de días y la cronología en orden. */
-  const detalle = (c: ClienteResumen) => {
-    const { reuniones, pagos, casos, cuando } = marcasDe(c, true);
+  /** Lo que se suma a los carriles al abrir un cliente: la regla de días y dónde está hoy. */
+  const regla = (c: ClienteResumen) => {
     const inicio = c.fecha_onboarding ? new Date(new Date(c.fecha_onboarding).toDateString()) : null;
-    const regla = inicio
+    const marcasDia = inicio
       ? [30, 60, 90, 120, 150, 180]
           .map((n) => ({ n, x: pos(new Date(inicio.getTime() + n * DIA)) }))
           // Sin las que caen debajo del rótulo de hoy, que va a su izquierda. En el celular la línea es más angosta y el rótulo ocupa más.
           .filter(({ x }) => x > 2 && x < 98 && (x < posHoy - (angosta ? 20 : 10) || x > posHoy + 4.5))
       : [];
     const diaDeHoy = inicio ? Math.round((diaHoy() - inicio.getTime()) / DIA) : null;
-    type Evento = { t: number; clave: string; texto: string; color: 'default' | 'success' | 'warning' | 'danger' };
-    const eventos: Evento[] = [
-      ...reuniones.map((r) => {
-        const d = new Date(r.inicio);
-        const tipo = r.tipo ? TIPO_REUNION[r.tipo] : 'Reunión';
-        const estado = r.estado === 'realizada' ? 'hecha' : r.estado === 'no_asistio' ? 'no asistió' : r.estado === 'reprogramada' ? 'reprogramada' : 'agendada';
-        return { t: d.getTime(), clave: `r${r.inicio}`, texto: `${cuando(d)} · ${tipo}, ${estado}`, color: (r.estado === 'no_asistio' ? 'warning' : 'default') as Evento['color'] };
-      }),
-      ...pagos.map((p) => {
-        const d = new Date(`${fechaPago(p)}T12:00:00`);
-        const venc = vencida(p);
-        return {
-          t: d.getTime(),
-          clave: `p${p.vencimiento}${p.fecha_pago}${p.monto}`,
-          texto: `${cuando(d)} · Cuota de ${dinero(p.monto, c.moneda || 'USD')} ${p.estado === 'pagado' ? 'pagada' : venc ? 'vencida' : 'por vencer'}`,
-          color: (p.estado === 'pagado' ? 'success' : venc ? 'danger' : 'default') as Evento['color'],
-        };
-      }),
-      ...casos.map((x) => {
-        const d = new Date(x.abierto_en);
-        return {
-          t: d.getTime(),
-          clave: `c${x.abierto_en}`,
-          texto: `${cuando(d)} · Caso ${x.cerrado_en ? 'cerrado' : 'abierto'}, ${ROTULO_CAUSA[x.causa].toLowerCase()}`,
-          color: (x.cerrado_en ? 'default' : x.semaforo === 'rojo' ? 'danger' : 'warning') as Evento['color'],
-        };
-      }),
-    ].sort((a, b) => a.t - b.t);
-    return {
-      capas: (
+    return (
       <>
-        {regla.map(({ n, x }) => (
+        {marcasDia.map(({ n, x }) => (
           <React.Fragment key={n}>
             <span aria-hidden="true" className="absolute border-l border-dashed border-tinta/25" style={{ left: `${x}%`, top: 46, height: 60 }} />
             <span className="absolute text-[10.5px] text-piedra" style={{ left: `calc(${x}% + 4px)`, top: 44 }}>
@@ -295,22 +317,7 @@ export const LineaTiempo: React.FC<{
           </span>
         )}
       </>
-      ),
-      cronologia: (
-        <div className="flex flex-wrap items-center gap-1.5">
-          {eventos.length === 0 ? (
-            <span className="text-[12.5px] text-piedra">Sin reuniones, cuotas ni casos cargados.</span>
-          ) : (
-            eventos.slice(-8).map((e) => (
-              <Chip key={e.clave} size="sm" variant="soft" color={e.color} className={e.color === 'default' ? 'bg-papel border border-borde-suave' : ''}>
-                {e.texto}
-              </Chip>
-            ))
-          )}
-          {eventos.length > 8 && <span className="text-[12px] text-piedra">y {eventos.length - 8} más en la ficha</span>}
-        </div>
-      ),
-    };
+    );
   };
 
   /** Lo que se suma a la izquierda del cliente abierto. */
@@ -439,8 +446,8 @@ export const LineaTiempo: React.FC<{
           )}
         </div>
         <span className="text-[13px] text-piedra">
-          <span className="desk:hidden">Tocá un cliente para ver sus reuniones, cuotas y casos</span>
-          <span className="hidden desk:inline">Pasá el cursor por un cliente para ver sus reuniones, cuotas y casos</span>
+          <span className="desk:hidden">Tocá un cliente y después sus puntos para ver el detalle</span>
+          <span className="hidden desk:inline">Pasá el cursor por un cliente y por sus puntos para ver el detalle</span>
         </span>
       </div>
 
@@ -471,7 +478,6 @@ export const LineaTiempo: React.FC<{
             {ordenadas.map((c) => {
               const am = nombreEquipo(c.responsable_id);
               const expandido = abierto === c.id;
-              const d = expandido ? detalle(c) : null;
               return (
                 <div
                   key={c.id}
@@ -500,19 +506,11 @@ export const LineaTiempo: React.FC<{
                     </span>
                     {expandido && resumen(c)}
                   </div>
-                  <div className={`relative ${expandido ? 'max-desk:min-h-[124px]' : 'h-[68px]'}`}>
+                  <div className={`relative ${expandido ? 'min-h-[124px]' : 'h-[68px]'}`}>
                     {barra(c)}
                     {marcasDe(c, expandido).elementos}
-                    {d && (
-                      <>
-                        {d.capas}
-                        {/* La cronología va debajo de los carriles y la fila crece lo que haga falta. */}
-                        <div className="hidden desk:block relative z-[2] pt-[116px] pb-4 px-1">{d.cronologia}</div>
-                      </>
-                    )}
+                    {expandido && regla(c)}
                   </div>
-                  {/* En el celular va debajo de toda la fila y queda fija a la izquierda, para que la línea no la corte. */}
-                  {d && <div className="desk:hidden col-span-2 sticky left-0 z-[4] w-[calc(100vw-2rem)] pl-3.5 pr-1 pb-4 bg-niebla shadow-[inset_3px_0_0_var(--color-tinta)]">{d.cronologia}</div>}
                 </div>
               );
             })}

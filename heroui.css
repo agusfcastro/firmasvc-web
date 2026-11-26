@@ -38,5 +38,4 @@
 @import "@heroui/styles/components/menu.css" layer(components);
 @import "@heroui/styles/components/menu-item.css" layer(components);
 @import "@heroui/styles/components/menu-section.css" layer(components);
-@import "@heroui/styles/components/chip.css" layer(components);
 @import "@heroui/styles/components/pagination.css" layer(components);
