@@ -1,14 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ChevronLeft, ChevronRight, Download, Layers, Phone, Plus, ReceiptText, Search, ShieldAlert, Users } from 'lucide-react';
+import { AlertTriangle, CalendarDays, ChevronLeft, ChevronRight, Download, Layers, Phone, Plus, ReceiptText, Search, ShieldAlert, Users } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
 import { Aviso, Cifras, Encabezado, Enlace, Etiqueta, MontosPorMoneda, Pestanas, claseInput } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
 import { TONO_FIRMA, dinero, fecha, hoyISO, type ClienteResumen, type IntegranteEquipo } from './tipos';
+import { TIPO_REUNION, fechaHora, type TipoReunion } from './reuniones';
 import { mensajeAmable } from '../errores';
 
-type Filtro = 'todos' | 'vencidas' | 'revisar' | 'Pendiente' | 'En firma' | 'Firmado' | 'Baja';
+type Filtro = 'todos' | 'vencidas' | 'revisar' | 'Pendiente' | 'En firma' | 'Firmado' | 'Baja' | 'sin_reunion';
 
 const FILTROS: { clave: Filtro; titulo: string }[] = [
   { clave: 'todos', titulo: 'Todos' },
@@ -18,9 +19,24 @@ const FILTROS: { clave: Filtro; titulo: string }[] = [
   { clave: 'Firmado', titulo: 'Firmados' },
   { clave: 'Baja', titulo: 'Bajas' },
   { clave: 'revisar', titulo: 'A revisar' },
+  { clave: 'sin_reunion', titulo: 'Sin reunión agendada' },
 ];
 
-function csv(filas: ClienteResumen[], nombre: (id: string | null | undefined) => string | null): string {
+/** Filtros por persona y servicio. Vacío es todos; «sin» es sin asignar. */
+interface Filtros {
+  am: string;
+  closer: string;
+  setter: string;
+  servicio: string;
+}
+const SIN_FILTROS: Filtros = { am: '', closer: '', setter: '', servicio: '' };
+
+interface ProximaReunion {
+  inicio: string;
+  tipo: TipoReunion | null;
+}
+
+function csv(filas: ClienteResumen[], nombre: (id: string | null | undefined) => string | null, proxima: (id: string) => ProximaReunion | undefined): string {
   const cols: [string, (c: ClienteResumen) => unknown][] = [
     ['Código', (c) => c.codigo],
     ['Nombre o razón social', (c) => c.nombre],
@@ -40,8 +56,10 @@ function csv(filas: ClienteResumen[], nombre: (id: string | null | undefined) =>
     ['Monto próxima cuota', (c) => c.proxima_cuota_monto],
     ['Por cobrar en 30 días', (c) => c.por_cobrar_30_dias],
     ['Estado firma', (c) => c.estado_firma],
-    ['Responsable', (c) => nombre(c.responsable_id) ?? c.responsable],
+    ['Account Manager', (c) => nombre(c.responsable_id) ?? c.responsable],
     ['Closer', (c) => nombre(c.closer_id)],
+    ['Setter', (c) => nombre(c.setter_id)],
+    ['Próxima reunión', (c) => proxima(c.id)?.inicio.slice(0, 16).replace('T', ' ')],
     ['Onboarding', (c) => c.fecha_onboarding?.slice(0, 16).replace('T', ' ')],
     ['Notas', (c) => c.notas],
   ];
@@ -132,6 +150,63 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
   }, [orgId]);
   const nombreEquipo = (id: string | null | undefined) => (id ? equipo.find((m) => m.id === id)?.nombre ?? null : null);
 
+  // Filtros por Account Manager, closer, setter y servicio. Quedan guardados por empresa.
+  const claveFiltros = `firma-crm-filtros:${orgId}`;
+  const [filtros, setFiltros] = useState<Filtros>(SIN_FILTROS);
+  useEffect(() => {
+    try {
+      const guardados = JSON.parse(window.localStorage.getItem(claveFiltros) || 'null') as Partial<Filtros> | null;
+      setFiltros({ ...SIN_FILTROS, ...(guardados ?? {}) });
+    } catch {
+      setFiltros(SIN_FILTROS);
+    }
+  }, [claveFiltros]);
+  function cambiarFiltro(campo: keyof Filtros, valor: string) {
+    const nuevos = { ...filtros, [campo]: valor };
+    setFiltros(nuevos);
+    try {
+      window.localStorage.setItem(claveFiltros, JSON.stringify(nuevos));
+    } catch {
+      /* sin almacenamiento */
+    }
+  }
+  const hayFiltros = Object.values(filtros).some(Boolean);
+
+  // Próxima reunión agendada de cada cliente y reuniones que falta completar (sin tipo o agendadas que ya pasaron).
+  const [proximas, setProximas] = useState<Record<string, ProximaReunion>>({});
+  const [porCompletar, setPorCompletar] = useState<number | null>(null);
+  useEffect(() => {
+    if (!supabase) return;
+    let vigente = true;
+    const ahora = new Date().toISOString();
+    Promise.all([
+      supabase.from('crm_reuniones').select('cliente_id, inicio, tipo').eq('organizacion_id', orgId).eq('estado', 'agendada').gte('inicio', ahora).not('cliente_id', 'is', null).order('inicio').limit(2000),
+      supabase
+        .from('crm_reuniones')
+        .select('id', { count: 'exact', head: true })
+        .eq('organizacion_id', orgId)
+        .or(`tipo.is.null,and(estado.eq.agendada,inicio.lt.${ahora})`),
+    ]).then(([a, b]) => {
+      if (!vigente) return;
+      // Sin la migración 0078 la tabla no existe: no se muestra nada de reuniones.
+      const mapa: Record<string, ProximaReunion> = {};
+      for (const r of (a.data ?? []) as { cliente_id: string; inicio: string; tipo: TipoReunion | null }[]) if (!(r.cliente_id in mapa)) mapa[r.cliente_id] = { inicio: r.inicio, tipo: r.tipo };
+      setProximas(mapa);
+      setPorCompletar(b.error ? null : (b.count ?? 0));
+    });
+    return () => {
+      vigente = false;
+    };
+  }, [orgId]);
+  const conRol = (roles: string[], campo: 'responsable_id' | 'closer_id' | 'setter_id') =>
+    equipo
+      .filter((m) => (m.activo && roles.includes(m.rol_comercial)) || filas.some((f) => f[campo] === m.id))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  const opcionesAm = conRol(['account_manager', 'csm'], 'responsable_id');
+  const opcionesCloser = conRol(['closer'], 'closer_id');
+  const opcionesSetter = conRol(['setter'], 'setter_id');
+  const servicios = Array.from(new Set(filas.map((f) => f.servicio).filter((x): x is string => Boolean(x)))).sort((a, b) => a.localeCompare(b, 'es'));
+
   const cobranzaRef = cobranza;
   useEffect(() => {
     if (!supabase) return;
@@ -167,24 +242,40 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
   };
   const monedasActivas = Object.keys(resumen.acordado);
   const variasMonedas = monedasActivas.length > 1;
+  const coincide = (valor: string | null | undefined, filtro: string) => !filtro || (filtro === 'sin' ? !valor : valor === filtro);
+  const filtradas = filas.filter(
+    (f) => coincide(f.responsable_id, filtros.am) && coincide(f.closer_id, filtros.closer) && coincide(f.setter_id, filtros.setter) && coincide(f.servicio, filtros.servicio),
+  );
+  const sinReunion = (f: ClienteResumen) => f.estado_firma !== 'Baja' && !proximas[f.id];
   const cuenta = (c: Filtro) =>
-    c === 'todos' ? filas.length : c === 'vencidas' ? conVencidas.length : c === 'revisar' ? filas.filter((f) => f.revisar_pagos).length : filas.filter((f) => f.estado_firma === c).length;
+    c === 'todos'
+      ? filtradas.length
+      : c === 'vencidas'
+        ? filtradas.filter((f) => f.cuotas_vencidas > 0 && f.estado_firma !== 'Baja').length
+        : c === 'revisar'
+          ? filtradas.filter((f) => f.revisar_pagos).length
+          : c === 'sin_reunion'
+            ? filtradas.filter(sinReunion).length
+            : filtradas.filter((f) => f.estado_firma === c).length;
 
   const visibles = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
-    return filas.filter((f) => {
+    return filtradas.filter((f) => {
+      if (filtro === 'sin_reunion' && !sinReunion(f)) return false;
       if (filtro === 'vencidas' && !(f.cuotas_vencidas > 0 && f.estado_firma !== 'Baja')) return false;
       if (filtro === 'revisar' && !f.revisar_pagos) return false;
       if ((filtro === 'Pendiente' || filtro === 'En firma' || filtro === 'Firmado' || filtro === 'Baja') && f.estado_firma !== filtro) return false;
       if (!q) return true;
-      return [f.codigo, f.nombre, f.representante, f.id_fiscal, f.email, f.dni, f.responsable, nombreEquipo(f.responsable_id), nombreEquipo(f.closer_id)].some((v) => (v ?? '').toLowerCase().includes(q));
+      return [f.codigo, f.nombre, f.representante, f.id_fiscal, f.email, f.dni, f.responsable, nombreEquipo(f.responsable_id), nombreEquipo(f.closer_id), nombreEquipo(f.setter_id)].some((v) =>
+        (v ?? '').toLowerCase().includes(q),
+      );
     });
-  }, [filas, filtro, busqueda, equipo]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [filas, filtro, busqueda, equipo, filtros, proximas]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Paginación de la tabla. Vuelve a la primera página al cambiar el filtro o la búsqueda.
   useEffect(() => {
     setPagina(0);
-  }, [filtro, busqueda, porPagina, orgId]);
+  }, [filtro, busqueda, porPagina, orgId, filtros]);
   const paginas = Math.max(1, Math.ceil(visibles.length / porPagina));
   const paginaActual = Math.min(pagina, paginas - 1);
   const desde = paginaActual * porPagina;
@@ -200,7 +291,7 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
   }
 
   function descargar() {
-    const blob = new Blob(['\ufeff' + csv(visibles, nombreEquipo)], { type: 'text/csv;charset=utf-8' });
+    const blob = new Blob(['\ufeff' + csv(visibles, nombreEquipo, (id) => proximas[id])], { type: 'text/csv;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `crm-${hoyISO()}.csv`;
@@ -241,6 +332,15 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
             </Button>
             <Button variant="ghost" size="lg" onClick={() => navegar('/portal/crm/equipo')} className="self-end">
               <Users size={18} /> Equipo
+            </Button>
+            <Button variant="ghost" size="lg" onClick={() => navegar('/portal/crm/reuniones')} className="self-end">
+              <CalendarDays size={18} /> Reuniones
+              {porCompletar ? (
+                <span className="inline-flex items-center justify-center min-w-6 h-6 px-1.5 rounded-pastilla bg-tinta text-marfil text-xs font-semibold tabular-nums">
+                  {porCompletar}
+                  <span className="sr-only">{porCompletar === 1 ? ' reunión por completar' : ' reuniones por completar'}</span>
+                </span>
+              ) : null}
             </Button>
             <Button variant="ghost" size="lg" onClick={() => navegar('/portal/crm/llamadas')} className="self-end">
               <Phone size={18} /> Llamadas
@@ -290,10 +390,48 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
             </Button>
           </div>
 
+          <div className="grid gap-3 tab:grid-cols-2 desk:grid-cols-4 items-end">
+            {(
+              [
+                ['am', 'Account Manager', opcionesAm.map((m) => [m.id, m.nombre + (m.activo ? '' : ' · inactivo')])],
+                ['closer', 'Closer', opcionesCloser.map((m) => [m.id, m.nombre + (m.activo ? '' : ' · inactivo')])],
+                ['setter', 'Setter', opcionesSetter.map((m) => [m.id, m.nombre + (m.activo ? '' : ' · inactivo')])],
+                ['servicio', 'Servicio', servicios.map((x) => [x, x])],
+              ] as [keyof Filtros, string, [string, string][]][]
+            ).map(([campo, etiqueta, opciones]) => (
+              <label key={campo} className="flex flex-col gap-1.5">
+                <span className="text-[12.5px] font-medium text-piedra">{etiqueta}</span>
+                <select className={claseInput} value={filtros[campo]} onChange={(e) => cambiarFiltro(campo, e.target.value)}>
+                  <option value="">Todos</option>
+                  <option value="sin">Sin asignar</option>
+                  {opciones.map(([valor, texto]) => (
+                    <option key={valor} value={valor}>
+                      {texto}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ))}
+          </div>
+          {hayFiltros && (
+            <div className="-mt-3">
+              <button type="button" className="text-sm text-piedra underline underline-offset-4 hover:text-bosque" onClick={() => {
+                setFiltros(SIN_FILTROS);
+                try {
+                  window.localStorage.removeItem(claveFiltros);
+                } catch {
+                  /* sin almacenamiento */
+                }
+              }}>
+                Quitar los filtros
+              </button>
+            </div>
+          )}
+
           <Pestanas<Filtro> items={FILTROS.filter((f) => cobranza || f.clave !== 'vencidas').map((f) => ({ ...f, cuenta: cargando ? undefined : cuenta(f.clave) }))} activa={filtro} alCambiar={setFiltro} />
 
           <div className="overflow-x-auto">
-            <table className="tabla min-w-[900px]">
+            <table className="tabla min-w-[1040px]">
               <thead>
                 <tr>
                   <th>Cliente</th>
@@ -302,13 +440,14 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
                   <th>{cobranza ? 'Cobrado' : 'Plan pactado'}</th>
                   {cobranza && <th>Próxima cuota</th>}
                   <th>Firma</th>
-                  <th>Responsable</th>
+                  <th>Próxima reunión</th>
+                  <th>Equipo</th>
                 </tr>
               </thead>
               <tbody>
                 {!cargando && visibles.length === 0 && (
                   <tr>
-                    <td colSpan={cobranza ? 7 : 6} className="text-piedra py-10">
+                    <td colSpan={cobranza ? 8 : 7} className="text-piedra py-10">
                       No hay clientes para mostrar con este filtro.
                     </td>
                   </tr>
@@ -370,9 +509,20 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
                           {f.estado_firma === 'Pendiente' && envioFallido[f.id] && <Etiqueta tono="alerta">{ENVIO_FALLIDO[envioFallido[f.id]]}</Etiqueta>}
                         </div>
                       </td>
+                      <td className="whitespace-nowrap">
+                        {proximas[f.id] ? (
+                          <>
+                            <div>{fechaHora(proximas[f.id].inicio)}</div>
+                            <div className="text-xs text-piedra mt-0.5">{proximas[f.id].tipo ? TIPO_REUNION[proximas[f.id].tipo as TipoReunion] : 'Sin tipo'}</div>
+                          </>
+                        ) : (
+                          <span className="text-piedra">·</span>
+                        )}
+                      </td>
                       <td className="text-piedra">
                         <div>{nombreEquipo(f.responsable_id) ?? f.responsable ?? '·'}</div>
                         {nombreEquipo(f.closer_id) && <div className="text-xs mt-0.5">Closer {nombreEquipo(f.closer_id)}</div>}
+                        {nombreEquipo(f.setter_id) && <div className="text-xs mt-0.5">Setter {nombreEquipo(f.setter_id)}</div>}
                       </td>
                     </tr>
                   );

@@ -51,7 +51,7 @@ import { mensajeAmable } from './errores';
 /**
  * Estado de asuntos en /portal/asuntos y /portal/asuntos/:id.
  * Una sola gestión para los trámites con FIRMA y los conflictos de la
- * empresa. Los crean FIRMA o el cliente (titular y CSM) y pueden vincularse
+ * empresa. Los crean FIRMA o el cliente (titular y Account Manager) y pueden vincularse
  * a un cliente del CRM. Un reclamo de reembolso o contracargo lleva además
  * su caso de conflicto, con los indicadores del protocolo (CRM › Casos de
  * conflicto). Cada asunto tiene un chat en vivo, una bitácora con notas
@@ -299,7 +299,7 @@ const Lista: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
         }
         bajada={
           esFirma
-            ? 'Trámites y conflictos de cada empresa. Las novedades que sumás le llegan por mail al titular y al CSM.'
+            ? 'Trámites y conflictos de cada empresa. Las novedades que sumás le llegan por mail al titular y al Account Manager.'
             : 'Trámites y conflictos de tu empresa, con su estado, el próximo paso y las novedades. Cuando algo cambia, te avisamos por mail.'
         }
         acciones={
@@ -440,7 +440,7 @@ const Lista: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
             {esFirma && borrador.novedad.trim() && (
               <label className="flex items-center gap-3 text-[15px] cursor-pointer">
                 <input type="checkbox" className="w-4 h-4 accent-bosque" checked={borrador.avisar} onChange={(e) => cambiar({ avisar: e.target.checked })} />
-                Avisar por mail al titular y al CSM de la empresa
+                Avisar por mail al titular y al Account Manager de la empresa
               </label>
             )}
             <div className="flex flex-wrap gap-3">

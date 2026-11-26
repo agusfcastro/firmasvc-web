@@ -250,7 +250,7 @@ export const OnboardingsDia: React.FC<{ orgId: string }> = ({ orgId }) => {
                     {f.nombre}
                   </Enlace>
                   <span className="text-[13px] text-piedra truncate">
-                    {[f.servicio, responsable && `CSM/AM ${responsable}`, closer && `Closer ${closer}`].filter(Boolean).join(' · ') || 'Sin responsable asignado'}
+                    {[f.servicio, responsable && `Account Manager ${responsable}`, closer && `Closer ${closer}`].filter(Boolean).join(' · ') || 'Sin responsable asignado'}
                   </span>
                 </span>
                 {enlace ? (

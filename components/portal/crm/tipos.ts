@@ -44,10 +44,25 @@ export type RolComercial = 'closer' | 'setter' | 'account_manager' | 'csm' | 'ot
 export const ROL_COMERCIAL: Record<RolComercial, string> = {
   closer: 'Closer',
   setter: 'Setter',
-  account_manager: 'Account manager',
-  csm: 'CSM',
+  account_manager: 'Account Manager',
+  // CSM y Account Manager son lo mismo (migración 0078): la base guarda account_manager.
+  csm: 'Account Manager',
   otro: 'Otro',
 };
+
+/** Los roles que se eligen en los menús. CSM ya no se ofrece porque es Account Manager. */
+export const ROLES_ELEGIBLES: RolComercial[] = ['closer', 'setter', 'account_manager', 'otro'];
+
+/** Cargos con un solo nombre. Se sugieren al escribir el rol de alguien con rol «otro». */
+export const CARGOS_ESTANDAR = ['CEO', 'COO', 'CFO', 'CCO', 'CMO', 'CTO', 'Head of Sales', 'Head of Customer Success', 'Operaciones', 'Administración', 'Legales', 'Contenido', 'Soporte'];
+
+const plano = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+
+/** El cargo como se guarda: si coincide con uno estándar, con su nombre exacto. */
+export function cargoNormal(texto: string): string {
+  const t = texto.trim().replace(/\s+/g, ' ');
+  return CARGOS_ESTANDAR.find((c) => plano(c) === plano(t)) ?? t;
+}
 
 export interface IntegranteEquipo {
   id: string;

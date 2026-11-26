@@ -23,9 +23,9 @@ import { etiquetaAnalisis, type AnalisisFila } from './analisis';
  *                desconecta.
  *   Llamadas     las recibidas; las que no se atribuyeron por el mail se
  *                asignan a mano.
- * Titular, CSM y FIRMA ven todo el negocio. Un closer ve «Mi Fathom» para
+ * Titular, Account Manager y FIRMA ven todo el negocio. Un closer ve «Mi Fathom» para
  * conectar la suya y solo sus llamadas. La transcripción no se muestra acá.
- * Análisis (migración 0067), para titular, CSM y FIRMA: la columna Análisis
+ * Análisis (migración 0067), para titular, Account Manager y FIRMA: la columna Análisis
  * muestra el estado de cada llamada y abre el informe (AnalisisLlamada). El
  * negocio ve «En revisión de FIRMA» hasta que FIRMA lo aprueba. «Cargar
  * transcripción» suma una llamada que no vino por Fathom.

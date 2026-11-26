@@ -2,7 +2,7 @@
 
 Relevamiento del 5 de noviembre de 2026, antes de empezar la Fase 1 de Tina. Sale de leer el código, las 58 migraciones de `supabase/migrations/` y `PORTAL.md`, que es la documentación de uso y puesta en marcha de cada módulo. No se cambió código.
 
-Actualizado el 25 de noviembre de 2026 con el plan de Vercel, las migraciones 0073 a 0075 y la auditoría de la IA, y el 26 de noviembre con la sección Equipo (0076).
+Actualizado el 25 de noviembre de 2026 con el plan de Vercel, las migraciones 0073 a 0075 y la auditoría de la IA, y el 26 de noviembre con la sección Equipo (0076) y las reuniones del CRM con un solo nombre por rol (0078).
 
 ## Glosario, cómo se llama cada cosa en el código
 
@@ -125,6 +125,7 @@ Además, la migración 0038 hace que las tablas hijas apunten al padre por `(org
 | `equipo_reporte_respuestas` | Reportes entregados, uno por persona, reporte y período (0076) | Cada persona los suyos. Quien lidera, todos |
 | `equipo_objetivos` | Objetivos del negocio, de un rol o de una persona, con meta y período (0076) | Quien lidera todo. El resto, los del negocio, los de su rol y los suyos |
 | `equipo_victorias` | Victorias con evidencia, pendientes, validadas o no validadas (0076) | Todo el negocio las validadas. Cada persona las suyas. Quien lidera, todas |
+| `crm_reuniones` | Reuniones del equipo con clientes y prospectos, con tipo, estado, resultado y link de la grabación. Las llamadas de Fathom entran solas (0078) | Quien ve el CRM, todas. El resto, las que tiene o agendó. Borran el titular y quien la cargó |
 | `comprobantes`, `comprobantes_emisor`, `comprobantes_numeracion` | Recibos y comprobantes de cada negocio | Negocio |
 
 Buckets de Storage `asuntos`, `documentos`, `equipo` (evidencias de las victorias, 0076), `firmas` y `modelos` (privados) y `logos` (público).

@@ -143,7 +143,7 @@ export const NewsletterAdmin: React.FC = () => {
   return (
     <div className="space-y-6">
       <p className="text-sm text-piedra max-w-[680px]">
-        Sale los lunes a las 9 a todos los usuarios de las empresas activas, con un video y un artículo. Al titular y al CSM les llega en el mismo mail el resumen de su empresa y los vencimientos de la semana. Solo sale si activás el envío; sin una newsletter activa, ese lunes no sale nada.
+        Sale los lunes a las 9 a todos los usuarios de las empresas activas, con un video y un artículo. Al titular y al Account Manager les llega en el mismo mail el resumen de su empresa y los vencimientos de la semana. Solo sale si activás el envío; sin una newsletter activa, ese lunes no sale nada.
       </p>
       {error && <Aviso tipo="error">{error}</Aviso>}
       {ok && <Aviso tipo="ok">{ok}</Aviso>}

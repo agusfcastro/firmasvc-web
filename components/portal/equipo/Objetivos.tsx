@@ -4,7 +4,7 @@ import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { Aviso, Campo, Etiqueta, TituloSeccion, claseInput } from '../ui';
 import { mensajeAmable } from '../errores';
-import { ROL_COMERCIAL, rolDe, type RolComercial } from '../crm/tipos';
+import { ROLES_ELEGIBLES, ROL_COMERCIAL, rolDe, type RolComercial } from '../crm/tipos';
 import type { BaseEquipo } from './EquipoApp';
 import { ROTULO_MEDIDA, aNumero, esNumerico, fechaCortaDia, hoy, mesDe, numero, textoAlcance, type Alcance, type Avance, type Hito, type Medida, type Objetivo } from './tipos';
 
@@ -267,7 +267,7 @@ export const Objetivos: React.FC<{ base: BaseEquipo }> = ({ base }) => {
             {borrador.alcance === 'rol' && (
               <Campo etiqueta="Rol">
                 <select className={claseInput} value={borrador.rol_comercial} onChange={(e) => setBorrador({ ...borrador, rol_comercial: e.target.value as RolComercial })}>
-                  {(Object.keys(ROL_COMERCIAL) as RolComercial[]).map((r) => (
+                  {ROLES_ELEGIBLES.map((r) => (
                     <option key={r} value={r}>
                       {ROL_COMERCIAL[r]}
                     </option>

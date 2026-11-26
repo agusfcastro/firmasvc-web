@@ -35,7 +35,7 @@ import { mensajeAmable } from '../errores';
 
 /**
  * Pedidos de contrato en /portal/pedidos/<modelo> (nuevo) y /portal/pedidos/<id>.
- * El titular o el CSM responden por pasos y el borrador se guarda solo.
+ * El titular o el Account Manager responden por pasos y el borrador se guarda solo.
  * Al enviarlo se abre un asunto de tipo Contrato con las respuestas en la
  * pestaña Formulario. Los datos de la persona pueden quedar para después y
  * completarse desde el asunto. Las condiciones se guardan como esquema de
@@ -412,7 +412,7 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
             ? `Enviado a FIRMA el ${fecha(pedido.enviado_en)}.`
             : 'Solo lectura.'
           : prueba
-            ? 'Vista previa: así lo completan el titular y el CSM. Podés recorrerlo, pero no se guarda ni se envía.'
+            ? 'Vista previa: así lo completan el titular y el Account Manager. Podés recorrerlo, pero no se guarda ni se envía.'
             : modelo.bajada
       }
       acciones={
