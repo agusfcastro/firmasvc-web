@@ -22,6 +22,7 @@ import { permisosDe, veAsuntos, type Organizacion, type Perfil } from './tipos';
 
 const CrmApp = lazy(() => import('./crm/CrmApp'));
 const Firmas = lazy(() => import('./firmas/Firmas'));
+const EquipoApp = lazy(() => import('./equipo/EquipoApp'));
 const Asuntos = lazy(() => import('./EstadoAsuntos'));
 const Bitacora = lazy(() => import('./Bitacora'));
 // Pagos lo abre solo el titular: no hace falta que lo descargue todo el equipo.
@@ -43,6 +44,7 @@ const CargandoSeccion: React.FC = () => (
  *   /portal/documentos contratos de servicio, con el equipo y otros (más /equipo y /otros)
  *   /portal/protocolos protocolos y formación del equipo
  *   /portal/firmas     firma electrónica propia (más /nuevo y /<id>)
+ *   /portal/equipo     objetivos, victorias y reportes del equipo (más /objetivos y /reportes)
  *   /portal/pedidos/closer formulario para pedir un contrato (más /<id>)
  *   /portal/pagos      abonos mensuales con tarjeta (solo titular y admin)
  *   /portal/bitacora   bitácora de la empresa (solo titular; FIRMA usa Administración › Registro)
@@ -163,6 +165,7 @@ const Portal: React.FC = () => {
     const enFirmas = (ruta === '/portal/firmas' || ruta.startsWith('/portal/firmas/')) && permisosVista.documentosLegales;
     const enAsuntos = (ruta === '/portal/asuntos' || ruta.startsWith('/portal/asuntos/')) && permisosVista.casos;
     const enPedidos = ruta.startsWith('/portal/pedidos/') && permisosVista.casos;
+    const enEquipo = ruta === '/portal/equipo' || ruta.startsWith('/portal/equipo/');
     return (
       <VistaPreviaContexto.Provider value={vista}>
         {enPedidos ? (
@@ -170,6 +173,10 @@ const Portal: React.FC = () => {
         ) : enCrm ? (
           <Suspense fallback={esperaVista}>
             <CrmApp perfil={perfilVista} organizacion={orgVista} ruta={ruta} />
+          </Suspense>
+        ) : enEquipo ? (
+          <Suspense fallback={esperaVista}>
+            <EquipoApp perfil={perfilVista} organizacion={orgVista} ruta={ruta} />
           </Suspense>
         ) : enFirmas ? (
           <Suspense fallback={esperaVista}>
@@ -200,6 +207,15 @@ const Portal: React.FC = () => {
     return (
       <Suspense fallback={espera}>
         <CrmApp perfil={perfil} organizacion={estado.organizacion} ruta={ruta} />
+      </Suspense>
+    );
+  }
+
+  // Equipo es de toda la gente de la empresa. Lo que cada uno ve lo decide la base (0076).
+  if (ruta === '/portal/equipo' || ruta.startsWith('/portal/equipo/')) {
+    return (
+      <Suspense fallback={espera}>
+        <EquipoApp perfil={perfil} organizacion={estado.organizacion} ruta={ruta} />
       </Suspense>
     );
   }

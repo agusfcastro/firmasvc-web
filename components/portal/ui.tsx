@@ -19,6 +19,7 @@ import {
   Search,
   ShieldAlert,
   ShieldCheck,
+  Trophy,
   Users,
   Wallet,
   WifiOff,
@@ -73,7 +74,7 @@ async function salir() {
 /* ------------------------------------------------------------------ */
 /* Secciones del portal según el rol                                   */
 /* ------------------------------------------------------------------ */
-type ClaveSeccion = 'inicio' | 'asuntos' | 'firmas' | 'documentos' | 'protocolos' | 'crm' | 'agenda' | 'pagos' | 'admin';
+type ClaveSeccion = 'inicio' | 'asuntos' | 'firmas' | 'documentos' | 'protocolos' | 'crm' | 'equipo' | 'agenda' | 'pagos' | 'admin';
 
 interface Seccion {
   clave: ClaveSeccion;
@@ -98,6 +99,8 @@ function seccionesDe(perfil: Perfil, permisos: Permisos, ruta: string): Seccion[
     s('protocolos', '/portal/protocolos', 'Protocolos', 'Protocolos', BookOpen, 'expediente', ruta === '/portal/protocolos'),
     // Invoices y recibos se abren desde Clientes; la bitácora, desde el pie de la barra lateral.
     ...(permisos.crm ? [s('crm', '/portal/crm', 'Clientes', 'Clientes', Kanban, 'negocio', ruta.startsWith('/portal/crm'))] : []),
+    // Objetivos, victorias y reportes (0076): lo usa toda la gente de la empresa, también setters.
+    s('equipo', '/portal/equipo', 'Equipo', 'Equipo', Trophy, 'negocio', ruta === '/portal/equipo' || ruta.startsWith('/portal/equipo/')),
     ...(permisos.agenda ? [s('agenda', '/portal/agenda', 'Agenda', 'Agenda', CalendarDays, 'negocio', ruta === '/portal/agenda')] : []),
     // Pagos solo para titulares y FIRMA. El resto del equipo no ve nada de pagos.
     ...(permisos.gestion ? [s('pagos', '/portal/pagos', 'Pagos', 'Pagos', Wallet, 'negocio', ruta === '/portal/pagos')] : []),
@@ -479,7 +482,7 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
   }, [tituloSeccion]);
 
   // La barra inferior muestra las cuatro secciones que más se usan. El resto vive en Más.
-  const ORDEN_INFERIOR: ClaveSeccion[] = ['inicio', 'asuntos', 'firmas', 'documentos', 'crm', 'protocolos', 'agenda', 'pagos', 'admin'];
+  const ORDEN_INFERIOR: ClaveSeccion[] = ['inicio', 'asuntos', 'firmas', 'documentos', 'crm', 'equipo', 'protocolos', 'agenda', 'pagos', 'admin'];
   const inferiores = ORDEN_INFERIOR.map((c) => secciones.find((x) => x.clave === c)).filter((x): x is Seccion => Boolean(x)).slice(0, 4);
   const lateral = perfil ? (
     <Lateral perfil={perfil} secciones={secciones} contadores={contadores} orgNombre={vista?.orgNombre ?? org?.nombre ?? null} orgPlan={org?.plan ?? null} logoCliente={logoCliente} vista={Boolean(vista)} alElegir={() => setMenu(false)} />

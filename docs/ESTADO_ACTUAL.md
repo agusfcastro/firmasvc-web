@@ -2,7 +2,7 @@
 
 Relevamiento del 5 de noviembre de 2026, antes de empezar la Fase 1 de Tina. Sale de leer el código, las 58 migraciones de `supabase/migrations/` y `PORTAL.md`, que es la documentación de uso y puesta en marcha de cada módulo. No se cambió código.
 
-Actualizado el 25 de noviembre de 2026 con el plan de Vercel, las migraciones 0073 a 0075 y la auditoría de la IA.
+Actualizado el 25 de noviembre de 2026 con el plan de Vercel, las migraciones 0073 a 0075 y la auditoría de la IA, y el 26 de noviembre con la sección Equipo (0076).
 
 ## Glosario, cómo se llama cada cosa en el código
 
@@ -81,6 +81,8 @@ Todas las tablas tienen RLS activado. Los permisos se apoyan en funciones SQL co
 | `mi_organizacion()`, `mi_rol()`, `mis_areas()` | Negocio activo, rol y áreas de quien llama |
 | `puede_ver_org(org)` | Admin, o el negocio es el propio y el rol es titular, csm, closer o miembro |
 | `puede_gestionar_org(org)` | Admin, o titular del negocio |
+| `lidera_equipo(org)` | Admin, o titular o área Operaciones del negocio (0076) |
+| `mi_integrante(org)` | El lugar en el equipo de quien llama en ese negocio (0076) |
 | `puede_ver_casos(org)` | Admin, o titular o csm del negocio |
 | `es_de_mi_cartera(org, cliente)` | Quien llama es el responsable de ese cliente del CRM (0057) |
 | `tiene_funcionalidad(org, clave)` | El plan del negocio incluye esa funcionalidad |
@@ -119,9 +121,13 @@ Además, la migración 0038 hace que las tablas hijas apunten al padre por `(org
 | `cola_trabajos` | Cola de trabajos del servidor | Solo FIRMA lee. Escribe el servidor |
 | `ia_corridas` | Una fila por llamada a Claude, con agente, versión del prompt, modelo, tokens, costo y revisión de FIRMA (0074). Toma la empresa del registro original (0075) | Solo FIRMA lee. Escribe el servidor y revisa FIRMA con `ia_corrida_revisar` |
 | `ia_casos` | Casos de prueba de cada agente, con la entrada anonimizada y lo esperado (0074) | Solo FIRMA |
+| `equipo_hitos`, `equipo_reportes` | Hitos y reportes por rol de cada empresa (0076). Sin empresa son plantillas de FIRMA | La empresa los suyos y las plantillas. Escribe quien lidera el equipo; las plantillas, solo FIRMA |
+| `equipo_reporte_respuestas` | Reportes entregados, uno por persona, reporte y período (0076) | Cada persona los suyos. Quien lidera, todos |
+| `equipo_objetivos` | Objetivos del negocio, de un rol o de una persona, con meta y período (0076) | Quien lidera todo. El resto, los del negocio, los de su rol y los suyos |
+| `equipo_victorias` | Victorias con evidencia, pendientes, validadas o no validadas (0076) | Todo el negocio las validadas. Cada persona las suyas. Quien lidera, todas |
 | `comprobantes`, `comprobantes_emisor`, `comprobantes_numeracion` | Recibos y comprobantes de cada negocio | Negocio |
 
-Buckets de Storage `asuntos`, `documentos`, `firmas` y `modelos` (privados) y `logos` (público).
+Buckets de Storage `asuntos`, `documentos`, `equipo` (evidencias de las victorias, 0076), `firmas` y `modelos` (privados) y `logos` (público).
 
 Secretos en Supabase Vault `crm_datos` y `crm_indices` (cifrado del CRM), `interacciones_contenido`, y `cola_url` y `cola_secreto` (barrido de la cola).
 

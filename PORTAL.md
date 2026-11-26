@@ -1191,3 +1191,47 @@ Es lo único de la auditoría que gasta crédito de la API, así que corre solo 
 3. Hecho el 25 de noviembre de 2026. La primera medición de Tina dio 81,7 y el umbral quedó en 78. La referencia actual es 96,5 con los 26 casos de Eminent.
 
 Pruebas en `supabase/pruebas/ia_corridas.sql`, `supabase/pruebas/ia_calidad.sql` y `scripts/pruebas/evaluador.mjs`.
+
+## Equipo: objetivos, victorias y reportes
+
+Sección Equipo del portal (`/portal/equipo`, `components/portal/equipo/`), migración 0076. Es lo que el equipo de cada empresa usa todos los días y no llama a la IA. La ve toda la gente de la empresa, también closers y setters; FIRMA elige la empresa arriba.
+
+### Quién hace qué
+
+| Quién | Qué puede |
+| --- | --- |
+| Quien lidera el equipo (FIRMA, el titular y el área Operaciones, `lidera_equipo()`) | Valida o no valida victorias, carga victorias de otros (entran validadas), pone objetivos, ajusta hitos, arma los reportes, ve todas las entregas y baja el Excel |
+| Cada persona con su lugar en el equipo (`mi_integrante()`) | Carga sus victorias (entran pendientes), manda y corrige sus reportes, ve el muro, los objetivos del negocio, los de su rol y los suyos con su avance |
+
+Nadie valida su propia victoria, tampoco el titular: la del titular la valida otra persona que lidere o FIRMA.
+
+### Victorias
+
+Se cargan con qué se logró, fecha, valor opcional en una moneda de la empresa y evidencia, un archivo (captura, audio o PDF de hasta 10 MB, bucket privado `equipo`, en `<empresa>/<victoria>/`) o un enlace. Se pueden atar a un objetivo o a un hito. Pendiente, validada o no validada (con el motivo, que la persona ve). Una victoria revisada ya no se edita, salvo FIRMA. El muro muestra las validadas a toda la empresa.
+
+### Reportes
+
+Por rol, diarios o semanales (el semanal se guarda en el lunes de la semana). Campos de número, monto, texto corto, texto largo o sí o no, armados sin código. La base valida tipos y obligatorios, descarta lo que no es un campo del reporte y no acepta períodos futuros ni de hace más de 60 días. Se pueden corregir sin cambiar cuándo se mandaron. A tiempo es el diario hasta el día siguiente y el semanal hasta el lunes que sigue.
+
+Piden resultados y no horarios (segunda auditoría del plan, hallazgo D). La base rechaza un campo de horario, horas trabajadas o fichaje si no lo suma FIRMA, que antes evalúa el vínculo.
+
+### Objetivos e hitos
+
+Un objetivo es del negocio (todo el equipo junto), de cada persona de un rol (la misma meta para cada una) o de una persona, con meta y período. Se mide con las victorias validadas atadas al objetivo, con la suma de su valor o con la suma de un número de un reporte en el período. El avance lo calcula `equipo_objetivos_avance(org)`.
+
+Los hitos son por rol, con un día orientativo. Se cumplen cuando se valida una victoria atada al hito.
+
+### Plantillas de FIRMA
+
+La 0076 deja un reporte y entre cuatro y cinco hitos para closer, setter, account manager y CSM, sin empresa. Cada empresa los copia con «Usar los de FIRMA» (`equipo_cargar_plantillas(org, rol)`), que no repite lo que ya tiene, y los ajusta. Las plantillas las edita solo FIRMA.
+
+### Excel con marca
+
+«Descargar en Excel», para quien lidera, arma en el navegador (`excel.ts`, sin función en Vercel) un libro del mes elegido con Portada (logo, empresa, período y cifras), Objetivos, Victorias, Reportes (un renglón por respuesta), Entregas y Equipo. Las cifras de la portada y el avance de cada objetivo son fórmulas sobre las otras hojas, con los mismos criterios que la base: si se cambian las fechas de la portada, se recalculan. Los datos cubren el período completo de cada objetivo que toca el mes. Archivo para títulos y Calibri para el resto, en tinta y marfil.
+
+### Puesta en marcha
+
+1. Correr la 0076 en el SQL Editor de Supabase.
+2. En cada empresa, quien lidera entra a Equipo › Reportes y Objetivos y usa las plantillas de FIRMA de los roles de su equipo.
+
+Pruebas en `supabase/pruebas/equipo_objetivos_victorias.sql` y `scripts/pruebas/excel.mjs`.

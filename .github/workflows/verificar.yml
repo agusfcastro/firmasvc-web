@@ -1,7 +1,8 @@
 # Corre en cada push y en cada pull request, y a mano (Medir IA lo pide después de
 # guardar una referencia nueva, porque lo que empuja el token de Actions no dispara nada).
 #   codigo       tipos, colores de marca, pruebas de permisos sobre PGlite (sin Docker),
-#                pruebas del evaluador de la IA y que cada prompt cambiado esté medido.
+#                pruebas del evaluador de la IA, del Excel del equipo y que cada prompt
+#                cambiado esté medido.
 #                No llama a Claude: la medición corre solo a pedido, con Medir IA
 #   migraciones  aplica todas las migraciones sobre la imagen real de Supabase
 name: Verificar
@@ -25,6 +26,7 @@ jobs:
       - run: npm run marca:verificar
       - run: npm run db:probar
       - run: npm run ia:probar
+      - run: node scripts/pruebas/excel.mjs
       # No gasta crédito: compara la huella de cada prompt con scripts/ia/referencias.json.
       # Si un prompt cambió y no se midió, falla y pide correr Medir IA en la rama.
       - run: npm run ia:evaluar -- --verificar-referencias
