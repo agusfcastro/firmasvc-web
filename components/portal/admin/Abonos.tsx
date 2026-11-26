@@ -14,7 +14,7 @@ import {
   PAISES_DLOCALGO,
   PROCESADOR,
   consultarDisponibilidad,
-  consultarMep,
+  consultarDolar,
   cuotaPorAutorizar,
   diagnosticarDlocal,
   enPagoUnico,
@@ -29,7 +29,7 @@ import {
   montoTexto,
   pagosAprobados,
   periodoTexto,
-  pesosAlMep,
+  pesosAlDolar,
   resumenEsquema,
   sincronizarAbono,
   type Abono,
@@ -52,7 +52,7 @@ import {
  * Con la oferta de noviembre de 2026 el abono lleva un esquema: tres cuotas
  * y después la cuota posterior, o pago completo y después la cuota posterior
  * congelada. En ese caso el monto sí cambia, solo, cuando termina la etapa
- * inicial. Se puede cobrar en dólares o en pesos al dólar MEP.
+ * inicial. Se puede cobrar en dólares o en pesos al dólar cripto del día.
  */
 
 interface Borrador {
@@ -78,8 +78,8 @@ interface Borrador {
   meses: string;
   congela: string;
   fundador: boolean;
-  /** Con esquema: en dólares o en pesos al dólar MEP. */
-  cobro: 'USD' | 'MEP';
+  /** Con esquema: en dólares o en pesos al dólar cripto. */
+  cobro: 'USD' | 'ARS';
   /** Ya tenía esquema: si pasa a monto especial se limpian sus columnas. */
   teniaEsquema?: boolean;
 }
@@ -99,7 +99,7 @@ function conOferta(b: Borrador, id: string): Borrador {
     inicial: String(o.inicial),
     posterior: String(o.posterior),
     cuotas: String(o.cuotas ?? 3),
-    meses: String(o.meses ?? 4),
+    meses: String(o.meses ?? 3),
     congela: o.congela ? String(o.congela) : '',
     fundador: Boolean(o.fundador),
     periodo: 1,
@@ -129,7 +129,7 @@ function errorAmable(mensaje: string): string {
   if (/row-level security|permission denied/i.test(mensaje)) return 'Solo se pueden editar abonos por activar.';
   if (/precio fundador|5 empresas/i.test(mensaje)) return mensaje;
   if (/abonos_fundador/.test(mensaje)) return 'El precio fundador es solo con pago completo.';
-  if (/abonos_al_mep/.test(mensaje)) return 'En pesos al MEP falta la cotización del dólar. Probá de nuevo.';
+  if (/abonos_al_mep/.test(mensaje)) return 'En pesos falta la cotización del dólar cripto. Probá de nuevo.';
   if (/abonos_modalidad/.test(mensaje)) return 'Revisá los montos, las cuotas y los meses del esquema.';
   if (/column .* does not exist|schema cache/i.test(mensaje)) return `${mensaje}. Revisá que la migración 0061_abonos_oferta.sql esté corrida en Supabase.`;
   return mensaje;
@@ -271,8 +271,8 @@ const Detalle: React.FC<{
           )}
           {abono.congelado_hasta && <Dato titulo="Cuota congelada hasta">{fechaDia(abono.congelado_hasta, true)}</Dato>}
           {abono.al_mep && (
-            <Dato titulo="Pesos al dólar MEP">
-              {montoTexto(Number(abono.monto_usd), 'USD')} son {montoTexto(abono.monto, 'ARS')} con el MEP a {montoTexto(Number(abono.cotizacion_mep), 'ARS')}
+            <Dato titulo="Pesos al dólar cripto">
+              {montoTexto(Number(abono.monto_usd), 'USD')} son {montoTexto(abono.monto, 'ARS')} con el dólar cripto a {montoTexto(Number(abono.cotizacion_mep), 'ARS')}
               {abono.cotizado_en ? `, del ${fechaCorta(abono.cotizado_en)}` : ''}. Se actualiza antes de cada cobro.
             </Dato>
           )}
@@ -544,10 +544,10 @@ export const Abonos: React.FC = () => {
     void consultarDisponibilidad().then(setDisp);
   }, []);
 
-  // En pesos al MEP, la cotización del día para mostrar y guardar los pesos.
-  const cobroMep = borrador?.oferta && borrador.cobro === 'MEP';
+  // En pesos, el dólar cripto del día para mostrar y guardar los pesos.
+  const cobroMep = borrador?.oferta && borrador.cobro === 'ARS';
   useEffect(() => {
-    if (cobroMep && !mep) void consultarMep().then(setMep);
+    if (cobroMep && !mep) void consultarDolar().then(setMep);
   }, [cobroMep, mep]);
 
   function nuevo() {
@@ -571,7 +571,7 @@ export const Abonos: React.FC = () => {
       meses: '4',
       congela: '',
       fundador: false,
-      cobro: paisDe(orgId) === 'AR' ? 'MEP' : 'USD',
+      cobro: paisDe(orgId) === 'AR' ? 'ARS' : 'USD',
     };
     setBorrador(conOferta(base, 'eminent-cuotas'));
   }
@@ -601,7 +601,7 @@ export const Abonos: React.FC = () => {
       meses: String(a.meses_cubiertos ?? 4),
       congela: a.congela_meses ? String(a.congela_meses) : '',
       fundador: Boolean(a.precio_fundador),
-      cobro: a.al_mep ? 'MEP' : 'USD',
+      cobro: a.al_mep ? 'ARS' : 'USD',
       teniaEsquema: Boolean(a.modalidad),
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -646,14 +646,14 @@ export const Abonos: React.FC = () => {
       if (!completo && !(cuotas >= 1 && cuotas <= 12)) return setError('Las cuotas iniciales van de 1 a 12.');
       if (completo && !(meses >= 1 && meses <= 12)) return setError('Los meses que cubre el pago completo van de 1 a 12.');
       if (congela !== null && !(congela >= 1 && congela <= 36)) return setError('Los meses de cuota congelada van de 1 a 36.');
-      const alMep = borrador.cobro === 'MEP';
-      const cotizacion = alMep ? (mep ?? (await consultarMep())) : null;
-      if (alMep && !cotizacion) return setError('No se pudo traer la cotización del dólar MEP. Probá de nuevo en unos minutos.');
+      const alMep = borrador.cobro === 'ARS';
+      const cotizacion = alMep ? (mep ?? (await consultarDolar())) : null;
+      if (alMep && !cotizacion) return setError('No se pudo traer la cotización del dólar cripto. Probá de nuevo en unos minutos.');
       datos = {
         organizacion_id: borrador.organizacion_id,
         concepto,
         // En pesos el plan es de Argentina. En dólares va sin país y el checkout de dLocal Go se lo pregunta al cliente.
-        monto: alMep && cotizacion ? pesosAlMep(inicial, cotizacion.valor) : inicial,
+        monto: alMep && cotizacion ? pesosAlDolar(inicial, cotizacion.valor) : inicial,
         moneda: alMep ? 'ARS' : 'USD',
         pais: alMep ? 'AR' : null,
         periodo_meses: 1,
@@ -874,14 +874,14 @@ export const Abonos: React.FC = () => {
                 <Campo
                   etiqueta="Cobro"
                   ayuda={
-                    borrador.cobro === 'MEP'
-                      ? 'En pesos, con el dólar MEP. El portal actualiza el monto antes de cada cobro.'
+                    borrador.cobro === 'ARS'
+                      ? 'En pesos, al dólar cripto del día, promedio entre compra y venta. El portal actualiza el monto antes de cada cobro.'
                       : 'En dólares. dLocal Go le cobra al cliente en su moneda local al momento de cada pago.'
                   }
                 >
-                  <select className={claseInput} value={borrador.cobro} onChange={(e) => setBorrador({ ...borrador, cobro: e.target.value === 'MEP' ? 'MEP' : 'USD' })}>
+                  <select className={claseInput} value={borrador.cobro} onChange={(e) => setBorrador({ ...borrador, cobro: e.target.value === 'ARS' ? 'ARS' : 'USD' })}>
                     <option value="USD">USD, dólares</option>
-                    <option value="MEP">ARS, pesos al dólar MEP</option>
+                    <option value="ARS">ARS, pesos al dólar cripto</option>
                   </select>
                 </Campo>
               </div>
@@ -889,10 +889,10 @@ export const Abonos: React.FC = () => {
                 {borrador.modalidad === 'pago_completo'
                   ? `Pago completo de USD ${borrador.inicial || '·'} que cubre ${borrador.meses || '·'} meses. Después USD ${borrador.posterior || '·'} por mes${borrador.congela ? `, congelados ${borrador.congela} meses` : ''}. El titular autoriza ese débito una semana antes de que venza lo pagado.`
                   : `${borrador.cuotas || '·'} cuotas de USD ${borrador.inicial || '·'} por mes y después USD ${borrador.posterior || '·'} por mes, sin que el titular vuelva a suscribirse.`}
-                {borrador.cobro === 'MEP' &&
+                {borrador.cobro === 'ARS' &&
                   (mep
-                    ? ` Hoy, con el MEP a ${montoTexto(mep.valor, 'ARS')}, ${borrador.modalidad === 'pago_completo' ? 'el pago completo es de' : 'la cuota inicial es de'} ${montoTexto(pesosAlMep(numero(borrador.inicial) || 0, mep.valor), 'ARS')}.`
-                    : ' Trayendo la cotización del dólar MEP.')}
+                    ? ` Hoy, con el dólar cripto a ${montoTexto(mep.valor, 'ARS')}, ${borrador.modalidad === 'pago_completo' ? 'el pago completo es de' : 'la cuota inicial es de'} ${montoTexto(pesosAlDolar(numero(borrador.inicial) || 0, mep.valor), 'ARS')}.`
+                    : ' Trayendo la cotización del dólar cripto.')}
               </p>
               {borrador.fundador && (
                 <p className="text-sm text-piedra">
@@ -996,7 +996,7 @@ export const Abonos: React.FC = () => {
                       {a.al_mep ? montoTexto(Number(a.monto_usd), 'USD') : montoTexto(a.monto, a.moneda)}
                       <div className="text-xs text-piedra mt-1">
                         {enPagoUnico(a) ? 'pago completo' : periodoTexto(a.periodo_meses)}
-                        {a.al_mep ? `, ${montoTexto(a.monto, 'ARS')} al MEP` : ''}
+                        {a.al_mep ? `, ${montoTexto(a.monto, 'ARS')} al dólar cripto` : ''}
                       </div>
                       {a.modalidad && <div className="text-xs text-piedra mt-1">{etapaCorta(a)}</div>}
                     </td>
