@@ -1113,7 +1113,7 @@ const TarjetaPedido: React.FC<{
   }
 
   return (
-    <article className="card">
+    <article className="tarjeta-servicio">
       <div className="relative flex items-center gap-4">
         <div className="icon-box">
           <ClipboardList size={26} strokeWidth={1.8} />

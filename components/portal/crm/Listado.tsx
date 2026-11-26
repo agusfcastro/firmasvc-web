@@ -1,13 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CalendarDays, ChevronLeft, ChevronRight, Download, GanttChart, Layers, List, Phone, Plus, ReceiptText, Search, ShieldAlert, Users } from 'lucide-react';
+import { AlertTriangle, CalendarDays, Download, GanttChart, Layers, List, Phone, Plus, ReceiptText, ShieldAlert, Users } from 'lucide-react';
+import { Button as BotonHero, Label, ListBox, Pagination, SearchField, Select, ToggleButton, ToggleButtonGroup } from '@heroui/react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
-import { Aviso, Cifras, Encabezado, Enlace, Etiqueta, MontosPorMoneda, Pestanas, claseInput } from '../ui';
+import { Aviso, Cifras, Encabezado, Enlace, Etiqueta, MontosPorMoneda, NavegacionDePagina, Pestanas } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
 import { TONO_FIRMA, dinero, fecha, hoyISO, type ClienteResumen, type IntegranteEquipo } from './tipos';
 import { TIPO_REUNION, fechaHora, type TipoReunion } from './reuniones';
-import { LineaTiempo } from './LineaTiempo';
+import { LineaTiempo, ordenTimeline } from './LineaTiempo';
 import { mensajeAmable } from '../errores';
 
 type Filtro = 'todos' | 'vencidas' | 'revisar' | 'Pendiente' | 'En firma' | 'Firmado' | 'Baja' | 'sin_reunion';
@@ -313,11 +314,24 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
   // Paginación de la tabla. Vuelve a la primera página al cambiar el filtro o la búsqueda.
   useEffect(() => {
     setPagina(0);
-  }, [filtro, busqueda, porPagina, orgId, filtros]);
-  const paginas = Math.max(1, Math.ceil(visibles.length / porPagina));
+  }, [filtro, busqueda, porPagina, orgId, filtros, vista]);
+  // La lista va por código; la línea de tiempo, por fecha de onboarding. Las dos muestran de a porPagina.
+  const enOrden = useMemo(() => (vista === 'tiempo' ? ordenTimeline(visibles, (s) => (s ? duraciones[s] ?? null : null)) : visibles), [vista, visibles, duraciones]);
+  const paginas = Math.max(1, Math.ceil(enOrden.length / porPagina));
   const paginaActual = Math.min(pagina, paginas - 1);
   const desde = paginaActual * porPagina;
-  const filasPagina = visibles.slice(desde, desde + porPagina);
+  const filasPagina = enOrden.slice(desde, desde + porPagina);
+  // Números de página: todos si son pocos; si no, la primera, la última y las vecinas de la actual.
+  const numeros: (number | 'antes' | 'despues')[] =
+    paginas <= 7
+      ? Array.from({ length: paginas }, (_, i) => i)
+      : [
+          0,
+          ...(paginaActual > 2 ? (['antes'] as const) : []),
+          ...[paginaActual - 1, paginaActual, paginaActual + 1].filter((p) => p > 0 && p < paginas - 1),
+          ...(paginaActual < paginas - 3 ? (['despues'] as const) : []),
+          paginas - 1,
+        ];
 
   function cambiarPorPagina(n: number) {
     setPorPagina(n);
@@ -342,6 +356,62 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
   const pct = !variasMonedas && unica && resumen.acordado[unica] ? Math.round(((resumen.cobrado[unica] ?? 0) / resumen.acordado[unica]) * 100) : 0;
   const notaMonedas = variasMonedas ? 'Por moneda, sin convertir' : undefined;
 
+  const paginador = (
+    <div className="flex flex-wrap items-center justify-between gap-4 text-sm">
+      <div className="flex items-center gap-2.5 text-piedra">
+        Mostrar
+        <Select aria-label="Clientes por página" value={String(porPagina)} onChange={(v) => v && cambiarPorPagina(Number(v))} className="w-[88px]">
+          <Select.Trigger>
+            <Select.Value />
+            <Select.Indicator />
+          </Select.Trigger>
+          <Select.Popover>
+            <ListBox>
+              {[10, 20, 50].map((n) => (
+                <ListBox.Item key={n} id={String(n)} textValue={String(n)}>
+                  {n}
+                  <ListBox.ItemIndicator />
+                </ListBox.Item>
+              ))}
+            </ListBox>
+          </Select.Popover>
+        </Select>
+        clientes por página
+      </div>
+      <Pagination size="sm" className="w-auto gap-4">
+        <Pagination.Summary className="tabular-nums">
+          {enOrden.length === 0 ? '0' : `${desde + 1} a ${Math.min(desde + porPagina, enOrden.length)}`} de {enOrden.length}
+          {enOrden.length !== filas.length ? ` (${filas.length} en total)` : ''}
+        </Pagination.Summary>
+        <Pagination.Content>
+          <Pagination.Item>
+            <Pagination.Previous isDisabled={paginaActual === 0} onPress={() => setPagina(paginaActual - 1)} aria-label="Página anterior">
+              <Pagination.PreviousIcon />
+            </Pagination.Previous>
+          </Pagination.Item>
+          {numeros.map((p) =>
+            typeof p === 'number' ? (
+              <Pagination.Item key={p}>
+                <Pagination.Link isActive={p === paginaActual} onPress={() => setPagina(p)} aria-label={`Página ${p + 1}`}>
+                  {p + 1}
+                </Pagination.Link>
+              </Pagination.Item>
+            ) : (
+              <Pagination.Item key={p}>
+                <Pagination.Ellipsis />
+              </Pagination.Item>
+            ),
+          )}
+          <Pagination.Item>
+            <Pagination.Next isDisabled={paginaActual >= paginas - 1} onPress={() => setPagina(paginaActual + 1)} aria-label="Página siguiente">
+              <Pagination.NextIcon />
+            </Pagination.Next>
+          </Pagination.Item>
+        </Pagination.Content>
+      </Pagination>
+    </div>
+  );
+
   return (
     <>
       <Encabezado
@@ -354,6 +424,7 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
         acciones={
           <>
             {selector}
+            <NavegacionDePagina>
             {verCasos && (
               <Button variant="ghost" size="lg" onClick={() => navegar('/portal/crm/casos')} className="self-end">
                 <ShieldAlert size={18} /> Casos de conflicto
@@ -386,10 +457,11 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
             <Button variant="ghost" size="lg" onClick={() => navegar('/portal/crm/comprobantes')} className="self-end">
               <ReceiptText size={18} /> Invoices y recibos
             </Button>
+            </NavegacionDePagina>
             {!soloLectura && (
-              <Button size="lg" onClick={() => navegar('/portal/crm/nuevo')} className="self-end">
-                <Plus size={18} /> Nuevo cliente
-              </Button>
+              <BotonHero size="lg" onPress={() => navegar('/portal/crm/nuevo')} className="self-end">
+                <Plus size={18} aria-hidden="true" /> Nuevo cliente
+              </BotonHero>
             )}
           </>
         }
@@ -419,32 +491,35 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
 
         <div className="flex flex-col gap-6">
           <div className="flex flex-wrap gap-3 items-center justify-between">
-            <div className="relative flex-1 min-w-[220px] max-w-[420px]">
-              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-piedra" aria-hidden="true" />
-              <input className={`${claseInput} pl-10`} placeholder="Buscar por nombre, código, mail o DNI" aria-label="Buscar cliente" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
-            </div>
-            <div className="flex items-center gap-3">
-              <div role="group" aria-label="Vista" className="inline-flex bg-niebla rounded-[12px] p-1 gap-0.5">
-                {(
-                  [
-                    ['lista', 'Lista', List],
-                    ['tiempo', 'Línea de tiempo', GanttChart],
-                  ] as const
-                ).map(([v, t, Icono]) => (
-                  <button
-                    key={v}
-                    type="button"
-                    aria-pressed={vista === v}
-                    onClick={() => cambiarVista(v)}
-                    className={`inline-flex items-center gap-1.5 h-9 px-3.5 rounded-[9px] text-[14px] ${vista === v ? 'bg-papel font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.08)]' : 'text-piedra hover:text-tinta'}`}
-                  >
-                    <Icono size={15} aria-hidden="true" /> {t}
-                  </button>
-                ))}
-              </div>
-              <Button variant="ghost" size="sm" onClick={descargar} disabled={!visibles.length}>
-                <Download size={16} /> Exportar CSV
-              </Button>
+            <SearchField aria-label="Buscar cliente" value={busqueda} onChange={setBusqueda} className="flex-1 min-w-[220px] max-w-[420px]">
+              <SearchField.Group>
+                <SearchField.SearchIcon />
+                <SearchField.Input placeholder="Buscar por nombre, código, mail o DNI" />
+                <SearchField.ClearButton aria-label="Borrar la búsqueda" />
+              </SearchField.Group>
+            </SearchField>
+            <div className="flex flex-wrap items-center gap-3">
+              <ToggleButtonGroup
+                aria-label="Vista"
+                selectionMode="single"
+                disallowEmptySelection
+                selectedKeys={new Set([vista])}
+                onSelectionChange={(k) => {
+                  const v = [...k][0];
+                  if (v === 'lista' || v === 'tiempo') cambiarVista(v);
+                }}
+              >
+                <ToggleButton id="lista">
+                  <List size={15} aria-hidden="true" /> Lista
+                </ToggleButton>
+                <ToggleButton id="tiempo">
+                  <ToggleButtonGroup.Separator />
+                  <GanttChart size={15} aria-hidden="true" /> Línea de tiempo
+                </ToggleButton>
+              </ToggleButtonGroup>
+              <BotonHero variant="outline" size="sm" onPress={descargar} isDisabled={!visibles.length}>
+                <Download size={16} aria-hidden="true" /> Exportar CSV
+              </BotonHero>
             </div>
           </div>
 
@@ -457,18 +532,23 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
                 ['servicio', 'Servicio', servicios.map((x) => [x, x])],
               ] as [keyof Filtros, string, [string, string][]][]
             ).map(([campo, etiqueta, opciones]) => (
-              <label key={campo} className="flex flex-col gap-1.5">
-                <span className="text-[12.5px] font-medium text-piedra">{etiqueta}</span>
-                <select className={claseInput} value={filtros[campo]} onChange={(e) => cambiarFiltro(campo, e.target.value)}>
-                  <option value="">Todos</option>
-                  <option value="sin">Sin asignar</option>
-                  {opciones.map(([valor, texto]) => (
-                    <option key={valor} value={valor}>
-                      {texto}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <Select key={campo} value={filtros[campo] || 'todos'} onChange={(v) => cambiarFiltro(campo, !v || v === 'todos' ? '' : String(v))} className="w-full">
+                <Label className="text-[12.5px] font-medium text-piedra">{etiqueta}</Label>
+                <Select.Trigger>
+                  <Select.Value />
+                  <Select.Indicator />
+                </Select.Trigger>
+                <Select.Popover>
+                  <ListBox>
+                    {[['todos', 'Todos'], ['sin', 'Sin asignar'], ...opciones].map(([valor, texto]) => (
+                      <ListBox.Item key={valor} id={valor} textValue={texto}>
+                        {texto}
+                        <ListBox.ItemIndicator />
+                      </ListBox.Item>
+                    ))}
+                  </ListBox>
+                </Select.Popover>
+              </Select>
             ))}
           </div>
           {hayFiltros && (
@@ -489,15 +569,17 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
           <Pestanas<Filtro> items={FILTROS.filter((f) => cobranza || f.clave !== 'vencidas').map((f) => ({ ...f, cuenta: cargando ? undefined : cuenta(f.clave) }))} activa={filtro} alCambiar={setFiltro} />
 
           {vista === 'tiempo' ? (
-            <LineaTiempo filas={visibles} duracion={(s) => (s ? duraciones[s] ?? null : null)} nombreEquipo={nombreEquipo} />
+            <>
+              <LineaTiempo filas={filasPagina} cargando={cargando} duracion={(s) => (s ? duraciones[s] ?? null : null)} nombreEquipo={nombreEquipo} conPagos={cobranza} conCasos={verCasos} />
+              {paginador}
+            </>
           ) : (
           <>
           <div className="overflow-x-auto">
-            <table className="tabla min-w-[1040px]">
+            <table className="tabla min-w-[980px]">
               <thead>
                 <tr>
                   <th>Cliente</th>
-                  <th>Servicio</th>
                   <th className="num">Acordado</th>
                   <th>{cobranza ? 'Cobrado' : 'Plan pactado'}</th>
                   {cobranza && <th>Próxima cuota</th>}
@@ -509,7 +591,7 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
               <tbody>
                 {!cargando && visibles.length === 0 && (
                   <tr>
-                    <td colSpan={cobranza ? 8 : 7} className="text-piedra py-10">
+                    <td colSpan={cobranza ? 7 : 6} className="text-piedra py-10">
                       No hay clientes para mostrar con este filtro.
                     </td>
                   </tr>
@@ -525,6 +607,7 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
                         </Enlace>
                         <div className="text-xs text-piedra mt-1 flex flex-wrap items-center gap-x-2">
                           <span className="tabular-nums">{f.codigo}</span>
+                          {f.servicio && <span className="font-medium text-tinta">{f.servicio}</span>}
                           {f.tipo === 'empresa' && <span>{f.representante ? `Empresa · ${f.representante}` : 'Empresa'}</span>}
                           {f.revisar_pagos && (
                             <span className="inline-flex items-center gap-1 text-peligro">
@@ -532,9 +615,6 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
                             </span>
                           )}
                         </div>
-                      </td>
-                      <td>
-                        <span className="font-medium">{f.servicio ?? '·'}</span>
                       </td>
                       <td className="num">{dinero(f.monto_total, f.moneda)}</td>
                       <td className="min-w-[150px]">
@@ -583,14 +663,17 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
                       </td>
                       <td className="text-piedra">
                         {nombreEquipo(f.responsable_id) ? (
-                          <div>Account Manager {nombreEquipo(f.responsable_id)}</div>
+                          <div className="leading-tight">
+                            <span className="block text-[11.5px]">Account Manager</span>
+                            <span className="text-tinta whitespace-nowrap">{nombreEquipo(f.responsable_id)}</span>
+                          </div>
                         ) : f.responsable ? (
                           <div title="Anotado a mano antes de Equipo. Asignalo desde la ficha.">{f.responsable} · sin asignar</div>
                         ) : (
                           !nombreEquipo(f.closer_id) && !nombreEquipo(f.setter_id) && <div>·</div>
                         )}
-                        {nombreEquipo(f.closer_id) && <div className="text-xs mt-0.5">Closer {nombreEquipo(f.closer_id)}</div>}
-                        {nombreEquipo(f.setter_id) && <div className="text-xs mt-0.5">Setter {nombreEquipo(f.setter_id)}</div>}
+                        {nombreEquipo(f.closer_id) && <div className="text-xs mt-0.5 whitespace-nowrap">Closer {nombreEquipo(f.closer_id)}</div>}
+                        {nombreEquipo(f.setter_id) && <div className="text-xs mt-0.5 whitespace-nowrap">Setter {nombreEquipo(f.setter_id)}</div>}
                       </td>
                     </tr>
                   );
@@ -598,50 +681,7 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
               </tbody>
             </table>
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-4 text-sm">
-            <label className="flex items-center gap-2.5 text-piedra">
-              Mostrar
-              <select
-                className="h-10 pl-3 pr-8 bg-white border border-tinta/22 text-tinta font-medium focus:outline-none focus:border-bosque focus:ring-1 focus:ring-bosque"
-                value={porPagina}
-                onChange={(e) => cambiarPorPagina(Number(e.target.value))}
-              >
-                {[10, 20, 50].map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </select>
-              clientes por página
-            </label>
-            <div className="flex items-center gap-3">
-              <span className="text-piedra tabular-nums">
-                {visibles.length === 0 ? '0' : `${desde + 1}–${Math.min(desde + porPagina, visibles.length)}`} de {visibles.length}
-                {visibles.length !== filas.length ? ` (${filas.length} en total)` : ''}
-              </span>
-              <button
-                type="button"
-                aria-label="Página anterior"
-                disabled={paginaActual === 0}
-                onClick={() => setPagina(paginaActual - 1)}
-                className="w-10 h-10 inline-flex items-center justify-center border border-tinta/22 bg-white transition-colors duration-150 hover:border-tinta disabled:opacity-40 disabled:hover:border-tinta/22"
-              >
-                <ChevronLeft size={16} aria-hidden="true" />
-              </button>
-              <span className="tabular-nums font-medium">
-                {paginaActual + 1} / {paginas}
-              </span>
-              <button
-                type="button"
-                aria-label="Página siguiente"
-                disabled={paginaActual >= paginas - 1}
-                onClick={() => setPagina(paginaActual + 1)}
-                className="w-10 h-10 inline-flex items-center justify-center border border-tinta/22 bg-white transition-colors duration-150 hover:border-tinta disabled:opacity-40 disabled:hover:border-tinta/22"
-              >
-                <ChevronRight size={16} aria-hidden="true" />
-              </button>
-            </div>
-          </div>
+          {paginador}
           </>
           )}
         </div>

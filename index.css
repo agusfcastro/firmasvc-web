@@ -1,4 +1,8 @@
 @import "tailwindcss";
+/* HeroUI v3 (Apache-2.0), componentes del portal (heroui.css). Va después de Tailwind, como pide
+   su guía. Sus clases son globales (.button, .chip, .card…): por eso la tarjeta de Servicios se
+   llama .tarjeta-servicio. Los colores salen de la marca, más abajo en «HeroUI con la marca». */
+@import "./heroui.css";
 
 @theme {
   /* Paleta Firma — marfil dominante, carbón/tinta para contraste, verde bosque como único acento */
@@ -168,7 +172,7 @@ h1, h2, h3, h4 {
 
 /* ---- Tarjetas de Servicios (fondo carbón) ---- */
 
-.card {
+.tarjeta-servicio {
   position: relative;
   overflow: hidden;
   background: var(--color-tinta);
@@ -180,12 +184,12 @@ h1, h2, h3, h4 {
   height: 100%;
   transition: transform 0.3s, border-color 0.3s;
 }
-.card:hover {
+.tarjeta-servicio:hover {
   transform: translateY(-4px);
   border-color: color-mix(in srgb, var(--color-marfil) 40%, transparent);
 }
 
-.card .wm {
+.tarjeta-servicio .wm {
   position: absolute;
   top: -10px;
   right: 2px;
@@ -198,7 +202,7 @@ h1, h2, h3, h4 {
   pointer-events: none;
   transition: color 0.3s;
 }
-.card:hover .wm { color: color-mix(in srgb, var(--color-marfil) 12%, transparent); }
+.tarjeta-servicio:hover .wm { color: color-mix(in srgb, var(--color-marfil) 12%, transparent); }
 
 .icon-box {
   position: relative;
@@ -211,14 +215,14 @@ h1, h2, h3, h4 {
   color: var(--color-tinta);
   transition: background 0.3s, color 0.3s;
 }
-.card:hover .icon-box {
+.tarjeta-servicio:hover .icon-box {
   background: var(--color-bosque);
   color: var(--color-marfil);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .card, .card .wm, .icon-box { transition: none; }
-  .card:hover { transform: none; }
+  .tarjeta-servicio, .tarjeta-servicio .wm, .icon-box { transition: none; }
+  .tarjeta-servicio:hover { transform: none; }
 }
 
 /* ---- Proceso: 4 pasos unidos por una línea punteada ---- */
@@ -353,9 +357,9 @@ h1, h2, h3, h4 {
 .tabla .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .tabla.tabla-media tbody td { vertical-align: middle; }
 
-/* Tarjetas de módulo: la .card de Servicios, en versión enlace */
-a.card { color: inherit; text-decoration: none; }
-.card .ir {
+/* Tarjetas de módulo: la .tarjeta-servicio de Servicios, en versión enlace */
+a.tarjeta-servicio { color: inherit; text-decoration: none; }
+.tarjeta-servicio .ir {
   margin-top: auto;
   padding-top: 10px;
   font-size: 14px;
@@ -365,9 +369,9 @@ a.card { color: inherit; text-decoration: none; }
   align-items: center;
   gap: 8px;
 }
-.card.card-apagada { opacity: 0.55; }
-.card.card-apagada:hover { transform: none; border-color: color-mix(in srgb, var(--color-marfil) 12%, transparent); }
-.card.card-apagada:hover .icon-box { background: var(--color-marfil); color: var(--color-tinta); }
+.tarjeta-servicio.card-apagada { opacity: 0.55; }
+.tarjeta-servicio.card-apagada:hover { transform: none; border-color: color-mix(in srgb, var(--color-marfil) 12%, transparent); }
+.tarjeta-servicio.card-apagada:hover .icon-box { background: var(--color-marfil); color: var(--color-tinta); }
 
 /* Panel oscuro (como la tarjeta de agenda de Contacto) */
 .panel-carbon { background: var(--color-carbon); color: var(--color-marfil); }
@@ -452,16 +456,16 @@ a.card { color: inherit; text-decoration: none; }
 .portal .tabla tbody tr.fila-link:hover { background: var(--color-papel); }
 
 /* Tarjetas de módulo en claro */
-.portal .card { background: var(--color-papel); border-color: var(--color-borde-suave); color: var(--color-tinta); padding: 24px; gap: 10px; border-radius: 20px; }
-.portal .card:hover { transform: none; border-color: var(--color-tinta); }
-.portal .card .wm { display: none; }
-.portal .card .icon-box { width: 44px; height: 44px; border-radius: 12px; background: var(--color-niebla); color: var(--color-tinta); }
-.portal .card:hover .icon-box { background: var(--color-tinta); color: var(--color-marfil); }
-.portal .card .text-calido { color: var(--color-piedra); }
-.portal .card .text-marfil { color: var(--color-tinta); }
-.portal .card .ir { color: var(--color-tinta); }
-.portal .card.card-apagada:hover { border-color: var(--color-borde-suave); }
-.portal .card.card-apagada:hover .icon-box { background: var(--color-niebla); color: var(--color-tinta); }
+.portal .tarjeta-servicio { background: var(--color-papel); border-color: var(--color-borde-suave); color: var(--color-tinta); padding: 24px; gap: 10px; border-radius: 20px; }
+.portal .tarjeta-servicio:hover { transform: none; border-color: var(--color-tinta); }
+.portal .tarjeta-servicio .wm { display: none; }
+.portal .tarjeta-servicio .icon-box { width: 44px; height: 44px; border-radius: 12px; background: var(--color-niebla); color: var(--color-tinta); }
+.portal .tarjeta-servicio:hover .icon-box { background: var(--color-tinta); color: var(--color-marfil); }
+.portal .tarjeta-servicio .text-calido { color: var(--color-piedra); }
+.portal .tarjeta-servicio .text-marfil { color: var(--color-tinta); }
+.portal .tarjeta-servicio .ir { color: var(--color-tinta); }
+.portal .tarjeta-servicio.card-apagada:hover { border-color: var(--color-borde-suave); }
+.portal .tarjeta-servicio.card-apagada:hover .icon-box { background: var(--color-niebla); color: var(--color-tinta); }
 
 /* Paneles de acento en tinta, como la tarjeta del chat en los posteos */
 .portal .panel-carbon { background: var(--color-tinta); border-radius: 20px; }
@@ -495,12 +499,12 @@ a.card { color: inherit; text-decoration: none; }
 .landing .resalte-claro { background: var(--color-marfil); color: var(--color-tinta); padding: 0 0.12em 0.04em; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
 
 /* Servicios: tarjetas grafito redondeadas sobre tinta, con el ícono en un círculo marfil como en los posteos. */
-.landing .card { background: var(--color-grafito); border: 0; border-radius: 24px; padding: 28px; gap: 12px; }
-.landing .card:hover { border-color: transparent; }
-.landing .card .wm { font-family: var(--font-portal); font-weight: 800; letter-spacing: -0.04em; top: -6px; right: 14px; color: color-mix(in srgb, var(--color-marfil) 7%, transparent); }
-.landing .card .icon-box { width: 64px; height: 64px; border-radius: 50%; background: var(--color-marfil); color: var(--color-tinta); }
-.landing .card:hover .icon-box { background: var(--color-marfil); color: var(--color-tinta); transform: scale(1.06); }
-.landing .card .text-calido { color: var(--color-lateral-texto); }
+.landing .tarjeta-servicio { background: var(--color-grafito); border: 0; border-radius: 24px; padding: 28px; gap: 12px; }
+.landing .tarjeta-servicio:hover { border-color: transparent; }
+.landing .tarjeta-servicio .wm { font-family: var(--font-portal); font-weight: 800; letter-spacing: -0.04em; top: -6px; right: 14px; color: color-mix(in srgb, var(--color-marfil) 7%, transparent); }
+.landing .tarjeta-servicio .icon-box { width: 64px; height: 64px; border-radius: 50%; background: var(--color-marfil); color: var(--color-tinta); }
+.landing .tarjeta-servicio:hover .icon-box { background: var(--color-marfil); color: var(--color-tinta); transform: scale(1.06); }
+.landing .tarjeta-servicio .text-calido { color: var(--color-lateral-texto); }
 
 /* Proceso: círculos tinta con el ícono en marfil y el número de agua en Archivo. */
 .landing .step-circle { border: 0; background: var(--color-tinta); }
@@ -543,3 +547,46 @@ a.card { color: inherit; text-decoration: none; }
 .editor-word .docx p.parrafo-editable:hover { background: rgb(0 0 0 / 0.035); }
 .editor-word .docx p.parrafo-editable:focus { background: rgb(242 193 78 / 0.16); box-shadow: -4px 0 0 0 rgb(224 169 46); }
 .editor-word .docx p.parrafo-fijo { opacity: 0.5; cursor: not-allowed; }
+
+/* =================================================================== */
+/* HeroUI con la marca. Pisa las variables de su tema por defecto con   */
+/* los tokens de arriba. Fuera de capa, así gana sobre las de HeroUI.   */
+/* Solo el tema claro: el portal no tiene modo oscuro.                  */
+/* =================================================================== */
+:root {
+  --background: var(--color-marfil);
+  --foreground: var(--color-tinta);
+  --surface: var(--color-papel);
+  --surface-foreground: var(--color-tinta);
+  --surface-secondary: var(--color-marfil-claro);
+  --surface-tertiary: var(--color-niebla);
+  --overlay: var(--color-papel);
+  --overlay-foreground: var(--color-tinta);
+  --muted: var(--color-piedra);
+  --default: var(--color-niebla);
+  --default-foreground: var(--color-tinta);
+  --accent: var(--color-tinta);
+  --accent-foreground: var(--color-marfil);
+  --success: var(--color-exito);
+  --success-foreground: var(--color-papel);
+  --warning: var(--color-aviso);
+  --warning-foreground: var(--color-papel);
+  --danger: var(--color-peligro);
+  --danger-foreground: var(--color-papel);
+  --field-background: #ffffff;
+  --field-foreground: var(--color-tinta);
+  --field-placeholder: var(--color-piedra);
+  --field-border: var(--color-borde);
+  --field-border-width: 1px;
+  --field-radius: 10px;
+  --border: var(--color-borde-suave);
+  --separator: var(--color-separador);
+  --focus: var(--color-tinta);
+  --link: var(--color-tinta);
+  --radius: 0.625rem;
+}
+
+/* Con solo la barra de íconos (sin el panel de la sección) el contenido usa más ancho. */
+@media (min-width: 900px) {
+  .portal[data-panel="cerrado"] .wrap { max-width: 1440px; }
+}
