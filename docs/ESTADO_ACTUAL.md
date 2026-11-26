@@ -48,7 +48,7 @@ Todo el backend son **rutas `/api` de Vercel** en TypeScript. No hay Edge Functi
 | --- | --- |
 | `api/admin/usuarios.ts` | Invitar, editar, activar y desactivar usuarios |
 | `api/admin/ia.ts` | Arma la entrada anonimizada de un caso de prueba desde una corrida de la IA (0075) |
-| `api/tina/chat.ts` | Chat de Tina con sus herramientas |
+| `api/tina/chat.ts` | Chat de Tina con sus herramientas. Desactivado desde el 26 de noviembre de 2026 (`TINA_ACTIVA`), rechaza todo pedido sin llamar a Claude |
 | `api/portal/avisos.ts` | Avisos por mail de asuntos, chat y documentos |
 | `api/portal/recuperar.ts` | Mail de «Olvidé mi contraseña» |
 | `api/portal/resumen.ts` | Tarea diaria con alertas de vencimientos y el mail de los lunes |

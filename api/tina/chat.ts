@@ -121,11 +121,20 @@ async function historial(sb: SupabaseClient, conversacionId: string): Promise<An
   return filas.map((f) => ({ role: f.autor === 'usuario' ? 'user' : 'assistant', content: f.contenido }));
 }
 
+/**
+ * Llave de Tina. Apagada desde el 26 de noviembre de 2026 para no gastar en la
+ * API de Claude: el chat rechaza todo pedido antes de leer la sesión o llamar
+ * al modelo. La burbuja se apaga aparte, en components/portal/tina/activa.ts.
+ */
+const TINA_ACTIVA: boolean = false;
+const DESACTIVADA = 'Tina está desactivada por ahora. Para lo que necesites, escribile a tu responsable en FIRMA.';
+
 const SOLO_EMINENT = 'Tina viene con el plan Eminent. Si querés sumarla, escribile a tu responsable en FIRMA.';
 
 const RESPUESTA_RECHAZO = 'Perdón, eso no lo puedo responder. Si es un tema de tu negocio, contame un poco más o escribile a tu responsable en FIRMA.';
 
 export async function POST(request: Request): Promise<Response> {
+  if (!TINA_ACTIVA) return error(DESACTIVADA, 503);
   const sb = clienteServicio();
   if (!sb) return error('El servidor no tiene configurado Supabase.', 500);
   if (!process.env.ANTHROPIC_API_KEY) return error('Tina todavía no está activada en el servidor.', 503);

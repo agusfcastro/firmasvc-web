@@ -33,6 +33,7 @@ import { useLogoOrg } from './logos';
 import { ROTULO_ROL, cargoDe, permisosDe, veAsuntos, type Perfil, type Permisos } from './tipos';
 import { ROTULO_PLAN, type Plan } from './planes';
 import { BurbujaTina } from './tina/BurbujaTina';
+import { TINA_ACTIVA } from './tina/activa';
 import { CampanaAvisos, PanelAvisos, vaciarAvisos } from './avisos/CentroAvisos';
 import { Buscador, abrirBuscador, atajoBuscador, type AccesoSeccion } from './Buscador';
 import { desactivarPush } from './push';
@@ -604,8 +605,9 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
           </>
         )}
 
-        {/* Tina atiende a los usuarios de los clientes Eminent. FIRMA, la vista previa y Starter no la ven. */}
-        {perfil && perfil.rol !== 'admin' && !vista && perfil.organizacion_id && org?.plan !== 'starter' && (
+        {/* Tina está desactivada desde el 26 de noviembre de 2026 (TINA_ACTIVA). Con la llave prendida atiende a los
+            usuarios de los clientes Eminent; FIRMA, la vista previa y Starter no la ven. */}
+        {TINA_ACTIVA && perfil && perfil.rol !== 'admin' && !vista && perfil.organizacion_id && org?.plan !== 'starter' && (
           // Si el chat falla, se oculta la burbuja y el resto del portal sigue andando.
           <LimiteError respaldo={null}>
             <BurbujaTina nombre={perfil.nombre ?? null} />
