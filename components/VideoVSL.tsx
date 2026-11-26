@@ -10,15 +10,23 @@ const VIDEO_ID = '1236858475';
 // title/byline/portrait=0 ocultan la info de Vimeo y dnt=1 evita cookies de seguimiento.
 const EMBED_URL = `https://player.vimeo.com/video/${VIDEO_ID}?autoplay=1&muted=1&playsinline=1&title=0&byline=0&portrait=0&dnt=1`;
 
-/** VSL del hero: va debajo del titular, a la vista sin scroll, así que carga de entrada. */
-export const VideoVSL: React.FC = () => {
+/**
+ * VSL del hero: va debajo del titular, a la vista sin scroll, así que carga de entrada.
+ *
+ * sinBarra saca la barra del reproductor de Vimeo (controls=0) y deja el video sin
+ * forma de pausarlo: una vez que se activa el sonido, corre hasta el final.
+ */
+export const VideoVSL: React.FC<{ sinBarra?: boolean }> = ({ sinBarra = false }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [muted, setMuted] = useState(true);
 
+  const send = (method: string, value?: unknown) =>
+    iframeRef.current?.contentWindow?.postMessage(
+      JSON.stringify(value === undefined ? { method } : { method, value }),
+      'https://player.vimeo.com',
+    );
+
   const handleUnmute = () => {
-    const player = iframeRef.current?.contentWindow;
-    const send = (method: string, value?: unknown) =>
-      player?.postMessage(JSON.stringify(value === undefined ? { method } : { method, value }), 'https://player.vimeo.com');
     send('setMuted', false);
     send('setVolume', 1);
     // Algunos navegadores requieren play tras un gesto para asegurar sonido
@@ -34,11 +42,13 @@ export const VideoVSL: React.FC = () => {
         {typeof window !== 'undefined' && (
           <iframe
             ref={iframeRef}
-            src={EMBED_URL}
+            src={sinBarra ? `${EMBED_URL}&controls=0` : EMBED_URL}
             title="Conocé a Agustín, fundador de firma"
             allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
             allowFullScreen
-            className="absolute inset-0 w-full h-full"
+            // Sin barra tampoco recibe clicks ni foco, así no se pausa con el mouse ni con el teclado.
+            tabIndex={sinBarra ? -1 : undefined}
+            className={`absolute inset-0 w-full h-full ${sinBarra ? 'pointer-events-none' : ''}`}
           />
         )}
 
