@@ -24,8 +24,18 @@ import {
   Wallet,
   WifiOff,
   X,
+  Building2,
+  ChevronsLeft,
+  ClipboardList,
+  ListChecks,
+  Mail,
+  PanelLeftOpen,
+  Plus,
+  Sparkles,
+  Target,
   type LucideIcon,
 } from 'lucide-react';
+import { Button as BotonHero, Dropdown, Label as RotuloHero } from '@heroui/react';
 import { DensidadBotones } from '../Button';
 import { supabase } from './supabase';
 import { navegar, marcarSalida } from './navegacion';
@@ -40,6 +50,7 @@ import { Buscador, abrirBuscador, atajoBuscador, type AccesoSeccion } from './Bu
 import { desactivarPush } from './push';
 import { LimiteError } from './LimiteError';
 import { simboloMoneda } from '../../api/_lib/variables';
+import { PESTANAS_ADMIN } from './admin/pestanas';
 
 import simboloClaro from '../../assets/brand/simbolo-claro.png';
 import palabraOscura from '../../assets/brand/wordmark-oscuro.png';
@@ -459,6 +470,309 @@ const PanelMenu: React.FC<{ abierto: boolean; alCerrar: () => void; children: Re
 };
 
 /* ------------------------------------------------------------------ */
+/* Barra de íconos y panel de la sección (computadora), estilo ClickUp */
+/* ------------------------------------------------------------------ */
+/**
+ * En computadora el menú es una barra angosta de íconos con su nombre abajo y, al lado,
+ * el panel de la sección con sus pantallas (Clientes, Equipo y Administración). El panel
+ * se oculta y el portal recuerda cómo lo dejaste. En el celular sigue la barra de abajo.
+ */
+const CLAVE_PANEL = 'firma-panel-seccion';
+const PanelSeccionCtx = React.createContext(false);
+
+/** true cuando, en computadora, el panel de la sección está abierto y ya muestra las pantallas de la sección. */
+export const usePanelSeccion = (): boolean => React.useContext(PanelSeccionCtx);
+
+/**
+ * Navegación propia de una página (pestañas, accesos del encabezado). Con el panel abierto
+ * se esconde en computadora, porque el panel ya la muestra; en el celular sigue igual.
+ */
+export const NavegacionDePagina: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const panel = usePanelSeccion();
+  return <div className={panel ? 'contents desk:hidden' : 'contents'}>{children}</div>;
+};
+
+interface ItemPanel {
+  a: string;
+  titulo: string;
+  icono: LucideIcon;
+  activo: boolean;
+  cuenta?: number;
+}
+interface PanelDeSeccion {
+  titulo: string;
+  grupos: { titulo?: string; items: ItemPanel[] }[];
+  accion?: { a: string; titulo: string };
+}
+
+const SUBRUTAS_CRM = ['casos', 'reuniones', 'llamadas', 'comprobantes', 'servicios', 'equipo'];
+const ICONO_ADMIN: Record<string, LucideIcon> = {
+  '/portal/admin': Users,
+  '/portal/admin/clientes': Building2,
+  '/portal/admin/agendas': CalendarDays,
+  '/portal/admin/documentos': FileText,
+  '/portal/admin/formularios': ListChecks,
+  '/portal/admin/abonos': Wallet,
+  '/portal/admin/newsletter': Mail,
+  '/portal/admin/calidad': Sparkles,
+  '/portal/admin/registro': ScrollText,
+};
+
+function panelDe(clave: ClaveSeccion | undefined, ruta: string, permisos: Permisos, soloLectura: boolean, casosAbiertos: number | undefined): PanelDeSeccion | null {
+  if (clave === 'crm') {
+    const en = (s: string) => ruta === `/portal/crm/${s}` || ruta.startsWith(`/portal/crm/${s}/`);
+    return {
+      titulo: 'Clientes',
+      accion: soloLectura ? undefined : { a: '/portal/crm/nuevo', titulo: 'Nuevo cliente' },
+      grupos: [
+        {
+          items: [
+            { a: '/portal/crm', titulo: 'Todos los clientes', icono: Kanban, activo: !SUBRUTAS_CRM.some(en) },
+            ...(permisos.casos ? [{ a: '/portal/crm/casos', titulo: 'Casos de conflicto', icono: ShieldAlert, activo: en('casos'), cuenta: casosAbiertos }] : []),
+            { a: '/portal/crm/reuniones', titulo: 'Reuniones', icono: CalendarDays, activo: en('reuniones') },
+            { a: '/portal/crm/llamadas', titulo: 'Llamadas', icono: Phone, activo: en('llamadas') },
+            { a: '/portal/crm/comprobantes', titulo: 'Invoices y recibos', icono: ReceiptText, activo: en('comprobantes') },
+          ],
+        },
+        {
+          titulo: 'Configuración',
+          items: [
+            { a: '/portal/crm/servicios', titulo: 'Servicios', icono: Layers, activo: en('servicios') },
+            { a: '/portal/crm/equipo', titulo: 'Equipo comercial', icono: Users, activo: en('equipo') },
+          ],
+        },
+      ],
+    };
+  }
+  if (clave === 'equipo') {
+    const en = (s: string) => ruta === `/portal/equipo/${s}`;
+    return {
+      titulo: 'Equipo',
+      grupos: [
+        {
+          items: [
+            { a: '/portal/equipo', titulo: 'Personas', icono: Users, activo: !en('victorias') && !en('objetivos') && !en('reportes') },
+            { a: '/portal/equipo/victorias', titulo: 'Victorias', icono: Trophy, activo: en('victorias') },
+            { a: '/portal/equipo/objetivos', titulo: 'Objetivos', icono: Target, activo: en('objetivos') },
+            { a: '/portal/equipo/reportes', titulo: 'Reportes', icono: ClipboardList, activo: en('reportes') },
+          ],
+        },
+      ],
+    };
+  }
+  if (clave === 'admin') {
+    return {
+      titulo: 'Administración',
+      grupos: [{ items: PESTANAS_ADMIN.map((p) => ({ a: p.ruta, titulo: p.titulo, icono: ICONO_ADMIN[p.ruta] ?? ShieldCheck, activo: ruta === p.ruta })) }],
+    };
+  }
+  return null;
+}
+
+/** Casos de conflicto en curso de la empresa, para el panel de Clientes. Se pide como mucho una vez por minuto. */
+const cacheCasos = new Map<string, { t: number; n: number }>();
+function useCasosAbiertos(orgId: string | null, activo: boolean): number | undefined {
+  const [n, setN] = useState<number | undefined>(() => (orgId ? cacheCasos.get(orgId)?.n : undefined));
+  useEffect(() => {
+    if (!supabase || !activo || !orgId) return;
+    const previo = cacheCasos.get(orgId);
+    if (previo && Date.now() - previo.t < 60_000) return setN(previo.n);
+    let vigente = true;
+    void supabase
+      .from('crm_casos')
+      .select('id', { count: 'exact', head: true })
+      .eq('organizacion_id', orgId)
+      .neq('etapa', 'cerrado')
+      .then(({ count, error }) => {
+        if (error) return;
+        cacheCasos.set(orgId, { t: Date.now(), n: count ?? 0 });
+        if (vigente) setN(count ?? 0);
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [orgId, activo]);
+  return n;
+}
+
+/** Abierto o cerrado, guardado en este navegador. Abierto la primera vez. */
+function usePanelAbierto(): [boolean, (v: boolean) => void] {
+  const [abierto, setAbierto] = useState(() => {
+    try {
+      return window.localStorage.getItem(CLAVE_PANEL) !== 'cerrado';
+    } catch {
+      return true;
+    }
+  });
+  const cambiar = (v: boolean) => {
+    setAbierto(v);
+    try {
+      window.localStorage.setItem(CLAVE_PANEL, v ? 'abierto' : 'cerrado');
+    } catch {
+      /* sin almacenamiento */
+    }
+  };
+  return [abierto, cambiar];
+}
+
+const Cuenta: React.FC<{ n: number; clase?: string }> = ({ n, clase = '' }) => (
+  <span className={`min-w-[18px] h-[18px] px-1 grid place-items-center rounded-pastilla bg-marfil text-tinta text-[10.5px] font-bold tabular-nums ${clase}`} aria-label={`${n} pendientes`}>
+    {n > 99 ? '99+' : n}
+  </span>
+);
+
+/** Un ítem de la barra de íconos: el ícono y, abajo, su nombre corto. */
+const ItemBarra: React.FC<{
+  a?: string;
+  alTocar?: () => void;
+  icono: LucideIcon;
+  rotulo: string;
+  titulo?: string;
+  activo?: boolean;
+  cuenta?: number;
+  haspopup?: 'dialog';
+}> = ({ a, alTocar, icono: Icono, rotulo, titulo, activo, cuenta, haspopup }) => {
+  const clase = `group flex flex-col items-center gap-0.5 w-[72px] py-1 rounded-[12px] text-[11px] leading-tight text-center transition-colors duration-150 ${activo ? 'text-marfil font-semibold' : 'text-lateral-texto font-medium hover:text-marfil'}`;
+  const contenido = (
+    <>
+      <span className={`relative w-10 h-[30px] grid place-items-center rounded-[10px] ${activo ? 'bg-grafito' : 'group-hover:bg-marfil/[0.08]'}`}>
+        <Icono size={19} strokeWidth={1.75} aria-hidden="true" />
+        {cuenta ? <Cuenta n={cuenta} clase="absolute -top-1 -right-1.5" /> : null}
+      </span>
+      <span className="max-w-full truncate px-0.5">{rotulo}</span>
+    </>
+  );
+  return a ? (
+    <Enlace a={a} title={titulo} aria-current={activo ? 'page' : undefined} className={clase}>
+      {contenido}
+    </Enlace>
+  ) : (
+    <button type="button" onClick={alTocar} title={titulo} aria-haspopup={haspopup} className={clase}>
+      {contenido}
+    </button>
+  );
+};
+
+const Separacion = () => <span aria-hidden="true" className="w-9 h-px my-1 shrink-0 bg-marfil/[0.12]" />;
+
+const BarraEscritorio: React.FC<{
+  perfil: Perfil;
+  secciones: Seccion[];
+  contadores: Contadores;
+  orgNombre: string | null;
+  logoCliente: string | null;
+  vista: boolean;
+  panel: PanelDeSeccion | null;
+  panelAbierto: boolean;
+  alPanel: (abierto: boolean) => void;
+}> = ({ perfil, secciones, contadores, orgNombre, logoCliente, vista, panel, panelAbierto, alPanel }) => {
+  const esAdmin = perfil.rol === 'admin' && !vista;
+  const negocios = useMisNegocios(!vista && perfil.rol !== 'admin' ? perfil : null);
+  const varios = negocios.length > 1;
+  const nombre = perfil.nombre || perfil.email;
+  const cuenta = (c: ClaveSeccion) => (c === 'asuntos' ? contadores.asuntos : c === 'firmas' ? contadores.firmas : undefined);
+  const grupo = (g: Seccion['grupo']) =>
+    secciones
+      .filter((x) => x.grupo === g)
+      .map((x) => <ItemBarra key={x.clave} a={x.a} icono={x.icono} rotulo={x.corto} titulo={x.titulo} activo={x.activo} cuenta={cuenta(x.clave)} />);
+  const empresa = esAdmin ? 'FIRMA' : orgNombre ?? '';
+
+  return (
+    <div className="flex h-screen">
+      <nav aria-label="Secciones del portal" className="w-[84px] shrink-0 flex flex-col items-center gap-0.5 pt-4 pb-3 bg-tinta overflow-y-auto scrollbar-hide">
+        <Enlace a="/portal" aria-label="Inicio del portal" className="px-1 pb-2.5">
+          <img src={palabraOscura} alt="firma" className="h-[19px] w-auto" />
+        </Enlace>
+        <div className="relative flex flex-col items-center gap-1 w-[72px] py-1" title={empresa}>
+          {logoCliente && !esAdmin ? (
+            <span className="w-9 h-9 rounded-[10px] bg-white grid place-items-center overflow-hidden">
+              <img src={logoCliente} alt="" className="max-w-[30px] max-h-[30px] object-contain" />
+            </span>
+          ) : (
+            <span aria-hidden="true" className="w-9 h-9 rounded-[10px] grid place-items-center bg-marfil text-tinta text-[13px] font-bold">
+              {esAdmin ? 'F' : iniciales(orgNombre ?? '·')}
+            </span>
+          )}
+          <span className="max-w-full truncate px-0.5 text-[10.5px] text-lateral-tenue">{empresa.split(/\s+/)[0]}</span>
+          {varios && <SelectorNegocio perfil={perfil} negocios={negocios} />}
+        </div>
+        <ItemBarra icono={Search} rotulo="Buscar" titulo={`Buscar (${atajoBuscador()})`} alTocar={abrirBuscador} haspopup="dialog" />
+        <Separacion />
+        {grupo('principal')}
+        {secciones.some((x) => x.grupo === 'negocio') && <Separacion />}
+        {grupo('negocio')}
+        {secciones.some((x) => x.grupo === 'firma') && <Separacion />}
+        {grupo('firma')}
+        <span className="flex-1 min-h-3" />
+        {panel && !panelAbierto && <ItemBarra icono={PanelLeftOpen} rotulo="Panel" titulo={`Mostrar el panel de ${panel.titulo}`} alTocar={() => alPanel(true)} />}
+        {perfil.rol === 'titular' && !vista && (
+          <ItemBarra a="/portal/bitacora" icono={ScrollText} rotulo="Bitácora" titulo="Bitácora de la cuenta" activo={window.location.pathname.startsWith('/portal/bitacora')} />
+        )}
+        <CampanaAvisos variante="barra" />
+        <Dropdown>
+          <BotonHero variant="ghost" aria-label={`Tu cuenta, ${nombre}`} className="h-auto w-[72px] flex-col gap-0.5 px-0 py-1 rounded-[12px] text-lateral-texto text-[11px] font-medium hover:text-marfil hover:bg-transparent">
+            <span aria-hidden="true" className="w-[30px] h-[30px] rounded-full grid place-items-center bg-grafito text-marfil text-[11px] font-bold">
+              {iniciales(nombre)}
+            </span>
+            Vos
+          </BotonHero>
+          <Dropdown.Popover placement="end bottom" className="min-w-[240px]">
+            <div className="px-3 pt-3 pb-2 leading-tight">
+              <p className="text-[14px] font-semibold truncate">{nombre}</p>
+              <p className="text-[12.5px] text-piedra truncate mt-0.5">{perfil.nombre ? perfil.email : ROTULO_ROL[perfil.rol]}</p>
+            </div>
+            <Dropdown.Menu onAction={(k) => k === 'salir' && void salir()}>
+              <Dropdown.Item id="salir" textValue="Salir del portal">
+                <LogOut size={16} aria-hidden="true" />
+                <RotuloHero>Salir del portal</RotuloHero>
+              </Dropdown.Item>
+            </Dropdown.Menu>
+          </Dropdown.Popover>
+        </Dropdown>
+      </nav>
+
+      {panel && panelAbierto && (
+        <nav aria-label={`Pantallas de ${panel.titulo}`} className="w-[220px] shrink-0 flex flex-col gap-0.5 px-2.5 pt-5 pb-4 bg-carbon text-lateral-texto overflow-y-auto scrollbar-hide border-l border-marfil/[0.06]">
+          <div className="flex items-center justify-between gap-2 pl-2 pb-4">
+            <p className="text-marfil text-[18px] font-bold truncate">{panel.titulo}</p>
+            <span className="flex gap-1.5 shrink-0">
+              {panel.accion && (
+                <Enlace a={panel.accion.a} title={panel.accion.titulo} aria-label={panel.accion.titulo} className="w-8 h-8 grid place-items-center rounded-[9px] border border-marfil/15 text-marfil hover:bg-marfil/[0.08]">
+                  <Plus size={16} aria-hidden="true" />
+                </Enlace>
+              )}
+              <button type="button" onClick={() => alPanel(false)} title="Ocultar el panel" aria-label="Ocultar el panel" className="w-8 h-8 grid place-items-center rounded-[9px] border border-marfil/15 text-marfil hover:bg-marfil/[0.08]">
+                <ChevronsLeft size={16} aria-hidden="true" />
+              </button>
+            </span>
+          </div>
+          {panel.grupos.map((g, i) => (
+            <div key={i} className="flex flex-col gap-0.5">
+              {g.titulo && <p className="px-2.5 pt-4 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-lateral-tenue">{g.titulo}</p>}
+              {g.items.map((x) => {
+                const Icono = x.icono;
+                return (
+                  <Enlace
+                    key={x.a}
+                    a={x.a}
+                    aria-current={x.activo ? 'page' : undefined}
+                    className={`flex items-center gap-2.5 min-h-[38px] px-2.5 rounded-[10px] text-[14px] transition-colors duration-150 ${x.activo ? 'bg-grafito text-marfil font-semibold' : 'hover:bg-marfil/[0.06] hover:text-marfil'}`}
+                  >
+                    <Icono size={17} strokeWidth={1.75} aria-hidden="true" className="shrink-0" />
+                    <span className="flex-1 truncate">{x.titulo}</span>
+                    {x.cuenta ? <Cuenta n={x.cuenta} /> : null}
+                  </Enlace>
+                );
+              })}
+            </div>
+          ))}
+        </nav>
+      )}
+    </div>
+  );
+};
+
+/* ------------------------------------------------------------------ */
 /* Marco general del portal                                            */
 /* ------------------------------------------------------------------ */
 /** orgId fija de qué cliente es el logo y el nombre del lateral. Sin él, el de la empresa del usuario (o la de la vista previa). */
@@ -474,6 +788,11 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
   const contadores = useContadores(permisos, esAdmin ? null : orgDelMarco, esAdmin, perfil ? veAsuntos(perfil) : false);
   const [menu, setMenu] = useState(false);
   const conexion = useConexion();
+  const claveActiva = secciones.find((x) => x.activo)?.clave;
+  const casosAbiertos = useCasosAbiertos(esAdmin ? null : orgDelMarco, claveActiva === 'crm' && Boolean(permisos?.casos));
+  const panel = permisos ? panelDe(claveActiva, ruta, permisos, Boolean(vista), casosAbiertos) : null;
+  const [panelAbierto, setPanelAbierto] = usePanelAbierto();
+  const conPanel = Boolean(panel && panelAbierto);
 
   // El título de la pestaña dice en qué sección estás: sirve en el historial y con varias pestañas abiertas.
   const tituloSeccion = secciones.find((x) => x.activo)?.titulo ?? null;
@@ -493,15 +812,29 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
 
   return (
     <DensidadBotones.Provider value="compacta">
-      <div className="portal min-h-screen bg-marfil text-tinta desk:grid desk:grid-cols-[264px_minmax(0,1fr)]">
+      <PanelSeccionCtx.Provider value={conPanel}>
+      <div
+        data-panel={conPanel ? 'abierto' : 'cerrado'}
+        className={`portal min-h-screen bg-marfil text-tinta desk:grid ${lateral ? (conPanel ? 'desk:grid-cols-[304px_minmax(0,1fr)]' : 'desk:grid-cols-[84px_minmax(0,1fr)]') : ''}`}
+      >
         {/* Con teclado: salta el menú y va directo al contenido. */}
         <a href="#contenido" className="sr-only focus:not-sr-only focus:fixed focus:z-[60] focus:left-3 focus:top-3 focus:px-4 focus:py-2.5 focus:rounded-[10px] focus:bg-papel focus:text-tinta focus:text-[14px] focus:font-semibold focus:shadow-flotante">
           Saltar al contenido
         </a>
-        {lateral && (
+        {lateral && perfil && (
           <div className="hidden desk:block bg-tinta">
-            <aside className="sticky top-0 h-screen overflow-y-auto scrollbar-hide" aria-label="Barra lateral">
-              {lateral}
+            <aside className="sticky top-0 h-screen" aria-label="Barra lateral">
+              <BarraEscritorio
+                perfil={perfil}
+                secciones={secciones}
+                contadores={contadores}
+                orgNombre={vista?.orgNombre ?? org?.nombre ?? null}
+                logoCliente={logoCliente}
+                vista={Boolean(vista)}
+                panel={panel}
+                panelAbierto={panelAbierto}
+                alPanel={setPanelAbierto}
+              />
             </aside>
           </div>
         )}
@@ -619,6 +952,7 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
           </LimiteError>
         )}
       </div>
+      </PanelSeccionCtx.Provider>
     </DensidadBotones.Provider>
   );
 };

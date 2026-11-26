@@ -43,7 +43,7 @@ export const Services: React.FC = () => {
         <div className="grid grid-cols-1 tab:grid-cols-2 wide:grid-cols-4 gap-5">
           {services.map((service, index) => (
             <Reveal key={service.title} delay={index * 100} className="h-full">
-              <article className="card">
+              <article className="tarjeta-servicio">
                 {/* Número al agua */}
                 <span aria-hidden="true" className="wm">
                   {String(index + 1).padStart(2, '0')}

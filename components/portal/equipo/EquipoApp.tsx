@@ -3,7 +3,7 @@ import { ArrowLeft, FileSpreadsheet, Plus } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
-import { Aviso, Encabezado, Enlace, Marco, Pestanas, claseInput } from '../ui';
+import { Aviso, Encabezado, Enlace, Marco, NavegacionDePagina, Pestanas, claseInput } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
 import { mensajeAmable } from '../errores';
 import type { Organizacion, Perfil } from '../tipos';
@@ -253,6 +253,7 @@ export const EquipoApp: React.FC<{ perfil: Perfil; organizacion: Organizacion | 
           <Aviso tipo="info">Todavía no estás en el equipo de la empresa. Pedile al titular que te sume y vas a poder cargar tus victorias y tus reportes.</Aviso>
         )}
         {!personaId && (
+        <NavegacionDePagina>
         <Pestanas<Pestana>
           items={[
             { clave: 'personas', titulo: 'Personas' },
@@ -263,6 +264,7 @@ export const EquipoApp: React.FC<{ perfil: Perfil; organizacion: Organizacion | 
           activa={pestana}
           alCambiar={ir}
         />
+        </NavegacionDePagina>
         )}
         {!base || !cargado ? (
           <p className="text-piedra text-sm" role="status">
