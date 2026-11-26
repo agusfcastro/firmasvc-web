@@ -12,6 +12,7 @@ import { CARGOS_ESTANDAR, ROLES_ELEGIBLES, ROL_COMERCIAL, cargoNormal, rolDe, ty
 import { BarraUso } from '../BarraUso';
 import { diaYMes, firmasAgotadas, firmasOcupadas, usoFirmas, whatsapp, type UsoFirmas } from '../planes';
 import { registrarLectura } from '../lecturas';
+import { mensajeAmable } from '../errores';
 import {
   COLUMNAS_FIRMANTE,
   ROTULO_EVENTO,
@@ -461,7 +462,7 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
       const { data: idNuevo, error: eq } = supabase ? await supabase.rpc('equipo_sumar', { org: orgEnvio, nombre: personaNueva.trim(), rol: rolNuevo, ...(rolNuevo === 'otro' && cargoNuevo.trim() ? { cargo: cargoNormal(cargoNuevo) } : {}) }) : { data: null, error: null };
       if (eq || !idNuevo) {
         setEnviando(false);
-        return setError(eq?.message ?? 'No se pudo sumar a la persona al equipo.');
+        return setError(mensajeAmable(eq, 'No se pudo sumar a la persona al equipo.'));
       }
       miembroId = idNuevo as string;
     }
@@ -699,7 +700,7 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
             )}
             {error && <Aviso tipo="error">{error}</Aviso>}
             <Button type="submit" disabled={enviando} size="lg">
-              <Send size={18} aria-hidden="true" /> {enviando ? 'Creando' : entrega === 'enlace' ? 'Crear y copiar los enlaces' : 'Enviar a firmar'}
+              <Send size={18} aria-hidden="true" /> {enviando ? 'Creando' : entrega === 'enlace' ? 'Crear los enlaces' : 'Enviar a firmar'}
             </Button>
           </div>
         </form>

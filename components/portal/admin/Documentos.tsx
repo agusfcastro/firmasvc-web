@@ -10,6 +10,7 @@ import { seccionPersona, type ModeloPropio } from '../pedidos/propio';
 import { CARGOS_ESTANDAR, ROLES_ELEGIBLES, ROL_COMERCIAL, cargoNormal, rolDe, type IntegranteEquipo, type RolComercial } from '../crm/tipos';
 import { fechaCorta, type Area, type Documento, type Organizacion, type SeccionDocumento } from '../tipos';
 
+import { mensajeAmable } from '../errores';
 type Filtro = 'todas' | SeccionDocumento;
 type Contenido = 'archivo' | 'enlace';
 
@@ -359,7 +360,7 @@ export const Documentos: React.FC = () => {
     setError(null);
     setOk(null);
     const { error: err } = await supabase.from('documentos').delete().eq('id', d.id);
-    if (err) return setError(err.message);
+    if (err) return setError(mensajeAmable(err));
     if (d.archivo_ruta) await supabase.storage.from(BUCKET_DOCUMENTOS).remove([d.archivo_ruta]);
     if (borrador?.id === d.id) cerrar();
     setOk('Documento eliminado.');

@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import { DensidadBotones } from '../Button';
 import { supabase } from './supabase';
-import { navegar } from './navegacion';
+import { navegar, marcarSalida } from './navegacion';
 import { salirVistaPrevia, useVistaPrevia } from './vistaPrevia';
 import { useLogoOrg } from './logos';
 import { ROTULO_ROL, cargoDe, permisosDe, veAsuntos, type Perfil, type Permisos } from './tipos';
@@ -63,6 +63,7 @@ export const Enlace: React.FC<React.AnchorHTMLAttributes<HTMLAnchorElement> & { 
 );
 
 async function salir() {
+  marcarSalida();
   // Este dispositivo deja de recibir avisos de esta cuenta, por si lo usa otra persona.
   await desactivarPush().catch(() => undefined);
   // Solo esta sesión: sin scope, Supabase cierra la cuenta en todos los dispositivos.

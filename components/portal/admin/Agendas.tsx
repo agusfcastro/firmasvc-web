@@ -6,6 +6,7 @@ import { Aviso, Campo, Etiqueta, Interruptor, claseInput } from '../ui';
 import type { Agenda, Organizacion } from '../tipos';
 import { TiempoAgenda } from './TiempoAgenda';
 
+import { mensajeAmable } from '../errores';
 type Borrador = Omit<Agenda, 'id'> & { id?: string };
 const VACIO: Borrador = { organizacion_id: null, titulo: '', descripcion: '', duracion_min: 30, url: '', orden: 0, activa: true };
 
@@ -48,7 +49,7 @@ export const Agendas: React.FC = () => {
     };
     const { error: err } = borrador.id ? await supabase.from('agendas').update(datos).eq('id', borrador.id) : await supabase.from('agendas').insert(datos);
     setGuardando(false);
-    if (err) return setError(err.message);
+    if (err) return setError(mensajeAmable(err));
     setBorrador(null);
     void cargar();
   }
@@ -56,7 +57,7 @@ export const Agendas: React.FC = () => {
   async function borrar(a: Agenda) {
     if (!supabase || !window.confirm(`¿Eliminar la agenda «${a.titulo}»?`)) return;
     const { error: err } = await supabase.from('agendas').delete().eq('id', a.id);
-    if (err) setError(err.message);
+    if (err) setError(mensajeAmable(err));
     void cargar();
   }
 

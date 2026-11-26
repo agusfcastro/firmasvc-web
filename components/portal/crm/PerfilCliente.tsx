@@ -92,7 +92,7 @@ export const PerfilCliente: React.FC<{ clienteId: string; soloLectura: boolean; 
       <Aviso tipo="error">{error}</Aviso>
     ) : mostrarPlan ? (
       <Bloque titulo="Perfil conductual">
-        <p className="text-sm text-piedra">Disponible con el plan Blindaje.</p>
+        <p className="text-sm text-piedra">Todavía no está activo en tu cuenta. Pedíselo a FIRMA y lo habilitamos.</p>
       </Bloque>
     ) : null;
 

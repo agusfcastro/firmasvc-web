@@ -7,6 +7,7 @@ import { fechaCorta, type Documento, type Organizacion } from '../tipos';
 import type { Pregunta, Seccion, TipoPregunta } from '../pedidos/formulario';
 import { TIPOS_PREGUNTA, claveNueva, clavePregunta, rutaModeloPropio, seccionPersona, seccionesSeguras, type ModeloPropio } from '../pedidos/propio';
 
+import { mensajeAmable } from '../errores';
 /**
  * Administración › Formularios. FIRMA arma acá los modelos de contrato
  * propios de cada empresa (migración 0068): el nombre, el contrato modelo
@@ -222,7 +223,7 @@ export const Formularios: React.FC = () => {
       ? await supabase.from('modelos_contrato').update(datos).eq('id', borrador.id)
       : await supabase.from('modelos_contrato').insert({ ...datos, organizacion_id: borrador.organizacion_id });
     setGuardando(false);
-    if (err) return setError(err.message);
+    if (err) return setError(mensajeAmable(err));
     setOk(borrador.id ? 'Formulario actualizado. Los pedidos ya enviados quedan como estaban.' : 'Formulario creado. El cliente ya lo ve en Documentos › Contratos con tu equipo.');
     setBorrador(null);
     void cargar();
@@ -233,7 +234,7 @@ export const Formularios: React.FC = () => {
     setError(null);
     setOk(null);
     const { error: err } = await supabase.from('modelos_contrato').update({ activo: !m.activo }).eq('id', m.id);
-    if (err) return setError(err.message);
+    if (err) return setError(mensajeAmable(err));
     void cargar();
   }
 

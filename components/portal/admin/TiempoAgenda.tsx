@@ -6,6 +6,7 @@ import { BarraUso } from '../BarraUso';
 import { ROTULO_PLAN, diaYMes, duracion, periodoAgenda, usoAgenda, type UsoAgenda } from '../planes';
 import type { Organizacion } from '../tipos';
 
+import { mensajeAmable } from '../errores';
 /**
  * Tiempo de reuniones de cada empresa. Después de cada reunión FIRMA carga
  * los minutos y la barra del cliente se actualiza. Con el tiempo del
@@ -61,7 +62,7 @@ export const TiempoAgenda: React.FC<{ orgs: Organizacion[] }> = ({ orgs }) => {
     setError(null);
     const { error: e1 } = await supabase.from('agenda_consumos').insert({ organizacion_id: orgId, fecha: form.fecha || hoy(), minutos, nota: form.nota.trim() || null });
     setOcupado(false);
-    if (e1) return setError(e1.message);
+    if (e1) return setError(mensajeAmable(e1));
     setForm({ fecha: hoy(), minutos: '', nota: '' });
     setOk(`Cargamos ${duracion(minutos)}.`);
     void cargar();
@@ -70,7 +71,7 @@ export const TiempoAgenda: React.FC<{ orgs: Organizacion[] }> = ({ orgs }) => {
   async function borrar(c: Consumo) {
     if (!supabase || !window.confirm(`¿Borrar la reunión del ${diaYMes(c.fecha)} de ${duracion(c.minutos)}? Vuelve al saldo de la empresa.`)) return;
     const { error: e1 } = await supabase.from('agenda_consumos').delete().eq('id', c.id);
-    if (e1) return setError(e1.message);
+    if (e1) return setError(mensajeAmable(e1));
     setOk('Reunión borrada.');
     void cargar();
   }

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from '../Button';
 import { supabase } from './supabase';
-import { navegar } from './navegacion';
+import { navegar, marcarSalida } from './navegacion';
 import { Aviso, Campo, claseInput } from './ui';
 import { LayoutAcceso } from './LayoutAcceso';
 import { QrMarca } from './QrMarca';
@@ -126,6 +126,7 @@ export const SegundoFactor: React.FC<{ estado: EstadoSesion }> = ({ estado }) =>
         type="button"
         className="mt-6 text-sm underline underline-offset-4 hover:text-bosque"
         onClick={async () => {
+          marcarSalida();
           await supabase?.auth.signOut({ scope: 'local' });
           navegar('/portal/ingresar');
         }}

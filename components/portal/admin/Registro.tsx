@@ -5,6 +5,7 @@ import { fechaCorta, type EntradaRegistro } from '../tipos';
 import { ACCIONES } from '../acciones';
 
 
+import { mensajeAmable } from '../errores';
 /** Lo que llega de dLocal Go no tiene usuario. Se muestra quién informó. */
 const PROCESADORES: Record<string, string> = { dlocalgo: 'dLocal Go' };
 
@@ -20,7 +21,7 @@ export const Registro: React.FC = () => {
         supabase!.from('registro_accesos').select('*').order('creado_en', { ascending: false }).limit(300),
         supabase!.from('perfiles').select('id, email'),
       ]);
-      if (e) setError(e.message);
+      if (e) setError(mensajeAmable(e));
       setFilas((data as EntradaRegistro[]) ?? []);
       const m: Record<string, string> = {};
       (perfiles ?? []).forEach((p: { id: string; email: string }) => (m[p.id] = p.email));

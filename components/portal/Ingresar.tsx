@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '../Button';
 import { supabase } from './supabase';
-import { navegar, tomarDestino } from './navegacion';
+import { navegar, tomarDestino, tomarSesionCortada } from './navegacion';
 import { Aviso, Campo, claseInput } from './ui';
 import { LayoutAcceso } from './LayoutAcceso';
 
@@ -25,6 +25,8 @@ export const Ingresar: React.FC = () => {
       : 'No se pudo ingresar con Google. Probá de nuevo o entrá con tu mail y contraseña.';
   });
   const [conGoogle, setConGoogle] = useState(false);
+  // La sesión se cortó sola a mitad de algo: se explica y, al entrar, vuelve a la misma pantalla.
+  const [cortada] = useState(() => tomarSesionCortada());
 
   /** Ingreso con Google. Entra a la misma cuenta si el mail de Google es el de la invitación. */
   async function ingresarConGoogle() {
@@ -123,6 +125,11 @@ export const Ingresar: React.FC = () => {
 
       {modo === 'ingreso' && (
         <>
+          {cortada && !error && (
+            <div className="mb-5">
+              <Aviso tipo="info">Tu sesión se cerró. Ingresá de nuevo y te llevamos a la pantalla donde estabas.</Aviso>
+            </div>
+          )}
           {errorGoogle && !error && (
             <div className="mb-5">
               <Aviso tipo="error">{errorGoogle}</Aviso>

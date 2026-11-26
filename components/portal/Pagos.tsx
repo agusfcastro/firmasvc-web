@@ -426,7 +426,7 @@ const TarjetaAbono: React.FC<{
       abono.estado === 'pausado'
         ? 'Mientras siga en pausa no se hacen cobros.'
         : abono.estado === 'con_error'
-          ? 'El último débito fue rechazado. Si querés pagar con otro medio, usá Cambiar medio de pago.'
+          ? 'El último débito fue rechazado y tu servicio sigue activo. Cambiá el medio de pago o escribinos por WhatsApp y lo resolvemos juntos.'
           : abono.proximo_cobro
             ? `Próximo cobro el ${fechaLarga(abono.proximo_cobro)}.`
             : 'El próximo cobro se informa apenas lo confirme dLocal Go.';
@@ -436,6 +436,16 @@ const TarjetaAbono: React.FC<{
         <p className="h3 font-heading">{titulo}</p>
         <p className="text-[15px] leading-[1.55] text-calido">{texto}</p>
         {botonMedio}
+        {abono.estado === 'con_error' && (
+          <a
+            href={`https://wa.me/${WHATSAPP_COMPROBANTES}?text=${encodeURIComponent(`Hola, me rechazaron el débito del abono ${abono.concepto} y quiero resolverlo.`)}`}
+            target="_blank"
+            rel="noreferrer"
+            className={claseAccion}
+          >
+            Escribir a FIRMA por WhatsApp
+          </a>
+        )}
         {confirmando === '' && botonActualizar}
         {botonBaja}
       </>

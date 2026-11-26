@@ -54,7 +54,7 @@ const PantallaFinal: React.FC<{ datos: Datos; rechazo: boolean }> = ({ datos, re
       <div className="wrap max-w-[760px] mx-auto py-14 desk:py-20 flex flex-col items-center gap-8 text-center">
         <Icono size={64} strokeWidth={1.6} aria-hidden="true" className={rechazo ? 'text-piedra' : 'text-bosque'} />
         <div className="flex flex-col gap-4">
-          <h1 className="h2">{rechazo ? 'Rechazaste el documento' : '¡Firma completada!'}</h1>
+          <h1 className="h2">{rechazo ? 'Rechazaste el documento' : completo ? '¡Documento firmado!' : 'Tu firma quedó registrada'}</h1>
           <p className="text-[17px] leading-[1.6] text-piedra max-w-[56ch]">
             {rechazo
               ? `Le avisamos a ${sobre.emisor} y el envío quedó cerrado. No hace falta que hagas nada más.`
@@ -210,7 +210,17 @@ export const FirmarApp: React.FC<{ token: string }> = ({ token }) => {
         <div className="wrap max-w-[640px] py-20 flex flex-col gap-6">
           <h1 className="h2">No pudimos abrir el documento</h1>
           <Aviso tipo="error">{errorCarga}</Aviso>
-          <p className="text-piedra">Revisá que el enlace esté completo. Si lo copiaste del mail, abrilo directo desde el botón.</p>
+          <p className="text-piedra">
+            Si lo copiaste del mail, abrilo directo desde el botón del mail. Si igual no abre, pedile a quien te lo mandó un enlace nuevo. Lo
+            reenvía desde su portal en un minuto y el documento queda igual.
+          </p>
+          <p className="text-piedra">
+            ¿No sabés quién te lo mandó o no te responde?{' '}
+            <a href="mailto:agustin@firmasvc.com?subject=No%20puedo%20abrir%20un%20documento%20para%20firmar" className="text-tinta underline underline-offset-4">
+              Escribinos a FIRMA
+            </a>{' '}
+            y te ayudamos.
+          </p>
         </div>
       </MarcoPublico>
     );
@@ -254,7 +264,7 @@ export const FirmarApp: React.FC<{ token: string }> = ({ token }) => {
           <h1 className="h2">{sobre.titulo}</h1>
           {sobre.mensaje && <p className="text-[17px] leading-[1.6] text-piedra max-w-[60ch] whitespace-pre-line">{sobre.mensaje}</p>}
           <p className="text-sm text-piedra">
-            Hola {firmante.nombre}. {puedeFirmar ? `Leé el documento acá abajo y firmalo cuando estés listo. Tenés tiempo hasta el ${fechaHora(sobre.vence_en)}.` : ''}
+            Hola {firmante.nombre}. {puedeFirmar ? `Leé el documento acá abajo y firmalo cuando estés listo. Tenés tiempo hasta el ${fechaHora(sobre.vence_en).replace(/\.$/, '')}.` : ''}
           </p>
         </div>
       </section>
@@ -329,7 +339,7 @@ export const FirmarApp: React.FC<{ token: string }> = ({ token }) => {
                       </p>
                     ) : !codigoEnviado ? (
                       <>
-                        <p className="text-[15px] leading-[1.6]">Te mandamos un código de 6 números a {firmante.email}.</p>
+                        <p className="text-[15px] leading-[1.6]">Para confirmar que sos vos, te mandamos un código de 6 números a {firmante.email} cuando toques el botón.</p>
                         <Button onClick={pedirCodigo} disabled={ocupado || !datos.mail} fullWidth>
                           {ocupado ? 'Enviando' : 'Mandarme el código'}
                         </Button>
@@ -384,7 +394,12 @@ export const FirmarApp: React.FC<{ token: string }> = ({ token }) => {
                   </div>
 
                   {modo === 'dibujada' ? (
-                    <Lienzo alCambiar={setDibujo} />
+                    <Lienzo
+                          alCambiar={(png) => {
+                            setDibujo(png);
+                            if (png) setError(null);
+                          }}
+                        />
                   ) : (
                     <div className="flex flex-col gap-3">
                       <Campo etiqueta="Tu nombre completo">

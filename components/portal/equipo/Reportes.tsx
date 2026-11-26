@@ -92,7 +92,7 @@ export const Reportes: React.FC<{ base: BaseEquipo }> = ({ base }) => {
         <section className="flex flex-col gap-4">
           <TituloSeccion eyebrow="Tuyo" titulo="Tu reporte" />
           {misReportes.length === 0 ? (
-            <p className="text-piedra text-[14px]">Tu rol todavía no tiene un reporte. Lo arma quien lidera el equipo.</p>
+            <p className="text-piedra text-[14px]">{lidera ? 'Tu rol todavía no tiene un reporte. Si querés reportar, armá uno para tu rol más abajo.' : 'Tu rol todavía no tiene un reporte. Lo arma quien lidera el equipo.'}</p>
           ) : (
             misReportes.map((r) => (
               <FormularioReporte
@@ -458,7 +458,7 @@ const ArmarReportes: React.FC<{ base: BaseEquipo; alAviso: (m: string) => void; 
           <div className="flex flex-wrap gap-2">
             {faltanDeFirma.map((p) => (
               <Button key={p.id} size="sm" variant="ghost" onClick={() => void usarPlantillas(p.rol_comercial)}>
-                Usar el de {rotuloRol(p.rol_comercial).toLowerCase()}
+                Usar el de {rotuloRol(p.rol_comercial)}
               </Button>
             ))}
           </div>
