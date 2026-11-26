@@ -42,7 +42,6 @@ import { LimiteError } from './LimiteError';
 import { simboloMoneda } from '../../api/_lib/variables';
 
 import simboloClaro from '../../assets/brand/simbolo-claro.png';
-import simboloOscuro from '../../assets/brand/simbolo-oscuro.png';
 import palabraOscura from '../../assets/brand/wordmark-oscuro.png';
 
 /* ------------------------------------------------------------------ */
@@ -84,27 +83,30 @@ interface Seccion {
   /** Rótulo corto para la barra inferior del celular. */
   corto: string;
   icono: LucideIcon;
-  grupo: 'expediente' | 'negocio' | 'firma';
+  /** principal va arriba y sin título; negocio, abajo en Tu negocio. */
+  grupo: 'principal' | 'negocio' | 'firma';
   activo: boolean;
 }
 
 function seccionesDe(perfil: Perfil, permisos: Permisos, ruta: string): Seccion[] {
   const s = (clave: ClaveSeccion, a: string, titulo: string, corto: string, icono: LucideIcon, grupo: Seccion['grupo'], activo: boolean): Seccion => ({ clave, a, titulo, corto, icono, grupo, activo });
+  // Arriba lo de todos los días. Abajo, en Tu negocio, lo legal y la administración.
   return [
-    s('inicio', '/portal', 'Inicio', 'Inicio', House, 'expediente', ruta === '/portal'),
-    ...(veAsuntos(perfil) ? [s('asuntos', '/portal/asuntos', 'Asuntos', 'Asuntos', BriefcaseBusiness, 'expediente', ruta.startsWith('/portal/asuntos'))] : []),
-    ...(permisos.documentosLegales ? [s('firmas', '/portal/firmas', 'Firmas', 'Firmas', FileSignature, 'expediente', ruta.startsWith('/portal/firmas'))] : []),
-    ...(permisos.documentosLegales
-      ? [s('documentos', '/portal/documentos', 'Documentos', 'Documentos', FileText, 'expediente', ruta.startsWith('/portal/documentos') || ruta.startsWith('/portal/pedidos'))]
-      : []),
-    s('protocolos', '/portal/protocolos', 'Protocolos', 'Protocolos', BookOpen, 'expediente', ruta === '/portal/protocolos'),
+    s('inicio', '/portal', 'Inicio', 'Inicio', House, 'principal', ruta === '/portal'),
     // Invoices y recibos se abren desde Clientes; la bitácora, desde el pie de la barra lateral.
-    ...(permisos.crm ? [s('crm', '/portal/crm', 'Clientes', 'Clientes', Kanban, 'negocio', ruta.startsWith('/portal/crm'))] : []),
+    ...(permisos.crm ? [s('crm', '/portal/crm', 'Clientes', 'Clientes', Kanban, 'principal', ruta.startsWith('/portal/crm'))] : []),
     // Objetivos, victorias y reportes (0076): lo usa toda la gente de la empresa, también setters.
-    s('equipo', '/portal/equipo', 'Equipo', 'Equipo', Trophy, 'negocio', ruta === '/portal/equipo' || ruta.startsWith('/portal/equipo/')),
-    ...(permisos.agenda ? [s('agenda', '/portal/agenda', 'Agenda', 'Agenda', CalendarDays, 'negocio', ruta === '/portal/agenda')] : []),
+    s('equipo', '/portal/equipo', 'Equipo', 'Equipo', Trophy, 'principal', ruta === '/portal/equipo' || ruta.startsWith('/portal/equipo/')),
+    ...(permisos.agenda ? [s('agenda', '/portal/agenda', 'Agenda', 'Agenda', CalendarDays, 'principal', ruta === '/portal/agenda')] : []),
     // Pagos solo para titulares y FIRMA. El resto del equipo no ve nada de pagos.
     ...(permisos.gestion ? [s('pagos', '/portal/pagos', 'Pagos', 'Pagos', Wallet, 'negocio', ruta === '/portal/pagos')] : []),
+    s('protocolos', '/portal/protocolos', 'Protocolos', 'Protocolos', BookOpen, 'negocio', ruta === '/portal/protocolos'),
+    ...(permisos.documentosLegales
+      ? [s('documentos', '/portal/documentos', 'Documentos', 'Documentos', FileText, 'negocio', ruta.startsWith('/portal/documentos') || ruta.startsWith('/portal/pedidos'))]
+      : []),
+    ...(permisos.documentosLegales ? [s('firmas', '/portal/firmas', 'Firmas', 'Firmas', FileSignature, 'negocio', ruta.startsWith('/portal/firmas'))] : []),
+    // Asuntos son los temas de FIRMA con el dueño del negocio, no con sus clientes.
+    ...(veAsuntos(perfil) ? [s('asuntos', '/portal/asuntos', 'Asuntos', 'Asuntos', BriefcaseBusiness, 'negocio', ruta.startsWith('/portal/asuntos'))] : []),
     ...(perfil.rol === 'admin' ? [s('admin', '/portal/admin', 'Administración', 'Admin', ShieldCheck, 'firma', ruta.startsWith('/portal/admin'))] : []),
   ];
 }
@@ -126,7 +128,7 @@ function accesosDe(perfil: Perfil, permisos: Permisos, secciones: Seccion[]): Ac
   ];
 }
 
-const TITULO_GRUPO: Record<Seccion['grupo'], string> = { expediente: 'Expediente', negocio: 'Tu negocio', firma: 'FIRMA' };
+const TITULO_GRUPO: Record<Seccion['grupo'], string> = { principal: '', negocio: 'Tu negocio', firma: 'FIRMA' };
 
 /* ------------------------------------------------------------------ */
 /* Datos chicos que muestra el marco, con caché por sesión             */
@@ -315,16 +317,15 @@ const Lateral: React.FC<{
   alElegir?: () => void;
 }> = ({ perfil, secciones, contadores, orgNombre, orgPlan, logoCliente, vista, alElegir }) => {
   const esAdmin = perfil.rol === 'admin' && !vista;
-  const grupos = (['expediente', 'negocio', 'firma'] as const).map((g) => ({ g, items: secciones.filter((x) => x.grupo === g) })).filter((x) => x.items.length);
+  const grupos = (['principal', 'negocio', 'firma'] as const).map((g) => ({ g, items: secciones.filter((x) => x.grupo === g) })).filter((x) => x.items.length);
   const cuenta = (c: ClaveSeccion) => (c === 'asuntos' ? contadores.asuntos : c === 'firmas' ? contadores.firmas : undefined);
   const nombre = perfil.nombre || perfil.email;
   const negocios = useMisNegocios(!vista && perfil.rol !== 'admin' ? perfil : null);
   const varios = negocios.length > 1;
-  const titulos = esAdmin ? { expediente: 'Clientes', negocio: 'Gestión', firma: 'FIRMA' } : TITULO_GRUPO;
+  const titulos: Record<Seccion['grupo'], string> = esAdmin ? { principal: '', negocio: 'Gestión', firma: 'FIRMA' } : TITULO_GRUPO;
 
   return (
     <div className="lateral relative flex flex-col gap-5 min-h-full px-4 pt-6 pb-4 bg-tinta text-lateral-texto overflow-hidden">
-      <img src={simboloOscuro} alt="" aria-hidden="true" className="absolute -right-20 bottom-28 w-[300px] max-w-none opacity-[0.05] pointer-events-none select-none" />
 
       <Enlace a="/portal" onClick={alElegir} className="relative self-start px-2 py-1" aria-label="Inicio del portal">
         <img src={palabraOscura} alt="firma" className="h-[26px] w-auto" />
@@ -371,7 +372,7 @@ const Lateral: React.FC<{
       <nav aria-label="Secciones del portal" className="relative flex flex-col gap-5">
         {grupos.map(({ g, items }) => (
           <div key={g} className="flex flex-col gap-0.5">
-            <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] [font-stretch:125%] text-lateral-tenue">{titulos[g]}</p>
+            {titulos[g] && <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] [font-stretch:125%] text-lateral-tenue">{titulos[g]}</p>}
             {items.map((x) => {
               const Icono = x.icono;
               const n = cuenta(x.clave);
@@ -483,7 +484,7 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
   }, [tituloSeccion]);
 
   // La barra inferior muestra las cuatro secciones que más se usan. El resto vive en Más.
-  const ORDEN_INFERIOR: ClaveSeccion[] = ['inicio', 'asuntos', 'firmas', 'documentos', 'crm', 'equipo', 'protocolos', 'agenda', 'pagos', 'admin'];
+  const ORDEN_INFERIOR: ClaveSeccion[] = ['inicio', 'crm', 'equipo', 'agenda', 'pagos', 'protocolos', 'documentos', 'firmas', 'asuntos', 'admin'];
   const inferiores = ORDEN_INFERIOR.map((c) => secciones.find((x) => x.clave === c)).filter((x): x is Seccion => Boolean(x)).slice(0, 4);
   const lateral = perfil ? (
     <Lateral perfil={perfil} secciones={secciones} contadores={contadores} orgNombre={vista?.orgNombre ?? org?.nombre ?? null} orgPlan={org?.plan ?? null} logoCliente={logoCliente} vista={Boolean(vista)} alElegir={() => setMenu(false)} />
@@ -704,6 +705,17 @@ export const TituloSeccion: React.FC<{ eyebrow?: string; titulo: React.ReactNode
     </div>
     {acciones && <div className="flex flex-wrap gap-3">{acciones}</div>}
   </div>
+);
+
+/** Bloque de una ficha: tarjeta con un solo título y sus acciones a la derecha. Sin volanta arriba. */
+export const Bloque: React.FC<{ titulo: React.ReactNode; acciones?: React.ReactNode; children: React.ReactNode; sinRelleno?: boolean }> = ({ titulo, acciones, children, sinRelleno }) => (
+  <section className="bg-papel border border-borde-suave rounded-[18px] min-w-0">
+    <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 border-b border-separador">
+      <h2 className="font-heading font-bold text-[17px] leading-tight tracking-[-0.02em]">{titulo}</h2>
+      {acciones && <div className="flex flex-wrap gap-2">{acciones}</div>}
+    </div>
+    <div className={sinRelleno ? 'min-w-0' : 'px-5 py-4 min-w-0'}>{children}</div>
+  </section>
 );
 
 /* ------------------------------------------------------------------ */

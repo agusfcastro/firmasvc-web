@@ -37,12 +37,13 @@ interface Borrador {
   nombre: string;
   precio: string;
   moneda: string;
+  duracion: string;
   activo: boolean;
   documento_id: string;
   documento_pif_id: string;
 }
 
-const VACIO: Borrador = { clave: '', nombre: '', precio: '', moneda: 'USD', activo: true, documento_id: '', documento_pif_id: '' };
+const VACIO: Borrador = { clave: '', nombre: '', precio: '', moneda: 'USD', duracion: '', activo: true, documento_id: '', documento_pif_id: '' };
 
 /** Código corto a partir del nombre: "Mentoría 3 meses" pasa a MENTORIA-3-MESES. */
 function codigoDe(nombre: string): string {
@@ -113,6 +114,8 @@ export const Servicios: React.FC<{ orgId: string; orgNombre: string; esAdmin: bo
     if (!clave) return setError('Poné un código para el servicio.');
     const precio = borrador.precio.trim() === '' ? null : Number(borrador.precio);
     if (precio !== null && (!Number.isFinite(precio) || precio <= 0)) return setError('El ticket tiene que ser un monto mayor a cero, o quedar vacío.');
+    const duracion = borrador.duracion.trim() === '' ? null : Number(borrador.duracion);
+    if (duracion !== null && (!Number.isInteger(duracion) || duracion < 1 || duracion > 60)) return setError('La duración va en meses enteros, de 1 a 60, o vacía.');
 
     setGuardando(true);
     setError(null);
@@ -122,6 +125,8 @@ export const Servicios: React.FC<{ orgId: string; orgNombre: string; esAdmin: bo
       precio,
       // Con una sola moneda habilitada no se manda: queda la de la base (USD por defecto).
       ...(opcionesMoneda(monedas, borrador.moneda).length > 1 ? { moneda: borrador.moneda } : {}),
+      // Solo viaja si se escribió o hay que borrarla, así sin la migración 0079 el resto sigue andando.
+      ...(duracion !== null || borrador.id ? { duracion_meses: duracion } : {}),
       activo: borrador.activo,
       documento_id: borrador.documento_id || null,
       documento_pif_id: borrador.documento_pif_id || null,
@@ -207,6 +212,9 @@ export const Servicios: React.FC<{ orgId: string; orgNombre: string; esAdmin: bo
             <Campo etiqueta={`Ticket (${simboloMoneda(borrador.moneda)}, opcional)`} ayuda="Precio de lista. Al cargar una venta aparece como monto sugerido y se puede cambiar.">
               <input type="number" step="0.01" min="0" className={claseInput} value={borrador.precio} onChange={(e) => setBorrador({ ...borrador, precio: e.target.value })} />
             </Campo>
+            <Campo etiqueta="Duración en meses (opcional)" ayuda="Con la fecha de onboarding da el fin del contrato de cada cliente, en la línea de tiempo y en su ficha.">
+              <input type="number" step="1" min="1" max="60" className={claseInput} value={borrador.duracion} onChange={(e) => setBorrador({ ...borrador, duracion: e.target.value })} />
+            </Campo>
             <fieldset className="space-y-4 pt-5 border-t border-tinta/15">
               <legend className="eyebrow text-piedra pb-2">Contrato modelo</legend>
               <p className="text-xs text-piedra">
@@ -239,6 +247,7 @@ export const Servicios: React.FC<{ orgId: string; orgNombre: string; esAdmin: bo
               <tr>
                 <th>Servicio</th>
                 <th>Ticket</th>
+                <th>Duración</th>
                 <th>Modelo de contrato</th>
                 <th>Estado</th>
                 <th />
@@ -247,7 +256,7 @@ export const Servicios: React.FC<{ orgId: string; orgNombre: string; esAdmin: bo
             <tbody>
               {lista.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="p-6 text-piedra">
+                  <td colSpan={6} className="p-6 text-piedra">
                     Todavía no hay servicios cargados.
                   </td>
                 </tr>
@@ -259,6 +268,7 @@ export const Servicios: React.FC<{ orgId: string; orgNombre: string; esAdmin: bo
                     <div className="text-xs text-piedra">{s.clave}</div>
                   </td>
                   <td className="tabular-nums">{s.precio ? dinero(Number(s.precio), s.moneda) : <span className="text-piedra">A definir en cada venta</span>}</td>
+                  <td className="tabular-nums">{s.duracion_meses ? `${s.duracion_meses} ${s.duracion_meses === 1 ? 'mes' : 'meses'}` : <span className="text-piedra">Sin cargar</span>}</td>
                   <td>
                     {nombreModelo(s.documento_id) ? (
                       <div className="flex flex-col gap-1">
@@ -282,6 +292,7 @@ export const Servicios: React.FC<{ orgId: string; orgNombre: string; esAdmin: bo
                             nombre: s.nombre ?? '',
                             precio: s.precio === null ? '' : String(s.precio),
                             moneda: s.moneda ?? 'USD',
+                            duracion: s.duracion_meses ? String(s.duracion_meses) : '',
                             activo: s.activo !== false,
                             documento_id: s.documento_id ?? '',
                             documento_pif_id: s.documento_pif_id ?? '',

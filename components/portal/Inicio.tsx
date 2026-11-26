@@ -505,7 +505,7 @@ const InicioCliente: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
           <>
             {saludo()}
             {nombre ? ', ' : ' '}
-            <span className="ondulado whitespace-nowrap">{nombre || 'te damos la bienvenida'}</span>
+            <span className="whitespace-nowrap">{nombre || 'te damos la bienvenida'}</span>
           </>
         }
         bajada={resumen}
@@ -663,7 +663,7 @@ const InicioFirma: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
         eyebrow="FIRMA · Administración"
         titulo={
           <>
-            {saludo()}, <span className="ondulado">{(perfil!.nombre || 'FIRMA').split(' ')[0]}</span>
+            {saludo()}, <span>{(perfil!.nombre || 'FIRMA').split(' ')[0]}</span>
           </>
         }
         bajada={cargando ? 'Juntando lo de tus clientes…' : fallo ? 'No pudimos traer todo. Lo que ves puede estar incompleto.' : pendientes.length ? `Hay ${plural(pendientes.length, 'cosa que mirar', 'cosas que mirar')} en los negocios de tus clientes.` : 'Nada urgente en los negocios de tus clientes.'}

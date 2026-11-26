@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Check, ExternalLink, Lock, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
-import { Aviso, Campo, Cifras, Encabezado, Enlace, Etiqueta, Monto, TituloSeccion, claseInput } from '../ui';
+import { Aviso, Bloque, Campo, Cifras, Encabezado, Enlace, Etiqueta, Monto, TituloSeccion, claseInput } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
 import { navegar } from '../navegacion';
 import { BUCKET_ASUNTOS } from '../asuntos';
@@ -12,9 +12,9 @@ import { rolDe, TONO_FIRMA, dinero, hoyISO, nombreMonedaCrm, opcionesMoneda, typ
 import { CampoVariable, sinVacios } from './variablesPropias';
 import { CAMPOS_CASO, VALORES_CASO } from './reglasCasos';
 import { CasosCliente } from './Casos';
-import { AsuntosCliente } from './AsuntosCliente';
 import { ComprobantesCliente } from './ComprobantesCliente';
 import { ReunionesCliente } from './ReunionesCliente';
+import { finDelContrato } from './LineaTiempo';
 import { PerfilCliente } from './PerfilCliente';
 import { registrarLectura } from '../lecturas';
 import { ContratoFirma } from './contratoFirma';
@@ -23,7 +23,7 @@ import { DatosCliente, filaIdentidad, type Identidad } from './DatosCliente';
 const ROTULOS: Record<string, string> = {
   tipo: 'Tipo', nombre: 'Nombre', id_fiscal: 'Identificación fiscal', representante: 'Representante', cargo: 'Cargo', dni: 'DNI', email: 'Mail', telefono: 'Teléfono', domicilio: 'Domicilio', servicio: 'Servicio', monto_total: 'Monto total',
   modalidad: 'Modalidad', fecha_onboarding: 'Onboarding', estado_firma: 'Estado de la firma', link_contrato_servicio: 'Contrato de servicio',
-  responsable: 'Responsable', closer_id: 'Closer', setter_id: 'Setter', responsable_id: 'Responsable del equipo', datos_extra: 'Datos propios de la empresa', notas: 'Notas', condiciones: 'Condiciones acordadas', revisar_pagos: 'Revisar pagos', monto: 'Monto', vencimiento: 'Vencimiento', estado: 'Estado',
+  responsable: 'Account Manager anotado a mano', closer_id: 'Closer', setter_id: 'Setter', responsable_id: 'Account Manager', datos_extra: 'Datos propios de la empresa', notas: 'Notas', condiciones: 'Condiciones acordadas', revisar_pagos: 'Revisar pagos', monto: 'Monto', vencimiento: 'Vencimiento', estado: 'Estado',
   fecha_pago: 'Fecha de pago', nota: 'Nota', link_contrato_cliente: 'Contrato del cliente', link_documento: 'Documento generado',
   firma_url: 'Link de firma', contrato_estado: 'Contrato', contrato_error: 'Error del contrato',
   ...CAMPOS_CASO,
@@ -49,6 +49,9 @@ function aLocal(iso: string | null): string {
   const d = new Date(iso);
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 }
+
+/** El responsable anotado a mano, sin el rol entre paréntesis de antes: «Martina (CSM)» se lee Martina. */
+const sinRol = (t?: string | null): string | null => (t ? t.replace(/\s*\((CSM|AM|Account Manager)\)\s*$/i, '').trim() || null : null);
 
 function valorLegible(v: unknown, campo?: string): string {
   if (v === null || v === undefined || v === '') return 'vacío';
@@ -245,12 +248,15 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
 
   // Lo que más se consulta de la ficha queda a la vista, al costado, sin abrirla.
   const nombreDe = (mid?: string | null) => equipo.find((m) => m.id === mid)?.nombre ?? null;
+  // Onboarding más la duración del servicio (0079).
+  const finContrato = finDelContrato(cliente.fecha_onboarding, servicios.find((x) => x.clave === cliente.servicio)?.duracion_meses);
   const resumen: [string, string | null][] = [
     ['Teléfono', cliente.telefono ?? null],
     ['Closer', nombreDe(cliente.closer_id)],
     ['Setter', nombreDe(cliente.setter_id)],
-    ['Responsable', nombreDe(cliente.responsable_id) ?? cliente.responsable ?? null],
+    ['Account Manager', nombreDe(cliente.responsable_id) ?? sinRol(cliente.responsable)],
     ['Onboarding', cliente.fecha_onboarding ? new Date(cliente.fecha_onboarding).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' }) : null],
+    ['Fin del contrato', finContrato ? finContrato.toLocaleDateString('es-AR', { dateStyle: 'short' }) : null],
   ];
 
   const set = <K extends keyof ClienteCrm>(k: K, v: ClienteCrm[K]) => setBorrador({ ...borrador, [k]: v });
@@ -452,7 +458,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
           </>
         }
         titulo={cliente.nombre}
-        bajada={[cliente.servicio && `Programa ${cliente.servicio}`, cliente.tipo === 'empresa' && cliente.representante && `Representante ${cliente.representante}`, cliente.email, cliente.responsable && `Responsable ${cliente.responsable}`].filter(Boolean).join(' · ')}
+        bajada={[cliente.servicio && `Programa ${cliente.servicio}`, cliente.tipo === 'empresa' && cliente.representante && `Representante ${cliente.representante}`, cliente.email, (nombreDe(cliente.responsable_id) ?? sinRol(cliente.responsable)) && `Account Manager ${nombreDe(cliente.responsable_id) ?? sinRol(cliente.responsable)}`].filter(Boolean).join(' · ')}
         acciones={
           <>
             {casosAbiertos > 0 && <Etiqueta tono="alerta">{casosAbiertos === 1 ? 'Caso abierto' : `${casosAbiertos} casos abiertos`}</Etiqueta>}
@@ -540,7 +546,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                     </Campo>
                   ))}
                   {borrador.responsable && !borrador.responsable_id && (
-                    <Campo etiqueta="Responsable anotado a mano" ayuda="De antes del equipo. Elegí a la persona arriba y borrá esto.">
+                    <Campo etiqueta="Account Manager anotado a mano" ayuda="De antes del equipo. Elegí a la persona arriba y borrá esto.">
                       <input className={claseInput} value={borrador.responsable ?? ''} onChange={(e) => set('responsable', e.target.value)} />
                     </Campo>
                   )}
@@ -627,11 +633,10 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
         )}
 
         <div className="grid gap-12 desk:grid-cols-[7fr_5fr] desk:gap-14 items-start">
-          <div className="flex flex-col gap-14 min-w-0">
+          <div className="flex flex-col gap-5 min-w-0">
           <ReunionesCliente clienteId={id} orgId={cliente.organizacion_id} equipo={equipo} responsableId={cliente.responsable_id} soloLectura={soloLectura} puedeGestionar={puedeGestionar} />
           <ComprobantesCliente clienteId={id} soloLectura={soloLectura} />
           {verCasos && <CasosCliente clienteId={id} moneda={moneda} soloLectura={soloLectura} alContar={setCasosAbiertos} />}
-          {verCasos && <AsuntosCliente clienteId={id} soloLectura={soloLectura} esFirma={esAdmin && !soloLectura} />}
           {verCasos && <PerfilCliente clienteId={id} soloLectura={soloLectura} mostrarPlan={puedeGestionar} />}
           </div>
 
@@ -692,9 +697,8 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
         </div>
 
         {/* Plan de pagos */}
-        <section>
-          <TituloSeccion eyebrow={cobranza ? 'Cobranza' : 'Condiciones contractuales'} titulo={cobranza ? 'Plan de pagos' : 'Plan de pagos pactado'} />
-          {!cobranza && <p className="text-sm text-piedra -mt-3 mb-6 max-w-[64ch]">Estas condiciones se usan para el contrato. El seguimiento de los cobros lo lleva la empresa en su propio sistema.</p>}
+        <Bloque titulo={cobranza ? 'Plan de pagos' : 'Plan de pagos pactado'}>
+          {!cobranza && <p className="text-sm text-piedra mb-4">Condiciones para el contrato. Los cobros los sigue la empresa en su sistema.</p>}
           <Cifras
             items={[
               { titulo: 'Acordado', valor: <Monto n={cliente.monto_total} moneda={moneda} /> },
@@ -738,11 +742,10 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
               )
             )}
           </fieldset>
-        </section>
+        </Bloque>
 
         {puedeGestionar && historial.length > 0 && (
-          <section>
-            <TituloSeccion eyebrow="Trazabilidad" titulo="Historial" />
+          <Bloque titulo="Historial">
             <ol className="flex flex-col">
               {historial.map((h) => (
                 <li key={h.id} className="py-3.5 text-sm border-t border-tinta/12">
@@ -761,7 +764,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                 </li>
               ))}
             </ol>
-          </section>
+          </Bloque>
         )}
       </div>
     </>

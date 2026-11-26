@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Check, Plus, X } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
-import { Aviso, Campo, Etiqueta, TituloSeccion, claseInput } from '../ui';
+import { Aviso, Bloque, Campo, Etiqueta, claseInput } from '../ui';
 import { hoyISO } from './tipos';
 import { registrarLectura } from '../lecturas';
 import { mensajeAmable } from '../errores';
@@ -91,12 +91,9 @@ export const PerfilCliente: React.FC<{ clienteId: string; soloLectura: boolean; 
     return error ? (
       <Aviso tipo="error">{error}</Aviso>
     ) : mostrarPlan ? (
-      <section>
-        <TituloSeccion eyebrow="Perfil" titulo="Perfil conductual" />
-        <p className="text-sm text-piedra max-w-[64ch]">
-          Con el plan Blindaje el CRM propone el perfil de cada cliente a partir de señales observables (atrasos, casos de conflicto y lo que registra el equipo), para anticipar reclamos.
-        </p>
-      </section>
+      <Bloque titulo="Perfil conductual">
+        <p className="text-sm text-piedra">Disponible con el plan Blindaje.</p>
+      </Bloque>
     ) : null;
 
   const tipo = (clave: string) => tipos.find((x) => x.clave === clave);
@@ -169,9 +166,7 @@ export const PerfilCliente: React.FC<{ clienteId: string; soloLectura: boolean; 
   );
 
   return (
-    <section>
-      <TituloSeccion
-        eyebrow="Perfil"
+    <Bloque
         titulo="Perfil conductual"
         acciones={
           soloLectura || nueva ? undefined : (
@@ -180,10 +175,8 @@ export const PerfilCliente: React.FC<{ clienteId: string; soloLectura: boolean; 
             </Button>
           )
         }
-      />
-      <p className="text-sm text-piedra -mt-3 mb-6 max-w-[64ch]">
-        El CRM propone un perfil cuando las señales llegan al umbral. Es orientativo: confirmalo solo si lo ves en el trato con el cliente. Todo perfil vence solo.
-      </p>
+      >
+      <p className="text-sm text-piedra mb-4">Es orientativo. Confirmalo solo si lo ves en el trato con el cliente.</p>
       {error && (
         <div className="mb-6">
           <Aviso tipo="error">{error}</Aviso>
@@ -290,6 +283,6 @@ export const PerfilCliente: React.FC<{ clienteId: string; soloLectura: boolean; 
           </ul>
         </details>
       )}
-    </section>
+    </Bloque>
   );
 };
