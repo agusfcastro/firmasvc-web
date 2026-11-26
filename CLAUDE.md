@@ -69,6 +69,7 @@ Los abonos cobran esta oferta desde la migración 0061 (`abonos.modalidad`, `eta
 
 ## Tina
 
+- **Desactivada desde el 26 de noviembre de 2026**, para no gastar en la API. La burbuja no se muestra (`TINA_ACTIVA` en `components/portal/tina/activa.ts`) y `api/tina/chat.ts` rechaza todo pedido antes de llamar a Claude (su propia `TINA_ACTIVA`). El código, el prompt, las tablas, Calidad de la IA y el evaluador quedaron como estaban; para volver a prenderla se cambian las dos llaves. Lo que sigue describe cómo se comporta cuando está prendida.
 - Es la asistente con IA de FIRMA. Se presenta siempre como asistente, nunca como persona. Tiene una sola versión, femenina.
 - Tono cercano, como escribiría Agustín, explicando con ejemplos sin perder rigor.
 - Es solo del plan Eminent desde el 25 de noviembre de 2026. En Starter no se ve la burbuja y `api/tina/chat.ts` rechaza el pedido.
@@ -94,7 +95,7 @@ Los abonos cobran esta oferta desde la migración 0061 (`abonos.modalidad`, `eta
 - Centro de avisos con campana. Hecho: cada aviso que manda el servidor queda también en el historial de la persona (tabla `avisos`, migración 0066), llegue o no el push, y se guarda 90 días. Lo escribe solo el servidor desde `api/_lib/push.ts`; cada persona lee los suyos y solo puede marcarlos como leídos. La campana está en `components/portal/avisos/CentroAvisos.tsx` y las pruebas en `supabase/pruebas/avisos.sql`.
 - Buscador del portal (`components/portal/Buscador.tsx`), en la barra lateral y arriba en el celular. Invoices y recibos se abre desde Clientes y la bitácora desde el pie de la barra lateral.
 - Página del cliente en el CRM (`components/portal/crm/Ficha.tsx`). Al entrar muestra comprobantes, casos, asuntos y perfil, con el panel de Contratos y firma a la derecha; debajo el plan de pagos y al final el historial. La ficha de datos queda oculta y se abre con «Editar datos»; al guardar, la persona se queda en el cliente.
-- Burbuja de chat de Tina dentro del portal.
+- Burbuja de chat de Tina dentro del portal. Hecha y apagada desde el 26 de noviembre de 2026.
 - Resumen diario por mail a las 7 de la mañana de Argentina para todos los clientes, de lunes a viernes, aparte de las alertas de vencimientos y de la newsletter de los lunes, al titular y a los account managers. Si no hay novedades, se manda un mensaje corto que lo avisa. Usa el mismo servicio de mail que la firma electrónica.
 - Notificaciones solo operativas. Los onboardings le avisan al account manager. En asuntos y conflictos, quien actualiza el portal marca una opción para que Tina avise al responsable.
 - Los datos del resumen salen del portal. Las migraciones desde el CRM de cada cliente las hace `admin` por CSV.
