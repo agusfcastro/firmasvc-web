@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Volume2 } from 'lucide-react';
 import retrato from '../assets/brand/retrato.jpg';
+import { Logo } from './Logo';
 
 const VIDEO_ID = '1236858475';
 
@@ -16,8 +17,11 @@ const EMBED_URL = `https://player.vimeo.com/video/${VIDEO_ID}?autoplay=1&muted=1
  *
  * Va sin la barra del reproductor de Vimeo y sin forma de pausarlo, en el home y en
  * /landing: una vez que se activa el sonido, corre hasta el final.
+ *
+ * conLogo es para /landing, que no tiene encabezado: el logo va a la derecha de la
+ * firma de Agustín y lleva al home.
  */
-export const VideoVSL: React.FC = () => {
+export const VideoVSL: React.FC<{ conLogo?: boolean }> = ({ conLogo = false }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [muted, setMuted] = useState(true);
 
@@ -80,14 +84,19 @@ export const VideoVSL: React.FC = () => {
       </div>
 
       {/* Firma como en los posteos, con foto, nombre y cargo. */}
-      <div className="flex items-center pt-4 text-left">
-        <span className="flex items-center gap-3">
+      <div className="flex items-center justify-between gap-4 pt-4 text-left">
+        <span className="flex items-center gap-3 min-w-0">
           <img src={retrato} alt="" width={44} height={44} className="w-11 h-11 rounded-full object-cover shrink-0" />
           <span className="flex flex-col leading-tight">
             <span className="text-[15px] font-bold text-tinta">Agustín Castro</span>
-            <span className="text-[13px] text-piedra">Abogado (UBA) · fundador de firma</span>
+            <span className="text-[13px] text-piedra">Abogado especialista en negocios digitales</span>
           </span>
         </span>
+        {conLogo && (
+          <a href="/" aria-label="Ir al inicio de firma" className="shrink-0">
+            <Logo className="h-9 desk:h-11 max-w-[32vw]" />
+          </a>
+        )}
       </div>
     </div>
   );
