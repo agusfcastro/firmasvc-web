@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { Logo } from './Logo';
 
 // Anclaje: $1.001.345 confirmados al 2026-10-11 01:00 UTC (≈ 22:00 hs ARG del 10/10).
 // A partir de ese instante crece a razón de 200.000 USD por mes.
@@ -24,8 +23,7 @@ function getValueNow(): number {
   return ANCHOR_VALUE + elapsedSeconds * USD_PER_SECOND;
 }
 
-/** conLogo es para /landing, que no tiene encabezado: el logo va al lado del contador y lleva al home. */
-export const Counter: React.FC<{ conLogo?: boolean }> = ({ conLogo = false }) => {
+export const Counter: React.FC = () => {
   const [value, setValue] = useState<number>(() => getValueNow());
 
   useEffect(() => {
@@ -51,21 +49,6 @@ export const Counter: React.FC<{ conLogo?: boolean }> = ({ conLogo = false }) =>
       <span className="eyebrow stat-label text-piedra">Dólares asegurados para clientes</span>
     </>
   );
-
-  if (conLogo) {
-    return (
-      <div
-        className="mt-6 w-full max-w-[900px] mx-auto flex flex-col desk:flex-row items-center justify-center gap-6 desk:gap-10 pt-6 text-center"
-        style={{ borderTop: RULE }}
-      >
-        <a href="/" aria-label="Ir al inicio de firma" className="shrink-0">
-          <Logo className="h-14 desk:h-16" />
-        </a>
-        <span aria-hidden="true" className="hidden desk:block self-stretch" style={{ borderLeft: RULE }} />
-        <div className="flex flex-col items-center gap-3">{cifra}</div>
-      </div>
-    );
-  }
 
   return (
     <div
