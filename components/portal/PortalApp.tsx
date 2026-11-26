@@ -44,7 +44,7 @@ const CargandoSeccion: React.FC = () => (
  *   /portal/documentos contratos de servicio, con el equipo y otros (más /equipo y /otros)
  *   /portal/protocolos protocolos y formación del equipo
  *   /portal/firmas     firma electrónica propia (más /nuevo y /<id>)
- *   /portal/equipo     objetivos, victorias y reportes del equipo (más /objetivos y /reportes)
+ *   /portal/equipo     personas, calendario del equipo, victorias, objetivos y reportes (más /persona/<id>, /victorias, /objetivos y /reportes)
  *   /portal/pedidos/closer formulario para pedir un contrato (más /<id>)
  *   /portal/pagos      abonos mensuales con tarjeta (solo titular y admin)
  *   /portal/bitacora   bitácora de la empresa (solo titular; FIRMA usa Administración › Registro)
@@ -86,7 +86,18 @@ const Portal: React.FC = () => {
       // Solo al abrir el portal: al salir no, así la próxima persona que ingrese acá empieza por Inicio.
       if (alAbrir) guardarDestino(window.location.pathname + window.location.search);
       navegar('/portal/ingresar');
-    } else if (sesion && ruta === '/portal/ingresar') navegar(tomarDestino());
+    } else if (sesion && ruta === '/portal/ingresar') {
+      // Vuelta del ingreso con Google: se anota en la bitácora como el ingreso con contraseña.
+      let conGoogle = false;
+      try {
+        conGoogle = window.sessionStorage.getItem('firma-ingreso-google') === '1';
+        window.sessionStorage.removeItem('firma-ingreso-google');
+      } catch {
+        /* sin almacenamiento */
+      }
+      if (conGoogle) void supabase.rpc('registrar_ingreso').then(() => undefined, () => undefined);
+      navegar(tomarDestino());
+    }
     else if (sesion && vieneDeEnlace && ruta !== '/portal/clave') navegar('/portal/clave');
   }, [cargando, sesion, ruta, vieneDeEnlace]);
 
