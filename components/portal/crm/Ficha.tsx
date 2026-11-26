@@ -50,8 +50,6 @@ function aLocal(iso: string | null): string {
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 }
 
-/** El responsable anotado a mano, sin el rol entre paréntesis de antes: «Martina (CSM)» se lee Martina. */
-const sinRol = (t?: string | null): string | null => (t ? t.replace(/\s*\((CSM|AM|Account Manager)\)\s*$/i, '').trim() || null : null);
 
 function valorLegible(v: unknown, campo?: string): string {
   if (v === null || v === undefined || v === '') return 'vacío';
@@ -254,7 +252,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
     ['Teléfono', cliente.telefono ?? null],
     ['Closer', nombreDe(cliente.closer_id)],
     ['Setter', nombreDe(cliente.setter_id)],
-    ['Account Manager', nombreDe(cliente.responsable_id) ?? sinRol(cliente.responsable)],
+    ['Account Manager', nombreDe(cliente.responsable_id) ?? (cliente.responsable ? `Sin asignar (anotado a mano «${cliente.responsable}»)` : null)],
     ['Onboarding', cliente.fecha_onboarding ? new Date(cliente.fecha_onboarding).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' }) : null],
     ['Fin del contrato', finContrato ? finContrato.toLocaleDateString('es-AR', { dateStyle: 'short' }) : null],
   ];
@@ -458,7 +456,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
           </>
         }
         titulo={cliente.nombre}
-        bajada={[cliente.servicio && `Programa ${cliente.servicio}`, cliente.tipo === 'empresa' && cliente.representante && `Representante ${cliente.representante}`, cliente.email, (nombreDe(cliente.responsable_id) ?? sinRol(cliente.responsable)) && `Account Manager ${nombreDe(cliente.responsable_id) ?? sinRol(cliente.responsable)}`].filter(Boolean).join(' · ')}
+        bajada={[cliente.servicio && `Programa ${cliente.servicio}`, cliente.tipo === 'empresa' && cliente.representante && `Representante ${cliente.representante}`, cliente.email, nombreDe(cliente.responsable_id) && `Account Manager ${nombreDe(cliente.responsable_id)}`].filter(Boolean).join(' · ')}
         acciones={
           <>
             {casosAbiertos > 0 && <Etiqueta tono="alerta">{casosAbiertos === 1 ? 'Caso abierto' : `${casosAbiertos} casos abiertos`}</Etiqueta>}

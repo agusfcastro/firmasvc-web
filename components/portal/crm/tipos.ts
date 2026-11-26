@@ -54,7 +54,7 @@ export const ROL_COMERCIAL: Record<RolComercial, string> = {
 export const ROLES_ELEGIBLES: RolComercial[] = ['closer', 'setter', 'account_manager', 'otro'];
 
 /** Cargos con un solo nombre. Se sugieren al escribir el rol de alguien con rol «otro». */
-export const CARGOS_ESTANDAR = ['CEO', 'COO', 'CFO', 'CCO', 'CMO', 'CTO', 'Head of Sales', 'Head of Customer Success', 'Operaciones', 'Administración', 'Legales', 'Contenido', 'Soporte'];
+export const CARGOS_ESTANDAR = ['Titular', 'CEO', 'COO', 'CFO', 'CCO', 'CMO', 'CTO', 'Head of Sales', 'Head of Customer Success', 'Operaciones', 'Administración', 'Legales', 'Contenido', 'Soporte'];
 
 const plano = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
 

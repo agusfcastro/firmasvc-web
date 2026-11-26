@@ -28,6 +28,53 @@ export function guardarDestino(ruta: string): void {
   }
 }
 
+/**
+ * Salida voluntaria (tocó Salir) contra sesión que se cortó sola (venció o se cerró en otra pestaña).
+ * Si se cortó, se guarda adónde estaba y el ingreso lo explica. Si salió, la próxima persona empieza por Inicio.
+ */
+const CLAVE_SALIDA = 'firma.salida';
+const CLAVE_CORTADA = 'firma.sesion-cortada';
+
+export function marcarSalida(): void {
+  try {
+    window.sessionStorage.setItem(CLAVE_SALIDA, '1');
+    // Lo que se estaba cargando en un alta no queda para la próxima persona.
+    for (const k of Object.keys(window.sessionStorage)) if (k.startsWith('firma-alta-borrador:')) window.sessionStorage.removeItem(k);
+  } catch {
+    /* sin almacenamiento */
+  }
+}
+
+/** Devuelve si la última salida fue voluntaria y la olvida. */
+export function fueSalida(): boolean {
+  try {
+    const v = window.sessionStorage.getItem(CLAVE_SALIDA) === '1';
+    window.sessionStorage.removeItem(CLAVE_SALIDA);
+    return v;
+  } catch {
+    return false;
+  }
+}
+
+export function marcarSesionCortada(): void {
+  try {
+    window.sessionStorage.setItem(CLAVE_CORTADA, '1');
+  } catch {
+    /* sin almacenamiento */
+  }
+}
+
+/** Devuelve si la sesión se cortó sola y lo olvida, para avisarlo una sola vez. */
+export function tomarSesionCortada(): boolean {
+  try {
+    const v = window.sessionStorage.getItem(CLAVE_CORTADA) === '1';
+    window.sessionStorage.removeItem(CLAVE_CORTADA);
+    return v;
+  } catch {
+    return false;
+  }
+}
+
 /** Devuelve el destino guardado y lo borra. Sin destino, Inicio. */
 export function tomarDestino(): string {
   try {

@@ -60,11 +60,11 @@ export const PLANES: Plan[] = [
     badge: 'Más elegido',
     titular: 'Tu departamento legal, con un abogado detrás de cada respuesta',
     bajada:
-      'Eminent es tener a FIRMA adentro de tu negocio. Acceso directo conmigo, Tina con derivación al equipo, todos los documentos que necesites y la gestión de los conflictos con clientes, socios y equipo.',
+      'Eminent es tener a FIRMA adentro de tu negocio. Acceso directo conmigo, todos los documentos que necesites y la gestión de los conflictos con clientes, socios y equipo.',
     incluye: [
       'Todo lo de Starter, con agenda y firmas sin límite',
       'Acceso directo a Agustín Castro',
-      'Tina, la asistente con IA del portal, con derivación de tus casos al equipo de FIRMA',
+      'Próximamente, Tina, la asistente con IA del portal, con derivación de tus casos al equipo de FIRMA',
       'Redacción y optimización de tus contratos y documentos',
       'Gestión de conflictos con clientes, socios y equipo',
       'Contacto telefónico en urgencias',
@@ -76,7 +76,7 @@ export const PLANES: Plan[] = [
 type Valor = boolean | string;
 const COMPARATIVA: { item: string; starter: Valor; eminent: Valor }[] = [
   { item: 'CRM legal con perfilado de clientes', starter: true, eminent: true },
-  { item: 'Tina, asistente con IA', starter: false, eminent: 'Con derivación al equipo' },
+  { item: 'Tina, asistente con IA', starter: false, eminent: 'Próximamente' },
   { item: 'Firma electrónica', starter: 'Hasta 20 por mes', eminent: 'Sin límite' },
   { item: 'Consultoría', starter: '1 h general por semana', eminent: 'Sin límite' },
   { item: 'Asesoramiento sobre tus casos', starter: false, eminent: true },

@@ -266,7 +266,7 @@ export const Llamadas: React.FC<{ orgId: string; orgNombre: string; puedeGestion
     setOk(null);
     const { data, error: e } = await supabase.rpc('integracion_fathom_conectar', { p_integrante: integrante.id });
     setOcupado(false);
-    if (e || typeof data !== 'string') return setError(e?.message ?? 'No pudimos generar la URL.');
+    if (e || typeof data !== 'string') return setError(mensajeAmable(e, 'No pudimos generar la URL.'));
     setEnlace(null);
     setNueva({ integranteId: integrante.id, url: urlWebhook(data) });
     await cargar();
@@ -280,7 +280,7 @@ export const Llamadas: React.FC<{ orgId: string; orgNombre: string; puedeGestion
     setOk(null);
     const { data, error: e } = await supabase.rpc('integracion_fathom_invitar', { p_integrante: integrante.id });
     setOcupado(false);
-    if (e || typeof data !== 'string') return setError(e?.message ?? 'No pudimos generar el enlace.');
+    if (e || typeof data !== 'string') return setError(mensajeAmable(e, 'No pudimos generar el enlace.'));
     setNueva(null);
     setSecreto(null);
     setEnlace({ integranteId: integrante.id, url: `${window.location.origin}/conectar-fathom/${data}` });

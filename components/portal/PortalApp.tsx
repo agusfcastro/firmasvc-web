@@ -3,7 +3,7 @@ import React, { Suspense, lazy, useEffect, useRef } from 'react';
 import '@fontsource-variable/archivo/wdth.css';
 import { Button } from '../Button';
 import { supabase } from './supabase';
-import { guardarDestino, navegar, tomarDestino, useRuta } from './navegacion';
+import { fueSalida, guardarDestino, marcarSalida, marcarSesionCortada, navegar, tomarDestino, useRuta } from './navegacion';
 import { useSesion } from './useSesion';
 import { registrarServiceWorker } from './push';
 import { Aviso, Cargando, Marco } from './ui';
@@ -83,8 +83,14 @@ const Portal: React.FC = () => {
     yaControlo.current = true;
     if (!sesion && ruta !== '/portal/ingresar' && ruta !== '/portal/clave') {
       // Se guarda adónde iba (el enlace de un mail o de un aviso) para llevarla ahí después de ingresar.
-      // Solo al abrir el portal: al salir no, así la próxima persona que ingrese acá empieza por Inicio.
+      // Al tocar Salir no, así la próxima persona que ingrese acá empieza por Inicio. Si la sesión se cortó
+      // sola (venció o se cerró en otra pestaña), sí: vuelve a donde estaba y el ingreso le explica qué pasó.
+      const salio = fueSalida();
       if (alAbrir) guardarDestino(window.location.pathname + window.location.search);
+      else if (!salio) {
+        guardarDestino(window.location.pathname + window.location.search);
+        marcarSesionCortada();
+      }
       navegar('/portal/ingresar');
     } else if (sesion && ruta === '/portal/ingresar') {
       // Vuelta del ingreso con Google: se anota en la bitácora como el ingreso con contraseña.
@@ -143,6 +149,7 @@ const Portal: React.FC = () => {
         <Button
           variant="ghost"
           onClick={async () => {
+            marcarSalida();
             await supabase?.auth.signOut({ scope: 'local' });
             navegar('/portal/ingresar');
           }}
@@ -260,7 +267,7 @@ const Portal: React.FC = () => {
 
   // Pagos solo para titulares y FIRMA. El resto del equipo vuelve al inicio.
   if (ruta === '/portal/pagos') {
-    if (!permisos.gestion) return <Inicio estado={estado} />;
+    if (!permisos.gestion) return <FueraDeAlcance perfil={perfil} existe />;
     return (
       <Suspense fallback={espera}>
         <Pagos perfil={perfil} organizacion={estado.organizacion} />
@@ -269,7 +276,7 @@ const Portal: React.FC = () => {
   }
 
   if (ruta === '/portal/bitacora') {
-    if (perfil.rol !== 'titular') return <Inicio estado={estado} />;
+    if (perfil.rol !== 'titular') return <FueraDeAlcance perfil={perfil} existe />;
     return (
       <Suspense fallback={espera}>
         <Bitacora perfil={perfil} organizacion={estado.organizacion} />
@@ -278,7 +285,7 @@ const Portal: React.FC = () => {
   }
 
   if (ruta.startsWith('/portal/admin')) {
-    if (perfil.rol !== 'admin') return <Inicio estado={estado} />;
+    if (perfil.rol !== 'admin') return <FueraDeAlcance perfil={perfil} existe />;
     return (
       <Suspense fallback={espera}>
         <PanelAdmin perfil={perfil} ruta={ruta} />
@@ -286,8 +293,28 @@ const Portal: React.FC = () => {
     );
   }
 
-  return <Inicio estado={estado} />;
+  if (ruta === '/portal') return <Inicio estado={estado} />;
+  // Una sección del portal que este rol no ve, o una dirección que no existe: se explica en vez de mostrar Inicio sin aviso.
+  return <FueraDeAlcance perfil={perfil} existe={SECCIONES_PORTAL.some((s) => ruta === s || ruta.startsWith(`${s}/`))} />;
 };
+
+const SECCIONES_PORTAL = ['/portal/crm', '/portal/firmas', '/portal/asuntos', '/portal/pedidos', '/portal/agenda', '/portal/pagos', '/portal/bitacora', '/portal/admin', '/portal/equipo', '/portal/documentos', '/portal/protocolos'];
+
+const FueraDeAlcance: React.FC<{ perfil: Perfil; existe: boolean }> = ({ perfil, existe }) => (
+  <Marco perfil={perfil}>
+    <div className="wrap py-14 desk:py-20 max-w-[640px] flex flex-col gap-5">
+      <h1 className="h2">{existe ? 'Esta sección no está en tu rol' : 'No encontramos esta página'}</h1>
+      <p className="text-piedra text-[16px] leading-[1.6]">
+        {existe
+          ? 'Lo que ves en el portal depende del rol que te dieron en la cuenta. Si necesitás esta sección, pedíselo al titular de la cuenta.'
+          : 'Puede que el enlace esté incompleto o que la página ya no exista.'}
+      </p>
+      <div>
+        <Button onClick={() => navegar('/portal')}>Ir a Inicio</Button>
+      </div>
+    </div>
+  </Marco>
+);
 
 /** El portal entero dentro de la red de contención: un error en una pantalla no deja la página en blanco. */
 export const PortalApp: React.FC = () => (

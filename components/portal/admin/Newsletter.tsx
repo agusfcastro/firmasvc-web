@@ -4,6 +4,7 @@ import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { Aviso, Campo, Etiqueta, claseInput } from '../ui';
 
+import { mensajeAmable } from '../errores';
 const ZONA = 'America/Argentina/Buenos_Aires';
 
 interface Newsletter {
@@ -72,7 +73,7 @@ export const NewsletterAdmin: React.FC = () => {
   async function cargar() {
     if (!supabase) return;
     const { data, error: err } = await supabase.from('newsletters').select('*').order('semana', { ascending: false }).limit(30);
-    if (err) setError(err.message);
+    if (err) setError(mensajeAmable(err));
     setLista((data as Newsletter[]) ?? []);
   }
 
@@ -111,7 +112,7 @@ export const NewsletterAdmin: React.FC = () => {
   async function borrar(n: Newsletter) {
     if (!supabase || !window.confirm(`¿Eliminar la newsletter del ${fechaLarga(n.semana)}?`)) return;
     const { error: err } = await supabase.from('newsletters').delete().eq('id', n.id);
-    if (err) setError(err.message);
+    if (err) setError(mensajeAmable(err));
     void cargar();
   }
 
@@ -122,7 +123,7 @@ export const NewsletterAdmin: React.FC = () => {
     setError(null);
     setOk(null);
     const { error: err } = await supabase.from('newsletters').update({ activa, actualizado_en: new Date().toISOString() }).eq('id', n.id);
-    if (err) return setError(err.message);
+    if (err) return setError(mensajeAmable(err));
     setOk(activa ? `Envío activado para el ${fechaLarga(n.semana)} a las 9.` : 'Envío desactivado. Ese lunes no sale el mail.');
     void cargar();
   }

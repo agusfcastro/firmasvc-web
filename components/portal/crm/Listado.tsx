@@ -582,7 +582,13 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
                         )}
                       </td>
                       <td className="text-piedra">
-                        <div>{nombreEquipo(f.responsable_id) ?? f.responsable ?? '·'}</div>
+                        {nombreEquipo(f.responsable_id) ? (
+                          <div>Account Manager {nombreEquipo(f.responsable_id)}</div>
+                        ) : f.responsable ? (
+                          <div title="Anotado a mano antes de Equipo. Asignalo desde la ficha.">{f.responsable} · sin asignar</div>
+                        ) : (
+                          !nombreEquipo(f.closer_id) && !nombreEquipo(f.setter_id) && <div>·</div>
+                        )}
                         {nombreEquipo(f.closer_id) && <div className="text-xs mt-0.5">Closer {nombreEquipo(f.closer_id)}</div>}
                         {nombreEquipo(f.setter_id) && <div className="text-xs mt-0.5">Setter {nombreEquipo(f.setter_id)}</div>}
                       </td>

@@ -258,6 +258,14 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
     return () => window.clearTimeout(t);
   }, [respuestas, guardar]);
 
+  // Si un guardado falló (por ejemplo, sin conexión), se reintenta solo cuando vuelve la conexión.
+  useEffect(() => {
+    if (guardado !== 'error') return;
+    const reintentar = () => void guardar(respuestas);
+    window.addEventListener('online', reintentar);
+    return () => window.removeEventListener('online', reintentar);
+  }, [guardado, respuestas, guardar]);
+
   const cambiar = (clave: string, valor: Valor) => {
     sucio.current = true;
     setRespuestas((r) => ({ ...r, [clave]: valor }));
@@ -299,7 +307,7 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
       const { data, error: e1 } = await sb.from('asuntos').insert({ organizacion_id: orgId, titulo, tipo: 'contrato', estado: 'en_curso', creado_por: perfil.id }).select('id').single();
       if (e1 || !data) {
         setEnviando(false);
-        return setError(e1?.message ?? 'No se pudo abrir el asunto.');
+        return setError(mensajeAmable(e1, 'No se pudo abrir el asunto.'));
       }
       asuntoCreado.current = data.id as string;
       const nombre = texto(respuestas, modelo.claveTitulo).trim();
@@ -418,7 +426,20 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
       acciones={
         soloLectura || prueba ? undefined : (
           <span className="text-sm text-piedra self-center" aria-live="polite">
-            {guardado === 'guardando' ? 'Guardando…' : guardado === 'error' ? <span className="text-peligro">No se pudo guardar</span> : guardado === 'listo' ? 'Borrador guardado' : ''}
+            {guardado === 'guardando' ? (
+              'Guardando…'
+            ) : guardado === 'error' ? (
+              <span className="text-peligro">
+                No se guardó el último cambio.{' '}
+                <button type="button" onClick={() => void guardar(respuestas)} className="underline underline-offset-4 font-medium">
+                  Reintentar
+                </button>
+              </span>
+            ) : guardado === 'listo' ? (
+              'Borrador guardado'
+            ) : (
+              ''
+            )}
           </span>
         )
       }

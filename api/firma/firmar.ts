@@ -381,7 +381,7 @@ function hashCodigo(firmanteId: string, codigo: string): string {
 /** Motivo por el que este firmante no puede actuar ahora, o null si puede. */
 function bloqueo(sobre: Sobre, f: Firmante, todos: Firmante[]): string | null {
   if (sobre.estado === 'anulado') return 'Este envío se anuló. Ya no hace falta firmarlo.';
-  if (sobre.estado === 'vencido') return 'Venció el plazo para firmar este documento.';
+  if (sobre.estado === 'vencido') return 'Venció el plazo para firmar este documento. Pedile a quien te lo mandó que extienda el plazo desde su portal y vas a poder firmar con este mismo enlace.';
   if (sobre.estado === 'rechazado') return 'Una de las personas rechazó el documento, así que el envío se cerró.';
   if (sobre.estado === 'completado' || f.estado === 'firmado') return 'Ya firmaste este documento.';
   if (f.estado === 'rechazado') return 'Rechazaste este documento.';
@@ -1352,10 +1352,10 @@ export async function POST(request: Request): Promise<Response> {
       const despues = await firmantesDe(sb, sobre.id);
       if (despues.every((x) => x.estado === 'firmado')) {
         await sellar(sb, sobre.id);
-        await pushAlCreador(sb, sobre, 'Documento firmado', 'Firmaron todas las personas. El documento firmado ya está en el portal.');
+        await pushAlCreador(sb, sobre, 'Documento firmado', `${sobre.titulo}. Firmaron todas las personas y el documento firmado ya está en el portal.`);
       } else {
         const faltan = despues.filter((x) => x.estado !== 'firmado').length;
-        await pushAlCreador(sb, sobre, 'Firmaron un documento', faltan === 1 ? 'Falta una firma para completarlo.' : `Faltan ${faltan} firmas para completarlo.`);
+        await pushAlCreador(sb, sobre, `Firmó ${f.nombre}`, `${sobre.titulo}. ${faltan === 1 ? 'Falta una firma' : `Faltan ${faltan} firmas`} para completarlo.`);
       }
       if (!despues.every((x) => x.estado === 'firmado') && sobre.secuencial && !sinCodigo(sobre)) {
         // Le toca al grupo siguiente. Se avisa a los que todavía no recibieron nada.

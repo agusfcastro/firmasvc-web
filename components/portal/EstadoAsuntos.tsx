@@ -241,7 +241,7 @@ const Lista: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
       .single();
     if (e1 || !data) {
       setGuardando(false);
-      return setError(e1?.message ?? 'No se pudo crear el asunto.');
+      return setError(mensajeAmable(e1, 'No se pudo crear el asunto.'));
     }
     const avisos: string[] = [];
     if (conCaso) {
@@ -1075,7 +1075,7 @@ const Chat: React.FC<{
     alError(null);
     const { data, error } = await supabase.from('asunto_mensajes').insert({ asunto_id: asuntoId, texto: t }).select('*').single();
     setEnviando(false);
-    if (error || !data) return alError(error?.message ?? 'No se pudo mandar el mensaje.');
+    if (error || !data) return alError(mensajeAmable(error, 'No se pudo mandar el mensaje.'));
     setTexto('');
     alEnviar(data as Mensaje);
     // Si la otra parte tiene el asunto abierto, lo ve en el momento. Si no, le llega un mail, como mucho uno cada 15 minutos.
@@ -1187,7 +1187,7 @@ const Bitacora: React.FC<{
       const { data, error } = await supabase.from('asunto_novedades').insert({ asunto_id: asunto.id, texto: t, interna }).select('id').single();
       if (error || !data) {
         setGuardando(false);
-        return alError(error?.message ?? 'No se pudo guardar la nota.');
+        return alError(mensajeAmable(error, 'No se pudo guardar la nota.'));
       }
       nota = interna ? 'Nota interna guardada. Solo la ve FIRMA.' : 'Nota guardada.';
       if (!interna && avisar) {
@@ -1328,18 +1328,18 @@ const Documentos: React.FC<{
     const { error: e1 } = await supabase.storage.from(BUCKET_ASUNTOS).upload(ruta, cuerpo, { contentType: mime, upsert: false });
     if (e1) {
       setOcupado('');
-      return alError(`No se pudo subir el archivo. ${e1.message}`);
+      return alError(mensajeAmable(e1, 'No se pudo subir el archivo.'));
     }
     const { data, error: e2 } = await supabase.from('asunto_archivos').insert({ asunto_id: asunto.id, nombre: archivo.name.slice(0, 200), ruta, bytes: archivo.size }).select('id').single();
     if (e2 || !data) {
       await supabase.storage.from(BUCKET_ASUNTOS).remove([ruta]);
       setOcupado('');
-      return alError(e2?.message ?? 'No se pudo guardar el archivo.');
+      return alError(mensajeAmable(e2, 'No se pudo guardar el archivo.'));
     }
     const r = await avisarPorMail('archivo', data.id);
     setOcupado('');
     if (entrada.current) entrada.current.value = '';
-    alCambiar(r.ok && r.avisados ? `Archivo subido. Le avisamos por mail a ${esFirma ? 'la empresa' : 'FIRMA'}.` : 'Archivo subido.');
+    alCambiar(r.ok && r.avisados ? `Subiste ${archivo.name}. Le avisamos por mail a ${esFirma ? 'la empresa' : 'FIRMA'}.` : `Subiste ${archivo.name}.`);
   }
 
   async function descargar(a: Archivo) {
