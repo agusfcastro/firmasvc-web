@@ -45,7 +45,7 @@ interface Borrador {
   notas: string;
 }
 
-function borradorDe(r: Reunion | undefined, clienteId: string | undefined, miembroId: string | undefined): Borrador {
+function borradorDe(r: Reunion | undefined, clienteId: string | undefined, miembroId: string | undefined, inicio?: string): Borrador {
   const enUnaHora = new Date(Date.now() + 3600_000);
   enUnaHora.setMinutes(0, 0, 0);
   return {
@@ -54,7 +54,7 @@ function borradorDe(r: Reunion | undefined, clienteId: string | undefined, miemb
     prospecto: r?.prospecto ?? '',
     titulo: r?.titulo ?? '',
     tipo: r?.tipo ?? '',
-    inicio: aInputLocal(r?.inicio ?? enUnaHora.toISOString()),
+    inicio: aInputLocal(r?.inicio ?? inicio ?? enUnaHora.toISOString()),
     duracion_min: r?.duracion_min ? String(r.duracion_min) : '',
     miembro_id: r?.miembro_id ?? miembroId ?? '',
     agendada_por: r?.agendada_por ?? '',
@@ -77,12 +77,14 @@ export const FormReunion: React.FC<{
   clienteId?: string;
   inicial?: Reunion;
   miembroPorDefecto?: string;
+  /** Para una reunión nueva, la hora elegida en el calendario. */
+  inicioPorDefecto?: string;
   puedeBorrar?: boolean;
   alGuardar: (r: Reunion) => void;
   alBorrar?: (id: string) => void;
   alCancelar: () => void;
-}> = ({ orgId, equipo, clientes, clienteId, inicial, miembroPorDefecto, puedeBorrar, alGuardar, alBorrar, alCancelar }) => {
-  const [b, setB] = useState<Borrador>(() => borradorDe(inicial, clienteId, miembroPorDefecto));
+}> = ({ orgId, equipo, clientes, clienteId, inicial, miembroPorDefecto, inicioPorDefecto, puedeBorrar, alGuardar, alBorrar, alCancelar }) => {
+  const [b, setB] = useState<Borrador>(() => borradorDe(inicial, clienteId, miembroPorDefecto, inicioPorDefecto));
   const [estadoTocado, setEstadoTocado] = useState(Boolean(inicial));
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);

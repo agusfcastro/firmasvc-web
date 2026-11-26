@@ -65,6 +65,8 @@ Desde la migración 0078 el CRM tiene reuniones (`crm_reuniones`, `/portal/crm/r
 
 Desde la 0079 cada servicio tiene duración en meses y Clientes tiene la vista Línea de tiempo (`crm/LineaTiempo.tsx`, con `finDelContrato`). Las fichas usan `Bloque` de `ui.tsx`: un solo título por bloque, sin volanta. Asuntos no aparece en la ficha del cliente final.
 
+Equipo arranca en Personas: tarjetas con lo que cada uno tiene entre manos, calendario del equipo y ficha por persona (`equipo/Personas.tsx`, `CalendarioEquipo.tsx`, `FichaPersona.tsx`, lógica en `equipo/personas.ts`). Victorias pasó a `/portal/equipo/victorias`. El riesgo legal del vínculo es un puntaje orientativo que ve solo quien lidera.
+
 El pago completo suma el cuarto mes sin cargo y la cuota congelada por 12 meses. Precio fundador, para los primeros 5 clientes o hasta el 31/12/2026, es Eminent USD 1500 y Starter USD 800, solo con pago completo. En pesos se cobra al equivalente del dólar MEP.
 
 Los abonos cobran esta oferta desde la migración 0061 (`abonos.modalidad`, `etapa`, `al_mep` y afines). Las opciones están en `OFERTAS` de `components/portal/abonos.ts` y la página pública en `components/Planes.tsx`. Si cambia un precio, se cambia en los dos. El detalle y lo que falta verificar en el sandbox de dLocal Go está en `PORTAL.md`, sección Oferta de noviembre de 2026.

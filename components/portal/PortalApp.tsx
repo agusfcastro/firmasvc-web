@@ -44,7 +44,7 @@ const CargandoSeccion: React.FC = () => (
  *   /portal/documentos contratos de servicio, con el equipo y otros (más /equipo y /otros)
  *   /portal/protocolos protocolos y formación del equipo
  *   /portal/firmas     firma electrónica propia (más /nuevo y /<id>)
- *   /portal/equipo     objetivos, victorias y reportes del equipo (más /objetivos y /reportes)
+ *   /portal/equipo     personas, calendario del equipo, victorias, objetivos y reportes (más /persona/<id>, /victorias, /objetivos y /reportes)
  *   /portal/pedidos/closer formulario para pedir un contrato (más /<id>)
  *   /portal/pagos      abonos mensuales con tarjeta (solo titular y admin)
  *   /portal/bitacora   bitácora de la empresa (solo titular; FIRMA usa Administración › Registro)

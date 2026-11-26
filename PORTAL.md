@@ -1236,6 +1236,13 @@ La ficha del cliente usa bloques con un solo título (`Bloque` en `components/po
 
 Sección Equipo del portal (`/portal/equipo`, `components/portal/equipo/`), migración 0076. Es lo que el equipo de cada empresa usa todos los días y no llama a la IA. La ve toda la gente de la empresa, también closers y setters; FIRMA elige la empresa arriba.
 
+
+### Personas y calendario del equipo
+
+La primera pestaña de Equipo es Personas (`components/portal/equipo/Personas.tsx`). Cada persona tiene una tarjeta con la lista numerada de lo que tiene entre manos, un ícono por estado (necesita atención, falta completar, agendada, en curso, hecha), tres números según su rol y la barra de rendimiento. A un Account Manager le aparecen sus clientes, con el contrato que vence en 45 días o menos, cuotas vencidas, firma pendiente, onboarding en curso, la próxima reunión o que no tiene ninguna agendada. A un closer o un setter le aparecen sus reuniones, lo que falta marcar o clasificar y los cierres de la semana. A todos se les suman los objetivos suyos y de su rol. El rendimiento es el promedio de la asistencia a sus reuniones de los últimos 90 días y del avance de sus objetivos. La lógica está en `equipo/personas.ts`.
+
+Quien lidera el equipo ve a todos y filtra por rol. El resto ve solo su tarjeta. La vista Calendario del equipo muestra la semana con un color por persona y las reuniones del portal; tocando un hueco se agenda a esa hora. La ficha de cada persona (`/portal/equipo/persona/<id>`, `FichaPersona.tsx`) suma sus reuniones, victorias, números, objetivos y, solo para quien lidera, el riesgo legal del vínculo. Ese puntaje orientativo sube si no hay contrato firmado en el portal, si se mandó a firmar y no se firmó, si venció o vence en 30 días y si su rol tiene un reporte diario. Cuando se conecte Google Calendar, el calendario va a sumar la agenda de cada persona.
+
 ### Quién hace qué
 
 | Quién | Qué puede |
