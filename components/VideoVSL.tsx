@@ -8,19 +8,20 @@ const VIDEO_ID = '1236858475';
 // autoplay=1 + muted=1 es la única combinación que respetan los navegadores.
 // Vimeo acepta comandos vía postMessage, así que al click le pedimos que quite
 // el mute y suba el volumen sin reiniciar el video.
-// title/byline/portrait=0 ocultan la info de Vimeo y dnt=1 evita cookies de seguimiento.
-const EMBED_URL = `https://player.vimeo.com/video/${VIDEO_ID}?autoplay=1&muted=1&playsinline=1&title=0&byline=0&portrait=0&dnt=1`;
+// title/byline/portrait=0 ocultan la info de Vimeo, controls=0 saca la barra del reproductor
+// y dnt=1 evita cookies de seguimiento.
+const EMBED_URL = `https://player.vimeo.com/video/${VIDEO_ID}?autoplay=1&muted=1&playsinline=1&title=0&byline=0&portrait=0&dnt=1&controls=0`;
 
 /**
  * VSL del hero: va debajo del titular, a la vista sin scroll, así que carga de entrada.
  *
- * sinBarra saca la barra del reproductor de Vimeo (controls=0) y deja el video sin
- * forma de pausarlo: una vez que se activa el sonido, corre hasta el final.
+ * Va sin la barra del reproductor de Vimeo y sin forma de pausarlo, en el home y en
+ * /landing: una vez que se activa el sonido, corre hasta el final.
  *
  * conLogo es para /landing, que no tiene encabezado: el logo va a la derecha de la
  * firma de Agustín y lleva al home.
  */
-export const VideoVSL: React.FC<{ sinBarra?: boolean; conLogo?: boolean }> = ({ sinBarra = false, conLogo = false }) => {
+export const VideoVSL: React.FC<{ conLogo?: boolean }> = ({ conLogo = false }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [muted, setMuted] = useState(true);
 
@@ -46,13 +47,13 @@ export const VideoVSL: React.FC<{ sinBarra?: boolean; conLogo?: boolean }> = ({ 
         {typeof window !== 'undefined' && (
           <iframe
             ref={iframeRef}
-            src={sinBarra ? `${EMBED_URL}&controls=0` : EMBED_URL}
+            src={EMBED_URL}
             title="Conocé a Agustín, fundador de firma"
             allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
             allowFullScreen
-            // Sin barra tampoco recibe clicks ni foco, así no se pausa con el mouse ni con el teclado.
-            tabIndex={sinBarra ? -1 : undefined}
-            className={`absolute inset-0 w-full h-full ${sinBarra ? 'pointer-events-none' : ''}`}
+            // No recibe clicks ni foco, así no se pausa con el mouse ni con el teclado.
+            tabIndex={-1}
+            className="absolute inset-0 w-full h-full pointer-events-none"
           />
         )}
 
