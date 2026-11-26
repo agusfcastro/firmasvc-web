@@ -1226,6 +1226,12 @@ CSM y Account Manager son lo mismo. La 0078 pasa a `account_manager` todo lo que
 
 Correr `supabase/migrations/0078_crm_reuniones_roles.sql` en **SQL Editor**. Pruebas en `supabase/pruebas/crm_reuniones_roles.sql`.
 
+## Línea de tiempo de clientes y ficha
+
+Migración 0079. En Clientes hay dos vistas, Lista y Línea de tiempo, y queda guardada la última que se usó. La línea de tiempo muestra una barra por cliente desde el onboarding hasta el fin del contrato, en doce meses que se corren de a tres. El fin es la fecha de onboarding más la duración del servicio (`crm_servicios.duracion_meses`, que se carga en Servicios; los códigos como 3M o 6M la tomaron de ahí al correr la migración). Las dos primeras semanas se marcan como onboarding, la firma pendiente va punteada, las bajas rayadas y aparece un aviso cuando faltan 45 días o menos (`components/portal/crm/LineaTiempo.tsx`). Sin duración cargada, la barra se desvanece y lo dice. El fin del contrato también se ve al costado de la ficha.
+
+La ficha del cliente usa bloques con un solo título (`Bloque` en `components/portal/ui.tsx`), sin volanta arriba, y ya no muestra Asuntos: los asuntos son de FIRMA con el dueño del negocio y viven en su sección, abajo en Tu negocio. El menú lateral quedó con Inicio, Clientes, Equipo y Agenda arriba, sin título, y Pagos, Protocolos, Documentos, Firmas y Asuntos abajo, en Tu negocio.
+
 ## Equipo: objetivos, victorias y reportes
 
 Sección Equipo del portal (`/portal/equipo`, `components/portal/equipo/`), migración 0076. Es lo que el equipo de cada empresa usa todos los días y no llama a la IA. La ve toda la gente de la empresa, también closers y setters; FIRMA elige la empresa arriba.

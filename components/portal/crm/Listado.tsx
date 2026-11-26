@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CalendarDays, ChevronLeft, ChevronRight, Download, Layers, Phone, Plus, ReceiptText, Search, ShieldAlert, Users } from 'lucide-react';
+import { AlertTriangle, CalendarDays, ChevronLeft, ChevronRight, Download, GanttChart, Layers, List, Phone, Plus, ReceiptText, Search, ShieldAlert, Users } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
@@ -7,6 +7,7 @@ import { Aviso, Cifras, Encabezado, Enlace, Etiqueta, MontosPorMoneda, Pestanas,
 import { useVistaPrevia } from '../vistaPrevia';
 import { TONO_FIRMA, dinero, fecha, hoyISO, type ClienteResumen, type IntegranteEquipo } from './tipos';
 import { TIPO_REUNION, fechaHora, type TipoReunion } from './reuniones';
+import { LineaTiempo } from './LineaTiempo';
 import { mensajeAmable } from '../errores';
 
 type Filtro = 'todos' | 'vencidas' | 'revisar' | 'Pendiente' | 'En firma' | 'Firmado' | 'Baja' | 'sin_reunion';
@@ -171,6 +172,43 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
     }
   }
   const hayFiltros = Object.values(filtros).some(Boolean);
+
+  // Lista o línea de tiempo. Queda guardada para la próxima vez.
+  const [vista, setVista] = useState<'lista' | 'tiempo'>(() => {
+    try {
+      return window.localStorage.getItem('firma-crm-vista') === 'tiempo' ? 'tiempo' : 'lista';
+    } catch {
+      return 'lista';
+    }
+  });
+  function cambiarVista(v: 'lista' | 'tiempo') {
+    setVista(v);
+    try {
+      window.localStorage.setItem('firma-crm-vista', v);
+    } catch {
+      /* sin almacenamiento */
+    }
+  }
+
+  // Duración de cada servicio en meses (0079), para el fin del contrato.
+  const [duraciones, setDuraciones] = useState<Record<string, number>>({});
+  useEffect(() => {
+    if (!supabase) return;
+    let vigente = true;
+    supabase
+      .from('crm_servicios')
+      .select('*')
+      .eq('organizacion_id', orgId)
+      .then(({ data }) => {
+        if (!vigente) return;
+        const mapa: Record<string, number> = {};
+        for (const s of (data ?? []) as { clave: string; duracion_meses?: number | null }[]) if (s.duracion_meses) mapa[s.clave] = s.duracion_meses;
+        setDuraciones(mapa);
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [orgId]);
 
   // Próxima reunión agendada de cada cliente y reuniones que falta completar (sin tipo o agendadas que ya pasaron).
   const [proximas, setProximas] = useState<Record<string, ProximaReunion>>({});
@@ -385,9 +423,29 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
               <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-piedra" aria-hidden="true" />
               <input className={`${claseInput} pl-10`} placeholder="Buscar por nombre, código, mail o DNI" aria-label="Buscar cliente" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
             </div>
-            <Button variant="ghost" size="sm" onClick={descargar} disabled={!visibles.length}>
-              <Download size={16} /> Exportar CSV
-            </Button>
+            <div className="flex items-center gap-3">
+              <div role="group" aria-label="Vista" className="inline-flex bg-niebla rounded-[12px] p-1 gap-0.5">
+                {(
+                  [
+                    ['lista', 'Lista', List],
+                    ['tiempo', 'Línea de tiempo', GanttChart],
+                  ] as const
+                ).map(([v, t, Icono]) => (
+                  <button
+                    key={v}
+                    type="button"
+                    aria-pressed={vista === v}
+                    onClick={() => cambiarVista(v)}
+                    className={`inline-flex items-center gap-1.5 h-9 px-3.5 rounded-[9px] text-[14px] ${vista === v ? 'bg-papel font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.08)]' : 'text-piedra hover:text-tinta'}`}
+                  >
+                    <Icono size={15} aria-hidden="true" /> {t}
+                  </button>
+                ))}
+              </div>
+              <Button variant="ghost" size="sm" onClick={descargar} disabled={!visibles.length}>
+                <Download size={16} /> Exportar CSV
+              </Button>
+            </div>
           </div>
 
           <div className="grid gap-3 tab:grid-cols-2 desk:grid-cols-4 items-end">
@@ -430,6 +488,10 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
 
           <Pestanas<Filtro> items={FILTROS.filter((f) => cobranza || f.clave !== 'vencidas').map((f) => ({ ...f, cuenta: cargando ? undefined : cuenta(f.clave) }))} activa={filtro} alCambiar={setFiltro} />
 
+          {vista === 'tiempo' ? (
+            <LineaTiempo filas={visibles} duracion={(s) => (s ? duraciones[s] ?? null : null)} nombreEquipo={nombreEquipo} />
+          ) : (
+          <>
           <div className="overflow-x-auto">
             <table className="tabla min-w-[1040px]">
               <thead>
@@ -574,6 +636,8 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
               </button>
             </div>
           </div>
+          </>
+          )}
         </div>
       </div>
     </>

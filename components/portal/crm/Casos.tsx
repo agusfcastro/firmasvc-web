@@ -5,7 +5,7 @@ import { supabase } from '../supabase';
 import { BUCKET_ASUNTOS } from '../asuntos';
 import { rutasDeVersiones } from '../editor/versiones';
 import { navegar } from '../navegacion';
-import { Aviso, Campo, Cifras, Encabezado, Enlace, Etiqueta, Pestanas, TituloSeccion, claseInput, type Cifra } from '../ui';
+import { Aviso, Bloque, Campo, Cifras, Encabezado, Enlace, Etiqueta, Pestanas, TituloSeccion, claseInput, type Cifra } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
 import { dinero, fecha, hoyISO } from './tipos';
 import { simboloMoneda } from '../../../api/_lib/variables';
@@ -220,9 +220,7 @@ export const CasosCliente: React.FC<{ clienteId: string; moneda: string; soloLec
   const enCurso = (casos ?? []).filter((c) => c.etapa !== 'cerrado');
 
   return (
-    <section>
-      <TituloSeccion
-        eyebrow="Conflictos"
+    <Bloque
         titulo="Casos de conflicto"
         acciones={
           soloLectura ? undefined : (
@@ -231,8 +229,8 @@ export const CasosCliente: React.FC<{ clienteId: string; moneda: string; soloLec
             </Button>
           )
         }
-      />
-      <div className="flex flex-col gap-5">
+      >
+      <div className="flex flex-col gap-4">
         {error && <Aviso tipo="error">{error}</Aviso>}
         {enCurso.some((c) => enLegales(c.etapa)) && (
           <Aviso tipo="error">
@@ -243,15 +241,13 @@ export const CasosCliente: React.FC<{ clienteId: string; moneda: string; soloLec
           <p className="eyebrow text-piedra">Cargando</p>
         ) : casos.length === 0 ? (
           !error && (
-            <p className="text-sm text-piedra max-w-[64ch]">
-              Sin casos registrados. Si el cliente plantea una disconformidad o pide un reembolso, abrí un caso para seguirlo con el protocolo de conflictos.
-            </p>
+            <p className="text-sm text-piedra">Sin casos. Si pide un reembolso o plantea una disconformidad, abrí uno.</p>
           )
         ) : (
           <TablaCasos casos={casos} hoy={hoyISO()} moneda={moneda} vacio="" alElegir={(c) => navegar(`/portal/crm/casos?caso=${c.id}`)} />
         )}
       </div>
-    </section>
+    </Bloque>
   );
 };
 

@@ -3,7 +3,7 @@ import { Plus } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
-import { TituloSeccion } from '../ui';
+import { Bloque } from '../ui';
 import { ListaComprobantes, type Comprobante } from './Comprobantes';
 
 /** Invoices y recibos emitidos a un cliente del CRM, en su ficha. */
@@ -28,9 +28,7 @@ export const ComprobantesCliente: React.FC<{ clienteId: string; soloLectura: boo
   }, [clienteId]);
 
   return (
-    <section>
-      <TituloSeccion
-        eyebrow="Comprobantes"
+    <Bloque
         titulo="Invoices y recibos"
         acciones={
           soloLectura ? undefined : (
@@ -44,14 +42,14 @@ export const ComprobantesCliente: React.FC<{ clienteId: string; soloLectura: boo
             </div>
           )
         }
-      />
+      >
       {lista === null ? (
         <p className="eyebrow text-piedra">Cargando</p>
       ) : lista.length === 0 ? (
-        <p className="text-sm text-piedra max-w-[64ch]">Sin comprobantes emitidos. Los invoices y recibos que le emitas aparecen acá, con su número.</p>
+        <p className="text-sm text-piedra">Sin comprobantes.</p>
       ) : (
         <ListaComprobantes items={lista} />
       )}
-    </section>
+    </Bloque>
   );
 };

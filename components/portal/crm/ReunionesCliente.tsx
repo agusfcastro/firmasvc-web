@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
-import { Enlace, TituloSeccion } from '../ui';
+import { Bloque, Enlace } from '../ui';
 import { type IntegranteEquipo } from './tipos';
 import { COLUMNAS_REUNION, TIPO_REUNION, asistencia, claveDia, dia, fechaHora, porcentaje, yaPaso, type Reunion } from './reuniones';
 import { FilaReunion, FormReunion } from './ReunionUI';
@@ -86,10 +86,8 @@ export const ReunionesCliente: React.FC<{
   const conDias = (items: Reunion[]) => items.map((r, i) => fila(r, i === 0 || claveDia(items[i - 1].inicio) !== claveDia(r.inicio)));
 
   return (
-    <section>
-      <TituloSeccion
-        eyebrow="Reuniones"
-        titulo="Reuniones con el equipo"
+    <Bloque
+        titulo="Reuniones"
         acciones={
           soloLectura ? undefined : (
             <Button variant="ghost" size="sm" onClick={() => setForm('nueva')}>
@@ -97,7 +95,7 @@ export const ReunionesCliente: React.FC<{
             </Button>
           )
         }
-      />
+      >
       {lista === null ? (
         <p className="eyebrow text-piedra">Cargando</p>
       ) : (
@@ -116,9 +114,7 @@ export const ReunionesCliente: React.FC<{
             />
           )}
           {lista.length === 0 ? (
-            <p className="text-sm text-piedra max-w-[64ch]">
-              Sin reuniones todavía. Las llamadas que graba el equipo en Fathom aparecen acá solas, con su link. Las que se agendan se cargan con el botón.
-            </p>
+            <p className="text-sm text-piedra">Sin reuniones. Las de Fathom llegan solas.</p>
           ) : (
             <>
               <div className="grid gap-4 tab:grid-cols-2">
@@ -166,6 +162,6 @@ export const ReunionesCliente: React.FC<{
           )}
         </div>
       )}
-    </section>
+    </Bloque>
   );
 };

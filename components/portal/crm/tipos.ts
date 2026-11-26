@@ -142,6 +142,8 @@ export interface Servicio {
   /** Moneda del ticket (migración 0072). */
   moneda?: string;
   activo?: boolean;
+  /** Duración en meses (0079). Con el onboarding da el fin del contrato. */
+  duracion_meses?: number | null;
 }
 
 /** Monedas que FIRMA le puede habilitar a una empresa en Administración › Clientes (migración 0072). */
