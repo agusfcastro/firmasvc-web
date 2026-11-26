@@ -9,6 +9,14 @@
       "destination": "/api/webhooks/fathom?token=:token"
     },
     {
+      "source": "/(privacidad|privacy)",
+      "destination": "/privacidad.html"
+    },
+    {
+      "source": "/(terminos|terms)",
+      "destination": "/terminos.html"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/app.html"
     }
