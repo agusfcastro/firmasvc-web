@@ -13,7 +13,7 @@ import { openCalendly } from '../lib/calendly';
  * En celular va todo apilado (promesa, video, botones). Desde `wide` la promesa
  * y los botones quedan a la izquierda y el video a la derecha.
  */
-/** deLanding es para /landing: saca el botón que baja a Servicios, que ahí no existe, suma el logo al contador y muestra el video sin la barra del reproductor ni pausa. */
+/** deLanding es para /landing: saca el botón que baja a Servicios, que ahí no existe, y suma el logo al contador. */
 export const Hero: React.FC<{ deLanding?: boolean }> = ({ deLanding = false }) => (
   <section id="top" className="relative overflow-hidden text-center wide:text-left pt-8 desk:pt-9 pb-16 desk:pb-20">
     <div className="wrap relative flex flex-col items-center gap-6">
@@ -29,7 +29,7 @@ export const Hero: React.FC<{ deLanding?: boolean }> = ({ deLanding = false }) =
         </div>
 
         <div className="w-full wide:col-start-2 wide:row-start-1 wide:row-span-2">
-          <VideoVSL sinBarra={deLanding} />
+          <VideoVSL />
         </div>
 
         <div className="flex flex-wrap justify-center wide:justify-start gap-3 wide:col-start-1 wide:row-start-2 wide:self-start">
