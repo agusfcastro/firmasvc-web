@@ -14,6 +14,7 @@ import { CAMPOS_CASO, VALORES_CASO } from './reglasCasos';
 import { CasosCliente } from './Casos';
 import { AsuntosCliente } from './AsuntosCliente';
 import { ComprobantesCliente } from './ComprobantesCliente';
+import { ReunionesCliente } from './ReunionesCliente';
 import { PerfilCliente } from './PerfilCliente';
 import { registrarLectura } from '../lecturas';
 import { ContratoFirma } from './contratoFirma';
@@ -519,7 +520,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                     [
                       ['closer_id', 'Closer', ['closer']],
                       ['setter_id', 'Setter', ['setter']],
-                      ['responsable_id', 'Responsable (CSM o AM)', ['csm', 'account_manager']],
+                      ['responsable_id', 'Account Manager', ['account_manager']],
                     ] as const
                   ).map(([campo, etiqueta, roles]) => (
                     <Campo key={campo} etiqueta={etiqueta}>
@@ -627,6 +628,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
 
         <div className="grid gap-12 desk:grid-cols-[7fr_5fr] desk:gap-14 items-start">
           <div className="flex flex-col gap-14 min-w-0">
+          <ReunionesCliente clienteId={id} orgId={cliente.organizacion_id} equipo={equipo} responsableId={cliente.responsable_id} soloLectura={soloLectura} puedeGestionar={puedeGestionar} />
           <ComprobantesCliente clienteId={id} soloLectura={soloLectura} />
           {verCasos && <CasosCliente clienteId={id} moneda={moneda} soloLectura={soloLectura} alContar={setCasosAbiertos} />}
           {verCasos && <AsuntosCliente clienteId={id} soloLectura={soloLectura} esFirma={esAdmin && !soloLectura} />}

@@ -8,7 +8,7 @@ import { useVistaPrevia } from '../vistaPrevia';
 import { BotonCopiar } from '../crm/firma';
 import { ESTADO_FIRMANTE, ESTADO_SOBRE, fechaHora } from '../../firma/comun';
 import { generaContratos, type Organizacion, type Perfil } from '../tipos';
-import { ROL_COMERCIAL, rolDe, type IntegranteEquipo, type RolComercial } from '../crm/tipos';
+import { CARGOS_ESTANDAR, ROLES_ELEGIBLES, ROL_COMERCIAL, cargoNormal, rolDe, type IntegranteEquipo, type RolComercial } from '../crm/tipos';
 import { BarraUso } from '../BarraUso';
 import { diaYMes, firmasAgotadas, firmasOcupadas, usoFirmas, whatsapp, type UsoFirmas } from '../planes';
 import { registrarLectura } from '../lecturas';
@@ -458,7 +458,7 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
     // Alguien que no está en el equipo se suma ahora. Si ya hay alguien con ese nombre, se usa ese.
     let miembroId = miembro;
     if (miembro === OTRA_PERSONA) {
-      const { data: idNuevo, error: eq } = supabase ? await supabase.rpc('equipo_sumar', { org: orgEnvio, nombre: personaNueva.trim(), rol: rolNuevo, ...(rolNuevo === 'otro' && cargoNuevo.trim() ? { cargo: cargoNuevo.trim() } : {}) }) : { data: null, error: null };
+      const { data: idNuevo, error: eq } = supabase ? await supabase.rpc('equipo_sumar', { org: orgEnvio, nombre: personaNueva.trim(), rol: rolNuevo, ...(rolNuevo === 'otro' && cargoNuevo.trim() ? { cargo: cargoNormal(cargoNuevo) } : {}) }) : { data: null, error: null };
       if (eq || !idNuevo) {
         setEnviando(false);
         return setError(eq?.message ?? 'No se pudo sumar a la persona al equipo.');
@@ -596,7 +596,7 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
                 </Campo>
                 <Campo etiqueta="Rol">
                   <select value={rolNuevo} onChange={(e) => setRolNuevo(e.target.value as RolComercial)} className={claseInput}>
-                    {(Object.keys(ROL_COMERCIAL) as RolComercial[]).map((r) => (
+                    {ROLES_ELEGIBLES.map((r) => (
                       <option key={r} value={r}>
                         {ROL_COMERCIAL[r]}
                       </option>
@@ -605,7 +605,8 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
                 </Campo>
                 {rolNuevo === 'otro' && (
                   <Campo etiqueta="¿Qué rol tiene?" ayuda="Sale al lado de su nombre en la tarjeta del contrato.">
-                    <input value={cargoNuevo} onChange={(e) => setCargoNuevo(e.target.value)} maxLength={60} className={claseInput} placeholder="Nutricionista" />
+                    <input value={cargoNuevo} onChange={(e) => setCargoNuevo(e.target.value)} maxLength={60} className={claseInput} list="cargos-estandar" placeholder="Nutricionista" />
+                <datalist id="cargos-estandar">{CARGOS_ESTANDAR.map((c) => <option key={c} value={c} />)}</datalist>
                   </Campo>
                 )}
               </div>

@@ -7,7 +7,7 @@ import { avisarPorMail } from '../asuntos';
 import { BUCKET_DOCUMENTOS, EXTENSIONES_ACEPTADAS, FORMATOS, SECCIONES, TAMANO_MAXIMO, descargarArchivo, extension, formatoDe, liberarModeloContrato, tamano, vencimientoContrato } from '../descargas';
 import { MODELOS, type ClaveModelo } from '../pedidos/modelos';
 import { seccionPersona, type ModeloPropio } from '../pedidos/propio';
-import { ROL_COMERCIAL, rolDe, type IntegranteEquipo, type RolComercial } from '../crm/tipos';
+import { CARGOS_ESTANDAR, ROLES_ELEGIBLES, ROL_COMERCIAL, cargoNormal, rolDe, type IntegranteEquipo, type RolComercial } from '../crm/tipos';
 import { fechaCorta, type Area, type Documento, type Organizacion, type SeccionDocumento } from '../tipos';
 
 type Filtro = 'todas' | SeccionDocumento;
@@ -243,7 +243,7 @@ export const Documentos: React.FC = () => {
         nombre: borrador.persona_nombre.trim(),
         rol: borrador.persona_rol,
         // Solo si lo escribió, así sin la migración 0069 el resto sigue andando.
-        ...(borrador.persona_rol === 'otro' && borrador.persona_cargo.trim() ? { cargo: borrador.persona_cargo.trim() } : {}),
+        ...(borrador.persona_rol === 'otro' && borrador.persona_cargo.trim() ? { cargo: cargoNormal(borrador.persona_cargo) } : {}),
       });
       if (eq || !idNuevo) {
         setGuardando(false);
@@ -484,7 +484,7 @@ export const Documentos: React.FC = () => {
                   </Campo>
                   <Campo etiqueta="Rol">
                     <select className={claseInput} value={borrador.persona_rol} onChange={(e) => setBorrador({ ...borrador, persona_rol: e.target.value as RolComercial })}>
-                      {(Object.keys(ROL_COMERCIAL) as RolComercial[]).map((r) => (
+                      {ROLES_ELEGIBLES.map((r) => (
                         <option key={r} value={r}>
                           {ROL_COMERCIAL[r]}
                         </option>
@@ -493,7 +493,8 @@ export const Documentos: React.FC = () => {
                   </Campo>
                   {borrador.persona_rol === 'otro' && (
                     <Campo etiqueta="¿Qué rol tiene?" ayuda="Sale al lado de su nombre en la tarjeta del contrato.">
-                      <input className={claseInput} maxLength={60} value={borrador.persona_cargo} onChange={(e) => setBorrador({ ...borrador, persona_cargo: e.target.value })} placeholder="Nutricionista" />
+                      <input className={claseInput} maxLength={60} list="cargos-estandar" value={borrador.persona_cargo} onChange={(e) => setBorrador({ ...borrador, persona_cargo: e.target.value })} placeholder="Nutricionista" />
+                <datalist id="cargos-estandar">{CARGOS_ESTANDAR.map((c) => <option key={c} value={c} />)}</datalist>
                     </Campo>
                   )}
                 </>

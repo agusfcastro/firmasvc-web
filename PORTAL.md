@@ -142,11 +142,11 @@ Entrá a `firmasvc.com/portal`.
 |---|---|
 | Admin FIRMA | Todo, de todos los clientes, y el panel de administración |
 | Titular | Todo lo de su empresa, incluida la administración: equipo, pagos y servicios |
-| CSM | Todo menos la administración de la empresa. Si le marcás áreas, los documentos se limitan a esas |
+| Account Manager | Todo menos la administración de la empresa. Si le marcás áreas, los documentos se limitan a esas. Por dentro el rol se llama `csm`; en pantalla dice Account Manager desde la 0078 |
 | Closer | CRM y agenda, sin casos de conflicto. De documentos, solo protocolos y formación |
 | Setter | Solo protocolos y formación |
 
-Las cuentas viejas con rol Miembro del equipo funcionan como CSM. Para que rijan estos roles corré `supabase/migrations/0012_roles_equipo.sql` en **SQL Editor**. Un documento cuenta como protocolo o formación cuando tiene marcada esa casilla en **Administración › Documentos**; la migración la marca sola en los protocolos que ya estaban.
+Las cuentas viejas con rol Miembro del equipo funcionan como Account Manager. Para que rijan estos roles corré `supabase/migrations/0012_roles_equipo.sql` en **SQL Editor**. Un documento cuenta como protocolo o formación cuando tiene marcada esa casilla en **Administración › Documentos**; la migración la marca sola en los protocolos que ya estaban.
 
 Los permisos los aplica la base de datos. Aunque alguien manipule la página, un cliente no puede leer datos de otro.
 
@@ -1191,6 +1191,40 @@ Es lo único de la auditoría que gasta crédito de la API, así que corre solo 
 3. Hecho el 25 de noviembre de 2026. La primera medición de Tina dio 81,7 y el umbral quedó en 78. La referencia actual es 96,5 con los 26 casos de Eminent.
 
 Pruebas en `supabase/pruebas/ia_corridas.sql`, `supabase/pruebas/ia_calidad.sql` y `scripts/pruebas/evaluador.mjs`.
+
+## Reuniones del CRM
+
+Migración 0078. Pantalla `/portal/crm/reuniones` (botón **Reuniones** en el CRM) y sección **Reuniones con el equipo** en la ficha de cada cliente. Archivos en `components/portal/crm/`: `reuniones.ts` (tipos, asistencia y cierre), `ReunionUI.tsx` (formulario y fila), `ReunionesCliente.tsx` (la sección de la ficha) y `Reuniones.tsx` (la pantalla).
+
+### Qué es una reunión
+
+Cada encuentro del equipo con un cliente del CRM o con un prospecto, en `crm_reuniones`. Tiene tipo (venta, onboarding, seguimiento, renovación, reclamo u otra), fecha y hora, la persona del equipo que la tiene, quién la agendó (por ejemplo el setter), estado (agendada, hecha, no asistió, cancelada o reprogramada), el resultado de las de venta (cerró, no cerró o queda en seguimiento), el link de la grabación y notas.
+
+El tipo lo marca una persona porque Fathom no distingue un seguimiento de un cierre. El resultado solo se carga en una venta hecha, y una reunión que todavía no pasó no se marca como hecha ni como faltazo. La base lo controla.
+
+### Las llamadas de Fathom
+
+Cada llamada que llega de Fathom se convierte sola en una reunión hecha, con su link (trigger `interacciones_reuniones`). Si la persona que grabó tenía una reunión agendada entre una hora y media antes y una hora después, la llamada completa esa reunión. Si no, se crea una nueva **sin tipo** y aparece en **Por completar** para que alguien elija el tipo. Cuando la llamada se vincula a un cliente, la reunión queda con ese cliente. El link se copia a la reunión porque el contenido de la llamada se borra a los 90 días. Al correr la migración, las llamadas que ya estaban también quedan como reuniones.
+
+### Pantalla
+
+Pestañas Próximas, Por completar (sin tipo, o agendadas que pasaron sin marcar si se hicieron), Pasadas y Todas, agrupadas por día. Filtros por persona, tipo, período y búsqueda; `?cliente=` deja solo las de un cliente. Desde cada fila se elige el tipo, se marca si se hizo o si el cliente no vino y se carga el resultado de una venta, sin abrir el formulario. Arriba, próximos 7 días, por completar, asistencia y cierre de ventas. Abajo, la tabla por persona del equipo con reuniones, asistencia, asistencia a seguimientos (la de un Account Manager con sus clientes), cierre y cuántas agendó.
+
+La asistencia cuenta las hechas contra las que el cliente faltó; las canceladas y reprogramadas no cuentan. El cierre son las ventas que cerraron sobre las ventas hechas con resultado.
+
+En el listado de clientes hay columna **Próxima reunión**, la pestaña **Sin reunión agendada** y filtros por Account Manager, closer, setter y servicio, que quedan guardados por empresa.
+
+### Quién ve qué
+
+Ven y cargan reuniones quienes ven el CRM de la empresa (titular, Account Manager, closer y FIRMA). Quien no lo ve, como un setter, solo las que tiene o las que agendó. Borran el titular y quien la cargó.
+
+### Un solo nombre por rol
+
+CSM y Account Manager son lo mismo. La 0078 pasa a `account_manager` todo lo que estaba como `csm` en el equipo, en hitos, reportes y objetivos, y un trigger lo normaliza de acá en más. Las plantillas de CSM de FIRMA se retiraron porque repetían las de Account Manager. Los cargos de dirección se guardan siempre igual (CEO, COO, CFO, CCO, CMO, CTO, CPO, CRO) y el campo de cargo sugiere una lista estándar (`CARGOS_ESTANDAR` en `crm/tipos.ts`).
+
+### Puesta en marcha
+
+Correr `supabase/migrations/0078_crm_reuniones_roles.sql` en **SQL Editor**. Pruebas en `supabase/pruebas/crm_reuniones_roles.sql`.
 
 ## Equipo: objetivos, victorias y reportes
 

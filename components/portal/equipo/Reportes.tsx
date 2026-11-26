@@ -4,7 +4,7 @@ import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { Aviso, Campo, Etiqueta, TituloSeccion, claseInput } from '../ui';
 import { mensajeAmable } from '../errores';
-import { ROL_COMERCIAL, rolDe, type RolComercial } from '../crm/tipos';
+import { ROLES_ELEGIBLES, ROL_COMERCIAL, rolDe, type RolComercial } from '../crm/tipos';
 import type { BaseEquipo } from './EquipoApp';
 import {
   ROTULO_TIPO_CAMPO,
@@ -485,7 +485,7 @@ const ArmarReportes: React.FC<{ base: BaseEquipo; alAviso: (m: string) => void; 
           <div className="grid gap-5 tab:grid-cols-2">
             <Campo etiqueta="Rol">
               <select className={claseInput} value={borrador.rol_comercial} onChange={(e) => setBorrador({ ...borrador, rol_comercial: e.target.value as RolComercial })}>
-                {(Object.keys(ROL_COMERCIAL) as RolComercial[]).map((r) => (
+                {ROLES_ELEGIBLES.map((r) => (
                   <option key={r} value={r}>
                     {ROL_COMERCIAL[r]}
                   </option>

@@ -181,7 +181,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
     const asignados: Record<'closer_id' | 'responsable_id', string | null> = { closer_id: f.closer_id || null, responsable_id: f.responsable_id || null };
     for (const [campo, nuevo, rol] of [
       ['closer_id', f.closer_nuevo, 'closer'],
-      ['responsable_id', f.responsable_nuevo, 'csm'],
+      ['responsable_id', f.responsable_nuevo, 'account_manager'],
     ] as const) {
       if (f[campo] !== NUEVO) continue;
       const { data: idNuevo, error: eq } = await supabase.rpc('equipo_sumar', { org: orgId, nombre: nuevo.trim(), rol });
@@ -321,7 +321,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
         {(
           [
             ['closer_id', 'Closer', ['closer']],
-            ['responsable_id', 'Responsable (CSM o AM)', ['csm', 'account_manager']],
+            ['responsable_id', 'Account Manager', ['account_manager']],
           ] as const
         ).map(([campo, etiqueta, roles]) => {
           // Primero los de ese rol; si no hay ninguno, cualquiera del equipo con su rol al lado.

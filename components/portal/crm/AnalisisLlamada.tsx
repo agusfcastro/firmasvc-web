@@ -24,7 +24,7 @@ import {
  *   FIRMA     lo ve siempre. En revisión, descarta o restaura códigos con
  *             motivo (la base recalcula el puntaje), aprueba o descarta el
  *             análisis entero, y puede pedir uno nuevo o analizarla como venta.
- *   Negocio   titular y CSM ven el estado y, aprobado, el informe sin las
+ *   Negocio   titular y Account Manager ven el estado y, aprobado, el informe sin las
  *             correcciones de FIRMA ni lo descartado.
  * En «Ver como», FIRMA ve lo que vería el negocio.
  * Abrir el informe queda en la bitácora (lo anota analisis_leer).
