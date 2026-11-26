@@ -318,7 +318,11 @@ const iniciales = (texto: string): string =>
 /* ------------------------------------------------------------------ */
 /* Barra lateral (computadora) y panel del menú (celular)              */
 /* ------------------------------------------------------------------ */
-const Lateral: React.FC<{
+/**
+ * Menú del celular. Una hoja que sube desde abajo con las secciones como en la barra de la
+ * computadora, el ícono arriba y el nombre corto abajo.
+ */
+const HojaMenu: React.FC<{
   perfil: Perfil;
   secciones: Seccion[];
   contadores: Contadores;
@@ -337,25 +341,22 @@ const Lateral: React.FC<{
   const titulos: Record<Seccion['grupo'], string> = esAdmin ? { principal: '', negocio: 'Gestión', firma: 'FIRMA' } : TITULO_GRUPO;
 
   return (
-    <div className="lateral relative flex flex-col gap-5 min-h-full px-4 pt-6 pb-4 bg-tinta text-lateral-texto overflow-hidden">
+    <div className="flex flex-col gap-6 px-4 pt-6 pb-5 text-lateral-texto">
+      <span aria-hidden="true" className="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full bg-marfil/20" />
 
-      <Enlace a="/portal" onClick={alElegir} className="relative self-start px-2 py-1" aria-label="Inicio del portal">
-        <img src={palabraOscura} alt="firma" className="h-[26px] w-auto" />
-      </Enlace>
-
-      <div className={`relative flex items-center gap-3 p-3 rounded-[14px] border border-marfil/10 bg-marfil/[0.04] ${varios ? 'hover:bg-marfil/[0.08] focus-within:outline focus-within:outline-2 focus-within:outline-marfil' : ''}`}>
+      <div className={`relative flex items-center gap-3 mr-12 p-2 -m-2 rounded-[14px] ${varios ? 'focus-within:outline focus-within:outline-2 focus-within:outline-marfil' : ''}`}>
         {logoCliente && !esAdmin ? (
-          <span className="w-9 h-9 shrink-0 rounded-[10px] bg-white grid place-items-center overflow-hidden">
-            <img src={logoCliente} alt="" className="max-w-[30px] max-h-[30px] object-contain" />
+          <span className="w-11 h-11 shrink-0 rounded-[12px] bg-white grid place-items-center overflow-hidden">
+            <img src={logoCliente} alt="" className="max-w-[36px] max-h-[36px] object-contain" />
           </span>
         ) : (
-          <span aria-hidden="true" className="w-9 h-9 shrink-0 rounded-[10px] grid place-items-center bg-marfil text-tinta text-[13px] font-bold">
+          <span aria-hidden="true" className="w-11 h-11 shrink-0 rounded-[12px] grid place-items-center bg-marfil text-tinta text-[14px] font-bold">
             {esAdmin ? 'F' : iniciales(orgNombre ?? '·')}
           </span>
         )}
         <span className="flex flex-col min-w-0 leading-tight">
-          <span className="text-marfil text-[14px] font-medium truncate">{esAdmin ? 'FIRMA' : orgNombre ?? '·'}</span>
-          <span className="text-[12.5px] text-lateral-tenue truncate mt-0.5">{esAdmin ? 'Administración' : [cargoDe(perfil), orgPlan ? `Plan ${ROTULO_PLAN[orgPlan]}` : null].filter(Boolean).join(' · ')}</span>
+          <span className="text-marfil text-[16px] font-semibold truncate">{esAdmin ? 'FIRMA' : orgNombre ?? '·'}</span>
+          <span className="text-[13px] text-lateral-tenue truncate mt-0.5">{esAdmin ? 'Administración' : [cargoDe(perfil), orgPlan ? `Plan ${ROTULO_PLAN[orgPlan]}` : null].filter(Boolean).join(' · ')}</span>
         </span>
         {varios && (
           <>
@@ -365,74 +366,60 @@ const Lateral: React.FC<{
         )}
       </div>
 
-      <button
-        type="button"
-        onClick={() => {
-          alElegir?.();
-          abrirBuscador();
-        }}
-        aria-haspopup="dialog"
-        className="relative -my-1 flex items-center gap-2.5 h-10 px-3 rounded-[10px] border border-marfil/10 text-[14px] text-lateral-tenue hover:text-marfil hover:border-marfil/25"
-      >
-        <Search size={16} aria-hidden="true" className="shrink-0" />
-        <span className="flex-1 text-left">Buscar</span>
-        <kbd aria-hidden="true" className="hidden desk:inline font-sans text-[11.5px] px-1.5 py-0.5 rounded-[6px] border border-marfil/15">
-          {atajoBuscador()}
-        </kbd>
-      </button>
-
-      <nav aria-label="Secciones del portal" className="relative flex flex-col gap-5">
+      <nav aria-label="Secciones del portal" className="flex flex-col gap-5">
         {grupos.map(({ g, items }) => (
-          <div key={g} className="flex flex-col gap-0.5">
-            {titulos[g] && <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] [font-stretch:125%] text-lateral-tenue">{titulos[g]}</p>}
-            {items.map((x) => {
-              const Icono = x.icono;
-              const n = cuenta(x.clave);
-              return (
-                <Enlace
-                  key={x.clave}
-                  a={x.a}
-                  onClick={alElegir}
-                  aria-current={x.activo ? 'page' : undefined}
-                  className={`relative flex items-center gap-3 min-h-[40px] px-3 rounded-[10px] text-[14.5px] transition-colors duration-150 ${x.activo ? 'bg-grafito text-marfil font-semibold' : 'hover:bg-marfil/[0.06] hover:text-marfil'}`}
-                >
-                  <Icono size={18} strokeWidth={1.75} aria-hidden="true" className="shrink-0" />
-                  <span className="flex-1 truncate">{x.titulo}</span>
-                  {n ? (
-                    <span className="min-w-[22px] h-[22px] px-1.5 grid place-items-center rounded-pastilla bg-marfil text-tinta text-[12px] font-bold tabular-nums" aria-label={`${n} pendientes`}>
-                      {n}
+          <div key={g} className="flex flex-col gap-2.5">
+            {titulos[g] && <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.16em] [font-stretch:125%] text-lateral-tenue">{titulos[g]}</p>}
+            <div className="grid grid-cols-4 gap-x-1 gap-y-3">
+              {items.map((x) => {
+                const Icono = x.icono;
+                const n = cuenta(x.clave);
+                return (
+                  <Enlace
+                    key={x.clave}
+                    a={x.a}
+                    onClick={alElegir}
+                    aria-current={x.activo ? 'page' : undefined}
+                    className={`flex flex-col items-center gap-1.5 py-1 rounded-[14px] text-[12px] leading-tight text-center ${x.activo ? 'text-marfil font-semibold' : 'text-lateral-texto font-medium'}`}
+                  >
+                    <span className={`relative w-12 h-11 grid place-items-center rounded-[14px] ${x.activo ? 'bg-grafito' : 'bg-marfil/[0.06]'}`}>
+                      <Icono size={21} strokeWidth={1.75} aria-hidden="true" />
+                      {n ? <Cuenta n={n} clase="absolute -top-1.5 -right-1.5" /> : null}
                     </span>
-                  ) : null}
-                </Enlace>
-              );
-            })}
+                    <span className="max-w-full truncate px-0.5">{x.corto}</span>
+                  </Enlace>
+                );
+              })}
+            </div>
           </div>
         ))}
       </nav>
 
-      <div className="relative mt-auto flex flex-col gap-3">
+      <div className="flex flex-col gap-1 pt-4 border-t border-marfil/10">
         {perfil.rol === 'titular' && !vista && (
           <Enlace
             a="/portal/bitacora"
             onClick={alElegir}
             aria-current={window.location.pathname.startsWith('/portal/bitacora') ? 'page' : undefined}
-            className="flex items-center gap-2.5 min-h-[36px] px-3 rounded-[10px] text-[13px] text-lateral-tenue hover:text-marfil hover:bg-marfil/[0.06] aria-[current=page]:text-marfil"
+            className="flex items-center gap-3 min-h-[44px] px-1 rounded-[10px] text-[14px] text-lateral-texto hover:text-marfil aria-[current=page]:text-marfil"
           >
-            <ScrollText size={15} strokeWidth={1.75} aria-hidden="true" className="shrink-0" />
+            <span className="w-8 grid place-items-center shrink-0">
+              <ScrollText size={17} strokeWidth={1.75} aria-hidden="true" />
+            </span>
             Bitácora de la cuenta
           </Enlace>
         )}
-        <div className="flex items-center gap-3 pt-4 px-1 border-t border-marfil/10">
+        <div className="flex items-center gap-3 px-1 pt-1">
           <span aria-hidden="true" className="w-8 h-8 shrink-0 rounded-full grid place-items-center bg-grafito text-marfil text-[12px] font-bold">
             {iniciales(nombre)}
           </span>
           <span className="flex flex-col min-w-0 flex-1 leading-tight">
-            <span className="text-marfil text-[13.5px] font-medium truncate">{nombre}</span>
-            <span className="text-[12px] text-lateral-tenue truncate">{perfil.nombre ? perfil.email : ROTULO_ROL[perfil.rol]}</span>
+            <span className="text-marfil text-[14px] font-medium truncate">{nombre}</span>
+            <span className="text-[12.5px] text-lateral-tenue truncate">{perfil.nombre ? perfil.email : ROTULO_ROL[perfil.rol]}</span>
           </span>
-          <CampanaAvisos alAbrir={alElegir} />
-          <button type="button" onClick={salir} aria-label="Salir del portal" title="Salir" className="w-10 h-10 grid place-items-center shrink-0 rounded-[10px] text-lateral-tenue hover:text-marfil hover:bg-marfil/[0.06]">
-            <LogOut size={17} aria-hidden="true" />
+          <button type="button" onClick={salir} className="flex items-center gap-2 h-10 px-3 shrink-0 rounded-[10px] border border-marfil/15 text-[13.5px] text-marfil hover:bg-marfil/[0.06]">
+            <LogOut size={16} aria-hidden="true" />
+            Salir
           </button>
         </div>
       </div>
@@ -440,7 +427,7 @@ const Lateral: React.FC<{
   );
 };
 
-/** Panel del menú en el celular, con la misma barra lateral. */
+/** Hoja del menú en el celular. Sube desde abajo y se cierra tocando afuera, con la X o con Escape. */
 const PanelMenu: React.FC<{ abierto: boolean; alCerrar: () => void; children: React.ReactNode }> = ({ abierto, alCerrar, children }) => {
   const cerrarRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -457,10 +444,10 @@ const PanelMenu: React.FC<{ abierto: boolean; alCerrar: () => void; children: Re
   }, [abierto, alCerrar]);
   if (!abierto) return null;
   return (
-    <div className="desk:hidden fixed inset-0 z-50 flex" role="dialog" aria-modal="true" aria-label="Menú del portal">
-      <button type="button" aria-label="Cerrar el menú" tabIndex={-1} onClick={alCerrar} className="absolute inset-0 bg-tinta/55" />
-      <div className="relative ml-auto h-full w-[min(320px,88vw)] overflow-y-auto bg-tinta">
-        <button ref={cerrarRef} type="button" onClick={alCerrar} aria-label="Cerrar el menú" className="absolute right-3 top-5 z-10 w-10 h-10 grid place-items-center text-lateral-texto hover:text-marfil">
+    <div className="desk:hidden fixed inset-0 z-50 flex flex-col justify-end" role="dialog" aria-modal="true" aria-label="Menú del portal">
+      <button type="button" aria-label="Cerrar el menú" tabIndex={-1} onClick={alCerrar} className="hoja-fondo absolute inset-0 bg-tinta/55" />
+      <div className="lateral hoja-menu relative w-full max-h-[88vh] overflow-y-auto overscroll-contain rounded-t-[22px] bg-tinta pb-[env(safe-area-inset-bottom)]">
+        <button ref={cerrarRef} type="button" onClick={alCerrar} aria-label="Cerrar el menú" className="absolute right-3 top-[26px] z-10 w-10 h-10 grid place-items-center rounded-[10px] text-lateral-texto hover:text-marfil hover:bg-marfil/[0.06]">
           <X size={20} aria-hidden="true" />
         </button>
         {children}
@@ -475,21 +462,25 @@ const PanelMenu: React.FC<{ abierto: boolean; alCerrar: () => void; children: Re
 /**
  * En computadora el menú es una barra angosta de íconos con su nombre abajo y, al lado,
  * el panel de la sección con sus pantallas (Clientes, Equipo y Administración). El panel
- * se oculta y el portal recuerda cómo lo dejaste. En el celular sigue la barra de abajo.
+ * se oculta y el portal recuerda cómo lo dejaste. En el celular quedan la barra de abajo, los chips
+ * de la sección y la hoja del menú.
  */
 const CLAVE_PANEL = 'firma-panel-seccion';
-const PanelSeccionCtx = React.createContext(false);
+const PanelSeccionCtx = React.createContext<{ hay: boolean; abierto: boolean }>({ hay: false, abierto: false });
 
 /** true cuando, en computadora, el panel de la sección está abierto y ya muestra las pantallas de la sección. */
-export const usePanelSeccion = (): boolean => React.useContext(PanelSeccionCtx);
+export const usePanelSeccion = (): boolean => {
+  const { hay, abierto } = React.useContext(PanelSeccionCtx);
+  return hay && abierto;
+};
 
 /**
- * Navegación propia de una página (pestañas, accesos del encabezado). Con el panel abierto
- * se esconde en computadora, porque el panel ya la muestra; en el celular sigue igual.
+ * Navegación propia de una página (pestañas, accesos del encabezado). Cuando la sección tiene
+ * panel, en el celular la reemplazan los chips de arriba y en computadora el panel, si está abierto.
  */
 export const NavegacionDePagina: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const panel = usePanelSeccion();
-  return <div className={panel ? 'contents desk:hidden' : 'contents'}>{children}</div>;
+  const { hay, abierto } = React.useContext(PanelSeccionCtx);
+  return <div className={!hay ? 'contents' : abierto ? 'hidden' : 'hidden desk:contents'}>{children}</div>;
 };
 
 interface ItemPanel {
@@ -518,7 +509,7 @@ const ICONO_ADMIN: Record<string, LucideIcon> = {
   '/portal/admin/registro': ScrollText,
 };
 
-function panelDe(clave: ClaveSeccion | undefined, ruta: string, permisos: Permisos, soloLectura: boolean, casosAbiertos: number | undefined): PanelDeSeccion | null {
+function panelDe(clave: ClaveSeccion | undefined, ruta: string, permisos: Permisos, soloLectura: boolean, cuentas: CuentasCrm): PanelDeSeccion | null {
   if (clave === 'crm') {
     const en = (s: string) => ruta === `/portal/crm/${s}` || ruta.startsWith(`/portal/crm/${s}/`);
     return {
@@ -528,8 +519,8 @@ function panelDe(clave: ClaveSeccion | undefined, ruta: string, permisos: Permis
         {
           items: [
             { a: '/portal/crm', titulo: 'Todos los clientes', icono: Kanban, activo: !SUBRUTAS_CRM.some(en) },
-            ...(permisos.casos ? [{ a: '/portal/crm/casos', titulo: 'Casos de conflicto', icono: ShieldAlert, activo: en('casos'), cuenta: casosAbiertos }] : []),
-            { a: '/portal/crm/reuniones', titulo: 'Reuniones', icono: CalendarDays, activo: en('reuniones') },
+            ...(permisos.casos ? [{ a: '/portal/crm/casos', titulo: 'Casos de conflicto', icono: ShieldAlert, activo: en('casos'), cuenta: cuentas.casos }] : []),
+            { a: '/portal/crm/reuniones', titulo: 'Reuniones', icono: CalendarDays, activo: en('reuniones'), cuenta: cuentas.reuniones },
             { a: '/portal/crm/llamadas', titulo: 'Llamadas', icono: Phone, activo: en('llamadas') },
             { a: '/portal/crm/comprobantes', titulo: 'Invoices y recibos', icono: ReceiptText, activo: en('comprobantes') },
           ],
@@ -569,30 +560,38 @@ function panelDe(clave: ClaveSeccion | undefined, ruta: string, permisos: Permis
   return null;
 }
 
-/** Casos de conflicto en curso de la empresa, para el panel de Clientes. Se pide como mucho una vez por minuto. */
-const cacheCasos = new Map<string, { t: number; n: number }>();
-function useCasosAbiertos(orgId: string | null, activo: boolean): number | undefined {
-  const [n, setN] = useState<number | undefined>(() => (orgId ? cacheCasos.get(orgId)?.n : undefined));
+/** Casos de conflicto en curso y reuniones por completar de la empresa, para el panel de Clientes. Se piden como mucho una vez por minuto. */
+interface CuentasCrm {
+  casos?: number;
+  reuniones?: number;
+}
+const cacheCrm = new Map<string, { t: number; c: CuentasCrm }>();
+function useCuentasCrm(orgId: string | null, activo: boolean, conCasos: boolean): CuentasCrm {
+  const clave = orgId ? `${orgId}:${conCasos ? 'casos' : ''}` : '';
+  const [c, setC] = useState<CuentasCrm>(() => (clave ? cacheCrm.get(clave)?.c ?? {} : {}));
   useEffect(() => {
     if (!supabase || !activo || !orgId) return;
-    const previo = cacheCasos.get(orgId);
-    if (previo && Date.now() - previo.t < 60_000) return setN(previo.n);
+    const previo = cacheCrm.get(clave);
+    if (previo && Date.now() - previo.t < 60_000) return setC(previo.c);
     let vigente = true;
-    void supabase
-      .from('crm_casos')
-      .select('id', { count: 'exact', head: true })
-      .eq('organizacion_id', orgId)
-      .neq('etapa', 'cerrado')
-      .then(({ count, error }) => {
-        if (error) return;
-        cacheCasos.set(orgId, { t: Date.now(), n: count ?? 0 });
-        if (vigente) setN(count ?? 0);
-      });
+    const ahora = new Date().toISOString();
+    void Promise.all([
+      conCasos ? supabase.from('crm_casos').select('id', { count: 'exact', head: true }).eq('organizacion_id', orgId).neq('etapa', 'cerrado') : null,
+      // Las mismas que cuenta Clientes, sin tipo o agendadas que ya pasaron.
+      supabase.from('crm_reuniones').select('id', { count: 'exact', head: true }).eq('organizacion_id', orgId).or(`tipo.is.null,and(estado.eq.agendada,inicio.lt.${ahora})`),
+    ]).then(([casos, reuniones]) => {
+      const nuevo: CuentasCrm = {
+        casos: casos && !casos.error ? (casos.count ?? 0) : undefined,
+        reuniones: reuniones.error ? undefined : (reuniones.count ?? 0),
+      };
+      cacheCrm.set(clave, { t: Date.now(), c: nuevo });
+      if (vigente) setC(nuevo);
+    });
     return () => {
       vigente = false;
     };
-  }, [orgId, activo]);
-  return n;
+  }, [orgId, activo, conCasos, clave]);
+  return c;
 }
 
 /** Abierto o cerrado, guardado en este navegador. Abierto la primera vez. */
@@ -678,7 +677,7 @@ const BarraEscritorio: React.FC<{
   const empresa = esAdmin ? 'FIRMA' : orgNombre ?? '';
 
   return (
-    <div className="flex h-screen">
+    <div className="lateral flex h-screen">
       <nav aria-label="Secciones del portal" className="w-[84px] shrink-0 flex flex-col items-center gap-0.5 pt-4 pb-3 bg-tinta overflow-y-auto scrollbar-hide">
         <Enlace a="/portal" aria-label="Inicio del portal" className="px-1 pb-2.5">
           <img src={palabraOscura} alt="firma" className="h-[19px] w-auto" />
@@ -772,6 +771,48 @@ const BarraEscritorio: React.FC<{
   );
 };
 
+/** En el celular, las pantallas de la sección van en una fila de chips fija debajo de la barra de arriba. */
+const ChipsSeccion: React.FC<{ panel: PanelDeSeccion }> = ({ panel }) => {
+  const fila = useRef<HTMLDivElement>(null);
+  const activa = panel.grupos.flatMap((g) => g.items).find((x) => x.activo)?.a;
+  // La pantalla abierta queda a la vista aunque esté al final de la fila.
+  useEffect(() => {
+    const cont = fila.current;
+    const el = cont?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (cont && el) cont.scrollLeft = el.offsetLeft - (cont.clientWidth - el.offsetWidth) / 2;
+  }, [activa]);
+  return (
+    <nav aria-label={`Pantallas de ${panel.titulo}`} className="desk:hidden sticky top-14 z-30 bg-marfil/95 backdrop-blur border-b border-borde-suave">
+      <div ref={fila} className="relative flex items-center gap-2 px-4 py-2.5 overflow-x-auto scrollbar-hide">
+        {panel.grupos.map((g, i) => (
+          <React.Fragment key={i}>
+            {i > 0 && <span aria-hidden="true" className="w-px h-5 shrink-0 bg-tinta/15" />}
+            {g.items.map((x) => {
+              const Icono = x.icono;
+              return (
+                <Enlace
+                  key={x.a}
+                  a={x.a}
+                  aria-current={x.activo ? 'page' : undefined}
+                  className={`shrink-0 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-pastilla border text-[13.5px] whitespace-nowrap transition-colors duration-150 ${x.activo ? 'bg-tinta border-tinta text-marfil font-semibold' : 'bg-papel border-borde-suave text-tinta hover:border-tinta/30'}`}
+                >
+                  <Icono size={15} strokeWidth={1.75} aria-hidden="true" />
+                  {x.titulo}
+                  {x.cuenta ? (
+                    <span className={`min-w-[19px] h-[19px] px-1 grid place-items-center rounded-pastilla text-[11px] font-bold tabular-nums ${x.activo ? 'bg-marfil text-tinta' : 'bg-tinta text-marfil'}`} aria-label={`${x.cuenta} pendientes`}>
+                      {x.cuenta > 99 ? '99+' : x.cuenta}
+                    </span>
+                  ) : null}
+                </Enlace>
+              );
+            })}
+          </React.Fragment>
+        ))}
+      </div>
+    </nav>
+  );
+};
+
 /* ------------------------------------------------------------------ */
 /* Marco general del portal                                            */
 /* ------------------------------------------------------------------ */
@@ -789,8 +830,8 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
   const [menu, setMenu] = useState(false);
   const conexion = useConexion();
   const claveActiva = secciones.find((x) => x.activo)?.clave;
-  const casosAbiertos = useCasosAbiertos(esAdmin ? null : orgDelMarco, claveActiva === 'crm' && Boolean(permisos?.casos));
-  const panel = permisos ? panelDe(claveActiva, ruta, permisos, Boolean(vista), casosAbiertos) : null;
+  const cuentasCrm = useCuentasCrm(esAdmin ? null : orgDelMarco, claveActiva === 'crm', Boolean(permisos?.casos));
+  const panel = permisos ? panelDe(claveActiva, ruta, permisos, Boolean(vista), cuentasCrm) : null;
   const [panelAbierto, setPanelAbierto] = usePanelAbierto();
   const conPanel = Boolean(panel && panelAbierto);
 
@@ -806,22 +847,22 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
   // La barra inferior muestra las cuatro secciones que más se usan. El resto vive en Más.
   const ORDEN_INFERIOR: ClaveSeccion[] = ['inicio', 'crm', 'equipo', 'agenda', 'pagos', 'protocolos', 'documentos', 'firmas', 'asuntos', 'admin'];
   const inferiores = ORDEN_INFERIOR.map((c) => secciones.find((x) => x.clave === c)).filter((x): x is Seccion => Boolean(x)).slice(0, 4);
-  const lateral = perfil ? (
-    <Lateral perfil={perfil} secciones={secciones} contadores={contadores} orgNombre={vista?.orgNombre ?? org?.nombre ?? null} orgPlan={org?.plan ?? null} logoCliente={logoCliente} vista={Boolean(vista)} alElegir={() => setMenu(false)} />
+  const menuCelular = perfil ? (
+    <HojaMenu perfil={perfil} secciones={secciones} contadores={contadores} orgNombre={vista?.orgNombre ?? org?.nombre ?? null} orgPlan={org?.plan ?? null} logoCliente={logoCliente} vista={Boolean(vista)} alElegir={() => setMenu(false)} />
   ) : null;
 
   return (
     <DensidadBotones.Provider value="compacta">
-      <PanelSeccionCtx.Provider value={conPanel}>
+      <PanelSeccionCtx.Provider value={{ hay: Boolean(panel), abierto: panelAbierto }}>
       <div
         data-panel={conPanel ? 'abierto' : 'cerrado'}
-        className={`portal min-h-screen bg-marfil text-tinta desk:grid ${lateral ? (conPanel ? 'desk:grid-cols-[304px_minmax(0,1fr)]' : 'desk:grid-cols-[84px_minmax(0,1fr)]') : ''}`}
+        className={`portal min-h-screen bg-marfil text-tinta desk:grid ${perfil ? (conPanel ? 'desk:grid-cols-[304px_minmax(0,1fr)]' : 'desk:grid-cols-[84px_minmax(0,1fr)]') : ''}`}
       >
         {/* Con teclado: salta el menú y va directo al contenido. */}
         <a href="#contenido" className="sr-only focus:not-sr-only focus:fixed focus:z-[60] focus:left-3 focus:top-3 focus:px-4 focus:py-2.5 focus:rounded-[10px] focus:bg-papel focus:text-tinta focus:text-[14px] focus:font-semibold focus:shadow-flotante">
           Saltar al contenido
         </a>
-        {lateral && perfil && (
+        {perfil && (
           <div className="hidden desk:block bg-tinta">
             <aside className="sticky top-0 h-screen" aria-label="Barra lateral">
               <BarraEscritorio
@@ -858,6 +899,8 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
               </button>
             )}
           </header>
+
+          {panel && <ChipsSeccion panel={panel} />}
 
           {vista && (
             <div className="bg-grafito text-marfil text-sm">
@@ -933,7 +976,7 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
         )}
 
         <PanelMenu abierto={menu} alCerrar={() => setMenu(false)}>
-          {lateral}
+          {menuCelular}
         </PanelMenu>
 
         {perfil && permisos && (

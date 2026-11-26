@@ -590,3 +590,12 @@ a.tarjeta-servicio { color: inherit; text-decoration: none; }
 @media (min-width: 900px) {
   .portal[data-panel="cerrado"] .wrap { max-width: 1440px; }
 }
+
+/* Hoja del menú en el celular: sube desde abajo y el fondo aparece. */
+@keyframes hoja-subir { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes hoja-fondo { from { opacity: 0; } to { opacity: 1; } }
+.hoja-menu { animation: hoja-subir 0.24s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.hoja-fondo { animation: hoja-fondo 0.2s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .hoja-menu, .hoja-fondo { animation: none; }
+}
