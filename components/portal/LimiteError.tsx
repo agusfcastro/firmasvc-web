@@ -1,4 +1,5 @@
 import React from 'react';
+import { claseBotonHero } from '../Button';
 
 /**
  * Red de contención del portal. Sin esto, un error al dibujar una pantalla o un
@@ -62,7 +63,7 @@ export class LimiteError extends React.Component<Props, { fallo: boolean; recarg
                 No pudimos mostrar esta pantalla. Tus datos están a salvo. Recargá la página y, si sigue pasando, escribinos a agustin@firmasvc.com.
               </p>
               <div className="flex flex-wrap gap-3">
-                <button type="button" onClick={() => window.location.reload()} className="h-11 px-5 rounded-control bg-tinta text-marfil text-[14.5px] font-medium hover:bg-grafito">
+                <button type="button" onClick={() => window.location.reload()} className={claseBotonHero('primary', 'lg')}>
                   Recargar
                 </button>
                 <a href="/portal" className="h-11 px-5 inline-flex items-center rounded-control border border-borde-suave bg-papel text-[14.5px] font-medium hover:border-tinta">

@@ -3,6 +3,7 @@ import { ArrowUp, Check, ExternalLink, Plus, X } from 'lucide-react';
 import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
 import { CaraTina } from './CaraTina';
+import { claseBotonHero } from '../../Button';
 
 /**
  * Panel de chat de Tina. Encima del contenido en la computadora y a pantalla
@@ -194,7 +195,7 @@ const TarjetaFicha: React.FC<{ ficha: Ficha; ocupado: boolean; ultima: boolean; 
           type="button"
           onClick={alConfirmar}
           disabled={ocupado}
-          className="mt-4 inline-flex items-center gap-2 h-10 px-4 rounded-[12px] bg-tinta text-marfil text-[14px] font-semibold disabled:opacity-50 hover:bg-grafito"
+          className={`${claseBotonHero('primary', 'md')} mt-4`}
         >
           <Check size={16} aria-hidden="true" />
           Confirmar y cargar

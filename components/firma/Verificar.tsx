@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, Check, FileUp, ShieldCheck, X } from 'lucide-react';
 import { Button } from '../Button';
-import { Aviso, Campo, Etiqueta, claseInput } from '../portal/ui';
+import { Aviso, Campo, Etiqueta, claseInput } from '../uiClasica';
 import { ESTADO_FIRMANTE, ESTADO_SOBRE, MarcoPublico, fechaHora, llamarFirma, usePaginaPrivada } from './comun';
 
 /**

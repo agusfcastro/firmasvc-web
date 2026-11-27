@@ -1,5 +1,5 @@
 import React from 'react';
-import { Encabezado, Enlace, Marco, NavegacionDePagina } from '../ui';
+import { Encabezado, Marco, NavegacionDePagina, PestanasEnlace } from '../ui';
 import { PESTANAS_ADMIN } from './pestanas';
 import type { Perfil } from '../tipos';
 import { Usuarios } from './Usuarios';
@@ -26,21 +26,7 @@ export const PanelAdmin: React.FC<{ perfil: Perfil; ruta: string }> = ({ perfil,
     />
     <div className="wrap py-10 desk:py-12 flex flex-col gap-8">
       <NavegacionDePagina>
-      <nav className="flex gap-6 overflow-x-auto scrollbar-hide border-b border-tinta/15">
-        {PESTANAS_ADMIN.map((p) => {
-          const activa = ruta === p.ruta;
-          return (
-            <Enlace
-              key={p.ruta}
-              a={p.ruta}
-              aria-current={activa ? 'page' : undefined}
-              className={`pb-3 -mb-px text-sm font-medium whitespace-nowrap border-b-2 transition-colors duration-150 ${activa ? 'border-bosque text-bosque' : 'border-transparent text-piedra hover:text-tinta'}`}
-            >
-              {p.titulo}
-            </Enlace>
-          );
-        })}
-      </nav>
+        <PestanasEnlace etiqueta="Secciones de Administración" items={PESTANAS_ADMIN.map((p) => ({ a: p.ruta, titulo: p.titulo, activa: ruta === p.ruta }))} />
       </NavegacionDePagina>
       {ruta === '/portal/admin/clientes' ? <Clientes /> : ruta === '/portal/admin/agendas' ? <Agendas /> : ruta === '/portal/admin/documentos' ? <Documentos /> : ruta === '/portal/admin/formularios' ? <Formularios /> : ruta === '/portal/admin/abonos' ? <Abonos /> : ruta === '/portal/admin/newsletter' ? <NewsletterAdmin /> : ruta === '/portal/admin/calidad' ? <CalidadIa /> : ruta === '/portal/admin/registro' ? <Registro /> : <Usuarios yo={perfil} />}
     </div>

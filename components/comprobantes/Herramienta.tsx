@@ -3,7 +3,7 @@ import '@fontsource-variable/archivo/wdth.css';
 import { Download, RotateCcw, Upload, X } from 'lucide-react';
 import { Button, DensidadBotones } from '../Button';
 import { Logo as LogoFirma } from '../Logo';
-import { Aviso } from '../portal/ui';
+import { Aviso } from '../uiClasica';
 import { datosNuevos, faltantes, numeroVisible, parteVacia, type DatosComprobante, type TipoComprobante } from './modelo';
 import { descargar, generarPdf, logoParaPdf, nombreArchivo, type Logo } from './pdf';
 import { Editor } from './Editor';

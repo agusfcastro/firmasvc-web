@@ -18,6 +18,9 @@
 @import "@heroui/styles/components/field-error.css" layer(components);
 @import "@heroui/styles/components/label.css" layer(components);
 
+/* Navegación */
+@import "@heroui/styles/components/tabs.css" layer(components);
+
 /* Botones, campos y selección */
 @import "@heroui/styles/components/button.css" layer(components);
 @import "@heroui/styles/components/toggle-button.css" layer(components);
@@ -31,6 +34,11 @@
 @import "@heroui/styles/components/header.css" layer(components);
 @import "@heroui/styles/components/separator.css" layer(components);
 
+/* Interruptores, estados y avisos */
+@import "@heroui/styles/components/switch.css" layer(components);
+@import "@heroui/styles/components/chip.css" layer(components);
+@import "@heroui/styles/components/alert.css" layer(components);
+
 /* Menús, globos y paginación */
 @import "@heroui/styles/components/popover.css" layer(components);
 @import "@heroui/styles/components/tooltip.css" layer(components);
@@ -39,3 +47,6 @@
 @import "@heroui/styles/components/menu-item.css" layer(components);
 @import "@heroui/styles/components/menu-section.css" layer(components);
 @import "@heroui/styles/components/pagination.css" layer(components);
+
+/* Utilidades, al final */
+@import "@heroui/styles/components/scroll-shadow.css" layer(components);
