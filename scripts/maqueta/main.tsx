@@ -5,6 +5,7 @@
  *   ?pantalla=alta           Alta de un cliente en el CRM, para ver los campos
  *   ?pantalla=firmas         Firmas visto por FIRMA
  *   ?pantalla=admin-documentos  Administración › Documentos
+ *   ?ruta=/portal/crm/...    cualquier pantalla del CRM como la ve el titular (ficha, casos, reuniones…)
  */
 import React from 'react';
 import ReactDOM from 'react-dom/client';
@@ -16,6 +17,7 @@ import { Documentos } from '../../components/portal/Documentos';
 import { AltaCliente } from '../../components/portal/crm/AltaCliente';
 import { Firmas } from '../../components/portal/firmas/Firmas';
 import { PanelAdmin } from '../../components/portal/admin/PanelAdmin';
+import { CrmApp } from '../../components/portal/crm/CrmApp';
 import { ORG, PERFIL, PERFIL_FIRMA } from './datos';
 import type { Organizacion, Perfil } from '../../components/portal/tipos';
 
@@ -41,7 +43,11 @@ let contenido: React.ReactNode = (
     <Listado orgId={ORG} orgNombre="Empresa Demo" cobranza verCasos />
   </Marco>
 );
-if (pantalla === 'documentos') {
+const rutaCrm = q.get('ruta');
+if (rutaCrm?.startsWith('/portal/crm')) {
+  ruta = rutaCrm;
+  contenido = <CrmApp perfil={titular} organizacion={org} ruta={ruta} />;
+} else if (pantalla === 'documentos') {
   ruta = seccion ? `/portal/documentos/${seccion}` : '/portal/documentos';
   contenido = <Documentos perfil={firma} organizacion={null} ruta={ruta} />;
 } else if (pantalla === 'alta') {
@@ -59,5 +65,7 @@ if (pantalla === 'documentos') {
   contenido = <PanelAdmin perfil={firma} ruta={ruta} />;
 }
 window.history.replaceState(null, '', `${ruta}${empresa ? `?empresa=${empresa}` : ''}`);
+// Las pantallas del CRM se mueven con navegar(): se vuelve a pintar la de la dirección nueva.
+if (rutaCrm) window.addEventListener('popstate', () => window.location.replace(`/?ruta=${encodeURIComponent(window.location.pathname)}`));
 
 ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode>{contenido}</React.StrictMode>);

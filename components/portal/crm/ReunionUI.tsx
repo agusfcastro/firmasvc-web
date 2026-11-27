@@ -22,6 +22,7 @@ import {
   type TipoReunion,
 } from './reuniones';
 import { claseBotonHero } from '../../Button';
+import { Selector, Fecha } from '../campos';
 
 /** Un cliente para elegir con quién es la reunión. */
 export interface ClienteOpcion {
@@ -208,7 +209,7 @@ export const FormReunion: React.FC<{
               </Campo>
             ) : (
               <Campo etiqueta="Cliente">
-                <select className={claseInput} value={b.cliente_id} onChange={(e) => cambiarCliente(e.target.value)}>
+                <Selector className={claseInput} value={b.cliente_id} onChange={(e) => cambiarCliente(e.target.value)}>
                   <option value="">Elegí el cliente</option>
                   {(clientes ?? []).map((c) => (
                     <option key={c.id} value={c.id}>
@@ -216,7 +217,7 @@ export const FormReunion: React.FC<{
                       {c.codigo ? ` · ${c.codigo}` : ''}
                     </option>
                   ))}
-                </select>
+                </Selector>
               </Campo>
             )}
             <label className="flex items-center gap-2.5 text-sm h-11">
@@ -226,20 +227,20 @@ export const FormReunion: React.FC<{
           </div>
         )}
         <Campo etiqueta="Tipo" ayuda="Lo marca una persona. De acá salen la asistencia y el cierre de cada uno.">
-          <select className={claseInput} value={b.tipo} onChange={(e) => set('tipo', e.target.value as TipoReunion | '')}>
+          <Selector className={claseInput} value={b.tipo} onChange={(e) => set('tipo', e.target.value as TipoReunion | '')}>
             <option value="">Elegí el tipo</option>
             {(Object.keys(TIPO_REUNION) as TipoReunion[]).map((t) => (
               <option key={t} value={t}>
                 {TIPO_REUNION[t]}
               </option>
             ))}
-          </select>
+          </Selector>
         </Campo>
         <Campo etiqueta="Fecha y hora">
-          <input type="datetime-local" required className={claseInput} value={b.inicio} onChange={(e) => cambiarInicio(e.target.value)} />
+          <Fecha type="datetime-local" required className={claseInput} value={b.inicio} onChange={(e) => cambiarInicio(e.target.value)} />
         </Campo>
         <Campo etiqueta="Con quién del equipo">
-          <select className={claseInput} value={b.miembro_id} onChange={(e) => set('miembro_id', e.target.value)}>
+          <Selector className={claseInput} value={b.miembro_id} onChange={(e) => set('miembro_id', e.target.value)}>
             <option value="">Sin asignar</option>
             {personas.map((m) => (
               <option key={m.id} value={m.id}>
@@ -247,20 +248,20 @@ export const FormReunion: React.FC<{
                 {!m.activo ? ' · inactivo' : ''}
               </option>
             ))}
-          </select>
+          </Selector>
         </Campo>
         <Campo etiqueta="La agendó" ayuda="Opcional. Por ejemplo el setter que consiguió la llamada.">
-          <select className={claseInput} value={b.agendada_por} onChange={(e) => set('agendada_por', e.target.value)}>
+          <Selector className={claseInput} value={b.agendada_por} onChange={(e) => set('agendada_por', e.target.value)}>
             <option value="">Nadie en particular</option>
             {agendadores.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.nombre} · {rolDe(m)}
               </option>
             ))}
-          </select>
+          </Selector>
         </Campo>
         <Campo etiqueta="Estado">
-          <select
+          <Selector
             className={claseInput}
             value={b.estado}
             onChange={(e) => {
@@ -273,18 +274,18 @@ export const FormReunion: React.FC<{
                 {ESTADO_REUNION[x].titulo}
               </option>
             ))}
-          </select>
+          </Selector>
         </Campo>
         {b.tipo === 'venta' && b.estado === 'realizada' ? (
           <Campo etiqueta="Resultado">
-            <select className={claseInput} value={b.resultado} onChange={(e) => set('resultado', e.target.value as ResultadoVenta | '')}>
+            <Selector className={claseInput} value={b.resultado} onChange={(e) => set('resultado', e.target.value as ResultadoVenta | '')}>
               <option value="">Sin cargar</option>
               {(Object.keys(RESULTADO_VENTA) as ResultadoVenta[]).map((x) => (
                 <option key={x} value={x}>
                   {RESULTADO_VENTA[x]}
                 </option>
               ))}
-            </select>
+            </Selector>
           </Campo>
         ) : (
           <Campo etiqueta="Duración en minutos (opcional)">
@@ -362,7 +363,7 @@ export const FilaReunion: React.FC<{
     alCambiar(data as Reunion);
   }
 
-  const boton = 'h-8 px-3 text-[13px] font-medium border border-borde-suave bg-papel hover:border-tinta disabled:opacity-50';
+  const boton = claseBotonHero('ghost', 'sm');
 
   return (
     <li className={`py-4 border-b border-tinta/10 last:border-b-0 flex flex-col gap-2.5 ${porCompletar(r) ? 'bg-niebla/40 -mx-3 px-3' : ''}`}>
@@ -403,7 +404,7 @@ export const FilaReunion: React.FC<{
             </a>
           )}
           {editable && (
-            <button type="button" onClick={alEditar} aria-label="Editar la reunión" className="w-8 h-8 inline-flex items-center justify-center border border-borde-suave bg-papel hover:border-tinta">
+            <button type="button" onClick={alEditar} aria-label="Editar la reunión" className={claseBotonHero('ghost', 'sm', false, true)}>
               <Pencil size={14} aria-hidden="true" />
             </button>
           )}
@@ -412,7 +413,7 @@ export const FilaReunion: React.FC<{
       {editable && (!r.tipo || pendienteDeMarcar || (r.tipo === 'venta' && r.estado === 'realizada' && !r.resultado)) && (
         <div className="flex flex-wrap items-center gap-2 pl-0 tab:pl-[76px]">
           {!r.tipo && (
-            <select
+            <Selector
               aria-label="Tipo de reunión"
               className="h-8 pl-2.5 pr-8 text-[13px] bg-white border border-borde focus:outline-none focus:border-bosque"
               value=""
@@ -425,7 +426,7 @@ export const FilaReunion: React.FC<{
                   {TIPO_REUNION[t]}
                 </option>
               ))}
-            </select>
+            </Selector>
           )}
           {pendienteDeMarcar && (
             <>

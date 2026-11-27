@@ -10,6 +10,7 @@ import { mensajeAmable } from '../errores';
 import { AnalisisLlamada } from './AnalisisLlamada';
 import { CargarTranscripcion } from './CargarTranscripcion';
 import { etiquetaAnalisis, type AnalisisFila } from './analisis';
+import { Selector } from '../campos';
 
 /**
  * Llamadas de Fathom (migraciones 0049 y 0050).
@@ -743,7 +744,7 @@ export const Llamadas: React.FC<{ orgId: string; orgNombre: string; puedeGestion
                           <td className="tabular-nums">{minutos(l.duracion_seg)}</td>
                           <td>
                             {verTodo ? (
-                              <select
+                              <Selector
                                 className={`${claseInput} min-w-[200px]`}
                                 aria-label="Cliente de la llamada"
                                 disabled={ocupado || vistaPrevia}
@@ -762,7 +763,7 @@ export const Llamadas: React.FC<{ orgId: string; orgNombre: string; puedeGestion
                                     {c.codigo ? ` (${c.codigo})` : ''}
                                   </option>
                                 ))}
-                              </select>
+                              </Selector>
                             ) : l.cliente_id ? (
                               <Enlace a={`/portal/crm/${l.cliente_id}`} className="underline underline-offset-4 hover:text-bosque">
                                 Ver ficha

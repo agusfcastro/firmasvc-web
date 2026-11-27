@@ -11,6 +11,7 @@ import { rolDe, dinero, hoyISO, nombreMonedaCrm, type IntegranteEquipo, type Ser
 import { simboloMoneda } from '../../../api/_lib/variables';
 import { CampoVariable, sinVacios } from './variablesPropias';
 import { DatosCliente, filaIdentidad } from './DatosCliente';
+import { Selector, Fecha } from '../campos';
 
 /** Valor de la lista para asignar a alguien que todavía no está en Equipo. */
 const NUEVO = '__nuevo__';
@@ -368,7 +369,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
 
       <div className="grid gap-5 tab:grid-cols-2">
         <Campo etiqueta="Servicio">
-          <select
+          <Selector
             required
             className={claseInput}
             value={f.servicio}
@@ -387,24 +388,24 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
                 {s.nombre ? ` · ${s.nombre}` : ''}
               </option>
             ))}
-          </select>
+          </Selector>
         </Campo>
         {monedas.length > 1 && (
           <Campo etiqueta="Moneda" ayuda="Es la del contrato y la del plan de pagos.">
-            <select className={claseInput} value={f.moneda} onChange={(e) => set('moneda', e.target.value)}>
+            <Selector className={claseInput} value={f.moneda} onChange={(e) => set('moneda', e.target.value)}>
               {monedas.map((m) => (
                 <option key={m} value={m}>
                   {nombreMonedaCrm(m)}
                 </option>
               ))}
-            </select>
+            </Selector>
           </Campo>
         )}
         <Campo etiqueta={`Monto total acordado (${simbolo})`} ayuda="Arranca con el ticket del servicio, si tiene. Cambialo si hubo descuento.">
           <input required type="number" step="0.01" min="1" className={claseInput} value={f.monto_total} onChange={(e) => set('monto_total', e.target.value)} />
         </Campo>
         <Campo etiqueta="Onboarding">
-          <input type="datetime-local" className={claseInput} value={f.fecha_onboarding} onChange={(e) => set('fecha_onboarding', e.target.value)} />
+          <Fecha type="datetime-local" className={claseInput} value={f.fecha_onboarding} onChange={(e) => set('fecha_onboarding', e.target.value)} />
         </Campo>
         {(
           [
@@ -419,7 +420,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
           return (
             <Campo key={campo} etiqueta={etiqueta}>
               <div className="flex flex-col gap-2">
-                <select className={claseInput} value={f[campo]} onChange={(e) => set(campo, e.target.value)}>
+                <Selector className={claseInput} value={f[campo]} onChange={(e) => set(campo, e.target.value)}>
                   <option value="">Sin asignar</option>
                   {delRol.map((m) => (
                     <option key={m.id} value={m.id}>
@@ -436,7 +437,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
                     </optgroup>
                   )}
                   <option value={NUEVO}>+ Alguien que no está en el equipo</option>
-                </select>
+                </Selector>
                 {f[campo] === NUEVO && (
                   <input
                     required
@@ -479,7 +480,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
         <TituloSeccion eyebrow="Paso 2" titulo="Plan de pagos" />
         <div className="grid gap-5 tab:grid-cols-2 desk:grid-cols-4">
           <Campo etiqueta="Modalidad">
-            <select
+            <Selector
               className={claseInput}
               value={f.modalidad}
               onChange={(e) => {
@@ -489,7 +490,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
             >
               <option value="Cuotas">Cuotas</option>
               <option value="PIF">PIF (pago total)</option>
-            </select>
+            </Selector>
           </Campo>
           {!esPif && (
             <Campo etiqueta={`Anticipo (${simbolo}) *`} ayuda="* Todo lo que se pague antes del día del onboarding.">
@@ -521,7 +522,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
           )}
           {!esPif && (
             <Campo etiqueta="Primera cuota">
-              <input type="date" className={claseInput} value={f.primera} onChange={(e) => cambiarPrimera(e.target.value)} />
+              <Fecha type="date" className={claseInput} value={f.primera} onChange={(e) => cambiarPrimera(e.target.value)} />
             </Campo>
           )}
         </div>
@@ -548,8 +549,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
                 value={c.monto}
                 onChange={(e) => editarCuota(i, { monto: e.target.value })}
               />
-              <input
-                type="date"
+              <Fecha
                 aria-label={`Vencimiento de la cuota ${i + 1}`}
                 className={claseInput}
                 value={c.vencimiento}

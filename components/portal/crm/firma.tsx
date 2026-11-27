@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Check, ClipboardCopy } from 'lucide-react';
+import { claseBotonHero } from '../../Button';
 
 /** Copiar al portapapeles, con el botón que se usa en el CRM y en el panel. */
 
@@ -39,8 +40,8 @@ export const BotonCopiar: React.FC<{ texto: string; etiqueta?: string; descripci
   const Icono = estado === 'ok' ? Check : ClipboardCopy;
   const clase =
     variante === 'icono'
-      ? `inline-flex items-center justify-center w-9 h-9 border transition-colors duration-150 ${estado === 'ok' ? 'border-bosque bg-bosque text-marfil' : 'border-tinta/22 bg-white text-tinta hover:border-tinta'}`
-      : 'inline-flex items-center gap-2 h-11 px-5 bg-marfil text-tinta text-sm font-medium transition-colors duration-150 hover:bg-white';
+      ? claseBotonHero(estado === 'ok' ? 'primary' : 'ghost', 'md', false, true)
+      : `${claseBotonHero('light', 'md')} !bg-marfil !text-tinta hover:!bg-white`;
 
   return (
     <button

@@ -5,6 +5,7 @@ import { Aviso, Campo, TituloSeccion, claseInput } from '../ui';
 import { mensajeAmable } from '../errores';
 import { rolDe, type IntegranteEquipo } from './tipos';
 import { hablantesDe, leerTranscripcion, sinFalsosHablantes } from './analisis';
+import { Selector, Fecha } from '../campos';
 
 /**
  * Cargar a mano una llamada que no vino por Fathom (interaccion_cargar_manual,
@@ -113,20 +114,20 @@ export const CargarTranscripcion: React.FC<{
             <input className={claseInput} value={titulo} maxLength={300} onChange={(e) => setTitulo(e.target.value)} />
           </Campo>
           <Campo etiqueta="Fecha y hora de la llamada">
-            <input type="datetime-local" className={claseInput} value={fecha} onChange={(e) => setFecha(e.target.value)} />
+            <Fecha type="datetime-local" className={claseInput} value={fecha} onChange={(e) => setFecha(e.target.value)} />
           </Campo>
           <Campo etiqueta="Quién vendió">
-            <select className={claseInput} value={miembro} onChange={(e) => setMiembro(e.target.value)}>
+            <Selector className={claseInput} value={miembro} onChange={(e) => setMiembro(e.target.value)}>
               <option value="">Sin indicar</option>
               {activos.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.nombre} · {rolDe(m)}
                 </option>
               ))}
-            </select>
+            </Selector>
           </Campo>
           <Campo etiqueta="Cliente del CRM" ayuda="Si todavía no compró, dejalo sin cliente y asignalo después.">
-            <select className={claseInput} value={cliente} onChange={(e) => setCliente(e.target.value)}>
+            <Selector className={claseInput} value={cliente} onChange={(e) => setCliente(e.target.value)}>
               <option value="">Todavía no es cliente</option>
               {clientes.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -134,7 +135,7 @@ export const CargarTranscripcion: React.FC<{
                   {c.codigo ? ` (${c.codigo})` : ''}
                 </option>
               ))}
-            </select>
+            </Selector>
           </Campo>
         </div>
 
@@ -175,7 +176,7 @@ export const CargarTranscripcion: React.FC<{
                       <td>{h.nombre}</td>
                       <td className="tabular-nums">{h.veces}</td>
                       <td>
-                        <select
+                        <Selector
                           className={`${claseInput} min-w-[180px]`}
                           aria-label={`Rol de ${h.nombre}`}
                           value={roles[h.nombre] ?? 'prospecto'}
@@ -186,7 +187,7 @@ export const CargarTranscripcion: React.FC<{
                               {t}
                             </option>
                           ))}
-                        </select>
+                        </Selector>
                       </td>
                     </tr>
                   ))}

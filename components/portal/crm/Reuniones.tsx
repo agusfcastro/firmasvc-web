@@ -21,6 +21,8 @@ import {
 } from './reuniones';
 import { FilaReunion, FormReunion, type ClienteOpcion } from './ReunionUI';
 import { useConexionesGoogle } from '../google';
+import { Selector } from '../campos';
+import { claseBotonHero } from '../../Button';
 
 type Vista = 'proximas' | 'completar' | 'pasadas' | 'todas';
 type Periodo = '30' | '90' | '365';
@@ -197,7 +199,7 @@ export const Reuniones: React.FC<{ orgId: string; orgNombre: string; puedeGestio
               <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-piedra" aria-hidden="true" />
               <input className={`${claseInput} pl-10`} placeholder="Buscar cliente, prospecto o título" aria-label="Buscar reunión" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
             </div>
-            <select aria-label="Persona del equipo" className={selector} value={persona} onChange={(e) => setPersona(e.target.value)}>
+            <Selector aria-label="Persona del equipo" className={selector} value={persona} onChange={(e) => setPersona(e.target.value)}>
               <option value="">Todo el equipo</option>
               <option value="sin">Sin persona asignada</option>
               {equipo
@@ -207,8 +209,8 @@ export const Reuniones: React.FC<{ orgId: string; orgNombre: string; puedeGestio
                     {m.nombre} · {rolDe(m)}
                   </option>
                 ))}
-            </select>
-            <select aria-label="Tipo de reunión" className={selector} value={tipo} onChange={(e) => setTipo(e.target.value as TipoReunion | 'sin' | '')}>
+            </Selector>
+            <Selector aria-label="Tipo de reunión" className={selector} value={tipo} onChange={(e) => setTipo(e.target.value as TipoReunion | 'sin' | '')}>
               <option value="">Todos los tipos</option>
               <option value="sin">Sin tipo</option>
               {(Object.keys(TIPO_REUNION) as TipoReunion[]).map((t) => (
@@ -216,12 +218,12 @@ export const Reuniones: React.FC<{ orgId: string; orgNombre: string; puedeGestio
                   {TIPO_REUNION[t]}
                 </option>
               ))}
-            </select>
-            <select aria-label="Período" className={selector} value={periodo} onChange={(e) => setPeriodo(e.target.value as Periodo)}>
+            </Selector>
+            <Selector aria-label="Período" className={selector} value={periodo} onChange={(e) => setPeriodo(e.target.value as Periodo)}>
               <option value="30">Últimos 30 días y lo que viene</option>
               <option value="90">Últimos 90 días y lo que viene</option>
               <option value="365">Último año y lo que viene</option>
-            </select>
+            </Selector>
           </div>
 
           {clienteFijo && (
@@ -232,7 +234,7 @@ export const Reuniones: React.FC<{ orgId: string; orgNombre: string; puedeGestio
               <button
                 type="button"
                 aria-label="Ver todas las reuniones"
-                className="w-7 h-7 inline-flex items-center justify-center border border-borde-suave bg-papel hover:border-tinta"
+                className={claseBotonHero('ghost', 'sm', false, true)}
                 onClick={() => {
                   setClienteFijo(null);
                   window.history.replaceState({}, '', '/portal/crm/reuniones');

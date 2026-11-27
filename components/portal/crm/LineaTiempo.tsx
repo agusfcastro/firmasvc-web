@@ -6,6 +6,7 @@ import { Enlace } from '../ui';
 import { dinero, type ClienteResumen } from './tipos';
 import { TIPO_REUNION, type EstadoReunion, type TipoReunion } from './reuniones';
 import { ROTULO_CAUSA, type Causa, type Etapa, type Semaforo } from './reglasCasos';
+import { claseBotonHero } from '../../Button';
 
 const DIA = 86400000;
 /** Desde cuántos días antes del fin se avisa que el contrato vence. */
@@ -426,7 +427,7 @@ export const LineaTiempo: React.FC<{
   const mesAnio = (d: Date) => d.toLocaleDateString('es-AR', { month: 'short', year: 'numeric' }).replace(/\./g, '');
   const rango = `${mesAnio(meses[0])} a ${mesAnio(meses[MESES_VISIBLES - 1])}`;
   const rotuloRango = rango.charAt(0).toUpperCase() + rango.slice(1);
-  const flecha = 'w-9 h-9 inline-flex items-center justify-center border border-borde-suave bg-papel rounded-[10px] hover:border-tinta';
+  const flecha = claseBotonHero('ghost', 'md', false, true);
 
   return (
     <div className="flex flex-col gap-4">

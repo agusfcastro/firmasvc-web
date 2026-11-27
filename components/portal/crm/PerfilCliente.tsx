@@ -6,6 +6,7 @@ import { Aviso, Bloque, Campo, Etiqueta, claseInput } from '../ui';
 import { hoyISO } from './tipos';
 import { registrarLectura } from '../lecturas';
 import { mensajeAmable } from '../errores';
+import { Fecha, Selector } from '../campos';
 
 type Arquetipo = { clave: string; nombre: string; descripcion: string; umbral: number; ventana_dias: number; orden: number };
 type TipoSenal = { clave: string; arquetipo: string; nombre: string; descripcion: string | null; origen: 'crm' | 'manual' | 'llamada'; peso: number; orden: number; activo: boolean };
@@ -186,7 +187,7 @@ export const PerfilCliente: React.FC<{ clienteId: string; soloLectura: boolean; 
       {nueva && (
         <form onSubmit={registrar} className="mb-8 grid gap-4 tab:grid-cols-[1fr_180px] items-start bg-marfil-oscuro p-5">
           <Campo etiqueta="Señal">
-            <select required className={claseInput} value={nueva.tipo} onChange={(e) => setNueva({ ...nueva, tipo: e.target.value })}>
+            <Selector required className={claseInput} value={nueva.tipo} onChange={(e) => setNueva({ ...nueva, tipo: e.target.value })}>
               {arquetipos.map((a) => (
                 <optgroup key={a.clave} label={a.nombre}>
                   {manuales
@@ -198,10 +199,10 @@ export const PerfilCliente: React.FC<{ clienteId: string; soloLectura: boolean; 
                     ))}
                 </optgroup>
               ))}
-            </select>
+            </Selector>
           </Campo>
           <Campo etiqueta="Fecha">
-            <input required type="date" max={hoyISO()} className={claseInput} value={nueva.fecha} onChange={(e) => setNueva({ ...nueva, fecha: e.target.value })} />
+            <Fecha required max={hoyISO()} className={claseInput} value={nueva.fecha} onChange={(e) => setNueva({ ...nueva, fecha: e.target.value })} />
           </Campo>
           <div className="tab:col-span-2">
             <Campo etiqueta="Qué pasó" ayuda="Lo que el cliente hizo o dijo, y por qué canal. Hechos, no opiniones sobre la persona.">

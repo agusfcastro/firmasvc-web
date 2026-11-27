@@ -8,6 +8,7 @@ import { BotonCopiar } from './firma';
 import { VARIABLES, simboloMoneda } from '../../../api/_lib/variables';
 import { dinero, nombreMonedaCrm, opcionesMoneda, type Servicio } from './tipos';
 import { mensajeAmable } from '../errores';
+import { Selector } from '../campos';
 
 /**
  * Servicios que vende cada empresa. Los carga el titular (o FIRMA) y el
@@ -144,7 +145,7 @@ export const Servicios: React.FC<{ orgId: string; orgNombre: string; esAdmin: bo
   }
 
   const selectorModelo = (valor: string, alCambiar: (id: string) => void, vacio: string) => (
-    <select className={claseInput} value={valor} onChange={(e) => alCambiar(e.target.value)}>
+    <Selector className={claseInput} value={valor} onChange={(e) => alCambiar(e.target.value)}>
       <option value="">{vacio}</option>
       {modelos.map((m) => (
         <option key={m.id} value={m.id}>
@@ -152,7 +153,7 @@ export const Servicios: React.FC<{ orgId: string; orgNombre: string; esAdmin: bo
           {m.organizacion_id ? ' · exclusivo de la empresa' : ''}
         </option>
       ))}
-    </select>
+    </Selector>
   );
 
   return (
@@ -200,13 +201,13 @@ export const Servicios: React.FC<{ orgId: string; orgNombre: string; esAdmin: bo
             </Campo>
             {opcionesMoneda(monedas, borrador.moneda).length > 1 && (
               <Campo etiqueta="Moneda del ticket" ayuda="Al cargar una venta de este servicio se propone esta moneda.">
-                <select className={claseInput} value={borrador.moneda} onChange={(e) => setBorrador({ ...borrador, moneda: e.target.value })}>
+                <Selector className={claseInput} value={borrador.moneda} onChange={(e) => setBorrador({ ...borrador, moneda: e.target.value })}>
                   {opcionesMoneda(monedas, borrador.moneda).map((m) => (
                     <option key={m} value={m}>
                       {nombreMonedaCrm(m)}
                     </option>
                   ))}
-                </select>
+                </Selector>
               </Campo>
             )}
             <Campo etiqueta={`Ticket (${simboloMoneda(borrador.moneda)}, opcional)`} ayuda="Precio de lista. Al cargar una venta aparece como monto sugerido y se puede cambiar.">

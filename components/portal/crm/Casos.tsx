@@ -48,6 +48,8 @@ import {
   type ResultadoContracargo,
   type Semaforo,
 } from './reglasCasos';
+import { Selector, Fecha } from '../campos';
+import { claseBotonHero } from '../../Button';
 
 /**
  * Casos de conflicto del CRM. Registro de reclamos y pedidos de reembolso de
@@ -554,7 +556,7 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
             <fieldset disabled={soloLectura} className="flex flex-col gap-8 min-w-0">
               <div className="grid gap-5 tab:grid-cols-2 desk:grid-cols-3">
                 <Campo etiqueta="Cliente">
-                  <select required className={claseInput} value={borrador.cliente_id} onChange={(e) => cambiar({ cliente_id: e.target.value })}>
+                  <Selector required className={claseInput} value={borrador.cliente_id} onChange={(e) => cambiar({ cliente_id: e.target.value })}>
                     <option value="">Elegí</option>
                     {opciones.map((c) => (
                       <option key={c.id} value={c.id}>
@@ -562,20 +564,20 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
                         {c.codigo ? ` · ${c.codigo}` : ''}
                       </option>
                     ))}
-                  </select>
+                  </Selector>
                 </Campo>
                 <Campo etiqueta="Apertura">
-                  <input type="date" required max={hoy} className={claseInput} value={borrador.abierto_en} onChange={(e) => cambiar({ abierto_en: e.target.value })} />
+                  <Fecha type="date" required max={hoy} className={claseInput} value={borrador.abierto_en} onChange={(e) => cambiar({ abierto_en: e.target.value })} />
                 </Campo>
                 <Campo etiqueta="Causa">
-                  <select required className={claseInput} value={borrador.causa} onChange={(e) => cambiar({ causa: e.target.value as Causa | '' })}>
+                  <Selector required className={claseInput} value={borrador.causa} onChange={(e) => cambiar({ causa: e.target.value as Causa | '' })}>
                     <option value="">Elegí</option>
                     {CAUSAS.map((k) => (
                       <option key={k} value={k}>
                         {ROTULO_CAUSA[k]}
                       </option>
                     ))}
-                  </select>
+                  </Selector>
                 </Campo>
                 <Campo etiqueta="Canal" ayuda="Por dónde llegó el reclamo.">
                   <input list="canales-caso" className={claseInput} value={borrador.canal} onChange={(e) => cambiar({ canal: e.target.value })} placeholder="WhatsApp, correo, tarjeta" />
@@ -596,13 +598,13 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
               <div className="grid gap-6 tab:grid-cols-2 pt-7" style={filete}>
                 <p className="tab:col-span-2 eyebrow text-piedra -mb-1">Gestión</p>
                 <Campo etiqueta="Etapa">
-                  <select className={claseInput} value={borrador.etapa} onChange={(e) => cambiarEtapa(e.target.value as Etapa)}>
+                  <Selector className={claseInput} value={borrador.etapa} onChange={(e) => cambiarEtapa(e.target.value as Etapa)}>
                     {ETAPAS.map((k) => (
                       <option key={k} value={k}>
                         {ROTULO_ETAPA[k]}
                       </option>
                     ))}
-                  </select>
+                  </Selector>
                 </Campo>
                 <div>
                   <span className={claseEtiqueta} id="caso-semaforo">
@@ -654,13 +656,13 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
                   </label>
                   {borrador.contracargo && (
                     <Campo etiqueta="Resultado del contracargo">
-                      <select className={claseInput} value={borrador.contracargo_resultado} onChange={(e) => cambiar({ contracargo_resultado: e.target.value as ResultadoContracargo })}>
+                      <Selector className={claseInput} value={borrador.contracargo_resultado} onChange={(e) => cambiar({ contracargo_resultado: e.target.value as ResultadoContracargo })}>
                         {RESULTADOS.map((k) => (
                           <option key={k} value={k}>
                             {ROTULO_RESULTADO[k]}
                           </option>
                         ))}
-                      </select>
+                      </Selector>
                     </Campo>
                   )}
                 </div>
@@ -669,21 +671,21 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
               <div className="grid gap-5 tab:grid-cols-3 pt-7" style={filete}>
                 <p className="tab:col-span-3 eyebrow text-piedra -mb-1">Resultado</p>
                 <Campo etiqueta="Decisión" ayuda="Obligatoria para cerrar el caso.">
-                  <select className={claseInput} value={borrador.decision} onChange={(e) => cambiar({ decision: e.target.value as Decision | '' })}>
+                  <Selector className={claseInput} value={borrador.decision} onChange={(e) => cambiar({ decision: e.target.value as Decision | '' })}>
                     <option value="">Sin decisión</option>
                     {DECISIONES.map((k) => (
                       <option key={k} value={k}>
                         {ROTULO_DECISION[k]}
                       </option>
                     ))}
-                  </select>
+                  </Selector>
                 </Campo>
                 <Campo etiqueta={`Monto concedido (${moneda})`} ayuda="Devoluciones, descuentos o bonificaciones acordadas.">
                   <input type="number" min="0" step="0.01" placeholder="0" className={claseInput} value={borrador.monto_concedido} onChange={(e) => cambiar({ monto_concedido: e.target.value })} />
                 </Campo>
                 {borrador.etapa === 'cerrado' ? (
                   <Campo etiqueta="Fecha de cierre">
-                    <input type="date" min={borrador.abierto_en} max={hoy} className={claseInput} value={borrador.cerrado_en} onChange={(e) => cambiar({ cerrado_en: e.target.value })} />
+                    <Fecha type="date" min={borrador.abierto_en} max={hoy} className={claseInput} value={borrador.cerrado_en} onChange={(e) => cambiar({ cerrado_en: e.target.value })} />
                   </Campo>
                 ) : (
                   <p className="text-xs text-piedra self-center leading-[1.5]">Para cerrar el caso pasalo a la etapa Cerrado y completá la decisión y la fecha de cierre.</p>
@@ -714,7 +716,7 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
                     <button
                       type="button"
                       onClick={borrar}
-                      className="ml-auto inline-flex items-center gap-2 h-[52px] px-4 text-sm font-medium text-peligro transition-colors duration-150 hover:bg-peligro-suave"
+                      className={`${claseBotonHero('peligro', 'lg')} ml-auto`}
                     >
                       <Trash2 size={16} aria-hidden="true" /> Eliminar caso
                     </button>
@@ -772,7 +774,7 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
                 href="/protocolo-conflictos"
                 target="_blank"
                 rel="noopener"
-                className="self-start inline-flex items-center gap-2 h-11 px-5 bg-marfil text-tinta text-sm font-medium transition-colors duration-150 hover:bg-white"
+                className={`${claseBotonHero('light', 'md')} self-start !bg-marfil !text-tinta hover:!bg-white`}
               >
                 Ver el protocolo de conflictos <ExternalLink size={15} aria-hidden="true" />
               </a>
@@ -787,7 +789,7 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
             acciones={
               <label className="flex items-center gap-2 text-sm text-piedra">
                 Mostrar
-                <select
+                <Selector
                   className="h-9 px-2 bg-white border border-tinta/25 text-sm text-tinta"
                   value={limite}
                   onChange={(e) => {
@@ -800,7 +802,7 @@ export const Casos: React.FC<{ orgId: string; orgNombre: string; puedeGestionar:
                       {n}
                     </option>
                   ))}
-                </select>
+                </Selector>
               </label>
             }
           />
