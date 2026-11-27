@@ -32,6 +32,7 @@ import {
   type Valor,
 } from './formulario';
 import { mensajeAmable } from '../errores';
+import { claseBotonHero } from '../../Button';
 
 /**
  * Pedidos de contrato en /portal/pedidos/<modelo> (nuevo) y /portal/pedidos/<id>.
@@ -93,7 +94,7 @@ async function guardarEsquemaDe(modelo: Modelo, orgId: string, r: Respuestas, ex
   return e ? e.message : null;
 }
 
-const claseTextarea = `${claseInput.replace('h-12', 'min-h-[96px]')} py-3 leading-[1.5]`;
+const claseTextarea = `${claseInput.replace('h-10', 'min-h-[96px]')} py-3 leading-[1.5]`;
 const ZONA = 'America/Argentina/Buenos_Aires';
 const fecha = (iso: string) => new Date(iso).toLocaleDateString('es-AR', { timeZone: ZONA, day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -989,8 +990,7 @@ const EntregarModelo: React.FC<{ pedido: PedidoContrato; modelo: ClaveModelo }> 
 /* ------------------------------------------------------------------ */
 /* Acceso desde Documentos › Contratos con tu equipo                    */
 /* ------------------------------------------------------------------ */
-const claseAccion =
-  'inline-flex items-center justify-center gap-2 h-11 px-5 bg-marfil text-tinta text-sm font-medium whitespace-nowrap transition-colors duration-150 hover:bg-white';
+const claseAccion = claseBotonHero('light', 'md');
 
 /** vistaPrevia: FIRMA o Ver como, que abren el formulario sin guardar. Una tarjeta por modelo. */
 export const PedidosEquipo: React.FC<{ orgId: string | null; vistaPrevia: boolean }> = ({ orgId, vistaPrevia }) => {

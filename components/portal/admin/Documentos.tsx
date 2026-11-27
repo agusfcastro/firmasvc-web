@@ -11,6 +11,7 @@ import { CARGOS_ESTANDAR, ROLES_ELEGIBLES, ROL_COMERCIAL, cargoNormal, rolDe, ty
 import { fechaCorta, type Area, type Documento, type Organizacion, type SeccionDocumento } from '../tipos';
 
 import { mensajeAmable } from '../errores';
+import { claseBotonHero } from '../../Button';
 type Filtro = 'todas' | SeccionDocumento;
 type Contenido = 'archivo' | 'enlace';
 
@@ -549,7 +550,7 @@ export const Documentos: React.FC = () => {
                         if (!elegirArchivo(e.target.files?.[0] ?? null)) e.target.value = '';
                       }}
                     />
-                    <span className="inline-flex items-center gap-2 h-11 px-5 bg-tinta text-marfil text-sm font-medium transition-colors duration-150 hover:bg-carbon peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-bosque">
+                    <span className={`${claseBotonHero('primary', 'md')} peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-bosque`}>
                       <Upload size={16} aria-hidden="true" />
                       {archivo || original?.archivo_nombre ? 'Elegir otro archivo' : 'Elegir archivo'}
                     </span>

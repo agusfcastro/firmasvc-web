@@ -12,6 +12,7 @@ import { mensajeAmable } from '../errores';
 import { EditorWord, type EditorWordRef } from '../editor/EditorWord';
 import { cargarFuentesDocumentos } from '../editor/fuentes';
 import { BorradorCambiado, bajarArchivo, descartarBorrador, guardarBorrador, listarVersiones, publicarVersion, type Version } from '../editor/versiones';
+import { claseBotonHero } from '../../Button';
 
 GlobalWorkerOptions.workerSrc = trabajador;
 
@@ -748,7 +749,7 @@ const NuevoComentario: React.FC<{
         </label>
       )}
       <div className="flex items-center gap-3">
-        <button type="submit" disabled={ocupado || !texto.trim()} className="h-10 px-4 rounded-control bg-tinta text-marfil text-sm font-medium disabled:opacity-50">
+        <button type="submit" disabled={ocupado || !texto.trim()} className={claseBotonHero('primary', 'md')}>
           {ocupado ? 'Guardando…' : 'Comentar'}
         </button>
         <button type="button" onClick={alCancelar} className="text-sm text-piedra underline underline-offset-4 hover:text-tinta">
@@ -847,7 +848,7 @@ const TarjetaHilo: React.FC<{
                 className={claseCampo}
               />
               {respuesta.trim() && (
-                <button type="submit" disabled={ocupado} className="self-start h-9 px-3.5 rounded-control bg-tinta text-marfil text-sm font-medium disabled:opacity-50">
+                <button type="submit" disabled={ocupado} className={`${claseBotonHero('primary', 'sm')} self-start`}>
                   {ocupado ? 'Guardando…' : 'Responder'}
                 </button>
               )}

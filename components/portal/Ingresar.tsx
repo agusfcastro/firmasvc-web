@@ -3,7 +3,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '../Button';
 import { supabase } from './supabase';
 import { navegar, tomarDestino, tomarSesionCortada } from './navegacion';
-import { Aviso, Campo, claseInput } from './ui';
+import { Aviso, Campo, claseInput } from '../uiClasica';
 import { LayoutAcceso } from './LayoutAcceso';
 
 export const Ingresar: React.FC = () => {

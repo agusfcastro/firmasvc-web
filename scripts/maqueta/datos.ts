@@ -29,6 +29,16 @@ export const PERFIL = {
   ultimo_ingreso: iso(hoy),
 };
 
+/** FIRMA mirando todos los clientes (?como=firma). */
+export const PERFIL_FIRMA = {
+  ...PERFIL,
+  id: 'usuario-firma',
+  email: 'equipo@firma.test',
+  nombre: 'Equipo FIRMA',
+  rol: 'admin' as const,
+  organizacion_id: null,
+};
+
 const equipo = [
   { id: 'am-1', nombre: 'Martina Rossi', rol_comercial: 'account_manager' },
   { id: 'am-2', nombre: 'Tomás Ibarra', rol_comercial: 'account_manager' },
@@ -186,16 +196,71 @@ NOMBRES.forEach((nombre, i) => {
   }
 });
 
+
+/** Otras empresas inventadas, para el filtro por cliente de Documentos. */
+const otrasEmpresas = [
+  { id: 'org-norte', nombre: 'Estudio Norte', plan: 'eminent', logo_url: null, monedas: ['USD'] },
+  { id: 'org-lumen', nombre: 'Tienda Lumen', plan: 'starter', logo_url: null, monedas: ['USD', 'PEN'] },
+  { id: 'org-delta', nombre: 'Academia Delta', plan: 'eminent', logo_url: null, monedas: ['USD'] },
+];
+
+const documento = (id: string, organizacion_id: string | null, seccion: string, titulo: string, descripcion: string, dias: number, extra: Fila = {}): Fila => ({
+  id,
+  organizacion_id,
+  seccion,
+  titulo,
+  descripcion,
+  version: null,
+  areas: [],
+  archivo_ruta: `docs/${id}.docx`,
+  archivo_nombre: `${id}.docx`,
+  archivo_bytes: 38_000 + dias * 900,
+  url: null,
+  es_protocolo: false,
+  modelo_contrato: null,
+  equipo_miembro_id: null,
+  contrato_vence_el: null,
+  orden: 0,
+  activo: true,
+  creado_en: iso(hoy - (dias + 30) * DIA),
+  actualizado_en: iso(hoy - dias * DIA),
+  ...extra,
+});
+
+const documentos: Fila[] = [
+  documento('base-servicios', null, 'servicio', 'Contrato de servicios (modelo base)', 'La base para los clientes que todavía no tienen un modelo propio.', 15),
+  documento('base-terminos', null, 'otros', 'Términos y condiciones', 'Para la web y el checkout, con la política de reembolsos.', 22),
+  documento('base-nda', null, 'equipo', 'Acuerdo de confidencialidad del equipo', 'Para cualquier persona que entra al equipo, antes de darle accesos.', 30),
+  documento('demo-servicios', ORG, 'servicio', 'Contrato de servicios (modelo demo)', 'Modelo con las variables del CRM. Se genera desde la ficha de cada cliente.', 2, { version: '3' }),
+  documento('demo-closer', ORG, 'equipo', 'Contrato de closer de Lucas Ferreyra', 'Comisión por cierre y objetivos mensuales.', 9, { equipo_miembro_id: 'cl-1', contrato_vence_el: dia(hoy + 20 * DIA) }),
+  documento('norte-mentoria', 'org-norte', 'servicio', 'Contrato de mentoría grupal', 'Programa de 12 semanas con sesiones en vivo y comunidad.', 4),
+  documento('norte-privacidad', 'org-norte', 'otros', 'Política de privacidad', 'Con el tratamiento de datos de la comunidad y los formularios.', 11),
+  documento('lumen-servicios', 'org-lumen', 'servicio', 'Contrato de servicios con anexo de alcance', 'Para vender la tienda llave en mano, con entregables por etapa.', 1, { version: '2' }),
+  documento('delta-setter', 'org-delta', 'equipo', 'Contrato de setter', 'Agenda, objetivos y pago por reunión calificada.', 6, { equipo_miembro_id: 'se-delta', contrato_vence_el: dia(hoy + 120 * DIA) }),
+];
+
 export const DATOS: Record<string, Fila[]> = {
-  organizaciones: [{ id: ORG, nombre: 'Empresa Demo', plan: 'eminent', logo_url: null, monedas: ['USD'] }],
+  organizaciones: [{ id: ORG, nombre: 'Empresa Demo', plan: 'eminent', logo_url: null, monedas: ['USD'] }, ...otrasEmpresas],
   avisos: [{ id: 'av-1', usuario_id: PERFIL.id, titulo: 'Firmaron un documento', cuerpo: 'Contrato de Valentina Castro', url: '/portal/firmas', leido_en: null, creado_en: iso(hoy - 2 * 3600_000) }],
   asuntos: [{ id: 'as-1', organizacion_id: ORG, estado: 'espera_cliente' }],
   firma_sobres: [
-    { id: 'fs-1', organizacion_id: ORG, estado: 'en_curso', crm_cliente_id: 'cli-02', creado_en: iso(hoy - DIA) },
-    { id: 'fs-2', organizacion_id: ORG, estado: 'en_curso', crm_cliente_id: null, creado_en: iso(hoy - 3 * DIA) },
+    { id: 'fs-1', organizacion_id: ORG, titulo: 'Contrato de servicios de Martín Gómez', estado: 'en_curso', crm_cliente_id: 'cli-02', creado_en: iso(hoy - DIA), vence_en: iso(hoy + 6 * DIA) },
+    { id: 'fs-2', organizacion_id: ORG, titulo: 'Contrato de closer de Julieta Paz', estado: 'en_curso', crm_cliente_id: null, creado_en: iso(hoy - 3 * DIA), vence_en: iso(hoy + 2 * DIA) },
+    { id: 'fs-3', organizacion_id: 'org-norte', titulo: 'Contrato de mentoría de Rocío Álvarez', estado: 'completado', crm_cliente_id: null, creado_en: iso(hoy - 8 * DIA), vence_en: iso(hoy + 7 * DIA), completado_en: iso(hoy - 6 * DIA) },
   ],
-  documentos: [],
-  equipo_miembros: equipo,
+  documentos,
+  areas: [
+    { clave: 'ventas', nombre: 'Ventas' },
+    { clave: 'legales', nombre: 'Legales' },
+    { clave: 'operaciones', nombre: 'Operaciones' },
+  ],
+  firma_firmantes: [
+    { id: 'ff-1', sobre_id: 'fs-1', nombre: 'Martín Gómez', email: 'martin@correo.test', estado: 'firmado', orden: 1 },
+    { id: 'ff-2', sobre_id: 'fs-1', nombre: 'Paula Demo', email: 'paula@empresademo.com', estado: 'pendiente', orden: 2 },
+    { id: 'ff-3', sobre_id: 'fs-2', nombre: 'Julieta Paz', email: 'julieta@correo.test', estado: 'pendiente', orden: 1 },
+    { id: 'ff-4', sobre_id: 'fs-3', nombre: 'Rocío Álvarez', email: 'rocio@correo.test', estado: 'firmado', orden: 1 },
+  ],
+  equipo_miembros: [...equipo, { id: 'se-delta', nombre: 'Carla Méndez', rol_comercial: 'setter', organizacion_id: 'org-delta', activo: true, email: null, usuario_id: null, cargo: null, creado_en: iso(hoy - 90 * DIA) }],
   crm_servicios: servicios.map((s, i) => ({ id: `sv-${i}`, organizacion_id: ORG, clave: s.clave, nombre: s.nombre, duracion_meses: s.duracion_meses, activo: true, moneda: 'USD' })),
   crm_clientes: clientes,
   crm_clientes_resumen: resumen,

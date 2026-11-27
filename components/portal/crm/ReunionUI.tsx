@@ -21,6 +21,7 @@ import {
   type ResultadoVenta,
   type TipoReunion,
 } from './reuniones';
+import { claseBotonHero } from '../../Button';
 
 /** Un cliente para elegir con quién es la reunión. */
 export interface ClienteOpcion {
@@ -392,7 +393,7 @@ export const FilaReunion: React.FC<{
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {r.enlace_reunion && Date.parse(r.inicio) > Date.now() - 2 * 3600_000 && r.estado === 'agendada' && (
-            <a href={r.enlace_reunion} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[9px] bg-tinta text-marfil text-[13px] font-semibold hover:bg-carbon">
+            <a href={r.enlace_reunion} target="_blank" rel="noreferrer noopener" className={claseBotonHero('primary', 'sm')}>
               <Video size={14} aria-hidden="true" /> Unirse
             </a>
           )}

@@ -38,6 +38,7 @@ import {
   type Disponibilidad,
   type PagoAbono,
 } from './abonos';
+import { claseBotonHero } from '../Button';
 
 /**
  * Pagos del cliente en /portal/pagos. Solo titulares y FIRMA.
@@ -621,7 +622,7 @@ const OtrosMedios: React.FC<{ empresa?: string }> = ({ empresa }) => {
             href={`https://wa.me/${WHATSAPP_COMPROBANTES}?text=${encodeURIComponent(mensaje)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 h-12 px-5 bg-bosque text-marfil text-sm font-medium transition-colors duration-150 hover:bg-bosque-dark"
+            className={claseBotonHero('primary', 'lg')}
           >
             Enviar comprobante
             <ArrowUpRight size={16} aria-hidden="true" />
@@ -723,7 +724,7 @@ export const Pagos: React.FC<{ perfil: Perfil; organizacion: Organizacion | null
         }
         acciones={
           esAdmin ? (
-            <Enlace a="/portal/admin/abonos" className="inline-flex items-center h-[52px] px-6 text-[15px] font-medium bg-bosque text-marfil transition-colors duration-150 hover:bg-bosque-dark">
+            <Enlace a="/portal/admin/abonos" className={claseBotonHero('primary', 'lg')}>
               Administrar abonos
             </Enlace>
           ) : undefined

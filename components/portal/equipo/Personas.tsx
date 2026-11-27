@@ -9,6 +9,7 @@ import { FormReunion } from '../crm/ReunionUI';
 import type { BaseEquipo } from './EquipoApp';
 import { CalendarioEquipo } from './CalendarioEquipo';
 import { ROTULO_ESTADO_ITEM, colorDe, entreManos, inicialesDe, numerosDe, tonoRendimiento, useDatosPersonas, type EstadoItem, type Item } from './personas';
+import { claseBotonHero } from '../../Button';
 
 /** El estado de cada cosa que tiene alguien entre manos, como un círculo que se llena. */
 export const IconoEstado: React.FC<{ estado: EstadoItem }> = ({ estado }) => {
@@ -271,7 +272,7 @@ export const Personas: React.FC<{ base: BaseEquipo }> = ({ base }) => {
                       <button
                         type="button"
                         onClick={() => navegar(`/portal/equipo/persona/${m.id}`)}
-                        className="flex-1 inline-flex items-center justify-center h-9 rounded-[10px] bg-tinta text-marfil text-[13.5px] font-semibold hover:bg-carbon"
+                        className={`${claseBotonHero('primary', 'sm')} flex-1`}
                       >
                         Ver ficha
                       </button>

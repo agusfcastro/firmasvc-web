@@ -19,6 +19,7 @@ import { PerfilCliente } from './PerfilCliente';
 import { registrarLectura } from '../lecturas';
 import { ContratoFirma } from './contratoFirma';
 import { DatosCliente, filaIdentidad, type Identidad } from './DatosCliente';
+import { claseBotonHero } from '../../Button';
 
 const ROTULOS: Record<string, string> = {
   tipo: 'Tipo', nombre: 'Nombre', id_fiscal: 'Identificación fiscal', representante: 'Representante', cargo: 'Cargo', dni: 'DNI', email: 'Mail', telefono: 'Teléfono', domicilio: 'Domicilio', servicio: 'Servicio', monto_total: 'Monto total',
@@ -322,7 +323,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                 <td className="!py-2.5">
                   <div className="flex gap-2 justify-end whitespace-nowrap">
                     {p.estado === 'pendiente' ? (
-                      <button type="button" className="inline-flex items-center gap-1.5 px-3 h-10 bg-bosque text-marfil text-sm font-medium hover:bg-bosque-dark disabled:opacity-40" onClick={() => actualizarPago(p, { estado: 'pagado', fecha_pago: hoy })}>
+                      <button type="button" className={claseBotonHero('primary', 'sm')} onClick={() => actualizarPago(p, { estado: 'pagado', fecha_pago: hoy })}>
                         <Check size={15} /> Marcar pagada
                       </button>
                     ) : (

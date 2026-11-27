@@ -25,10 +25,21 @@ const sizes: Record<Size, string> = {
 };
 
 /**
- * Densidad de los botones. La landing usa la normal. El portal envuelve sus pantallas en
- * <DensidadBotones.Provider value="compacta">: botones de 36 a 48 px y secundarios sobre papel.
+ * Densidad de los botones. La landing usa la normal y la herramienta de comprobantes la compacta,
+ * con botones de 36 a 48 px y secundarios sobre papel. El portal envuelve sus pantallas en
+ * <DensidadBotones.Provider value="portal"> y ahí el botón toma el estilo de HeroUI.
  */
-export const DensidadBotones = React.createContext<'normal' | 'compacta'>('normal');
+export const DensidadBotones = React.createContext<'normal' | 'compacta' | 'portal'>('normal');
+
+/**
+ * Clases del botón de HeroUI (@heroui/styles, button.css) para el portal. Son las mismas que arma su
+ * componente Button, sobre un <button> o un <a> común, así el comportamiento no cambia.
+ * primary y dark van en tinta, ghost con borde y light en el gris suave.
+ */
+export function claseBotonHero(variant: Variant = 'primary', size: Size = 'md', fullWidth = false): string {
+  const v = { primary: 'button--primary', dark: 'button--primary', ghost: 'button--outline', light: 'button--secondary' }[variant];
+  return `button ${v} button--${size}${fullWidth ? ' w-full' : ''}`;
+}
 
 const sizesCompactos: Record<Size, string> = {
   sm: 'h-9 px-3.5 text-[13.5px]',
@@ -49,6 +60,13 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const densidad = React.useContext(DensidadBotones);
+  if (densidad === 'portal') {
+    return (
+      <button className={`${claseBotonHero(variant, size, fullWidth)} ${className}`} {...props}>
+        {children}
+      </button>
+    );
+  }
   const variante = (densidad === 'compacta' && variantsCompactos[variant]) || variants[variant];
   const tamano = densidad === 'compacta' ? sizesCompactos[size] : sizes[size];
   // Radio 0 y sin sombras: la marca no usa esquinas redondeadas ni profundidad decorativa.

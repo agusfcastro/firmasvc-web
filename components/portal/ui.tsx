@@ -35,7 +35,7 @@ import {
   Target,
   type LucideIcon,
 } from 'lucide-react';
-import { Button as BotonHero, Dropdown, Label as RotuloHero } from '@heroui/react';
+import { Alert, Button as BotonHero, Description as DescripcionHero, Dropdown, Label as RotuloHero, Switch, Tabs } from '@heroui/react';
 import { DensidadBotones } from '../Button';
 import { supabase } from './supabase';
 import { navegar, marcarSalida } from './navegacion';
@@ -852,7 +852,7 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
   ) : null;
 
   return (
-    <DensidadBotones.Provider value="compacta">
+    <DensidadBotones.Provider value="portal">
       <PanelSeccionCtx.Provider value={{ hay: Boolean(panel), abierto: panelAbierto }}>
       <div
         data-panel={conPanel ? 'abierto' : 'cerrado'}
@@ -1097,50 +1097,63 @@ export const Bloque: React.FC<{ titulo: React.ReactNode; acciones?: React.ReactN
 );
 
 /* ------------------------------------------------------------------ */
-/* Pestañas con subrayado verde                                         */
+/* Pestañas (Tabs de HeroUI, variante con subrayado)                    */
 /* ------------------------------------------------------------------ */
-export function Pestanas<T extends string>({ items, activa, alCambiar }: { items: { clave: T; titulo: string; cuenta?: number }[]; activa: T; alCambiar: (c: T) => void }) {
+/**
+ * Pestañas que filtran lo que se ve debajo. Son las Tabs de HeroUI sin paneles: la pantalla
+ * decide qué mostrar con la pestaña activa. La cuenta va en una pastilla al lado del título.
+ */
+export function Pestanas<T extends string>({ items, activa, alCambiar, etiqueta = 'Secciones' }: { items: { clave: T; titulo: string; cuenta?: number }[]; activa: T; alCambiar: (c: T) => void; etiqueta?: string }) {
   return (
-    <div className="flex gap-6 overflow-x-auto scrollbar-hide border-b border-borde-suave" role="tablist">
-      {items.map((i) => (
-        <button
-          key={i.clave}
-          type="button"
-          role="tab"
-          aria-selected={activa === i.clave}
-          onClick={() => alCambiar(i.clave)}
-          className={`inline-flex items-center gap-1.5 min-h-[44px] -mb-px text-[14px] font-medium whitespace-nowrap border-b-2 transition-colors duration-150 ${activa === i.clave ? 'border-bosque text-bosque' : 'border-transparent text-piedra hover:text-tinta'}`}
-        >
-          {i.titulo}
-          {i.cuenta !== undefined && (
-            <span className={`min-w-[20px] h-[20px] px-1.5 grid place-items-center rounded-pastilla tabular-nums text-[11.5px] ${activa === i.clave ? 'bg-bosque-suave text-bosque' : 'bg-separador text-piedra'}`}>{i.cuenta}</span>
-          )}
-        </button>
-      ))}
-    </div>
+    <Tabs variant="secondary" align="start" selectedKey={activa} onSelectionChange={(k) => alCambiar(String(k) as T)} className="pestanas">
+      <Tabs.ListContainer>
+        <Tabs.List aria-label={etiqueta}>
+          {items.map((i) => (
+            <Tabs.Tab key={i.clave} id={i.clave}>
+              {i.titulo}
+              {i.cuenta !== undefined && <span className="pestanas__cuenta">{i.cuenta}</span>}
+              <Tabs.Indicator />
+            </Tabs.Tab>
+          ))}
+        </Tabs.List>
+      </Tabs.ListContainer>
+    </Tabs>
   );
 }
+
+/**
+ * Las mismas pestañas cuando cada una es una pantalla con su dirección (Documentos). Son enlaces,
+ * así se pueden abrir en otra pestaña del navegador, con las clases de las Tabs de HeroUI.
+ */
+export const PestanasEnlace: React.FC<{ items: { a: string; titulo: string; cuenta?: number; activa: boolean }[]; etiqueta: string }> = ({ items, etiqueta }) => (
+  <div className="tabs tabs--secondary tabs--align-start pestanas" data-orientation="horizontal">
+    <div className="tabs__list-container">
+      <nav aria-label={etiqueta} className="tabs__list overflow-x-auto scrollbar-hide" data-orientation="horizontal">
+        {items.map((i) => (
+          <Enlace key={i.a} a={i.a} aria-current={i.activa ? 'page' : undefined} data-selected={i.activa ? 'true' : undefined} className="tabs__tab">
+            {i.titulo}
+            {i.cuenta !== undefined && <span className="pestanas__cuenta">{i.cuenta}</span>}
+            {i.activa && <span aria-hidden="true" className="tabs__indicator" />}
+          </Enlace>
+        ))}
+      </nav>
+    </div>
+  </div>
+);
 
 /* ------------------------------------------------------------------ */
 /* Interruptor                                                          */
 /* ------------------------------------------------------------------ */
 export const Interruptor: React.FC<{ activo: boolean; alCambiar?: (v: boolean) => void; etiqueta: string; ayuda?: string; deshabilitado?: boolean }> = ({ activo, alCambiar, etiqueta, ayuda, deshabilitado }) => (
-  <label className={`inline-flex items-start gap-3 ${deshabilitado ? 'opacity-60' : 'cursor-pointer'}`}>
-    <button
-      type="button"
-      role="switch"
-      aria-checked={activo}
-      disabled={deshabilitado}
-      onClick={() => alCambiar?.(!activo)}
-      className={`relative shrink-0 w-11 h-6 mt-0.5 border rounded-control transition-colors duration-150 ${activo ? 'bg-bosque border-bosque' : 'bg-white border-borde'}`}
-    >
-      <span className={`absolute top-[3px] w-4 h-4 transition-all duration-150 ${activo ? 'left-[23px] bg-marfil' : 'left-[3px] bg-tinta'}`} />
-    </button>
-    <span className="flex flex-col">
-      <span className="text-sm font-medium">{etiqueta}</span>
-      {ayuda && <span className="text-xs text-piedra mt-0.5 max-w-[42ch]">{ayuda}</span>}
-    </span>
-  </label>
+  <Switch isSelected={activo} onChange={(v) => alCambiar?.(v)} isDisabled={deshabilitado} isReadOnly={!alCambiar}>
+    <Switch.Content>
+      <Switch.Control>
+        <Switch.Thumb />
+      </Switch.Control>
+      <RotuloHero>{etiqueta}</RotuloHero>
+    </Switch.Content>
+    {ayuda && <DescripcionHero className="pl-[52px] max-w-[48ch]">{ayuda}</DescripcionHero>}
+  </Switch>
 );
 
 /* ------------------------------------------------------------------ */
@@ -1148,28 +1161,30 @@ export const Interruptor: React.FC<{ activo: boolean; alCambiar?: (v: boolean) =
 /* ------------------------------------------------------------------ */
 export const Campo: React.FC<{ etiqueta: string; ayuda?: string; children: React.ReactNode }> = ({ etiqueta, ayuda, children }) => (
   <label className="block">
-    <span className="block text-[13px] font-medium text-tinta mb-1.5">{etiqueta}</span>
+    <span className="label block mb-1.5">{etiqueta}</span>
     {children}
     {ayuda && <span className="block text-[12.5px] leading-[1.45] text-piedra mt-1.5">{ayuda}</span>}
   </label>
 );
 
-/** Borde con 3,6 a 1 sobre blanco (WCAG pide 3 a 1) y foco de 2 px en tinta. */
-export const claseInput =
-  'w-full h-11 px-3.5 bg-white border border-borde rounded-control text-[15px] placeholder:text-piedra/70 transition-[border-color,box-shadow] duration-150 hover:border-tinta focus:outline-none focus:border-bosque focus:ring-2 focus:ring-bosque/25 disabled:bg-marfil-oscuro disabled:text-piedra disabled:hover:border-borde';
+/**
+ * Campo de texto, fecha o selector nativo con el estilo de los campos de HeroUI (.input de
+ * @heroui/styles): fondo blanco, borde con 3,6 a 1 y foco en tinta. Los selectores nativos llevan
+ * la flecha de HeroUI (index.css, «Campos nativos con el estilo de HeroUI»).
+ */
+export const claseInput = 'input input--primary w-full h-10';
 
-export const Aviso: React.FC<{ tipo?: 'error' | 'ok' | 'info'; children: React.ReactNode }> = ({ tipo = 'info', children }) => {
-  const estilos = {
-    error: 'border-peligro-borde bg-peligro-suave text-peligro-fuerte',
-    ok: 'border-borde-suave bg-niebla text-tinta',
-    info: 'border-borde-suave bg-papel text-tinta',
-  }[tipo];
-  return (
-    <div role={tipo === 'error' ? 'alert' : 'status'} className={`border rounded-control px-4 py-3 text-sm leading-[1.5] ${estilos}`}>
-      {children}
-    </div>
-  );
-};
+/** Lo mismo para un texto largo. */
+export const claseAreaTexto = 'input input--primary w-full min-h-[110px] py-2.5 leading-[1.5] resize-y';
+
+export const Aviso: React.FC<{ tipo?: 'error' | 'ok' | 'info'; children: React.ReactNode }> = ({ tipo = 'info', children }) => (
+  <Alert status={tipo === 'error' ? 'danger' : tipo === 'ok' ? 'success' : 'default'} role={tipo === 'error' ? 'alert' : 'status'} className="aviso">
+    <Alert.Indicator />
+    <Alert.Content>
+      <div className="alert__title font-normal leading-[1.5]">{children}</div>
+    </Alert.Content>
+  </Alert>
+);
 
 export const Cargando: React.FC = () => (
   <div className="min-h-screen bg-marfil flex flex-col items-center justify-center gap-4">
@@ -1178,18 +1193,18 @@ export const Cargando: React.FC = () => (
   </div>
 );
 
-/** Estado con punto de color, en el registro tipográfico de los eyebrow. */
+/** Estado con punto de color, con el Chip de HeroUI (.chip de @heroui/styles). */
 export const Etiqueta: React.FC<{ children: React.ReactNode; tono?: 'bosque' | 'piedra' | 'alerta' | 'tinta' }> = ({ children, tono = 'piedra' }) => {
   const c = {
-    bosque: 'text-marfil bg-tinta',
-    piedra: 'text-tinta bg-niebla',
-    alerta: 'text-peligro bg-peligro-suave',
-    tinta: 'text-tinta bg-transparent ring-1 ring-inset ring-tinta',
+    bosque: 'chip--primary chip--accent',
+    piedra: 'chip--default',
+    alerta: 'chip--danger chip--soft',
+    tinta: 'chip--tertiary ring-1 ring-inset ring-tinta',
   }[tono];
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-[3px] rounded-pastilla text-[12px] font-semibold whitespace-nowrap ${c}`}>
+    <span data-slot="chip" className={`chip chip--sm gap-1.5 px-2 whitespace-nowrap ${c}`}>
       <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-current" />
-      {children}
+      <span className="chip__label px-0">{children}</span>
     </span>
   );
 };

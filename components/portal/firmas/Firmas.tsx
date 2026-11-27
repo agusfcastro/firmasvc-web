@@ -24,6 +24,7 @@ import {
   type Firmante,
   type Sobre,
 } from './api';
+import { claseBotonHero } from '../../Button';
 
 /**
  * Firma electrónica propia de FIRMA, dentro del portal.
@@ -70,14 +71,14 @@ const AvisoCupo: React.FC<{ uso: UsoFirmas }> = ({ uso }) => (
       href={whatsapp('Hola Agustín, llegué al límite de documentos firmados de mi plan y necesito mandar otro.')}
       target="_blank"
       rel="noopener noreferrer"
-      className="self-start inline-flex items-center gap-2 h-12 px-6 bg-bosque text-marfil font-medium text-[15px] hover:bg-bosque-dark transition-colors duration-150"
+      className={`${claseBotonHero('primary', 'lg')} self-start`}
     >
       Escribir por WhatsApp
     </a>
   </div>
 );
 
-const claseBotonPrincipal = 'inline-flex items-center gap-2 h-[52px] px-6 text-[15px] font-medium bg-bosque text-marfil transition-colors duration-150 hover:bg-bosque-dark';
+const claseBotonPrincipal = claseBotonHero('primary', 'lg');
 
 /* ==================================================================== */
 /* Listado                                                                */

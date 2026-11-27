@@ -47,6 +47,7 @@ import {
   type TipoAsunto,
 } from './asuntos';
 import { mensajeAmable } from './errores';
+import { claseBotonHero } from '../Button';
 
 /**
  * Estado de asuntos en /portal/asuntos y /portal/asuntos/:id.
@@ -59,7 +60,7 @@ import { mensajeAmable } from './errores';
  * salen por mail.
  */
 
-const claseTextarea = `${claseInput.replace('h-12', 'min-h-[110px]')} py-3 leading-[1.5]`;
+const claseTextarea = `${claseInput.replace('h-10', 'min-h-[110px]')} py-3 leading-[1.5]`;
 
 const rotuloEstado = (e: EstadoAsunto, esFirma: boolean) => (esFirma ? ESTADO_ASUNTO[e].firma : ESTADO_ASUNTO[e].cliente);
 
@@ -1127,7 +1128,7 @@ const Chat: React.FC<{
             rows={2}
             maxLength={4000}
             placeholder="Escribí un mensaje. Enter envía, Shift + Enter hace un salto de línea."
-            className={`${claseInput.replace('h-12', 'min-h-[52px]')} py-3 leading-[1.4] resize-none`}
+            className={`${claseInput.replace('h-10', 'min-h-[52px]')} py-3 leading-[1.4] resize-none`}
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
             onKeyDown={(e) => {
@@ -1370,7 +1371,7 @@ const Documentos: React.FC<{
           <p className="text-[15px] leading-[1.5] text-piedra max-w-[46ch]">
             Subí documentos del asunto: PDF, Word, Excel o imágenes, hasta 20 MB. {esFirma ? 'La empresa' : 'FIRMA'} recibe un aviso por mail. Los PDF y Word se pueden ver y comentar acá mismo.
           </p>
-          <label className={`inline-flex items-center justify-center gap-2 h-[52px] px-6 bg-bosque text-marfil text-[15px] font-medium whitespace-nowrap transition-colors duration-150 hover:bg-bosque-dark ${ocupado ? 'opacity-60 pointer-events-none' : 'cursor-pointer'}`}>
+          <label className={`${claseBotonHero('primary', 'lg')} has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-tinta ${ocupado ? 'opacity-60 pointer-events-none' : 'cursor-pointer'}`}>
             <Upload size={16} aria-hidden="true" />
             {ocupado === 'subir' ? 'Subiendo…' : 'Subir documento'}
             <input

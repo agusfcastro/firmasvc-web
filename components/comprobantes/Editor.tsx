@@ -1,7 +1,7 @@
 import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '../Button';
-import { Campo, claseInput } from '../portal/ui';
+import { Campo, claseInput } from '../uiClasica';
 import { MONEDAS, faltantes, formatoMonto, montoLetras, totales, type DatosComprobante, type Parte, type Renglon } from './modelo';
 import { generarPdf, type Logo } from './pdf';
 

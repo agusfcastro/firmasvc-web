@@ -6,6 +6,7 @@ import { BarraUso } from './BarraUso';
 import { agendaAgotada, diaYMes, duracion, periodoAgenda, usoAgenda, whatsapp, type UsoAgenda } from './planes';
 import type { Agenda as TipoAgenda, Organizacion, Perfil } from './tipos';
 import { mensajeAmable } from './errores';
+import { claseBotonHero } from '../Button';
 
 /** Abre la reserva en una ventana sobre el portal. Si el navegador la bloquea, sigue el enlace normal. */
 function abrirReserva(e: React.MouseEvent<HTMLAnchorElement>, url: string) {
@@ -78,7 +79,7 @@ export const Agenda: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
                 href={whatsapp('Hola Agustín, usé el tiempo de agenda de mi plan y necesito coordinar una reunión.')}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="self-start inline-flex items-center gap-2 h-11 px-5 rounded-control bg-bosque text-marfil font-medium text-[14.5px] hover:bg-bosque-dark transition-colors duration-150"
+                className={`${claseBotonHero('primary', 'lg')} self-start`}
               >
                 <MessageCircle size={18} aria-hidden="true" /> Escribir por WhatsApp
               </a>
