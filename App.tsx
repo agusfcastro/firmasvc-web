@@ -4,13 +4,12 @@ import '@fontsource-variable/archivo/wdth.css';
 import { Header } from './components/Header';
 import { PromoBanner } from './components/PromoBanner';
 import { Hero } from './components/Hero';
-import { Services } from './components/Services';
+import { Vitrina } from './components/home/Vitrina';
+import { Repartido } from './components/home/Repartido';
 import { Process } from './components/Process';
 import { Testimonials } from './components/Testimonials';
-import { Letter } from './components/Letter';
 import { Contact } from './components/Contact';
 import { Footer } from './components/Footer';
-import { WhatsAppButton } from './components/WhatsAppButton';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { TermsOfService } from './components/TermsOfService';
 import { RUTAS_MOTOR } from './components/protocolos/rutas';
@@ -109,7 +108,6 @@ function App({ ruta }: { ruta?: string }) {
           <Contact />
         </main>
         <Footer />
-        <WhatsAppButton />
       </div>
     );
   }
@@ -121,14 +119,13 @@ function App({ ruta }: { ruta?: string }) {
       <PromoBanner />
       <main>
         <Hero />
-        <Services />
+        <Vitrina />
+        <Repartido />
         <Process />
         <Testimonials />
-        <Letter />
         <Contact />
       </main>
       <Footer />
-      <WhatsAppButton />
     </div>
   );
 }

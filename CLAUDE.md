@@ -104,9 +104,13 @@ Los abonos cobran esta oferta desde la migración 0061 (`abonos.modalidad`, `eta
 
 **Desde enero 2027.** Invoices, Tina por WhatsApp, audios con ElevenLabs, auditoría de llamadas, integración con Go High Level, vencimientos y contracargos, firma electrónica propia con sello de tiempo.
 
+## Home
+
+El home (`/`) muestra el portal al estilo de una vitrina de producto: hero, la vitrina con una pestaña por módulo (CRM y contratos, Firma electrónica, Asuntos y documentos, Análisis de llamadas, Equipo y Avisos), «Hoy lo legal de tu negocio está en todos lados», cómo ayudamos, clientes y contacto (`components/home/`). Cada pestaña lleva un título y un párrafo que dicen qué resuelve, y una maqueta del portal hecha en código con datos inventados (`Maquetas.tsx`), nunca capturas con datos de clientes. Las pestañas cambian solas solo mientras la vitrina está en pantalla. Tina no aparece mientras esté apagada. Servicios, la carta y la sección del abogado se retiraron, y ni el home ni la landing llevan el botón flotante de WhatsApp (el número sigue en Contacto y en el pie).
+
 ## Landing de campañas
 
-`/landing` es el home resumido para campañas (`App.tsx`): arriba de todo y fijo el banner «50% OFF Black Friday en el plan Eminent» (`PromoBanner blackFriday`; el home sigue con el de USD 1.500), el hero con el contador y el logo a la derecha de la firma de Agustín debajo del video (`conLogo` en `components/VideoVSL.tsx`), que lleva a `/`, clientes, cómo ayudamos y la agenda. El video del hero va sin la barra del reproductor y sin pausa una vez activado el sonido, en el home y en la landing (`components/VideoVSL.tsx`). No lleva Servicios ni la carta, usa menos aire entre secciones (`.landing-corta` en `index.css`) y va con `noindex` en `vercel.json`. Comparte los componentes del home, así que un cambio en ellos se ve en las dos.
+`/landing` es el home resumido para campañas (`App.tsx`): arriba de todo y fijo el banner «50% OFF Black Friday en el plan Eminent» (`PromoBanner blackFriday`; el home sigue con el de USD 1.500), el hero con el contador y el logo a la derecha de la firma de Agustín debajo del video (`conLogo` en `components/VideoVSL.tsx`), que lleva a `/`, clientes, cómo ayudamos y la agenda. El video del hero va sin la barra del reproductor y sin pausa una vez activado el sonido, en el home y en la landing (`components/VideoVSL.tsx`). No lleva la vitrina del portal, usa menos aire entre secciones (`.landing-corta` en `index.css`) y va con `noindex` en `vercel.json`. Comparte los componentes del home, así que un cambio en ellos se ve en las dos.
 
 ## Estilo visual
 
