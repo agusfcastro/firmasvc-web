@@ -132,16 +132,15 @@ export const Vitrina: React.FC = () => {
   const m = modulos[actual];
 
   return (
-    <section id="portal" ref={seccion} className="section">
-      <div className="wrap flex flex-col gap-10 desk:gap-14">
+    <section id="portal" ref={seccion} className="vitrina rule">
+      <div className="wrap flex flex-col gap-10 desk:gap-12">
         <Reveal>
           <div className="flex flex-col items-center gap-4 max-w-[62ch] mx-auto text-center">
-            <p className="eyebrow text-piedra">El portal de FIRMA</p>
             <h2 className="h2">
-              Vos te ocupás de vender, <span className="resalte">nosotros hacemos el resto.</span>
+              Vos vendés, <span className="resalte">nosotros hacemos el resto.</span>
             </h2>
-            <p className="text-[17px] leading-[1.55] text-piedra">
-              El sistema legal que usan los negocios digitales de alta facturación.
+            <p className="text-[19px] leading-[1.5] text-piedra">
+              El <strong className="font-semibold text-tinta">90%</strong> de los conflictos son evitables.
             </p>
           </div>
         </Reveal>
@@ -190,7 +189,13 @@ export const Vitrina: React.FC = () => {
               <h3 className="h3">{m.titulo}</h3>
               <p className="text-[17px] leading-[1.6] text-piedra">{m.texto}</p>
             </div>
-            <div key={`${m.id}-maqueta`} className="vitrina-maqueta">
+            {/* Si tocan la maqueta (en el celular no hay cursor encima), deja de rotar. */}
+            <div
+              key={`${m.id}-maqueta`}
+              className="vitrina-maqueta"
+              onPointerDown={() => setElegido(true)}
+              onFocus={() => setElegido(true)}
+            >
               <m.Maqueta />
             </div>
           </div>

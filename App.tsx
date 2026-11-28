@@ -5,9 +5,7 @@ import { Header } from './components/Header';
 import { PromoBanner } from './components/PromoBanner';
 import { Hero } from './components/Hero';
 import { Vitrina } from './components/home/Vitrina';
-import { Repartido } from './components/home/Repartido';
 import { Process } from './components/Process';
-import { PortalClientes } from './components/PortalClientes';
 import { Testimonials } from './components/Testimonials';
 import { Contact } from './components/Contact';
 import { Footer } from './components/Footer';
@@ -121,9 +119,7 @@ function App({ ruta }: { ruta?: string }) {
       <main>
         <Hero />
         <Vitrina />
-        <Repartido />
         <Process />
-        <PortalClientes />
         <Testimonials />
         <Contact />
       </main>
