@@ -5,8 +5,7 @@ import { Button } from './Button';
 import { openCalendly } from '../lib/calendly';
 
 const navLinks = [
-  { name: 'Nosotros', href: '#quien' },
-  { name: 'Servicios', href: '#services' },
+  { name: 'Funciones', href: '#portal' },
   { name: 'Recursos', href: 'https://www.youtube.com/@agusfcastro' },
   { name: 'Testimonios', href: '#testimonials' },
 ];

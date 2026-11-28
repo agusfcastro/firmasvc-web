@@ -118,9 +118,13 @@ Los abonos cobran esta oferta desde la migración 0061 (`abonos.modalidad`, `eta
 
 **Desde enero 2027.** Invoices, Tina por WhatsApp, audios con ElevenLabs, auditoría de llamadas, integración con Go High Level, vencimientos y contracargos, firma electrónica propia con sello de tiempo.
 
+## Home
+
+El home (`/`) muestra el portal al estilo de una vitrina de producto: hero con el contador, una línea que lo separa de la vitrina («Vos vendés, nosotros hacemos el resto.» y «El 90% de los conflictos son evitables.»), cómo ayudamos, clientes y contacto (`components/home/`). La vitrina tiene una pestaña por módulo (CRM y contratos, Firma electrónica, Asuntos y documentos, Análisis de llamadas, Equipo y Avisos), cada una con un título y un párrafo que dicen qué resuelve y una maqueta hecha en código con datos inventados (`Maquetas.tsx`), copiando el aspecto del portal de hoy (barra de íconos, títulos con resalte, cifras), nunca capturas con datos de clientes. La de Clientes es una línea de tiempo con la que se interactúa, como la de `crm/LineaTiempo.tsx`: al tocar un cliente se abre su resumen y cada punto (reunión, cuota pagada o vencida, logro, queja o alerta de conducta) muestra su detalle; en el celular se desliza de costado y arranca con hoy a la vista. Las pestañas cambian solas solo mientras la vitrina está en pantalla y dejan de hacerlo cuando alguien toca una pestaña o la maqueta. Tina no aparece mientras esté apagada. Servicios, la carta, la sección del abogado, «Lo que hoy tenés repartido» y el bloque Portal de clientes se retiraron, y ni el home ni la landing llevan el botón flotante de WhatsApp (el número sigue en Contacto y en el pie). Para ver el portal real con datos de prueba está `npm run maqueta`.
+
 ## Landing de campañas
 
-`/landing` es el home resumido para campañas (`App.tsx`): arriba de todo y fijo el banner «50% OFF Black Friday en el plan Eminent» (`PromoBanner fijo`; el home muestra el mismo banner, sin fijar), el hero con el contador y el logo a la derecha de la firma de Agustín debajo del video (`conLogo` en `components/VideoVSL.tsx`), que lleva a `/`, clientes, cómo ayudamos y la agenda. El video del hero va sin la barra del reproductor y sin pausa una vez activado el sonido, en el home y en la landing (`components/VideoVSL.tsx`). No lleva Servicios ni la carta, usa menos aire entre secciones (`.landing-corta` en `index.css`) y va con `noindex` en `vercel.json`. Comparte los componentes del home, así que un cambio en ellos se ve en las dos.
+`/landing` es el home resumido para campañas (`App.tsx`): arriba de todo y fijo el banner «50% OFF Black Friday en el plan Eminent» (`PromoBanner fijo`; el home muestra el mismo banner, sin fijar), el hero con el contador y el logo a la derecha de la firma de Agustín debajo del video (`conLogo` en `components/VideoVSL.tsx`), que lleva a `/`, clientes, cómo ayudamos y la agenda. El video del hero va sin la barra del reproductor y sin pausa una vez activado el sonido, en el home y en la landing (`components/VideoVSL.tsx`). No lleva la vitrina del portal, usa menos aire entre secciones (`.landing-corta` en `index.css`) y va con `noindex` en `vercel.json`. Comparte los componentes del home, así que un cambio en ellos se ve en las dos.
 
 ## Estilo visual
 
@@ -134,6 +138,7 @@ Ley argentina y tribunales ordinarios de la Ciudad de Buenos Aires. Tina no pres
 
 - Antes de codear, resumí el plan y preguntá lo que falte.
 - Cambios chicos y verificables. Migraciones de Supabase versionadas.
+- Antes de abrir un PR que suma o cambia una pantalla o un flujo, corré la pasada corta de `docs/AUDITORIA_CALIDAD.md` y sumá a la descripción del PR el resultado por capa. Un hallazgo crítico frena la unión a main.
 - Interfaz en español rioplatense, con voseo.
 - No puede haber dos archivos que solo difieran en mayúsculas, ni dos archivos de código de la misma carpeta con el mismo nombre escrito distinto (`Reuniones.tsx` y `reuniones.ts`): en la Mac un import resuelve al que no es y el build se rompe, aunque en Vercel compile. La lógica de una pantalla va en `<nombre>Datos.ts`. Lo controla `npm run mayusculas:verificar`, que corre en Verificar.
 - Al terminar cada tarea, resumí qué cambió para actualizar este archivo.

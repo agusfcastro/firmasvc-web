@@ -37,8 +37,8 @@ export const Hero: React.FC<{ deLanding?: boolean }> = ({ deLanding = false }) =
             Agendar auditoría <ArrowRight size={18} aria-hidden="true" />
           </Button>
           {!deLanding && (
-            <Button size="lg" variant="ghost" onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })}>
-              Conocer servicios
+            <Button size="lg" variant="ghost" onClick={() => document.getElementById('portal')?.scrollIntoView({ behavior: 'smooth' })}>
+              Ver el portal
             </Button>
           )}
         </div>
