@@ -601,7 +601,41 @@ a.tarjeta-servicio { color: inherit; text-decoration: none; }
   background-size: 16px;
   cursor: var(--cursor-interactive, pointer);
 }
-.portal :is(input[type="checkbox"], input[type="radio"]) { accent-color: var(--color-tinta); }
+/* Casillas y opciones con el aspecto de HeroUI (su .checkbox__control y .radio__control), sobre el
+   input nativo, así no cambia cómo se usan. Quedan afuera las de los componentes de HeroUI. */
+.portal :is(input[type="checkbox"], input[type="radio"]):not([data-rac] input) {
+  appearance: none;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border: 1px solid var(--color-borde);
+  border-radius: 6px;
+  background: #fff center / 10px 10px no-repeat;
+  cursor: var(--cursor-interactive, pointer);
+  transition: background-color 200ms, border-color 200ms, box-shadow 200ms;
+}
+.portal input[type="radio"]:not([data-rac] input) { border-radius: 9999px; }
+.portal :is(input[type="checkbox"], input[type="radio"]):not([data-rac] input):hover { border-color: var(--color-tinta); }
+.portal input[type="checkbox"]:not([data-rac] input):checked {
+  border-color: var(--color-tinta);
+  background-color: var(--color-tinta);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 17 18'%3E%3Cpolyline points='1 9 7 14 15 4' fill='none' stroke='%23F5F3EC' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+.portal input[type="checkbox"]:not([data-rac] input):indeterminate {
+  border-color: var(--color-tinta);
+  background-color: var(--color-tinta);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8h8' stroke='%23F5F3EC' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+.portal input[type="radio"]:not([data-rac] input):checked { border-color: var(--color-tinta); box-shadow: inset 0 0 0 4px #fff; background-color: var(--color-tinta); }
+.portal :is(input[type="checkbox"], input[type="radio"]):not([data-rac] input):disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Selector y Fecha (components/portal/campos.tsx): el mismo alto que los campos de texto. */
+.portal .selector .select__trigger { min-height: 2.5rem; width: 100%; }
+.portal .selector--auto { width: auto; min-width: 12rem; }
+.portal .fecha .date-input-group { height: 2.5rem; width: 100%; }
+/* El calendario se abre fuera de .portal: que el mes no tome la letra de títulos de la web. */
+.calendar__heading { font-family: var(--font-portal); font-weight: 600; }
 
 /* Pestañas (Pestanas y PestanasEnlace en ui.tsx): Tabs de HeroUI con subrayado, del ancho de su
    texto, alineadas a la izquierda y de 44 px de alto para el dedo. */

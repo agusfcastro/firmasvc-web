@@ -34,11 +34,12 @@ export const DensidadBotones = React.createContext<'normal' | 'compacta' | 'port
 /**
  * Clases del botón de HeroUI (@heroui/styles, button.css) para el portal. Son las mismas que arma su
  * componente Button, sobre un <button> o un <a> común, así el comportamiento no cambia.
- * primary y dark van en tinta, ghost con borde y light en el gris suave.
+ * primary y dark van en tinta, ghost con borde, light en el gris suave y peligro en rojo suave.
+ * soloIcono deja el botón cuadrado, para flechas y lápices.
  */
-export function claseBotonHero(variant: Variant = 'primary', size: Size = 'md', fullWidth = false): string {
-  const v = { primary: 'button--primary', dark: 'button--primary', ghost: 'button--outline', light: 'button--secondary' }[variant];
-  return `button ${v} button--${size}${fullWidth ? ' w-full' : ''}`;
+export function claseBotonHero(variant: Variant | 'peligro' = 'primary', size: Size = 'md', fullWidth = false, soloIcono = false): string {
+  const v = { primary: 'button--primary', dark: 'button--primary', ghost: 'button--outline', light: 'button--secondary', peligro: 'button--danger-soft' }[variant];
+  return `button ${v} button--${size}${fullWidth ? ' w-full' : ''}${soloIcono ? ' button--icon-only' : ''}`;
 }
 
 const sizesCompactos: Record<Size, string> = {

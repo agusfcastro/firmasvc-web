@@ -5,6 +5,7 @@ import { Enlace, Etiqueta } from '../ui';
 import { BotonCopiar } from './firma';
 import { ESTADO_FIRMANTE, ESTADO_SOBRE, fechaHora } from '../../firma/comun';
 import { COLUMNAS_FIRMANTE, descargarSobre, llamarSobres, type Firmante, type Sobre } from '../firmas/api';
+import { claseBotonHero } from '../../Button';
 
 const Visor = lazy(() => import('../../firma/Visor').then((m) => ({ default: m.Visor })));
 
@@ -40,8 +41,8 @@ export async function generarContratoFirma(clienteId: string): Promise<{ ok: boo
   return r.ok ? { ok: true } : { ok: false, error: r.error };
 }
 
-const claseBoton =
-  'inline-flex items-center justify-center gap-2 h-11 px-5 bg-marfil text-tinta text-sm font-medium transition-colors duration-150 hover:bg-white disabled:opacity-60';
+/** Sobre el panel negro: el botón claro de HeroUI. */
+const claseBoton = `${claseBotonHero('light', 'md')} !bg-marfil !text-tinta hover:!bg-white`;
 const claseSecundario = 'inline-flex items-center gap-1.5 text-sm font-medium text-marfil underline underline-offset-4 decoration-marfil/40 hover:decoration-marfil disabled:opacity-60';
 
 export const ContratoFirma: React.FC<{

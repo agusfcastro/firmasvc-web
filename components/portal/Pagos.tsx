@@ -52,8 +52,8 @@ import { claseBotonHero } from '../Button';
  * pagado, la autorización del débito de la cuota posterior.
  */
 
-const claseAccion =
-  'inline-flex items-center justify-center gap-2 h-12 px-5 bg-marfil text-tinta text-sm font-medium whitespace-nowrap transition-colors duration-150 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed';
+/** Sobre el panel negro: el botón claro de HeroUI. */
+const claseAccion = `${claseBotonHero('light', 'lg')} !bg-marfil !text-tinta hover:!bg-white`;
 const claseSecundaria =
   'self-start inline-flex items-center gap-2 text-sm font-medium text-marfil underline underline-offset-4 decoration-marfil/40 transition-colors duration-150 hover:decoration-marfil disabled:opacity-50 disabled:cursor-not-allowed';
 

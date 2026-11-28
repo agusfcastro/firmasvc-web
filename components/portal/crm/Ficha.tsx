@@ -20,6 +20,7 @@ import { registrarLectura } from '../lecturas';
 import { ContratoFirma } from './contratoFirma';
 import { DatosCliente, filaIdentidad, type Identidad } from './DatosCliente';
 import { claseBotonHero } from '../../Button';
+import { Selector, Fecha } from '../campos';
 
 const ROTULOS: Record<string, string> = {
   tipo: 'Tipo', nombre: 'Nombre', id_fiscal: 'Identificación fiscal', representante: 'Representante', cargo: 'Cargo', dni: 'DNI', email: 'Mail', telefono: 'Teléfono', domicilio: 'Domicilio', servicio: 'Servicio', monto_total: 'Monto total',
@@ -279,21 +280,19 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
               <tr key={p.id}>
                 <td className="!py-2.5">
                   {p.estado === 'pendiente' ? (
-                    <input
-                      type="date"
+                    <Fecha
                       aria-label="Vencimiento"
-                      className={`${claseInput} h-10 w-[160px] ${vencida ? 'text-peligro border-peligro' : ''}`}
-                      defaultValue={p.vencimiento ?? ''}
-                      onBlur={(e) => e.target.value !== (p.vencimiento ?? '') && actualizarPago(p, { vencimiento: e.target.value || null })}
+                      aria-invalid={vencida}
+                      className="w-[160px]"
+                      value={p.vencimiento ?? ''}
+                      onChange={(e) => e.target.value !== (p.vencimiento ?? '') && actualizarPago(p, { vencimiento: e.target.value || null })}
                     />
                   ) : (
-                    <input
-                      type="date"
+                    <Fecha
                       aria-label="Fecha de pago"
-                      title="Fecha de pago"
-                      className={`${claseInput} h-10 w-[160px]`}
-                      defaultValue={p.fecha_pago ?? ''}
-                      onBlur={(e) => e.target.value !== (p.fecha_pago ?? '') && actualizarPago(p, { fecha_pago: e.target.value || null })}
+                      className="w-[160px]"
+                      value={p.fecha_pago ?? ''}
+                      onChange={(e) => e.target.value !== (p.fecha_pago ?? '') && actualizarPago(p, { fecha_pago: e.target.value || null })}
                     />
                   )}
                 </td>
@@ -327,12 +326,12 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                         <Check size={15} /> Marcar pagada
                       </button>
                     ) : (
-                      <button type="button" className="inline-flex items-center gap-1.5 px-3 h-10 border border-tinta text-sm font-medium hover:bg-tinta hover:text-marfil disabled:opacity-40" onClick={() => actualizarPago(p, { estado: 'pendiente', fecha_pago: null })}>
+                      <button type="button" className={claseBotonHero('ghost', 'sm')} onClick={() => actualizarPago(p, { estado: 'pendiente', fecha_pago: null })}>
                         <RotateCcw size={15} /> Deshacer
                       </button>
                     )}
                     {puedeGestionar && (
-                      <button type="button" aria-label="Eliminar cuota" className="px-3 h-10 text-peligro hover:bg-peligro-suave disabled:opacity-40" onClick={() => borrarPago(p)}>
+                      <button type="button" aria-label="Eliminar cuota" className={claseBotonHero('peligro', 'sm', false, true)} onClick={() => borrarPago(p)}>
                         <Trash2 size={15} />
                       </button>
                     )}
@@ -383,12 +382,11 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                   {esAnticipo && <span className="block text-xs text-piedra">Abonado al contratar</span>}
                 </td>
                 <td className="!py-2.5">
-                  <input
-                    type="date"
+                  <Fecha
                     aria-label="Fecha"
-                    className={`${claseInput} h-10 w-[170px]`}
-                    defaultValue={valorFecha}
-                    onBlur={(e) => e.target.value !== valorFecha && actualizarPago(p, { [campoFecha]: e.target.value || null } as Partial<Pago>)}
+                    className="w-[170px]"
+                    value={valorFecha}
+                    onChange={(e) => e.target.value !== valorFecha && actualizarPago(p, { [campoFecha]: e.target.value || null } as Partial<Pago>)}
                   />
                 </td>
                 <td className="num !py-2.5">
@@ -413,7 +411,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                 </td>
                 <td className="!py-2.5 text-right">
                   {puedeGestionar && (
-                    <button type="button" aria-label="Eliminar" className="px-3 h-10 text-peligro hover:bg-peligro-suave disabled:opacity-40" onClick={() => borrarPago(p)}>
+                    <button type="button" aria-label="Eliminar" className={claseBotonHero('peligro', 'sm', false, true)} onClick={() => borrarPago(p)}>
                       <Trash2 size={15} />
                     </button>
                   )}
@@ -487,7 +485,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                 <DatosCliente d={identidadDe(borrador)} alCambiar={(k, v) => setBorrador({ ...borrador, [k]: v })} nombreGrupo={`tipo-${id}`} />
                 <div className="grid gap-5 tab:grid-cols-2">
                   <Campo etiqueta="Servicio">
-                    <select className={claseInput} value={borrador.servicio ?? ''} onChange={(e) => set('servicio', e.target.value)}>
+                    <Selector className={claseInput} value={borrador.servicio ?? ''} onChange={(e) => set('servicio', e.target.value)}>
                       <option value="">Sin definir</option>
                       {servicios.map((sv) => (
                         <option key={sv.id} value={sv.clave}>
@@ -496,30 +494,30 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                         </option>
                       ))}
                       {borrador.servicio && !servicios.some((sv) => sv.clave === borrador.servicio) && <option value={borrador.servicio}>{borrador.servicio}</option>}
-                    </select>
+                    </Selector>
                   </Campo>
                   {opcionesMoneda(monedas, cliente.moneda).length > 1 && (
                     <Campo etiqueta="Moneda" ayuda="Es la del contrato y la del plan de pagos. Cambiarla no convierte los montos cargados.">
-                      <select className={claseInput} value={borrador.moneda} onChange={(e) => set('moneda', e.target.value)}>
+                      <Selector className={claseInput} value={borrador.moneda} onChange={(e) => set('moneda', e.target.value)}>
                         {opcionesMoneda(monedas, cliente.moneda).map((m) => (
                           <option key={m} value={m}>
                             {nombreMonedaCrm(m)}
                           </option>
                         ))}
-                      </select>
+                      </Selector>
                     </Campo>
                   )}
                   <Campo etiqueta={`Monto total (${simboloMoneda(borrador.moneda)})`}>
                     <input type="number" step="0.01" className={claseInput} value={borrador.monto_total ?? ''} onChange={(e) => set('monto_total', e.target.value === '' ? null : (e.target.value as unknown as number))} />
                   </Campo>
                   <Campo etiqueta="Modalidad">
-                    <select className={claseInput} value={borrador.modalidad} onChange={(e) => set('modalidad', e.target.value as ClienteCrm['modalidad'])}>
+                    <Selector className={claseInput} value={borrador.modalidad} onChange={(e) => set('modalidad', e.target.value as ClienteCrm['modalidad'])}>
                       <option value="Cuotas">Cuotas</option>
                       <option value="PIF">PIF (pago total)</option>
-                    </select>
+                    </Selector>
                   </Campo>
                   <Campo etiqueta="Onboarding">
-                    <input type="datetime-local" className={claseInput} value={aLocal(borrador.fecha_onboarding)} onChange={(e) => set('fecha_onboarding', e.target.value ? new Date(e.target.value).toISOString() : null)} />
+                    <Fecha type="datetime-local" className={claseInput} value={aLocal(borrador.fecha_onboarding)} onChange={(e) => set('fecha_onboarding', e.target.value ? new Date(e.target.value).toISOString() : null)} />
                   </Campo>
                   {(
                     [
@@ -529,7 +527,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                     ] as const
                   ).map(([campo, etiqueta, roles]) => (
                     <Campo key={campo} etiqueta={etiqueta}>
-                      <select className={claseInput} value={borrador[campo] ?? ''} onChange={(e) => set(campo, e.target.value || null)}>
+                      <Selector className={claseInput} value={borrador[campo] ?? ''} onChange={(e) => set(campo, e.target.value || null)}>
                         <option value="">Sin asignar</option>
                         {equipo
                           // Activos con ese rol primero; el asignado se muestra aunque hoy esté inactivo o tenga otro rol.
@@ -541,7 +539,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                               {!m.activo ? ' · inactivo' : ''}
                             </option>
                           ))}
-                      </select>
+                      </Selector>
                     </Campo>
                   ))}
                   {borrador.responsable && !borrador.responsable_id && (
@@ -612,7 +610,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                         type="button"
                         onClick={() => void borrarCliente()}
                         disabled={guardando}
-                        className="ml-auto inline-flex items-center gap-2 h-[52px] px-4 text-sm font-medium text-peligro transition-colors duration-150 hover:bg-peligro-suave disabled:opacity-40"
+                        className={`${claseBotonHero('peligro', 'lg')} ml-auto`}
                       >
                         <Trash2 size={16} aria-hidden="true" /> Eliminar cliente
                       </button>
@@ -716,7 +714,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                   <input required type="number" step="0.01" min="0.01" className={claseInput} value={nueva.monto} onChange={(e) => setNueva({ ...nueva, monto: e.target.value })} />
                 </Campo>
                 <Campo etiqueta={nueva.anticipo ? 'Fecha de pago' : 'Vencimiento'}>
-                  <input type="date" className={claseInput} value={nueva.fecha} onChange={(e) => setNueva({ ...nueva, fecha: e.target.value })} />
+                  <Fecha type="date" className={claseInput} value={nueva.fecha} onChange={(e) => setNueva({ ...nueva, fecha: e.target.value })} />
                 </Campo>
                 <Campo etiqueta="Nota">
                   <input className={claseInput} value={nueva.nota} onChange={(e) => setNueva({ ...nueva, nota: e.target.value })} />

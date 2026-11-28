@@ -13,6 +13,7 @@ import { Llamadas } from './Llamadas';
 import { Comprobantes } from './Comprobantes';
 import { Reuniones } from './Reuniones';
 import { registrarLectura } from '../lecturas';
+import { Selector } from '../campos';
 
 /**
  * CRM legal de cada cliente de FIRMA.
@@ -103,7 +104,7 @@ export const CrmApp: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
     esAdmin && orgs.length > 1 ? (
       <label className="flex flex-col gap-2">
         <span className="text-[12.5px] font-medium text-piedra">Cliente de FIRMA</span>
-        <select
+        <Selector
           className="h-12 pl-3.5 pr-10 bg-white border border-tinta font-medium text-[15px] focus:outline-none focus:ring-1 focus:ring-bosque"
           value={orgId ?? ''}
           onChange={(e) => setOrgId(e.target.value)}
@@ -113,7 +114,7 @@ export const CrmApp: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
               {o.nombre}
             </option>
           ))}
-        </select>
+        </Selector>
       </label>
     ) : null;
 

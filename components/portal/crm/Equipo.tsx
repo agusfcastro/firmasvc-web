@@ -6,6 +6,7 @@ import { Aviso, Campo, Encabezado, Enlace, Etiqueta, claseInput } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
 import { CARGOS_ESTANDAR, ROLES_ELEGIBLES, ROL_COMERCIAL, cargoNormal, rolDe, type IntegranteEquipo, type RolComercial } from './tipos';
 import { mensajeAmable } from '../errores';
+import { Selector } from '../campos';
 
 /**
  * Equipo comercial de la empresa: closers, setters y Account Managers,
@@ -108,13 +109,13 @@ export const Equipo: React.FC<{ orgId: string; orgNombre: string; puedeGestionar
               <input required className={claseInput} maxLength={120} value={borrador.nombre} onChange={(e) => setBorrador({ ...borrador, nombre: e.target.value })} />
             </Campo>
             <Campo etiqueta="Rol">
-              <select className={claseInput} value={borrador.rol_comercial} onChange={(e) => setBorrador({ ...borrador, rol_comercial: e.target.value as RolComercial })}>
+              <Selector className={claseInput} value={borrador.rol_comercial} onChange={(e) => setBorrador({ ...borrador, rol_comercial: e.target.value as RolComercial })}>
                 {ROLES_ELEGIBLES.map((r) => (
                   <option key={r} value={r}>
                     {ROL_COMERCIAL[r]}
                   </option>
                 ))}
-              </select>
+              </Selector>
             </Campo>
             {borrador.rol_comercial === 'otro' && (
               <Campo etiqueta="¿Qué rol tiene?" ayuda="Por ejemplo COO, CFO, Nutricionista o Editor. Los cargos de la lista se guardan siempre con el mismo nombre. Sale al lado de su nombre.">

@@ -34,6 +34,12 @@
 @import "@heroui/styles/components/header.css" layer(components);
 @import "@heroui/styles/components/separator.css" layer(components);
 
+/* Fechas: campo por partes, calendario y su ventana */
+@import "@heroui/styles/components/calendar.css" layer(components);
+@import "@heroui/styles/components/date-field.css" layer(components);
+@import "@heroui/styles/components/date-input-group.css" layer(components);
+@import "@heroui/styles/components/date-picker.css" layer(components);
+
 /* Interruptores, estados y avisos */
 @import "@heroui/styles/components/switch.css" layer(components);
 @import "@heroui/styles/components/chip.css" layer(components);
