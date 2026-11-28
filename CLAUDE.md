@@ -120,5 +120,6 @@ Ley argentina y tribunales ordinarios de la Ciudad de Buenos Aires. Tina no pres
 
 - Antes de codear, resumí el plan y preguntá lo que falte.
 - Cambios chicos y verificables. Migraciones de Supabase versionadas.
+- Antes de abrir un PR que suma o cambia una pantalla o un flujo, corré la pasada corta de `docs/AUDITORIA_CALIDAD.md` y sumá a la descripción del PR el resultado por capa. Un hallazgo crítico frena la unión a main.
 - Interfaz en español rioplatense, con voseo.
 - Al terminar cada tarea, resumí qué cambió para actualizar este archivo.
