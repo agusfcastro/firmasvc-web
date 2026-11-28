@@ -4,7 +4,7 @@ import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
 import { Enlace } from '../ui';
 import { dinero, type ClienteResumen } from './tipos';
-import { TIPO_REUNION, type EstadoReunion, type TipoReunion } from './reuniones';
+import { TIPO_REUNION, type EstadoReunion, type TipoReunion } from './reunionesDatos';
 import { ROTULO_CAUSA, type Causa, type Etapa, type Semaforo } from './reglasCasos';
 import { claseBotonHero } from '../../Button';
 

@@ -1,6 +1,7 @@
 # Corre en cada push y en cada pull request, y a mano (Medir IA lo pide después de
 # guardar una referencia nueva, porque lo que empuja el token de Actions no dispara nada).
-#   codigo       tipos, colores de marca, pruebas de permisos sobre PGlite (sin Docker),
+#   codigo       archivos que chocan por mayúsculas en la Mac, tipos, colores de marca,
+#                pruebas de permisos sobre PGlite (sin Docker),
 #                pruebas del evaluador de la IA, del Excel del equipo y que cada prompt
 #                cambiado esté medido.
 #                No llama a Claude: la medición corre solo a pedido, con Medir IA
@@ -22,6 +23,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run mayusculas:verificar
       - run: npm run typecheck
       - run: npm run marca:verificar
       - run: npm run db:probar

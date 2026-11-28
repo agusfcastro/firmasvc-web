@@ -71,7 +71,7 @@ Desde la migración 0078 el CRM tiene reuniones (`crm_reuniones`, `/portal/crm/r
 
 Desde la 0079 cada servicio tiene duración en meses y Clientes tiene la vista Línea de tiempo (`crm/LineaTiempo.tsx`, con `finDelContrato`). Las fichas usan `Bloque` de `ui.tsx`: un solo título por bloque, sin volanta. Asuntos no aparece en la ficha del cliente final.
 
-Equipo arranca en Personas: tarjetas con lo que cada uno tiene entre manos, calendario del equipo y ficha por persona (`equipo/Personas.tsx`, `CalendarioEquipo.tsx`, `FichaPersona.tsx`, lógica en `equipo/personas.ts`). Victorias pasó a `/portal/equipo/victorias`. El riesgo legal del vínculo es un puntaje orientativo que ve solo quien lidera.
+Equipo arranca en Personas: tarjetas con lo que cada uno tiene entre manos, calendario del equipo y ficha por persona (`equipo/Personas.tsx`, `CalendarioEquipo.tsx`, `FichaPersona.tsx`, lógica en `equipo/personasDatos.ts`). Victorias pasó a `/portal/equipo/victorias`. El riesgo legal del vínculo es un puntaje orientativo que ve solo quien lidera.
 
 Desde la 0080 cada persona conecta su Google Calendar (OAuth, permiso `calendar.events.owned`). Los tokens de actualización quedan cifrados en `google_conexiones` y solo los leen las funciones del servidor (`google_conexion_token`). Servidor en `api/google/calendario.ts`, `api/google/callback.ts` y `api/_lib/google.ts`; portal en `components/portal/google.ts`. Variables `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET`. El detalle está en `PORTAL.md`, sección Google Calendar.
 
@@ -135,4 +135,5 @@ Ley argentina y tribunales ordinarios de la Ciudad de Buenos Aires. Tina no pres
 - Antes de codear, resumí el plan y preguntá lo que falte.
 - Cambios chicos y verificables. Migraciones de Supabase versionadas.
 - Interfaz en español rioplatense, con voseo.
+- No puede haber dos archivos que solo difieran en mayúsculas, ni dos archivos de código de la misma carpeta con el mismo nombre escrito distinto (`Reuniones.tsx` y `reuniones.ts`): en la Mac un import resuelve al que no es y el build se rompe, aunque en Vercel compile. La lógica de una pantalla va en `<nombre>Datos.ts`. Lo controla `npm run mayusculas:verificar`, que corre en Verificar.
 - Al terminar cada tarea, resumí qué cambió para actualizar este archivo.

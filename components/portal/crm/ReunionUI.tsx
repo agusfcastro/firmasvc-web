@@ -20,7 +20,7 @@ import {
   type Reunion,
   type ResultadoVenta,
   type TipoReunion,
-} from './reuniones';
+} from './reunionesDatos';
 import { claseBotonHero } from '../../Button';
 import { Selector, Fecha } from '../campos';
 

@@ -4,10 +4,10 @@ import { Button } from '../../Button';
 import { Aviso, Bloque, Etiqueta } from '../ui';
 import { avisoDeGoogle, conectarGoogle, pedirGoogle, useConexionesGoogle } from '../google';
 import { FilaReunion, FormReunion } from '../crm/ReunionUI';
-import { claveDia, dia, yaPaso, type Reunion } from '../crm/reuniones';
+import { claveDia, dia, yaPaso, type Reunion } from '../crm/reunionesDatos';
 import type { BaseEquipo } from './EquipoApp';
 import { FilaItem } from './Personas';
-import { entreManos, numerosDe, objetivosDe, riesgoLegalDe, tonoRendimiento, useDatosPersonas } from './personas';
+import { entreManos, numerosDe, objetivosDe, riesgoLegalDe, tonoRendimiento, useDatosPersonas } from './personasDatos';
 import { fechaLarga, numero } from './tipos';
 
 const TONO_RIESGO = { bajo: '#3f7a5f', medio: '#b7791f', alto: 'var(--color-peligro)' } as const;
