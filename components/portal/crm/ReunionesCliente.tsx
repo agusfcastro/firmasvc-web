@@ -4,7 +4,7 @@ import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { Bloque, Enlace } from '../ui';
 import { type IntegranteEquipo } from './tipos';
-import { COLUMNAS_REUNION, TIPO_REUNION, asistencia, claveDia, dia, fechaHora, porcentaje, yaPaso, type Reunion } from './reuniones';
+import { COLUMNAS_REUNION, TIPO_REUNION, asistencia, claveDia, dia, fechaHora, porcentaje, yaPaso, type Reunion } from './reunionesDatos';
 import { FilaReunion, FormReunion } from './ReunionUI';
 import { useConexionesGoogle } from '../google';
 

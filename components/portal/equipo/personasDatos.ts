@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../supabase';
 import type { IntegranteEquipo } from '../crm/tipos';
-import { COLUMNAS_REUNION, TIPO_REUNION, asistencia, cierre, yaPaso, type Reunion } from '../crm/reuniones';
+import { COLUMNAS_REUNION, TIPO_REUNION, asistencia, cierre, yaPaso, type Reunion } from '../crm/reunionesDatos';
 import { finDelContrato } from '../crm/LineaTiempo';
 import type { Avance, Objetivo, Reporte } from './tipos';
 

@@ -8,7 +8,7 @@ import { rolDe, type IntegranteEquipo, type RolComercial } from '../crm/tipos';
 import { FormReunion } from '../crm/ReunionUI';
 import type { BaseEquipo } from './EquipoApp';
 import { CalendarioEquipo } from './CalendarioEquipo';
-import { ROTULO_ESTADO_ITEM, colorDe, entreManos, inicialesDe, numerosDe, tonoRendimiento, useDatosPersonas, type EstadoItem, type Item } from './personas';
+import { ROTULO_ESTADO_ITEM, colorDe, entreManos, inicialesDe, numerosDe, tonoRendimiento, useDatosPersonas, type EstadoItem, type Item } from './personasDatos';
 import { claseBotonHero } from '../../Button';
 
 /** El estado de cada cosa que tiene alguien entre manos, como un círculo que se llena. */

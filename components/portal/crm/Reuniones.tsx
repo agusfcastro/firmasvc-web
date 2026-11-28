@@ -18,7 +18,7 @@ import {
   yaPaso,
   type Reunion,
   type TipoReunion,
-} from './reuniones';
+} from './reunionesDatos';
 import { FilaReunion, FormReunion, type ClienteOpcion } from './ReunionUI';
 import { useConexionesGoogle } from '../google';
 import { Selector } from '../campos';

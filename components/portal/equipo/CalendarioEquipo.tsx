@@ -3,8 +3,8 @@ import { ChevronLeft, ChevronRight, Video } from 'lucide-react';
 import { pedirGoogle, type EventoGoogle } from '../google';
 import { navegar } from '../navegacion';
 import type { IntegranteEquipo } from '../crm/tipos';
-import { TIPO_REUNION, yaPaso, type Reunion } from '../crm/reuniones';
-import { colorDe, inicialesDe, semanaDe, type ClientePersona } from './personas';
+import { TIPO_REUNION, yaPaso, type Reunion } from '../crm/reunionesDatos';
+import { colorDe, inicialesDe, semanaDe, type ClientePersona } from './personasDatos';
 
 const DIA = 86400000;
 const ALTO_HORA = 46;

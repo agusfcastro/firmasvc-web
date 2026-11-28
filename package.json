@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "db:probar": "node scripts/db/probar.mjs",
     "marca:verificar": "node scripts/marca/verificar.mjs",
+    "mayusculas:verificar": "node scripts/verificar-mayusculas.mjs",
     "ia:probar": "node --import ./scripts/ia/cargador.mjs scripts/pruebas/evaluador.mjs",
     "ia:evaluar": "node --import ./scripts/ia/cargador.mjs scripts/ia/evaluar.mjs",
     "maqueta": "vite --config scripts/maqueta/vite.config.ts"

@@ -7,7 +7,7 @@ import { navegar } from '../navegacion';
 import { Aviso, Cifras, Encabezado, Enlace, Etiqueta, MontosPorMoneda, NavegacionDePagina, Pestanas } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
 import { TONO_FIRMA, dinero, fecha, hoyISO, type ClienteResumen, type IntegranteEquipo } from './tipos';
-import { TIPO_REUNION, fechaHora, type TipoReunion } from './reuniones';
+import { TIPO_REUNION, fechaHora, type TipoReunion } from './reunionesDatos';
 import { LineaTiempo, ordenTimeline } from './LineaTiempo';
 import { mensajeAmable } from '../errores';
 
