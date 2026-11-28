@@ -5,6 +5,8 @@ import { Enlace } from '../ui';
 import { llamarSobres } from '../firmas/api';
 import { BotonCopiar } from './firma';
 import { hoyISO, type ClienteCrm, type IntegranteEquipo } from './tipos';
+import { Opciones } from '../campos';
+import { claseBotonHero } from '../../Button';
 
 /**
  * Onboardings de la empresa en el inicio. Por defecto, los del día ordenados
@@ -44,7 +46,7 @@ function rotuloDia(dia: string, hoy: string): string {
 
 const DIAS_SEMANA = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
-const claseFlecha = 'w-9 h-9 inline-flex items-center justify-center border border-tinta/22 bg-white transition-colors duration-150 hover:border-tinta';
+const claseFlecha = claseBotonHero('ghost', 'md', false, true);
 
 export const OnboardingsDia: React.FC<{ orgId: string }> = ({ orgId }) => {
   const hoy = hoyISO();
@@ -131,27 +133,19 @@ export const OnboardingsDia: React.FC<{ orgId: string }> = ({ orgId }) => {
       {vista === 'dia' && delDia.length > 0 && (
         <span className="min-w-[22px] h-[22px] px-1.5 grid place-items-center rounded-pastilla bg-tinta text-marfil text-[12px] font-bold tabular-nums">{delDia.length}</span>
       )}
-      <div className="ml-auto inline-flex border border-tinta/22" role="group" aria-label="Vista">
-        {(
-          [
-            ['dia', 'Día', List],
-            ['calendario', 'Calendario', CalendarDays],
-          ] as const
-        ).map(([clave, texto, Icono]) => (
-          <button
-            key={clave}
-            type="button"
-            aria-pressed={vista === clave}
-            onClick={() => {
-              if (clave === 'calendario') setMes(dia.slice(0, 7));
-              setVista(clave);
-            }}
-            className={`inline-flex items-center gap-1.5 h-9 px-3 text-[13px] font-medium transition-colors duration-150 ${vista === clave ? 'bg-tinta text-marfil' : 'bg-white text-tinta hover:bg-marfil'}`}
-          >
-            <Icono size={14} aria-hidden="true" /> {texto}
-          </button>
-        ))}
-      </div>
+      <Opciones
+        etiqueta="Vista"
+        className="ml-auto"
+        valor={vista}
+        alCambiar={(v) => {
+          if (v === 'calendario') setMes(dia.slice(0, 7));
+          setVista(v);
+        }}
+        opciones={[
+          { valor: 'dia', texto: <><List size={14} aria-hidden="true" /> Día</> },
+          { valor: 'calendario', texto: <><CalendarDays size={14} aria-hidden="true" /> Calendario</> },
+        ]}
+      />
     </div>
   );
 
@@ -250,7 +244,7 @@ export const OnboardingsDia: React.FC<{ orgId: string }> = ({ orgId }) => {
                     {f.nombre}
                   </Enlace>
                   <span className="text-[13px] text-piedra truncate">
-                    {[f.servicio, responsable && `CSM/AM ${responsable}`, closer && `Closer ${closer}`].filter(Boolean).join(' · ') || 'Sin responsable asignado'}
+                    {[f.servicio, responsable && `Account Manager ${responsable}`, closer && `Closer ${closer}`].filter(Boolean).join(' · ') || 'Sin responsable asignado'}
                   </span>
                 </span>
                 {enlace ? (

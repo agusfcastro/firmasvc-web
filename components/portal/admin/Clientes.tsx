@@ -11,6 +11,7 @@ import { TIPOS_LOGO, borrarArchivoLogo, fijarLogo, subirLogo } from '../logos';
 import { INCLUYE_PLAN, ROTULO_PLAN, type Plan } from '../planes';
 import { MONEDAS_CRM } from '../crm/tipos';
 
+import { mensajeAmable } from '../errores';
 type Borrador = Pick<Organizacion, 'nombre' | 'razon_social' | 'pais' | 'activa' | 'notas'> & {
   id?: string;
   prefijo_crm?: string | null;
@@ -51,7 +52,7 @@ export const Clientes: React.FC = () => {
       supabase.from('organizaciones').select('*').order('nombre'),
       supabase.from('perfiles').select('organizacion_id'),
     ]);
-    if (e1) setError(e1.message);
+    if (e1) setError(mensajeAmable(e1));
     setLista((orgs as Organizacion[]) ?? []);
     const c: Record<string, number> = {};
     (perfiles ?? []).forEach((p: { organizacion_id: string | null }) => {
@@ -88,7 +89,7 @@ export const Clientes: React.FC = () => {
       : await supabase.from('organizaciones').insert(datos).select('id').single();
     if (err || !fila) {
       setGuardando(false);
-      return setError(err?.message ?? 'No se pudo guardar el cliente.');
+      return setError(mensajeAmable(err, 'No se pudo guardar el cliente.'));
     }
 
     // El logo se sube después, porque la ruta del archivo usa el id del cliente.
@@ -109,7 +110,7 @@ export const Clientes: React.FC = () => {
       const { error: errLogo } = await supabase.from('organizaciones').update({ logo_url }).eq('id', fila.id);
       if (errLogo) {
         setGuardando(false);
-        return setError(errLogo.message);
+        return setError(mensajeAmable(errLogo));
       }
       fijarLogo(fila.id, logo_url);
     }

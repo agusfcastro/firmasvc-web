@@ -24,11 +24,21 @@ import {
   Wallet,
   WifiOff,
   X,
+  Building2,
+  ChevronsLeft,
+  ClipboardList,
+  ListChecks,
+  Mail,
+  PanelLeftOpen,
+  Plus,
+  Sparkles,
+  Target,
   type LucideIcon,
 } from 'lucide-react';
+import { Alert, Button as BotonHero, Description as DescripcionHero, Dropdown, Label as RotuloHero, Switch, Tabs } from '@heroui/react';
 import { DensidadBotones } from '../Button';
 import { supabase } from './supabase';
-import { navegar } from './navegacion';
+import { navegar, marcarSalida } from './navegacion';
 import { salirVistaPrevia, useVistaPrevia } from './vistaPrevia';
 import { useLogoOrg } from './logos';
 import { ROTULO_ROL, cargoDe, permisosDe, veAsuntos, type Perfil, type Permisos } from './tipos';
@@ -40,9 +50,9 @@ import { Buscador, abrirBuscador, atajoBuscador, type AccesoSeccion } from './Bu
 import { desactivarPush } from './push';
 import { LimiteError } from './LimiteError';
 import { simboloMoneda } from '../../api/_lib/variables';
+import { PESTANAS_ADMIN } from './admin/pestanas';
 
 import simboloClaro from '../../assets/brand/simbolo-claro.png';
-import simboloOscuro from '../../assets/brand/simbolo-oscuro.png';
 import palabraOscura from '../../assets/brand/wordmark-oscuro.png';
 
 /* ------------------------------------------------------------------ */
@@ -64,6 +74,7 @@ export const Enlace: React.FC<React.AnchorHTMLAttributes<HTMLAnchorElement> & { 
 );
 
 async function salir() {
+  marcarSalida();
   // Este dispositivo deja de recibir avisos de esta cuenta, por si lo usa otra persona.
   await desactivarPush().catch(() => undefined);
   // Solo esta sesión: sin scope, Supabase cierra la cuenta en todos los dispositivos.
@@ -84,27 +95,30 @@ interface Seccion {
   /** Rótulo corto para la barra inferior del celular. */
   corto: string;
   icono: LucideIcon;
-  grupo: 'expediente' | 'negocio' | 'firma';
+  /** principal va arriba y sin título; negocio, abajo en Tu negocio. */
+  grupo: 'principal' | 'negocio' | 'firma';
   activo: boolean;
 }
 
 function seccionesDe(perfil: Perfil, permisos: Permisos, ruta: string): Seccion[] {
   const s = (clave: ClaveSeccion, a: string, titulo: string, corto: string, icono: LucideIcon, grupo: Seccion['grupo'], activo: boolean): Seccion => ({ clave, a, titulo, corto, icono, grupo, activo });
+  // Arriba lo de todos los días. Abajo, en Tu negocio, lo legal y la administración.
   return [
-    s('inicio', '/portal', 'Inicio', 'Inicio', House, 'expediente', ruta === '/portal'),
-    ...(veAsuntos(perfil) ? [s('asuntos', '/portal/asuntos', 'Asuntos', 'Asuntos', BriefcaseBusiness, 'expediente', ruta.startsWith('/portal/asuntos'))] : []),
-    ...(permisos.documentosLegales ? [s('firmas', '/portal/firmas', 'Firmas', 'Firmas', FileSignature, 'expediente', ruta.startsWith('/portal/firmas'))] : []),
-    ...(permisos.documentosLegales
-      ? [s('documentos', '/portal/documentos', 'Documentos', 'Documentos', FileText, 'expediente', ruta.startsWith('/portal/documentos') || ruta.startsWith('/portal/pedidos'))]
-      : []),
-    s('protocolos', '/portal/protocolos', 'Protocolos', 'Protocolos', BookOpen, 'expediente', ruta === '/portal/protocolos'),
+    s('inicio', '/portal', 'Inicio', 'Inicio', House, 'principal', ruta === '/portal'),
     // Invoices y recibos se abren desde Clientes; la bitácora, desde el pie de la barra lateral.
-    ...(permisos.crm ? [s('crm', '/portal/crm', 'Clientes', 'Clientes', Kanban, 'negocio', ruta.startsWith('/portal/crm'))] : []),
+    ...(permisos.crm ? [s('crm', '/portal/crm', 'Clientes', 'Clientes', Kanban, 'principal', ruta.startsWith('/portal/crm'))] : []),
     // Objetivos, victorias y reportes (0076): lo usa toda la gente de la empresa, también setters.
-    s('equipo', '/portal/equipo', 'Equipo', 'Equipo', Trophy, 'negocio', ruta === '/portal/equipo' || ruta.startsWith('/portal/equipo/')),
-    ...(permisos.agenda ? [s('agenda', '/portal/agenda', 'Agenda', 'Agenda', CalendarDays, 'negocio', ruta === '/portal/agenda')] : []),
+    s('equipo', '/portal/equipo', 'Equipo', 'Equipo', Trophy, 'principal', ruta === '/portal/equipo' || ruta.startsWith('/portal/equipo/')),
+    ...(permisos.agenda ? [s('agenda', '/portal/agenda', 'Agenda', 'Agenda', CalendarDays, 'principal', ruta === '/portal/agenda')] : []),
     // Pagos solo para titulares y FIRMA. El resto del equipo no ve nada de pagos.
     ...(permisos.gestion ? [s('pagos', '/portal/pagos', 'Pagos', 'Pagos', Wallet, 'negocio', ruta === '/portal/pagos')] : []),
+    s('protocolos', '/portal/protocolos', 'Protocolos', 'Protocolos', BookOpen, 'negocio', ruta === '/portal/protocolos'),
+    ...(permisos.documentosLegales
+      ? [s('documentos', '/portal/documentos', 'Documentos', 'Documentos', FileText, 'negocio', ruta.startsWith('/portal/documentos') || ruta.startsWith('/portal/pedidos'))]
+      : []),
+    ...(permisos.documentosLegales ? [s('firmas', '/portal/firmas', 'Firmas', 'Firmas', FileSignature, 'negocio', ruta.startsWith('/portal/firmas'))] : []),
+    // Asuntos son los temas de FIRMA con el dueño del negocio, no con sus clientes.
+    ...(veAsuntos(perfil) ? [s('asuntos', '/portal/asuntos', 'Asuntos', 'Asuntos', BriefcaseBusiness, 'negocio', ruta.startsWith('/portal/asuntos'))] : []),
     ...(perfil.rol === 'admin' ? [s('admin', '/portal/admin', 'Administración', 'Admin', ShieldCheck, 'firma', ruta.startsWith('/portal/admin'))] : []),
   ];
 }
@@ -126,7 +140,7 @@ function accesosDe(perfil: Perfil, permisos: Permisos, secciones: Seccion[]): Ac
   ];
 }
 
-const TITULO_GRUPO: Record<Seccion['grupo'], string> = { expediente: 'Expediente', negocio: 'Tu negocio', firma: 'FIRMA' };
+const TITULO_GRUPO: Record<Seccion['grupo'], string> = { principal: '', negocio: 'Tu negocio', firma: 'FIRMA' };
 
 /* ------------------------------------------------------------------ */
 /* Datos chicos que muestra el marco, con caché por sesión             */
@@ -304,7 +318,11 @@ const iniciales = (texto: string): string =>
 /* ------------------------------------------------------------------ */
 /* Barra lateral (computadora) y panel del menú (celular)              */
 /* ------------------------------------------------------------------ */
-const Lateral: React.FC<{
+/**
+ * Menú del celular. Una hoja que sube desde abajo con las secciones como en la barra de la
+ * computadora, el ícono arriba y el nombre corto abajo.
+ */
+const HojaMenu: React.FC<{
   perfil: Perfil;
   secciones: Seccion[];
   contadores: Contadores;
@@ -315,34 +333,30 @@ const Lateral: React.FC<{
   alElegir?: () => void;
 }> = ({ perfil, secciones, contadores, orgNombre, orgPlan, logoCliente, vista, alElegir }) => {
   const esAdmin = perfil.rol === 'admin' && !vista;
-  const grupos = (['expediente', 'negocio', 'firma'] as const).map((g) => ({ g, items: secciones.filter((x) => x.grupo === g) })).filter((x) => x.items.length);
+  const grupos = (['principal', 'negocio', 'firma'] as const).map((g) => ({ g, items: secciones.filter((x) => x.grupo === g) })).filter((x) => x.items.length);
   const cuenta = (c: ClaveSeccion) => (c === 'asuntos' ? contadores.asuntos : c === 'firmas' ? contadores.firmas : undefined);
   const nombre = perfil.nombre || perfil.email;
   const negocios = useMisNegocios(!vista && perfil.rol !== 'admin' ? perfil : null);
   const varios = negocios.length > 1;
-  const titulos = esAdmin ? { expediente: 'Clientes', negocio: 'Gestión', firma: 'FIRMA' } : TITULO_GRUPO;
+  const titulos: Record<Seccion['grupo'], string> = esAdmin ? { principal: '', negocio: 'Gestión', firma: 'FIRMA' } : TITULO_GRUPO;
 
   return (
-    <div className="lateral relative flex flex-col gap-5 min-h-full px-4 pt-6 pb-4 bg-tinta text-lateral-texto overflow-hidden">
-      <img src={simboloOscuro} alt="" aria-hidden="true" className="absolute -right-20 bottom-28 w-[300px] max-w-none opacity-[0.05] pointer-events-none select-none" />
+    <div className="flex flex-col gap-6 px-4 pt-6 pb-5 text-lateral-texto">
+      <span aria-hidden="true" className="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full bg-marfil/20" />
 
-      <Enlace a="/portal" onClick={alElegir} className="relative self-start px-2 py-1" aria-label="Inicio del portal">
-        <img src={palabraOscura} alt="firma" className="h-[26px] w-auto" />
-      </Enlace>
-
-      <div className={`relative flex items-center gap-3 p-3 rounded-[14px] border border-marfil/10 bg-marfil/[0.04] ${varios ? 'hover:bg-marfil/[0.08] focus-within:outline focus-within:outline-2 focus-within:outline-marfil' : ''}`}>
+      <div className={`relative flex items-center gap-3 mr-12 p-2 -m-2 rounded-[14px] ${varios ? 'focus-within:outline focus-within:outline-2 focus-within:outline-marfil' : ''}`}>
         {logoCliente && !esAdmin ? (
-          <span className="w-9 h-9 shrink-0 rounded-[10px] bg-white grid place-items-center overflow-hidden">
-            <img src={logoCliente} alt="" className="max-w-[30px] max-h-[30px] object-contain" />
+          <span className="w-11 h-11 shrink-0 rounded-[12px] bg-white grid place-items-center overflow-hidden">
+            <img src={logoCliente} alt="" className="max-w-[36px] max-h-[36px] object-contain" />
           </span>
         ) : (
-          <span aria-hidden="true" className="w-9 h-9 shrink-0 rounded-[10px] grid place-items-center bg-marfil text-tinta text-[13px] font-bold">
+          <span aria-hidden="true" className="w-11 h-11 shrink-0 rounded-[12px] grid place-items-center bg-marfil text-tinta text-[14px] font-bold">
             {esAdmin ? 'F' : iniciales(orgNombre ?? '·')}
           </span>
         )}
         <span className="flex flex-col min-w-0 leading-tight">
-          <span className="text-marfil text-[14px] font-medium truncate">{esAdmin ? 'FIRMA' : orgNombre ?? '·'}</span>
-          <span className="text-[12.5px] text-lateral-tenue truncate mt-0.5">{esAdmin ? 'Administración' : [cargoDe(perfil), orgPlan ? `Plan ${ROTULO_PLAN[orgPlan]}` : null].filter(Boolean).join(' · ')}</span>
+          <span className="text-marfil text-[16px] font-semibold truncate">{esAdmin ? 'FIRMA' : orgNombre ?? '·'}</span>
+          <span className="text-[13px] text-lateral-tenue truncate mt-0.5">{esAdmin ? 'Administración' : [cargoDe(perfil), orgPlan ? `Plan ${ROTULO_PLAN[orgPlan]}` : null].filter(Boolean).join(' · ')}</span>
         </span>
         {varios && (
           <>
@@ -352,74 +366,60 @@ const Lateral: React.FC<{
         )}
       </div>
 
-      <button
-        type="button"
-        onClick={() => {
-          alElegir?.();
-          abrirBuscador();
-        }}
-        aria-haspopup="dialog"
-        className="relative -my-1 flex items-center gap-2.5 h-10 px-3 rounded-[10px] border border-marfil/10 text-[14px] text-lateral-tenue hover:text-marfil hover:border-marfil/25"
-      >
-        <Search size={16} aria-hidden="true" className="shrink-0" />
-        <span className="flex-1 text-left">Buscar</span>
-        <kbd aria-hidden="true" className="hidden desk:inline font-sans text-[11.5px] px-1.5 py-0.5 rounded-[6px] border border-marfil/15">
-          {atajoBuscador()}
-        </kbd>
-      </button>
-
-      <nav aria-label="Secciones del portal" className="relative flex flex-col gap-5">
+      <nav aria-label="Secciones del portal" className="flex flex-col gap-5">
         {grupos.map(({ g, items }) => (
-          <div key={g} className="flex flex-col gap-0.5">
-            <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] [font-stretch:125%] text-lateral-tenue">{titulos[g]}</p>
-            {items.map((x) => {
-              const Icono = x.icono;
-              const n = cuenta(x.clave);
-              return (
-                <Enlace
-                  key={x.clave}
-                  a={x.a}
-                  onClick={alElegir}
-                  aria-current={x.activo ? 'page' : undefined}
-                  className={`relative flex items-center gap-3 min-h-[40px] px-3 rounded-[10px] text-[14.5px] transition-colors duration-150 ${x.activo ? 'bg-grafito text-marfil font-semibold' : 'hover:bg-marfil/[0.06] hover:text-marfil'}`}
-                >
-                  <Icono size={18} strokeWidth={1.75} aria-hidden="true" className="shrink-0" />
-                  <span className="flex-1 truncate">{x.titulo}</span>
-                  {n ? (
-                    <span className="min-w-[22px] h-[22px] px-1.5 grid place-items-center rounded-pastilla bg-marfil text-tinta text-[12px] font-bold tabular-nums" aria-label={`${n} pendientes`}>
-                      {n}
+          <div key={g} className="flex flex-col gap-2.5">
+            {titulos[g] && <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.16em] [font-stretch:125%] text-lateral-tenue">{titulos[g]}</p>}
+            <div className="grid grid-cols-4 gap-x-1 gap-y-3">
+              {items.map((x) => {
+                const Icono = x.icono;
+                const n = cuenta(x.clave);
+                return (
+                  <Enlace
+                    key={x.clave}
+                    a={x.a}
+                    onClick={alElegir}
+                    aria-current={x.activo ? 'page' : undefined}
+                    className={`flex flex-col items-center gap-1.5 py-1 rounded-[14px] text-[12px] leading-tight text-center ${x.activo ? 'text-marfil font-semibold' : 'text-lateral-texto font-medium'}`}
+                  >
+                    <span className={`relative w-12 h-11 grid place-items-center rounded-[14px] ${x.activo ? 'bg-grafito' : 'bg-marfil/[0.06]'}`}>
+                      <Icono size={21} strokeWidth={1.75} aria-hidden="true" />
+                      {n ? <Cuenta n={n} clase="absolute -top-1.5 -right-1.5" /> : null}
                     </span>
-                  ) : null}
-                </Enlace>
-              );
-            })}
+                    <span className="max-w-full truncate px-0.5">{x.corto}</span>
+                  </Enlace>
+                );
+              })}
+            </div>
           </div>
         ))}
       </nav>
 
-      <div className="relative mt-auto flex flex-col gap-3">
+      <div className="flex flex-col gap-1 pt-4 border-t border-marfil/10">
         {perfil.rol === 'titular' && !vista && (
           <Enlace
             a="/portal/bitacora"
             onClick={alElegir}
             aria-current={window.location.pathname.startsWith('/portal/bitacora') ? 'page' : undefined}
-            className="flex items-center gap-2.5 min-h-[36px] px-3 rounded-[10px] text-[13px] text-lateral-tenue hover:text-marfil hover:bg-marfil/[0.06] aria-[current=page]:text-marfil"
+            className="flex items-center gap-3 min-h-[44px] px-1 rounded-[10px] text-[14px] text-lateral-texto hover:text-marfil aria-[current=page]:text-marfil"
           >
-            <ScrollText size={15} strokeWidth={1.75} aria-hidden="true" className="shrink-0" />
+            <span className="w-8 grid place-items-center shrink-0">
+              <ScrollText size={17} strokeWidth={1.75} aria-hidden="true" />
+            </span>
             Bitácora de la cuenta
           </Enlace>
         )}
-        <div className="flex items-center gap-3 pt-4 px-1 border-t border-marfil/10">
+        <div className="flex items-center gap-3 px-1 pt-1">
           <span aria-hidden="true" className="w-8 h-8 shrink-0 rounded-full grid place-items-center bg-grafito text-marfil text-[12px] font-bold">
             {iniciales(nombre)}
           </span>
           <span className="flex flex-col min-w-0 flex-1 leading-tight">
-            <span className="text-marfil text-[13.5px] font-medium truncate">{nombre}</span>
-            <span className="text-[12px] text-lateral-tenue truncate">{perfil.nombre ? perfil.email : ROTULO_ROL[perfil.rol]}</span>
+            <span className="text-marfil text-[14px] font-medium truncate">{nombre}</span>
+            <span className="text-[12.5px] text-lateral-tenue truncate">{perfil.nombre ? perfil.email : ROTULO_ROL[perfil.rol]}</span>
           </span>
-          <CampanaAvisos alAbrir={alElegir} />
-          <button type="button" onClick={salir} aria-label="Salir del portal" title="Salir" className="w-10 h-10 grid place-items-center shrink-0 rounded-[10px] text-lateral-tenue hover:text-marfil hover:bg-marfil/[0.06]">
-            <LogOut size={17} aria-hidden="true" />
+          <button type="button" onClick={salir} className="flex items-center gap-2 h-10 px-3 shrink-0 rounded-[10px] border border-marfil/15 text-[13.5px] text-marfil hover:bg-marfil/[0.06]">
+            <LogOut size={16} aria-hidden="true" />
+            Salir
           </button>
         </div>
       </div>
@@ -427,7 +427,7 @@ const Lateral: React.FC<{
   );
 };
 
-/** Panel del menú en el celular, con la misma barra lateral. */
+/** Hoja del menú en el celular. Sube desde abajo y se cierra tocando afuera, con la X o con Escape. */
 const PanelMenu: React.FC<{ abierto: boolean; alCerrar: () => void; children: React.ReactNode }> = ({ abierto, alCerrar, children }) => {
   const cerrarRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -444,15 +444,372 @@ const PanelMenu: React.FC<{ abierto: boolean; alCerrar: () => void; children: Re
   }, [abierto, alCerrar]);
   if (!abierto) return null;
   return (
-    <div className="desk:hidden fixed inset-0 z-50 flex" role="dialog" aria-modal="true" aria-label="Menú del portal">
-      <button type="button" aria-label="Cerrar el menú" tabIndex={-1} onClick={alCerrar} className="absolute inset-0 bg-tinta/55" />
-      <div className="relative ml-auto h-full w-[min(320px,88vw)] overflow-y-auto bg-tinta">
-        <button ref={cerrarRef} type="button" onClick={alCerrar} aria-label="Cerrar el menú" className="absolute right-3 top-5 z-10 w-10 h-10 grid place-items-center text-lateral-texto hover:text-marfil">
+    <div className="desk:hidden fixed inset-0 z-50 flex flex-col justify-end" role="dialog" aria-modal="true" aria-label="Menú del portal">
+      <button type="button" aria-label="Cerrar el menú" tabIndex={-1} onClick={alCerrar} className="hoja-fondo absolute inset-0 bg-tinta/55" />
+      <div className="lateral hoja-menu relative w-full max-h-[88vh] overflow-y-auto overscroll-contain rounded-t-[22px] bg-tinta pb-[env(safe-area-inset-bottom)]">
+        <button ref={cerrarRef} type="button" onClick={alCerrar} aria-label="Cerrar el menú" className="absolute right-3 top-[26px] z-10 w-10 h-10 grid place-items-center rounded-[10px] text-lateral-texto hover:text-marfil hover:bg-marfil/[0.06]">
           <X size={20} aria-hidden="true" />
         </button>
         {children}
       </div>
     </div>
+  );
+};
+
+/* ------------------------------------------------------------------ */
+/* Barra de íconos y panel de la sección (computadora), estilo ClickUp */
+/* ------------------------------------------------------------------ */
+/**
+ * En computadora el menú es una barra angosta de íconos con su nombre abajo y, al lado,
+ * el panel de la sección con sus pantallas (Clientes, Equipo y Administración). El panel
+ * se oculta y el portal recuerda cómo lo dejaste. En el celular quedan la barra de abajo, los chips
+ * de la sección y la hoja del menú.
+ */
+const CLAVE_PANEL = 'firma-panel-seccion';
+const PanelSeccionCtx = React.createContext<{ hay: boolean; abierto: boolean }>({ hay: false, abierto: false });
+
+/** true cuando, en computadora, el panel de la sección está abierto y ya muestra las pantallas de la sección. */
+export const usePanelSeccion = (): boolean => {
+  const { hay, abierto } = React.useContext(PanelSeccionCtx);
+  return hay && abierto;
+};
+
+/**
+ * Navegación propia de una página (pestañas, accesos del encabezado). Cuando la sección tiene
+ * panel, en el celular la reemplazan los chips de arriba y en computadora el panel, si está abierto.
+ */
+export const NavegacionDePagina: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { hay, abierto } = React.useContext(PanelSeccionCtx);
+  return <div className={!hay ? 'contents' : abierto ? 'hidden' : 'hidden desk:contents'}>{children}</div>;
+};
+
+interface ItemPanel {
+  a: string;
+  titulo: string;
+  icono: LucideIcon;
+  activo: boolean;
+  cuenta?: number;
+}
+interface PanelDeSeccion {
+  titulo: string;
+  grupos: { titulo?: string; items: ItemPanel[] }[];
+  accion?: { a: string; titulo: string };
+}
+
+const SUBRUTAS_CRM = ['casos', 'reuniones', 'llamadas', 'comprobantes', 'servicios', 'equipo'];
+const ICONO_ADMIN: Record<string, LucideIcon> = {
+  '/portal/admin': Users,
+  '/portal/admin/clientes': Building2,
+  '/portal/admin/agendas': CalendarDays,
+  '/portal/admin/documentos': FileText,
+  '/portal/admin/formularios': ListChecks,
+  '/portal/admin/abonos': Wallet,
+  '/portal/admin/newsletter': Mail,
+  '/portal/admin/calidad': Sparkles,
+  '/portal/admin/registro': ScrollText,
+};
+
+function panelDe(clave: ClaveSeccion | undefined, ruta: string, permisos: Permisos, soloLectura: boolean, cuentas: CuentasCrm): PanelDeSeccion | null {
+  if (clave === 'crm') {
+    const en = (s: string) => ruta === `/portal/crm/${s}` || ruta.startsWith(`/portal/crm/${s}/`);
+    return {
+      titulo: 'Clientes',
+      accion: soloLectura ? undefined : { a: '/portal/crm/nuevo', titulo: 'Nuevo cliente' },
+      grupos: [
+        {
+          items: [
+            { a: '/portal/crm', titulo: 'Todos los clientes', icono: Kanban, activo: !SUBRUTAS_CRM.some(en) },
+            ...(permisos.casos ? [{ a: '/portal/crm/casos', titulo: 'Casos de conflicto', icono: ShieldAlert, activo: en('casos'), cuenta: cuentas.casos }] : []),
+            { a: '/portal/crm/reuniones', titulo: 'Reuniones', icono: CalendarDays, activo: en('reuniones'), cuenta: cuentas.reuniones },
+            { a: '/portal/crm/llamadas', titulo: 'Llamadas', icono: Phone, activo: en('llamadas') },
+            { a: '/portal/crm/comprobantes', titulo: 'Invoices y recibos', icono: ReceiptText, activo: en('comprobantes') },
+          ],
+        },
+        {
+          titulo: 'Configuración',
+          items: [
+            { a: '/portal/crm/servicios', titulo: 'Servicios', icono: Layers, activo: en('servicios') },
+            { a: '/portal/crm/equipo', titulo: 'Equipo comercial', icono: Users, activo: en('equipo') },
+          ],
+        },
+      ],
+    };
+  }
+  if (clave === 'equipo') {
+    const en = (s: string) => ruta === `/portal/equipo/${s}`;
+    return {
+      titulo: 'Equipo',
+      grupos: [
+        {
+          items: [
+            { a: '/portal/equipo', titulo: 'Personas', icono: Users, activo: !en('victorias') && !en('objetivos') && !en('reportes') },
+            { a: '/portal/equipo/victorias', titulo: 'Victorias', icono: Trophy, activo: en('victorias') },
+            { a: '/portal/equipo/objetivos', titulo: 'Objetivos', icono: Target, activo: en('objetivos') },
+            { a: '/portal/equipo/reportes', titulo: 'Reportes', icono: ClipboardList, activo: en('reportes') },
+          ],
+        },
+      ],
+    };
+  }
+  if (clave === 'admin') {
+    return {
+      titulo: 'Administración',
+      grupos: [{ items: PESTANAS_ADMIN.map((p) => ({ a: p.ruta, titulo: p.titulo, icono: ICONO_ADMIN[p.ruta] ?? ShieldCheck, activo: ruta === p.ruta })) }],
+    };
+  }
+  return null;
+}
+
+/** Casos de conflicto en curso y reuniones por completar de la empresa, para el panel de Clientes. Se piden como mucho una vez por minuto. */
+interface CuentasCrm {
+  casos?: number;
+  reuniones?: number;
+}
+const cacheCrm = new Map<string, { t: number; c: CuentasCrm }>();
+function useCuentasCrm(orgId: string | null, activo: boolean, conCasos: boolean): CuentasCrm {
+  const clave = orgId ? `${orgId}:${conCasos ? 'casos' : ''}` : '';
+  const [c, setC] = useState<CuentasCrm>(() => (clave ? cacheCrm.get(clave)?.c ?? {} : {}));
+  useEffect(() => {
+    if (!supabase || !activo || !orgId) return;
+    const previo = cacheCrm.get(clave);
+    if (previo && Date.now() - previo.t < 60_000) return setC(previo.c);
+    let vigente = true;
+    const ahora = new Date().toISOString();
+    void Promise.all([
+      conCasos ? supabase.from('crm_casos').select('id', { count: 'exact', head: true }).eq('organizacion_id', orgId).neq('etapa', 'cerrado') : null,
+      // Las mismas que cuenta Clientes, sin tipo o agendadas que ya pasaron.
+      supabase.from('crm_reuniones').select('id', { count: 'exact', head: true }).eq('organizacion_id', orgId).or(`tipo.is.null,and(estado.eq.agendada,inicio.lt.${ahora})`),
+    ]).then(([casos, reuniones]) => {
+      const nuevo: CuentasCrm = {
+        casos: casos && !casos.error ? (casos.count ?? 0) : undefined,
+        reuniones: reuniones.error ? undefined : (reuniones.count ?? 0),
+      };
+      cacheCrm.set(clave, { t: Date.now(), c: nuevo });
+      if (vigente) setC(nuevo);
+    });
+    return () => {
+      vigente = false;
+    };
+  }, [orgId, activo, conCasos, clave]);
+  return c;
+}
+
+/** Abierto o cerrado, guardado en este navegador. Abierto la primera vez. */
+function usePanelAbierto(): [boolean, (v: boolean) => void] {
+  const [abierto, setAbierto] = useState(() => {
+    try {
+      return window.localStorage.getItem(CLAVE_PANEL) !== 'cerrado';
+    } catch {
+      return true;
+    }
+  });
+  const cambiar = (v: boolean) => {
+    setAbierto(v);
+    try {
+      window.localStorage.setItem(CLAVE_PANEL, v ? 'abierto' : 'cerrado');
+    } catch {
+      /* sin almacenamiento */
+    }
+  };
+  return [abierto, cambiar];
+}
+
+const Cuenta: React.FC<{ n: number; clase?: string }> = ({ n, clase = '' }) => (
+  <span className={`min-w-[18px] h-[18px] px-1 grid place-items-center rounded-pastilla bg-marfil text-tinta text-[10.5px] font-bold tabular-nums ${clase}`} aria-label={`${n} pendientes`}>
+    {n > 99 ? '99+' : n}
+  </span>
+);
+
+/** Un ítem de la barra de íconos: el ícono y, abajo, su nombre corto. */
+const ItemBarra: React.FC<{
+  a?: string;
+  alTocar?: () => void;
+  icono: LucideIcon;
+  rotulo: string;
+  titulo?: string;
+  activo?: boolean;
+  cuenta?: number;
+  haspopup?: 'dialog';
+}> = ({ a, alTocar, icono: Icono, rotulo, titulo, activo, cuenta, haspopup }) => {
+  const clase = `group flex flex-col items-center gap-0.5 w-[72px] py-1 rounded-[12px] text-[11px] leading-tight text-center transition-colors duration-150 ${activo ? 'text-marfil font-semibold' : 'text-lateral-texto font-medium hover:text-marfil'}`;
+  const contenido = (
+    <>
+      <span className={`relative w-10 h-[30px] grid place-items-center rounded-[10px] ${activo ? 'bg-grafito' : 'group-hover:bg-marfil/[0.08]'}`}>
+        <Icono size={19} strokeWidth={1.75} aria-hidden="true" />
+        {cuenta ? <Cuenta n={cuenta} clase="absolute -top-1 -right-1.5" /> : null}
+      </span>
+      <span className="max-w-full truncate px-0.5">{rotulo}</span>
+    </>
+  );
+  return a ? (
+    <Enlace a={a} title={titulo} aria-current={activo ? 'page' : undefined} className={clase}>
+      {contenido}
+    </Enlace>
+  ) : (
+    <button type="button" onClick={alTocar} title={titulo} aria-haspopup={haspopup} className={clase}>
+      {contenido}
+    </button>
+  );
+};
+
+const Separacion = () => <span aria-hidden="true" className="w-9 h-px my-1 shrink-0 bg-marfil/[0.12]" />;
+
+const BarraEscritorio: React.FC<{
+  perfil: Perfil;
+  secciones: Seccion[];
+  contadores: Contadores;
+  orgNombre: string | null;
+  logoCliente: string | null;
+  vista: boolean;
+  panel: PanelDeSeccion | null;
+  panelAbierto: boolean;
+  alPanel: (abierto: boolean) => void;
+}> = ({ perfil, secciones, contadores, orgNombre, logoCliente, vista, panel, panelAbierto, alPanel }) => {
+  const esAdmin = perfil.rol === 'admin' && !vista;
+  const negocios = useMisNegocios(!vista && perfil.rol !== 'admin' ? perfil : null);
+  const varios = negocios.length > 1;
+  const nombre = perfil.nombre || perfil.email;
+  const cuenta = (c: ClaveSeccion) => (c === 'asuntos' ? contadores.asuntos : c === 'firmas' ? contadores.firmas : undefined);
+  const grupo = (g: Seccion['grupo']) =>
+    secciones
+      .filter((x) => x.grupo === g)
+      .map((x) => <ItemBarra key={x.clave} a={x.a} icono={x.icono} rotulo={x.corto} titulo={x.titulo} activo={x.activo} cuenta={cuenta(x.clave)} />);
+  const empresa = esAdmin ? 'FIRMA' : orgNombre ?? '';
+
+  return (
+    <div className="lateral flex h-screen">
+      <nav aria-label="Secciones del portal" className="w-[84px] shrink-0 flex flex-col items-center gap-0.5 pt-4 pb-3 bg-tinta overflow-y-auto scrollbar-hide">
+        <Enlace a="/portal" aria-label="Inicio del portal" className="px-1 pb-2.5">
+          <img src={palabraOscura} alt="firma" className="h-[19px] w-auto" />
+        </Enlace>
+        <div className="relative flex flex-col items-center gap-1 w-[72px] py-1" title={empresa}>
+          {logoCliente && !esAdmin ? (
+            <span className="w-9 h-9 rounded-[10px] bg-white grid place-items-center overflow-hidden">
+              <img src={logoCliente} alt="" className="max-w-[30px] max-h-[30px] object-contain" />
+            </span>
+          ) : (
+            <span aria-hidden="true" className="w-9 h-9 rounded-[10px] grid place-items-center bg-marfil text-tinta text-[13px] font-bold">
+              {esAdmin ? 'F' : iniciales(orgNombre ?? '·')}
+            </span>
+          )}
+          <span className="max-w-full truncate px-0.5 text-[10.5px] text-lateral-tenue">{empresa.split(/\s+/)[0]}</span>
+          {varios && <SelectorNegocio perfil={perfil} negocios={negocios} />}
+        </div>
+        <ItemBarra icono={Search} rotulo="Buscar" titulo={`Buscar (${atajoBuscador()})`} alTocar={abrirBuscador} haspopup="dialog" />
+        <Separacion />
+        {grupo('principal')}
+        {secciones.some((x) => x.grupo === 'negocio') && <Separacion />}
+        {grupo('negocio')}
+        {secciones.some((x) => x.grupo === 'firma') && <Separacion />}
+        {grupo('firma')}
+        <span className="flex-1 min-h-3" />
+        {panel && !panelAbierto && <ItemBarra icono={PanelLeftOpen} rotulo="Panel" titulo={`Mostrar el panel de ${panel.titulo}`} alTocar={() => alPanel(true)} />}
+        {perfil.rol === 'titular' && !vista && (
+          <ItemBarra a="/portal/bitacora" icono={ScrollText} rotulo="Bitácora" titulo="Bitácora de la cuenta" activo={window.location.pathname.startsWith('/portal/bitacora')} />
+        )}
+        <CampanaAvisos variante="barra" />
+        <Dropdown>
+          <BotonHero variant="ghost" aria-label={`Tu cuenta, ${nombre}`} className="h-auto w-[72px] flex-col gap-0.5 px-0 py-1 rounded-[12px] text-lateral-texto text-[11px] font-medium hover:text-marfil hover:bg-transparent">
+            <span aria-hidden="true" className="w-[30px] h-[30px] rounded-full grid place-items-center bg-grafito text-marfil text-[11px] font-bold">
+              {iniciales(nombre)}
+            </span>
+            Vos
+          </BotonHero>
+          <Dropdown.Popover placement="end bottom" className="min-w-[240px]">
+            <div className="px-3 pt-3 pb-2 leading-tight">
+              <p className="text-[14px] font-semibold truncate">{nombre}</p>
+              <p className="text-[12.5px] text-piedra truncate mt-0.5">{perfil.nombre ? perfil.email : ROTULO_ROL[perfil.rol]}</p>
+            </div>
+            <Dropdown.Menu onAction={(k) => k === 'salir' && void salir()}>
+              <Dropdown.Item id="salir" textValue="Salir del portal">
+                <LogOut size={16} aria-hidden="true" />
+                <RotuloHero>Salir del portal</RotuloHero>
+              </Dropdown.Item>
+            </Dropdown.Menu>
+          </Dropdown.Popover>
+        </Dropdown>
+      </nav>
+
+      {panel && panelAbierto && (
+        <nav aria-label={`Pantallas de ${panel.titulo}`} className="w-[220px] shrink-0 flex flex-col gap-0.5 px-2.5 pt-5 pb-4 bg-carbon text-lateral-texto overflow-y-auto scrollbar-hide border-l border-marfil/[0.06]">
+          <div className="flex items-center justify-between gap-2 pl-2 pb-4">
+            <p className="text-marfil text-[18px] font-bold truncate">{panel.titulo}</p>
+            <span className="flex gap-1.5 shrink-0">
+              {panel.accion && (
+                <Enlace a={panel.accion.a} title={panel.accion.titulo} aria-label={panel.accion.titulo} className="w-8 h-8 grid place-items-center rounded-[9px] border border-marfil/15 text-marfil hover:bg-marfil/[0.08]">
+                  <Plus size={16} aria-hidden="true" />
+                </Enlace>
+              )}
+              <button type="button" onClick={() => alPanel(false)} title="Ocultar el panel" aria-label="Ocultar el panel" className="w-8 h-8 grid place-items-center rounded-[9px] border border-marfil/15 text-marfil hover:bg-marfil/[0.08]">
+                <ChevronsLeft size={16} aria-hidden="true" />
+              </button>
+            </span>
+          </div>
+          {panel.grupos.map((g, i) => (
+            <div key={i} className="flex flex-col gap-0.5">
+              {g.titulo && <p className="px-2.5 pt-4 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-lateral-tenue">{g.titulo}</p>}
+              {g.items.map((x) => {
+                const Icono = x.icono;
+                return (
+                  <Enlace
+                    key={x.a}
+                    a={x.a}
+                    aria-current={x.activo ? 'page' : undefined}
+                    className={`flex items-center gap-2.5 min-h-[38px] px-2.5 rounded-[10px] text-[14px] transition-colors duration-150 ${x.activo ? 'bg-grafito text-marfil font-semibold' : 'hover:bg-marfil/[0.06] hover:text-marfil'}`}
+                  >
+                    <Icono size={17} strokeWidth={1.75} aria-hidden="true" className="shrink-0" />
+                    <span className="flex-1 truncate">{x.titulo}</span>
+                    {x.cuenta ? <Cuenta n={x.cuenta} /> : null}
+                  </Enlace>
+                );
+              })}
+            </div>
+          ))}
+        </nav>
+      )}
+    </div>
+  );
+};
+
+/** En el celular, las pantallas de la sección van en una fila de chips fija debajo de la barra de arriba. */
+const ChipsSeccion: React.FC<{ panel: PanelDeSeccion }> = ({ panel }) => {
+  const fila = useRef<HTMLDivElement>(null);
+  const activa = panel.grupos.flatMap((g) => g.items).find((x) => x.activo)?.a;
+  // La pantalla abierta queda a la vista aunque esté al final de la fila.
+  useEffect(() => {
+    const cont = fila.current;
+    const el = cont?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (cont && el) cont.scrollLeft = el.offsetLeft - (cont.clientWidth - el.offsetWidth) / 2;
+  }, [activa]);
+  return (
+    <nav aria-label={`Pantallas de ${panel.titulo}`} className="desk:hidden sticky top-14 z-30 bg-marfil/95 backdrop-blur border-b border-borde-suave">
+      <div ref={fila} className="relative flex items-center gap-2 px-4 py-2.5 overflow-x-auto scrollbar-hide">
+        {panel.grupos.map((g, i) => (
+          <React.Fragment key={i}>
+            {i > 0 && <span aria-hidden="true" className="w-px h-5 shrink-0 bg-tinta/15" />}
+            {g.items.map((x) => {
+              const Icono = x.icono;
+              return (
+                <Enlace
+                  key={x.a}
+                  a={x.a}
+                  aria-current={x.activo ? 'page' : undefined}
+                  className={`shrink-0 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-pastilla border text-[13.5px] whitespace-nowrap transition-colors duration-150 ${x.activo ? 'bg-tinta border-tinta text-marfil font-semibold' : 'bg-papel border-borde-suave text-tinta hover:border-tinta/30'}`}
+                >
+                  <Icono size={15} strokeWidth={1.75} aria-hidden="true" />
+                  {x.titulo}
+                  {x.cuenta ? (
+                    <span className={`min-w-[19px] h-[19px] px-1 grid place-items-center rounded-pastilla text-[11px] font-bold tabular-nums ${x.activo ? 'bg-marfil text-tinta' : 'bg-tinta text-marfil'}`} aria-label={`${x.cuenta} pendientes`}>
+                      {x.cuenta > 99 ? '99+' : x.cuenta}
+                    </span>
+                  ) : null}
+                </Enlace>
+              );
+            })}
+          </React.Fragment>
+        ))}
+      </div>
+    </nav>
   );
 };
 
@@ -472,6 +829,11 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
   const contadores = useContadores(permisos, esAdmin ? null : orgDelMarco, esAdmin, perfil ? veAsuntos(perfil) : false);
   const [menu, setMenu] = useState(false);
   const conexion = useConexion();
+  const claveActiva = secciones.find((x) => x.activo)?.clave;
+  const cuentasCrm = useCuentasCrm(esAdmin ? null : orgDelMarco, claveActiva === 'crm', Boolean(permisos?.casos));
+  const panel = permisos ? panelDe(claveActiva, ruta, permisos, Boolean(vista), cuentasCrm) : null;
+  const [panelAbierto, setPanelAbierto] = usePanelAbierto();
+  const conPanel = Boolean(panel && panelAbierto);
 
   // El título de la pestaña dice en qué sección estás: sirve en el historial y con varias pestañas abiertas.
   const tituloSeccion = secciones.find((x) => x.activo)?.titulo ?? null;
@@ -483,23 +845,37 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
   }, [tituloSeccion]);
 
   // La barra inferior muestra las cuatro secciones que más se usan. El resto vive en Más.
-  const ORDEN_INFERIOR: ClaveSeccion[] = ['inicio', 'asuntos', 'firmas', 'documentos', 'crm', 'equipo', 'protocolos', 'agenda', 'pagos', 'admin'];
+  const ORDEN_INFERIOR: ClaveSeccion[] = ['inicio', 'crm', 'equipo', 'agenda', 'pagos', 'protocolos', 'documentos', 'firmas', 'asuntos', 'admin'];
   const inferiores = ORDEN_INFERIOR.map((c) => secciones.find((x) => x.clave === c)).filter((x): x is Seccion => Boolean(x)).slice(0, 4);
-  const lateral = perfil ? (
-    <Lateral perfil={perfil} secciones={secciones} contadores={contadores} orgNombre={vista?.orgNombre ?? org?.nombre ?? null} orgPlan={org?.plan ?? null} logoCliente={logoCliente} vista={Boolean(vista)} alElegir={() => setMenu(false)} />
+  const menuCelular = perfil ? (
+    <HojaMenu perfil={perfil} secciones={secciones} contadores={contadores} orgNombre={vista?.orgNombre ?? org?.nombre ?? null} orgPlan={org?.plan ?? null} logoCliente={logoCliente} vista={Boolean(vista)} alElegir={() => setMenu(false)} />
   ) : null;
 
   return (
-    <DensidadBotones.Provider value="compacta">
-      <div className="portal min-h-screen bg-marfil text-tinta desk:grid desk:grid-cols-[264px_minmax(0,1fr)]">
+    <DensidadBotones.Provider value="portal">
+      <PanelSeccionCtx.Provider value={{ hay: Boolean(panel), abierto: panelAbierto }}>
+      <div
+        data-panel={conPanel ? 'abierto' : 'cerrado'}
+        className={`portal min-h-screen bg-marfil text-tinta desk:grid ${perfil ? (conPanel ? 'desk:grid-cols-[304px_minmax(0,1fr)]' : 'desk:grid-cols-[84px_minmax(0,1fr)]') : ''}`}
+      >
         {/* Con teclado: salta el menú y va directo al contenido. */}
         <a href="#contenido" className="sr-only focus:not-sr-only focus:fixed focus:z-[60] focus:left-3 focus:top-3 focus:px-4 focus:py-2.5 focus:rounded-[10px] focus:bg-papel focus:text-tinta focus:text-[14px] focus:font-semibold focus:shadow-flotante">
           Saltar al contenido
         </a>
-        {lateral && (
+        {perfil && (
           <div className="hidden desk:block bg-tinta">
-            <aside className="sticky top-0 h-screen overflow-y-auto scrollbar-hide" aria-label="Barra lateral">
-              {lateral}
+            <aside className="sticky top-0 h-screen" aria-label="Barra lateral">
+              <BarraEscritorio
+                perfil={perfil}
+                secciones={secciones}
+                contadores={contadores}
+                orgNombre={vista?.orgNombre ?? org?.nombre ?? null}
+                logoCliente={logoCliente}
+                vista={Boolean(vista)}
+                panel={panel}
+                panelAbierto={panelAbierto}
+                alPanel={setPanelAbierto}
+              />
             </aside>
           </div>
         )}
@@ -523,6 +899,8 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
               </button>
             )}
           </header>
+
+          {panel && <ChipsSeccion panel={panel} />}
 
           {vista && (
             <div className="bg-grafito text-marfil text-sm">
@@ -598,7 +976,7 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
         )}
 
         <PanelMenu abierto={menu} alCerrar={() => setMenu(false)}>
-          {lateral}
+          {menuCelular}
         </PanelMenu>
 
         {perfil && permisos && (
@@ -617,6 +995,7 @@ export const Marco: React.FC<{ perfil?: Perfil | null; orgId?: string | null; ch
           </LimiteError>
         )}
       </div>
+      </PanelSeccionCtx.Provider>
     </DensidadBotones.Provider>
   );
 };
@@ -706,51 +1085,75 @@ export const TituloSeccion: React.FC<{ eyebrow?: string; titulo: React.ReactNode
   </div>
 );
 
-/* ------------------------------------------------------------------ */
-/* Pestañas con subrayado verde                                         */
-/* ------------------------------------------------------------------ */
-export function Pestanas<T extends string>({ items, activa, alCambiar }: { items: { clave: T; titulo: string; cuenta?: number }[]; activa: T; alCambiar: (c: T) => void }) {
-  return (
-    <div className="flex gap-6 overflow-x-auto scrollbar-hide border-b border-borde-suave" role="tablist">
-      {items.map((i) => (
-        <button
-          key={i.clave}
-          type="button"
-          role="tab"
-          aria-selected={activa === i.clave}
-          onClick={() => alCambiar(i.clave)}
-          className={`inline-flex items-center gap-1.5 min-h-[44px] -mb-px text-[14px] font-medium whitespace-nowrap border-b-2 transition-colors duration-150 ${activa === i.clave ? 'border-bosque text-bosque' : 'border-transparent text-piedra hover:text-tinta'}`}
-        >
-          {i.titulo}
-          {i.cuenta !== undefined && (
-            <span className={`min-w-[20px] h-[20px] px-1.5 grid place-items-center rounded-pastilla tabular-nums text-[11.5px] ${activa === i.clave ? 'bg-bosque-suave text-bosque' : 'bg-separador text-piedra'}`}>{i.cuenta}</span>
-          )}
-        </button>
-      ))}
+/** Bloque de una ficha: tarjeta con un solo título y sus acciones a la derecha. Sin volanta arriba. */
+export const Bloque: React.FC<{ titulo: React.ReactNode; acciones?: React.ReactNode; children: React.ReactNode; sinRelleno?: boolean }> = ({ titulo, acciones, children, sinRelleno }) => (
+  <section className="bg-papel border border-borde-suave rounded-[18px] min-w-0">
+    <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 border-b border-separador">
+      <h2 className="font-heading font-bold text-[17px] leading-tight tracking-[-0.02em]">{titulo}</h2>
+      {acciones && <div className="flex flex-wrap gap-2">{acciones}</div>}
     </div>
+    <div className={sinRelleno ? 'min-w-0' : 'px-5 py-4 min-w-0'}>{children}</div>
+  </section>
+);
+
+/* ------------------------------------------------------------------ */
+/* Pestañas (Tabs de HeroUI, variante con subrayado)                    */
+/* ------------------------------------------------------------------ */
+/**
+ * Pestañas que filtran lo que se ve debajo. Son las Tabs de HeroUI sin paneles: la pantalla
+ * decide qué mostrar con la pestaña activa. La cuenta va en una pastilla al lado del título.
+ */
+export function Pestanas<T extends string>({ items, activa, alCambiar, etiqueta = 'Secciones' }: { items: { clave: T; titulo: string; cuenta?: number }[]; activa: T; alCambiar: (c: T) => void; etiqueta?: string }) {
+  return (
+    <Tabs variant="secondary" align="start" selectedKey={activa} onSelectionChange={(k) => alCambiar(String(k) as T)} className="pestanas">
+      <Tabs.ListContainer>
+        <Tabs.List aria-label={etiqueta}>
+          {items.map((i) => (
+            <Tabs.Tab key={i.clave} id={i.clave}>
+              {i.titulo}
+              {i.cuenta !== undefined && <span className="pestanas__cuenta">{i.cuenta}</span>}
+              <Tabs.Indicator />
+            </Tabs.Tab>
+          ))}
+        </Tabs.List>
+      </Tabs.ListContainer>
+    </Tabs>
   );
 }
+
+/**
+ * Las mismas pestañas cuando cada una es una pantalla con su dirección (Documentos). Son enlaces,
+ * así se pueden abrir en otra pestaña del navegador, con las clases de las Tabs de HeroUI.
+ */
+export const PestanasEnlace: React.FC<{ items: { a: string; titulo: string; cuenta?: number; activa: boolean }[]; etiqueta: string }> = ({ items, etiqueta }) => (
+  <div className="tabs tabs--secondary tabs--align-start pestanas" data-orientation="horizontal">
+    <div className="tabs__list-container">
+      <nav aria-label={etiqueta} className="tabs__list overflow-x-auto scrollbar-hide" data-orientation="horizontal">
+        {items.map((i) => (
+          <Enlace key={i.a} a={i.a} aria-current={i.activa ? 'page' : undefined} data-selected={i.activa ? 'true' : undefined} className="tabs__tab">
+            {i.titulo}
+            {i.cuenta !== undefined && <span className="pestanas__cuenta">{i.cuenta}</span>}
+            {i.activa && <span aria-hidden="true" className="tabs__indicator" />}
+          </Enlace>
+        ))}
+      </nav>
+    </div>
+  </div>
+);
 
 /* ------------------------------------------------------------------ */
 /* Interruptor                                                          */
 /* ------------------------------------------------------------------ */
 export const Interruptor: React.FC<{ activo: boolean; alCambiar?: (v: boolean) => void; etiqueta: string; ayuda?: string; deshabilitado?: boolean }> = ({ activo, alCambiar, etiqueta, ayuda, deshabilitado }) => (
-  <label className={`inline-flex items-start gap-3 ${deshabilitado ? 'opacity-60' : 'cursor-pointer'}`}>
-    <button
-      type="button"
-      role="switch"
-      aria-checked={activo}
-      disabled={deshabilitado}
-      onClick={() => alCambiar?.(!activo)}
-      className={`relative shrink-0 w-11 h-6 mt-0.5 border rounded-control transition-colors duration-150 ${activo ? 'bg-bosque border-bosque' : 'bg-white border-borde'}`}
-    >
-      <span className={`absolute top-[3px] w-4 h-4 transition-all duration-150 ${activo ? 'left-[23px] bg-marfil' : 'left-[3px] bg-tinta'}`} />
-    </button>
-    <span className="flex flex-col">
-      <span className="text-sm font-medium">{etiqueta}</span>
-      {ayuda && <span className="text-xs text-piedra mt-0.5 max-w-[42ch]">{ayuda}</span>}
-    </span>
-  </label>
+  <Switch isSelected={activo} onChange={(v) => alCambiar?.(v)} isDisabled={deshabilitado} isReadOnly={!alCambiar}>
+    <Switch.Content>
+      <Switch.Control>
+        <Switch.Thumb />
+      </Switch.Control>
+      <RotuloHero>{etiqueta}</RotuloHero>
+    </Switch.Content>
+    {ayuda && <DescripcionHero className="pl-[52px] max-w-[48ch]">{ayuda}</DescripcionHero>}
+  </Switch>
 );
 
 /* ------------------------------------------------------------------ */
@@ -758,28 +1161,30 @@ export const Interruptor: React.FC<{ activo: boolean; alCambiar?: (v: boolean) =
 /* ------------------------------------------------------------------ */
 export const Campo: React.FC<{ etiqueta: string; ayuda?: string; children: React.ReactNode }> = ({ etiqueta, ayuda, children }) => (
   <label className="block">
-    <span className="block text-[13px] font-medium text-tinta mb-1.5">{etiqueta}</span>
+    <span className="label block mb-1.5">{etiqueta}</span>
     {children}
     {ayuda && <span className="block text-[12.5px] leading-[1.45] text-piedra mt-1.5">{ayuda}</span>}
   </label>
 );
 
-/** Borde con 3,6 a 1 sobre blanco (WCAG pide 3 a 1) y foco de 2 px en tinta. */
-export const claseInput =
-  'w-full h-11 px-3.5 bg-white border border-borde rounded-control text-[15px] placeholder:text-piedra/70 transition-[border-color,box-shadow] duration-150 hover:border-tinta focus:outline-none focus:border-bosque focus:ring-2 focus:ring-bosque/25 disabled:bg-marfil-oscuro disabled:text-piedra disabled:hover:border-borde';
+/**
+ * Campo de texto, fecha o selector nativo con el estilo de los campos de HeroUI (.input de
+ * @heroui/styles): fondo blanco, borde con 3,6 a 1 y foco en tinta. Los selectores nativos llevan
+ * la flecha de HeroUI (index.css, «Campos nativos con el estilo de HeroUI»).
+ */
+export const claseInput = 'input input--primary w-full h-10';
 
-export const Aviso: React.FC<{ tipo?: 'error' | 'ok' | 'info'; children: React.ReactNode }> = ({ tipo = 'info', children }) => {
-  const estilos = {
-    error: 'border-peligro-borde bg-peligro-suave text-peligro-fuerte',
-    ok: 'border-borde-suave bg-niebla text-tinta',
-    info: 'border-borde-suave bg-papel text-tinta',
-  }[tipo];
-  return (
-    <div role={tipo === 'error' ? 'alert' : 'status'} className={`border rounded-control px-4 py-3 text-sm leading-[1.5] ${estilos}`}>
-      {children}
-    </div>
-  );
-};
+/** Lo mismo para un texto largo. */
+export const claseAreaTexto = 'input input--primary w-full min-h-[110px] py-2.5 leading-[1.5] resize-y';
+
+export const Aviso: React.FC<{ tipo?: 'error' | 'ok' | 'info'; children: React.ReactNode }> = ({ tipo = 'info', children }) => (
+  <Alert status={tipo === 'error' ? 'danger' : tipo === 'ok' ? 'success' : 'default'} role={tipo === 'error' ? 'alert' : 'status'} className="aviso">
+    <Alert.Indicator />
+    <Alert.Content>
+      <div className="alert__title font-normal leading-[1.5]">{children}</div>
+    </Alert.Content>
+  </Alert>
+);
 
 export const Cargando: React.FC = () => (
   <div className="min-h-screen bg-marfil flex flex-col items-center justify-center gap-4">
@@ -788,18 +1193,18 @@ export const Cargando: React.FC = () => (
   </div>
 );
 
-/** Estado con punto de color, en el registro tipográfico de los eyebrow. */
+/** Estado con punto de color, con el Chip de HeroUI (.chip de @heroui/styles). */
 export const Etiqueta: React.FC<{ children: React.ReactNode; tono?: 'bosque' | 'piedra' | 'alerta' | 'tinta' }> = ({ children, tono = 'piedra' }) => {
   const c = {
-    bosque: 'text-marfil bg-tinta',
-    piedra: 'text-tinta bg-niebla',
-    alerta: 'text-peligro bg-peligro-suave',
-    tinta: 'text-tinta bg-transparent ring-1 ring-inset ring-tinta',
+    bosque: 'chip--primary chip--accent',
+    piedra: 'chip--default',
+    alerta: 'chip--danger chip--soft',
+    tinta: 'chip--tertiary ring-1 ring-inset ring-tinta',
   }[tono];
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-[3px] rounded-pastilla text-[12px] font-semibold whitespace-nowrap ${c}`}>
+    <span data-slot="chip" className={`chip chip--sm gap-1.5 px-2 whitespace-nowrap ${c}`}>
       <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-current" />
-      {children}
+      <span className="chip__label px-0">{children}</span>
     </span>
   );
 };

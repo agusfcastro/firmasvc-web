@@ -30,7 +30,7 @@ insert into public.equipo_miembros (id, organizacion_id, nombre, rol_comercial, 
 -- ---------------------------------------------------------------------
 -- Plantillas de FIRMA
 -- ---------------------------------------------------------------------
-select pruebas.ok((select count(*) from public.equipo_reportes where organizacion_id is null) = 4, 'FIRMA deja un reporte por rol');
+select pruebas.ok((select count(*) from public.equipo_reportes where organizacion_id is null) = 3, 'FIRMA deja un reporte por rol (closer, setter y Account Manager)');
 select pruebas.ok((select count(*) from public.equipo_hitos where organizacion_id is null and rol_comercial = 'closer') = 5, 'FIRMA deja cinco hitos de closer');
 select pruebas.ok(not exists (
   select 1 from public.equipo_reportes r, jsonb_array_elements(r.campos) c
@@ -40,7 +40,7 @@ select pruebas.como('00000000-0000-0000-0000-0000000000a1');
 select pruebas.ok(public.equipo_cargar_plantillas('aaaaaaaa-0000-0000-0000-000000000000', 'closer') = '{"hitos": 5, "reportes": 1}'::jsonb, 'el titular copia las plantillas de closer');
 select pruebas.ok(public.equipo_cargar_plantillas('aaaaaaaa-0000-0000-0000-000000000000', 'closer') = '{"hitos": 0, "reportes": 0}'::jsonb, 'la segunda vez no repite nada');
 select public.equipo_cargar_plantillas('aaaaaaaa-0000-0000-0000-000000000000', 'setter');
-select public.equipo_cargar_plantillas('aaaaaaaa-0000-0000-0000-000000000000', 'csm');
+select public.equipo_cargar_plantillas('aaaaaaaa-0000-0000-0000-000000000000', 'account_manager');
 -- El titular no toca las plantillas de FIRMA: la política no le deja ver la fila para cambiarla.
 update public.equipo_reportes set titulo = 'Cambiado' where organizacion_id is null and rol_comercial = 'closer';
 select pruebas.como_postgres();
@@ -70,7 +70,7 @@ select pruebas.como_postgres();
 select pruebas.como('00000000-0000-0000-0000-0000000000ad', 'aal2');
 update public.equipo_reportes
    set campos = campos || '[{"clave":"guardia","etiqueta":"Horario de guardia","tipo":"texto"}]'::jsonb
- where organizacion_id = 'aaaaaaaa-0000-0000-0000-000000000000' and rol_comercial = 'csm';
+ where organizacion_id = 'aaaaaaaa-0000-0000-0000-000000000000' and rol_comercial = 'account_manager';
 select pruebas.como_postgres();
 select pruebas.ok(exists (select 1 from public.equipo_reportes r, jsonb_array_elements(r.campos) c
                            where r.organizacion_id = 'aaaaaaaa-0000-0000-0000-000000000000' and c ->> 'clave' = 'guardia'), 'FIRMA suma un campo de horario');
@@ -216,7 +216,7 @@ select pruebas.como_postgres();
 select pruebas.como('00000000-0000-0000-0000-0000000000a2');
 insert into public.equipo_reporte_respuestas (organizacion_id, reporte_id, miembro_id, periodo, respuestas)
 select 'aaaaaaaa-0000-0000-0000-000000000000', r.id, 'e0000000-0000-0000-0000-0000000000a2', current_date, '{"contactados": 12, "en_riesgo": 1}'
-  from public.equipo_reportes r where r.organizacion_id = 'aaaaaaaa-0000-0000-0000-000000000000' and r.rol_comercial = 'csm';
+  from public.equipo_reportes r where r.organizacion_id = 'aaaaaaaa-0000-0000-0000-000000000000' and r.rol_comercial = 'account_manager';
 select pruebas.ok((select periodo from public.equipo_reporte_respuestas where miembro_id = 'e0000000-0000-0000-0000-0000000000a2') = date_trunc('week', current_date)::date,
   'el reporte semanal queda en el lunes');
 select pruebas.ok((select count(*) from public.equipo_reporte_respuestas) = 1, 'el CSM sin Operaciones ve solo el suyo');

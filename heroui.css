@@ -1,0 +1,58 @@
+/* =====================================================================
+   HeroUI v3 (Apache-2.0) para el portal, solo lo que se usa.
+   No se importa @heroui/styles entero: pesa 450 kB más y la landing
+   también carga este CSS. Si sumás un componente de HeroUI, sumá acá su
+   archivo de @heroui/styles/components, respetando el orden: primero
+   los compartidos y después el resto, como en su components/index.css.
+   Los colores salen de la marca: ver «HeroUI con la marca» en index.css.
+   ===================================================================== */
+@import "@heroui/styles/base" layer(base);
+@import "@heroui/styles/themes/default" layer(theme);
+@import "@heroui/styles/utilities";
+@import "@heroui/styles/variants";
+
+/* Compartidos, primero */
+@import "@heroui/styles/components/close-button.css" layer(components);
+@import "@heroui/styles/components/description.css" layer(components);
+@import "@heroui/styles/components/error-message.css" layer(components);
+@import "@heroui/styles/components/field-error.css" layer(components);
+@import "@heroui/styles/components/label.css" layer(components);
+
+/* Navegación */
+@import "@heroui/styles/components/tabs.css" layer(components);
+
+/* Botones, campos y selección */
+@import "@heroui/styles/components/button.css" layer(components);
+@import "@heroui/styles/components/toggle-button.css" layer(components);
+@import "@heroui/styles/components/toggle-button-group.css" layer(components);
+@import "@heroui/styles/components/input.css" layer(components);
+@import "@heroui/styles/components/search-field.css" layer(components);
+@import "@heroui/styles/components/list-box.css" layer(components);
+@import "@heroui/styles/components/list-box-item.css" layer(components);
+@import "@heroui/styles/components/list-box-section.css" layer(components);
+@import "@heroui/styles/components/select.css" layer(components);
+@import "@heroui/styles/components/header.css" layer(components);
+@import "@heroui/styles/components/separator.css" layer(components);
+
+/* Fechas: campo por partes, calendario y su ventana */
+@import "@heroui/styles/components/calendar.css" layer(components);
+@import "@heroui/styles/components/date-field.css" layer(components);
+@import "@heroui/styles/components/date-input-group.css" layer(components);
+@import "@heroui/styles/components/date-picker.css" layer(components);
+
+/* Interruptores, estados y avisos */
+@import "@heroui/styles/components/switch.css" layer(components);
+@import "@heroui/styles/components/chip.css" layer(components);
+@import "@heroui/styles/components/alert.css" layer(components);
+
+/* Menús, globos y paginación */
+@import "@heroui/styles/components/popover.css" layer(components);
+@import "@heroui/styles/components/tooltip.css" layer(components);
+@import "@heroui/styles/components/dropdown.css" layer(components);
+@import "@heroui/styles/components/menu.css" layer(components);
+@import "@heroui/styles/components/menu-item.css" layer(components);
+@import "@heroui/styles/components/menu-section.css" layer(components);
+@import "@heroui/styles/components/pagination.css" layer(components);
+
+/* Utilidades, al final */
+@import "@heroui/styles/components/scroll-shadow.css" layer(components);

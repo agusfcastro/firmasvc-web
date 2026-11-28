@@ -2,10 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Check, Plus, X } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
-import { Aviso, Campo, Etiqueta, TituloSeccion, claseInput } from '../ui';
+import { Aviso, Bloque, Campo, Etiqueta, claseInput } from '../ui';
 import { hoyISO } from './tipos';
 import { registrarLectura } from '../lecturas';
 import { mensajeAmable } from '../errores';
+import { Fecha, Selector } from '../campos';
 
 type Arquetipo = { clave: string; nombre: string; descripcion: string; umbral: number; ventana_dias: number; orden: number };
 type TipoSenal = { clave: string; arquetipo: string; nombre: string; descripcion: string | null; origen: 'crm' | 'manual' | 'llamada'; peso: number; orden: number; activo: boolean };
@@ -91,12 +92,9 @@ export const PerfilCliente: React.FC<{ clienteId: string; soloLectura: boolean; 
     return error ? (
       <Aviso tipo="error">{error}</Aviso>
     ) : mostrarPlan ? (
-      <section>
-        <TituloSeccion eyebrow="Perfil" titulo="Perfil conductual" />
-        <p className="text-sm text-piedra max-w-[64ch]">
-          Con el plan Blindaje el CRM propone el perfil de cada cliente a partir de señales observables (atrasos, casos de conflicto y lo que registra el equipo), para anticipar reclamos.
-        </p>
-      </section>
+      <Bloque titulo="Perfil conductual">
+        <p className="text-sm text-piedra">Todavía no está activo en tu cuenta. Pedíselo a FIRMA y lo habilitamos.</p>
+      </Bloque>
     ) : null;
 
   const tipo = (clave: string) => tipos.find((x) => x.clave === clave);
@@ -169,9 +167,7 @@ export const PerfilCliente: React.FC<{ clienteId: string; soloLectura: boolean; 
   );
 
   return (
-    <section>
-      <TituloSeccion
-        eyebrow="Perfil"
+    <Bloque
         titulo="Perfil conductual"
         acciones={
           soloLectura || nueva ? undefined : (
@@ -180,10 +176,8 @@ export const PerfilCliente: React.FC<{ clienteId: string; soloLectura: boolean; 
             </Button>
           )
         }
-      />
-      <p className="text-sm text-piedra -mt-3 mb-6 max-w-[64ch]">
-        El CRM propone un perfil cuando las señales llegan al umbral. Es orientativo: confirmalo solo si lo ves en el trato con el cliente. Todo perfil vence solo.
-      </p>
+      >
+      <p className="text-sm text-piedra mb-4">Es orientativo. Confirmalo solo si lo ves en el trato con el cliente.</p>
       {error && (
         <div className="mb-6">
           <Aviso tipo="error">{error}</Aviso>
@@ -193,7 +187,7 @@ export const PerfilCliente: React.FC<{ clienteId: string; soloLectura: boolean; 
       {nueva && (
         <form onSubmit={registrar} className="mb-8 grid gap-4 tab:grid-cols-[1fr_180px] items-start bg-marfil-oscuro p-5">
           <Campo etiqueta="Señal">
-            <select required className={claseInput} value={nueva.tipo} onChange={(e) => setNueva({ ...nueva, tipo: e.target.value })}>
+            <Selector required className={claseInput} value={nueva.tipo} onChange={(e) => setNueva({ ...nueva, tipo: e.target.value })}>
               {arquetipos.map((a) => (
                 <optgroup key={a.clave} label={a.nombre}>
                   {manuales
@@ -205,10 +199,10 @@ export const PerfilCliente: React.FC<{ clienteId: string; soloLectura: boolean; 
                     ))}
                 </optgroup>
               ))}
-            </select>
+            </Selector>
           </Campo>
           <Campo etiqueta="Fecha">
-            <input required type="date" max={hoyISO()} className={claseInput} value={nueva.fecha} onChange={(e) => setNueva({ ...nueva, fecha: e.target.value })} />
+            <Fecha required max={hoyISO()} className={claseInput} value={nueva.fecha} onChange={(e) => setNueva({ ...nueva, fecha: e.target.value })} />
           </Campo>
           <div className="tab:col-span-2">
             <Campo etiqueta="Qué pasó" ayuda="Lo que el cliente hizo o dijo, y por qué canal. Hechos, no opiniones sobre la persona.">
@@ -290,6 +284,6 @@ export const PerfilCliente: React.FC<{ clienteId: string; soloLectura: boolean; 
           </ul>
         </details>
       )}
-    </section>
+    </Bloque>
   );
 };

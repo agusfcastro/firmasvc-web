@@ -2,7 +2,7 @@
 
 Relevamiento del 5 de noviembre de 2026, antes de empezar la Fase 1 de Tina. Sale de leer el código, las 58 migraciones de `supabase/migrations/` y `PORTAL.md`, que es la documentación de uso y puesta en marcha de cada módulo. No se cambió código.
 
-Actualizado el 25 de noviembre de 2026 con el plan de Vercel, las migraciones 0073 a 0075 y la auditoría de la IA, y el 26 de noviembre con la sección Equipo (0076).
+Actualizado el 25 de noviembre de 2026 con el plan de Vercel, las migraciones 0073 a 0075 y la auditoría de la IA, y el 26 de noviembre con la sección Equipo (0076) y las reuniones del CRM con un solo nombre por rol (0078).
 
 ## Glosario, cómo se llama cada cosa en el código
 
@@ -110,7 +110,7 @@ Además, la migración 0038 hace que las tablas hijas apunten al padre por `(org
 | `modelos_contrato` | Formularios de contrato que FIRMA arma para una empresa (0068) | Los escribe solo admin. Los leen titular y csm de la empresa |
 | `documentos` | Biblioteca, común o por empresa, con casilla de protocolo o formación | `documento_visible` según rol y áreas |
 | `firma_sobres`, `firma_firmantes`, `firma_eventos` | Firma electrónica con eventos encadenados e inmutables | Negocio y FIRMA. Eventos de solo lectura |
-| `abonos`, `abono_pagos` | Abono de cada empresa y sus cobros. Desde la 0061 con el esquema de la oferta (cuotas o pago completo, pesos al MEP) | Titular y FIRMA |
+| `abonos`, `abono_pagos` | Abono de cada empresa y sus cobros. Desde la 0061 con el esquema de la oferta (cuotas o pago completo, pesos al dólar cripto) | Titular y FIRMA |
 | `agendas`, `agenda_consumos` | Enlaces de agenda y minutos consumidos por plan | Negocio. Carga FIRMA |
 | `newsletters`, `avisos_programados` | Mail de los lunes y registro de lo que ya salió | Admin. `avisos_programados` solo servidor |
 | `org_variables_def`, `org_variables_valor` | Variables propias de los contratos de cada negocio | Negocio. Edita el titular |
@@ -125,6 +125,7 @@ Además, la migración 0038 hace que las tablas hijas apunten al padre por `(org
 | `equipo_reporte_respuestas` | Reportes entregados, uno por persona, reporte y período (0076) | Cada persona los suyos. Quien lidera, todos |
 | `equipo_objetivos` | Objetivos del negocio, de un rol o de una persona, con meta y período (0076) | Quien lidera todo. El resto, los del negocio, los de su rol y los suyos |
 | `equipo_victorias` | Victorias con evidencia, pendientes, validadas o no validadas (0076) | Todo el negocio las validadas. Cada persona las suyas. Quien lidera, todas |
+| `crm_reuniones` | Reuniones del equipo con clientes y prospectos, con tipo, estado, resultado y link de la grabación. Las llamadas de Fathom entran solas (0078) | Quien ve el CRM, todas. El resto, las que tiene o agendó. Borran el titular y quien la cargó |
 | `comprobantes`, `comprobantes_emisor`, `comprobantes_numeracion` | Recibos y comprobantes de cada negocio | Negocio |
 
 Buckets de Storage `asuntos`, `documentos`, `equipo` (evidencias de las victorias, 0076), `firmas` y `modelos` (privados) y `logos` (público).
@@ -172,7 +173,7 @@ Starter reemplazó a Gold y Black en la 0059. Los abonos cobran la oferta de `CL
 | Asuntos | `/portal/asuntos` | En producción, con chat en vivo, bitácora y documentos. Cartera del responsable pendiente de la 0057 |
 | Pedidos de contrato | `/portal/pedidos/closer` | En producción, solo modelo de closer |
 | Agenda | `/portal/agenda` | En producción |
-| Pagos | `/portal/pagos` | En producción con dLocal Go. Cuotas, pago completo y pesos al MEP desde la 0061, pendientes de probar en sandbox |
+| Pagos | `/portal/pagos` | En producción con dLocal Go. Cuotas, pago completo y pesos desde la 0061, al dólar cripto desde el 26/11/2026, pendientes de probar en sandbox |
 | Bitácora | `/portal/bitacora` | En producción, solo titular |
 | Administración | `/portal/admin/...` | Clientes, Usuarios, Agendas, Documentos, Formularios, Abonos, Newsletter, Calidad de la IA y Registro |
 

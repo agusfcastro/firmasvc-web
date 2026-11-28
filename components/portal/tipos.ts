@@ -138,7 +138,7 @@ export interface Documento {
 export const ROTULO_ROL: Record<Rol, string> = {
   admin: 'Admin FIRMA',
   titular: 'Titular',
-  csm: 'CSM',
+  csm: 'Account Manager',
   closer: 'Closer',
   setter: 'Setter',
 };

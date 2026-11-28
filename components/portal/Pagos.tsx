@@ -15,7 +15,7 @@ import {
   activable,
   cambiandoMedio,
   consultarDisponibilidad,
-  consultarMep,
+  consultarDolar,
   cuotaPorAutorizar,
   desdeAutoriza,
   enPagoUnico,
@@ -24,7 +24,7 @@ import {
   monedaReferencia,
   montoReferencia,
   pagosAprobados,
-  pesosAlMep,
+  pesosAlDolar,
   fechaCorta,
   fechaDia,
   fechaLarga,
@@ -38,6 +38,7 @@ import {
   type Disponibilidad,
   type PagoAbono,
 } from './abonos';
+import { claseBotonHero } from '../Button';
 
 /**
  * Pagos del cliente en /portal/pagos. Solo titulares y FIRMA.
@@ -51,8 +52,8 @@ import {
  * pagado, la autorización del débito de la cuota posterior.
  */
 
-const claseAccion =
-  'inline-flex items-center justify-center gap-2 h-12 px-5 bg-marfil text-tinta text-sm font-medium whitespace-nowrap transition-colors duration-150 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed';
+/** Sobre el panel negro: el botón claro de HeroUI. */
+const claseAccion = `${claseBotonHero('light', 'lg')} !bg-marfil !text-tinta hover:!bg-white`;
 const claseSecundaria =
   'self-start inline-flex items-center gap-2 text-sm font-medium text-marfil underline underline-offset-4 decoration-marfil/40 transition-colors duration-150 hover:decoration-marfil disabled:opacity-50 disabled:cursor-not-allowed';
 
@@ -132,7 +133,7 @@ const TarjetaAbono: React.FC<{
   const [nota, setNota] = useState<string | null>(null);
   const [mep, setMep] = useState<number | null>(null);
   useEffect(() => {
-    if (abono.al_mep && abono.estado !== 'cancelado') void consultarMep().then((m) => setMep(m?.valor ?? null));
+    if (abono.al_mep && abono.estado !== 'cancelado') void consultarDolar().then((m) => setMep(m?.valor ?? null));
   }, [abono.al_mep, abono.estado]);
   const unico = enPagoUnico(abono);
   const porAutorizar = cuotaPorAutorizar(abono);
@@ -141,8 +142,8 @@ const TarjetaAbono: React.FC<{
   const moneda = monedaReferencia(abono);
   const referencia = montoTexto(montoReferencia(abono), moneda);
   const posterior = montoTexto(Number(abono.monto_posterior), moneda);
-  // En pesos al MEP, los pesos de hoy. Sin cotización, los del último cálculo.
-  const pesosHoy = abono.al_mep ? montoTexto(mep ? pesosAlMep(montoReferencia(abono), mep) : Number(abono.monto), 'ARS') : null;
+  // En pesos, los de hoy al dólar cripto. Sin cotización, los del último cálculo.
+  const pesosHoy = abono.al_mep ? montoTexto(mep ? pesosAlDolar(montoReferencia(abono), mep) : Number(abono.monto), 'ARS') : null;
   const monto = abono.al_mep ? referencia : montoTexto(abono.monto, abono.moneda);
   const trimestral = abono.periodo_meses === 3;
   const manual = abonoManual(abono) && !porAutorizar;
@@ -172,21 +173,23 @@ const TarjetaAbono: React.FC<{
     esquema =
       abono.etapa === 'inicial'
         ? `Un solo pago que cubre ${abono.meses_cubiertos} meses. Después la cuota es de ${posterior} por mes${abono.congela_meses ? `, congelada ${abono.congela_meses} meses` : ''}.`
-        : `Pago completo acreditado. La cuota de ${posterior} por mes queda congelada${abono.congelado_hasta ? ` hasta el ${fechaDia(abono.congelado_hasta, true)}` : ''}.`;
+        : abono.congela_meses
+          ? `Pago completo acreditado. La cuota de ${posterior} por mes queda congelada${abono.congelado_hasta ? ` hasta el ${fechaDia(abono.congelado_hasta, true)}` : ''}.`
+          : `Pago completo acreditado. Después la cuota es de ${posterior} por mes.`;
   }
   if (esquema && abono.precio_fundador) esquema += ' Con precio fundador.';
-  if (esquema && abono.al_mep) esquema += ' En pesos se cobra al dólar MEP.';
+  if (esquema && abono.al_mep) esquema += ' En pesos se cobra al dólar cripto del día, promedio entre compra y venta.';
 
   // Cómo convierte cada cobro.
   const conversion = abono.al_mep
-    ? `, en pesos al dólar MEP de los días previos a cada cobro${pesosHoy ? ` (hoy ${pesosHoy})` : ''},`
+    ? `, en pesos al dólar cripto de los días previos a cada cobro${pesosHoy ? ` (hoy ${pesosHoy})` : ''},`
     : abono.moneda === 'USD'
       ? ', convertidos a mi moneda local al momento de cada pago,'
       : '';
   const textoAutorizacion = unico ? (
     <>
       Acepto pagar <strong className="font-semibold">{referencia}</strong> por única vez
-      {abono.al_mep ? `, que hoy son ${pesosHoy} al dólar MEP,` : abono.moneda === 'USD' ? ', convertidos a mi moneda local al momento del pago,' : ''} con la
+      {abono.al_mep ? `, que hoy son ${pesosHoy} al dólar cripto,` : abono.moneda === 'USD' ? ', convertidos a mi moneda local al momento del pago,' : ''} con la
       tarjeta que cargue en dLocal Go, en concepto de {abono.concepto}. Cubre {abono.meses_cubiertos} meses. Después la cuota es de {posterior} por mes
       {abono.congela_meses ? `, congelada ${abono.congela_meses} meses,` : ''} y su débito lo autorizo aparte desde este portal.
     </>
@@ -426,7 +429,7 @@ const TarjetaAbono: React.FC<{
       abono.estado === 'pausado'
         ? 'Mientras siga en pausa no se hacen cobros.'
         : abono.estado === 'con_error'
-          ? 'El último débito fue rechazado. Si querés pagar con otro medio, usá Cambiar medio de pago.'
+          ? 'El último débito fue rechazado y tu servicio sigue activo. Cambiá el medio de pago o escribinos por WhatsApp y lo resolvemos juntos.'
           : abono.proximo_cobro
             ? `Próximo cobro el ${fechaLarga(abono.proximo_cobro)}.`
             : 'El próximo cobro se informa apenas lo confirme dLocal Go.';
@@ -436,6 +439,16 @@ const TarjetaAbono: React.FC<{
         <p className="h3 font-heading">{titulo}</p>
         <p className="text-[15px] leading-[1.55] text-calido">{texto}</p>
         {botonMedio}
+        {abono.estado === 'con_error' && (
+          <a
+            href={`https://wa.me/${WHATSAPP_COMPROBANTES}?text=${encodeURIComponent(`Hola, me rechazaron el débito del abono ${abono.concepto} y quiero resolverlo.`)}`}
+            target="_blank"
+            rel="noreferrer"
+            className={claseAccion}
+          >
+            Escribir a FIRMA por WhatsApp
+          </a>
+        )}
         {confirmando === '' && botonActualizar}
         {botonBaja}
       </>
@@ -455,7 +468,7 @@ const TarjetaAbono: React.FC<{
         <dl className="grid gap-x-10 gap-y-5 tab:grid-cols-2">
           <Dato titulo={unico ? 'Pago completo' : trimestral ? 'Monto trimestral' : 'Monto mensual'}>
             <span className="font-heading font-black text-[22px] text-bosque tabular-nums">{monto}</span>
-            {pesosHoy && <span className="block text-[13px] text-piedra">En pesos al dólar MEP, hoy {pesosHoy}</span>}
+            {pesosHoy && <span className="block text-[13px] text-piedra">En pesos al dólar cripto, hoy {pesosHoy}</span>}
           </Dato>
           <Dato titulo="Periodicidad">{unico ? 'Un solo pago, por adelantado' : trimestral ? 'Un débito cada 3 meses, por adelantado' : 'Mensual, un débito por mes'}</Dato>
           {esquema && (
@@ -609,7 +622,7 @@ const OtrosMedios: React.FC<{ empresa?: string }> = ({ empresa }) => {
             href={`https://wa.me/${WHATSAPP_COMPROBANTES}?text=${encodeURIComponent(mensaje)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 h-12 px-5 bg-bosque text-marfil text-sm font-medium transition-colors duration-150 hover:bg-bosque-dark"
+            className={claseBotonHero('primary', 'lg')}
           >
             Enviar comprobante
             <ArrowUpRight size={16} aria-hidden="true" />
@@ -711,7 +724,7 @@ export const Pagos: React.FC<{ perfil: Perfil; organizacion: Organizacion | null
         }
         acciones={
           esAdmin ? (
-            <Enlace a="/portal/admin/abonos" className="inline-flex items-center h-[52px] px-6 text-[15px] font-medium bg-bosque text-marfil transition-colors duration-150 hover:bg-bosque-dark">
+            <Enlace a="/portal/admin/abonos" className={claseBotonHero('primary', 'lg')}>
               Administrar abonos
             </Enlace>
           ) : undefined

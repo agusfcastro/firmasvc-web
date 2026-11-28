@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Check, ExternalLink, Lock, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
-import { Aviso, Campo, Cifras, Encabezado, Enlace, Etiqueta, Monto, TituloSeccion, claseInput } from '../ui';
+import { Aviso, Bloque, Campo, Cifras, Encabezado, Enlace, Etiqueta, Monto, TituloSeccion, claseInput } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
 import { navegar } from '../navegacion';
 import { BUCKET_ASUNTOS } from '../asuntos';
@@ -12,17 +12,20 @@ import { rolDe, TONO_FIRMA, dinero, hoyISO, nombreMonedaCrm, opcionesMoneda, typ
 import { CampoVariable, sinVacios } from './variablesPropias';
 import { CAMPOS_CASO, VALORES_CASO } from './reglasCasos';
 import { CasosCliente } from './Casos';
-import { AsuntosCliente } from './AsuntosCliente';
 import { ComprobantesCliente } from './ComprobantesCliente';
+import { ReunionesCliente } from './ReunionesCliente';
+import { finDelContrato } from './LineaTiempo';
 import { PerfilCliente } from './PerfilCliente';
 import { registrarLectura } from '../lecturas';
 import { ContratoFirma } from './contratoFirma';
 import { DatosCliente, filaIdentidad, type Identidad } from './DatosCliente';
+import { claseBotonHero } from '../../Button';
+import { Selector, Fecha } from '../campos';
 
 const ROTULOS: Record<string, string> = {
   tipo: 'Tipo', nombre: 'Nombre', id_fiscal: 'Identificación fiscal', representante: 'Representante', cargo: 'Cargo', dni: 'DNI', email: 'Mail', telefono: 'Teléfono', domicilio: 'Domicilio', servicio: 'Servicio', monto_total: 'Monto total',
   modalidad: 'Modalidad', fecha_onboarding: 'Onboarding', estado_firma: 'Estado de la firma', link_contrato_servicio: 'Contrato de servicio',
-  responsable: 'Responsable', closer_id: 'Closer', setter_id: 'Setter', responsable_id: 'Responsable del equipo', datos_extra: 'Datos propios de la empresa', notas: 'Notas', condiciones: 'Condiciones acordadas', revisar_pagos: 'Revisar pagos', monto: 'Monto', vencimiento: 'Vencimiento', estado: 'Estado',
+  responsable: 'Account Manager anotado a mano', closer_id: 'Closer', setter_id: 'Setter', responsable_id: 'Account Manager', datos_extra: 'Datos propios de la empresa', notas: 'Notas', condiciones: 'Condiciones acordadas', revisar_pagos: 'Revisar pagos', monto: 'Monto', vencimiento: 'Vencimiento', estado: 'Estado',
   fecha_pago: 'Fecha de pago', nota: 'Nota', link_contrato_cliente: 'Contrato del cliente', link_documento: 'Documento generado',
   firma_url: 'Link de firma', contrato_estado: 'Contrato', contrato_error: 'Error del contrato',
   ...CAMPOS_CASO,
@@ -48,6 +51,7 @@ function aLocal(iso: string | null): string {
   const d = new Date(iso);
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 }
+
 
 function valorLegible(v: unknown, campo?: string): string {
   if (v === null || v === undefined || v === '') return 'vacío';
@@ -244,12 +248,15 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
 
   // Lo que más se consulta de la ficha queda a la vista, al costado, sin abrirla.
   const nombreDe = (mid?: string | null) => equipo.find((m) => m.id === mid)?.nombre ?? null;
+  // Onboarding más la duración del servicio (0079).
+  const finContrato = finDelContrato(cliente.fecha_onboarding, servicios.find((x) => x.clave === cliente.servicio)?.duracion_meses);
   const resumen: [string, string | null][] = [
     ['Teléfono', cliente.telefono ?? null],
     ['Closer', nombreDe(cliente.closer_id)],
     ['Setter', nombreDe(cliente.setter_id)],
-    ['Responsable', nombreDe(cliente.responsable_id) ?? cliente.responsable ?? null],
+    ['Account Manager', nombreDe(cliente.responsable_id) ?? (cliente.responsable ? `Sin asignar (anotado a mano «${cliente.responsable}»)` : null)],
     ['Onboarding', cliente.fecha_onboarding ? new Date(cliente.fecha_onboarding).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' }) : null],
+    ['Fin del contrato', finContrato ? finContrato.toLocaleDateString('es-AR', { dateStyle: 'short' }) : null],
   ];
 
   const set = <K extends keyof ClienteCrm>(k: K, v: ClienteCrm[K]) => setBorrador({ ...borrador, [k]: v });
@@ -273,21 +280,19 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
               <tr key={p.id}>
                 <td className="!py-2.5">
                   {p.estado === 'pendiente' ? (
-                    <input
-                      type="date"
+                    <Fecha
                       aria-label="Vencimiento"
-                      className={`${claseInput} h-10 w-[160px] ${vencida ? 'text-peligro border-peligro' : ''}`}
-                      defaultValue={p.vencimiento ?? ''}
-                      onBlur={(e) => e.target.value !== (p.vencimiento ?? '') && actualizarPago(p, { vencimiento: e.target.value || null })}
+                      aria-invalid={vencida}
+                      className="w-[160px]"
+                      value={p.vencimiento ?? ''}
+                      onChange={(e) => e.target.value !== (p.vencimiento ?? '') && actualizarPago(p, { vencimiento: e.target.value || null })}
                     />
                   ) : (
-                    <input
-                      type="date"
+                    <Fecha
                       aria-label="Fecha de pago"
-                      title="Fecha de pago"
-                      className={`${claseInput} h-10 w-[160px]`}
-                      defaultValue={p.fecha_pago ?? ''}
-                      onBlur={(e) => e.target.value !== (p.fecha_pago ?? '') && actualizarPago(p, { fecha_pago: e.target.value || null })}
+                      className="w-[160px]"
+                      value={p.fecha_pago ?? ''}
+                      onChange={(e) => e.target.value !== (p.fecha_pago ?? '') && actualizarPago(p, { fecha_pago: e.target.value || null })}
                     />
                   )}
                 </td>
@@ -317,16 +322,16 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                 <td className="!py-2.5">
                   <div className="flex gap-2 justify-end whitespace-nowrap">
                     {p.estado === 'pendiente' ? (
-                      <button type="button" className="inline-flex items-center gap-1.5 px-3 h-10 bg-bosque text-marfil text-sm font-medium hover:bg-bosque-dark disabled:opacity-40" onClick={() => actualizarPago(p, { estado: 'pagado', fecha_pago: hoy })}>
+                      <button type="button" className={claseBotonHero('primary', 'sm')} onClick={() => actualizarPago(p, { estado: 'pagado', fecha_pago: hoy })}>
                         <Check size={15} /> Marcar pagada
                       </button>
                     ) : (
-                      <button type="button" className="inline-flex items-center gap-1.5 px-3 h-10 border border-tinta text-sm font-medium hover:bg-tinta hover:text-marfil disabled:opacity-40" onClick={() => actualizarPago(p, { estado: 'pendiente', fecha_pago: null })}>
+                      <button type="button" className={claseBotonHero('ghost', 'sm')} onClick={() => actualizarPago(p, { estado: 'pendiente', fecha_pago: null })}>
                         <RotateCcw size={15} /> Deshacer
                       </button>
                     )}
                     {puedeGestionar && (
-                      <button type="button" aria-label="Eliminar cuota" className="px-3 h-10 text-peligro hover:bg-peligro-suave disabled:opacity-40" onClick={() => borrarPago(p)}>
+                      <button type="button" aria-label="Eliminar cuota" className={claseBotonHero('peligro', 'sm', false, true)} onClick={() => borrarPago(p)}>
                         <Trash2 size={15} />
                       </button>
                     )}
@@ -377,12 +382,11 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                   {esAnticipo && <span className="block text-xs text-piedra">Abonado al contratar</span>}
                 </td>
                 <td className="!py-2.5">
-                  <input
-                    type="date"
+                  <Fecha
                     aria-label="Fecha"
-                    className={`${claseInput} h-10 w-[170px]`}
-                    defaultValue={valorFecha}
-                    onBlur={(e) => e.target.value !== valorFecha && actualizarPago(p, { [campoFecha]: e.target.value || null } as Partial<Pago>)}
+                    className="w-[170px]"
+                    value={valorFecha}
+                    onChange={(e) => e.target.value !== valorFecha && actualizarPago(p, { [campoFecha]: e.target.value || null } as Partial<Pago>)}
                   />
                 </td>
                 <td className="num !py-2.5">
@@ -407,7 +411,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                 </td>
                 <td className="!py-2.5 text-right">
                   {puedeGestionar && (
-                    <button type="button" aria-label="Eliminar" className="px-3 h-10 text-peligro hover:bg-peligro-suave disabled:opacity-40" onClick={() => borrarPago(p)}>
+                    <button type="button" aria-label="Eliminar" className={claseBotonHero('peligro', 'sm', false, true)} onClick={() => borrarPago(p)}>
                       <Trash2 size={15} />
                     </button>
                   )}
@@ -451,7 +455,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
           </>
         }
         titulo={cliente.nombre}
-        bajada={[cliente.servicio && `Programa ${cliente.servicio}`, cliente.tipo === 'empresa' && cliente.representante && `Representante ${cliente.representante}`, cliente.email, cliente.responsable && `Responsable ${cliente.responsable}`].filter(Boolean).join(' · ')}
+        bajada={[cliente.servicio && `Programa ${cliente.servicio}`, cliente.tipo === 'empresa' && cliente.representante && `Representante ${cliente.representante}`, cliente.email, nombreDe(cliente.responsable_id) && `Account Manager ${nombreDe(cliente.responsable_id)}`].filter(Boolean).join(' · ')}
         acciones={
           <>
             {casosAbiertos > 0 && <Etiqueta tono="alerta">{casosAbiertos === 1 ? 'Caso abierto' : `${casosAbiertos} casos abiertos`}</Etiqueta>}
@@ -481,7 +485,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                 <DatosCliente d={identidadDe(borrador)} alCambiar={(k, v) => setBorrador({ ...borrador, [k]: v })} nombreGrupo={`tipo-${id}`} />
                 <div className="grid gap-5 tab:grid-cols-2">
                   <Campo etiqueta="Servicio">
-                    <select className={claseInput} value={borrador.servicio ?? ''} onChange={(e) => set('servicio', e.target.value)}>
+                    <Selector className={claseInput} value={borrador.servicio ?? ''} onChange={(e) => set('servicio', e.target.value)}>
                       <option value="">Sin definir</option>
                       {servicios.map((sv) => (
                         <option key={sv.id} value={sv.clave}>
@@ -490,40 +494,40 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                         </option>
                       ))}
                       {borrador.servicio && !servicios.some((sv) => sv.clave === borrador.servicio) && <option value={borrador.servicio}>{borrador.servicio}</option>}
-                    </select>
+                    </Selector>
                   </Campo>
                   {opcionesMoneda(monedas, cliente.moneda).length > 1 && (
                     <Campo etiqueta="Moneda" ayuda="Es la del contrato y la del plan de pagos. Cambiarla no convierte los montos cargados.">
-                      <select className={claseInput} value={borrador.moneda} onChange={(e) => set('moneda', e.target.value)}>
+                      <Selector className={claseInput} value={borrador.moneda} onChange={(e) => set('moneda', e.target.value)}>
                         {opcionesMoneda(monedas, cliente.moneda).map((m) => (
                           <option key={m} value={m}>
                             {nombreMonedaCrm(m)}
                           </option>
                         ))}
-                      </select>
+                      </Selector>
                     </Campo>
                   )}
                   <Campo etiqueta={`Monto total (${simboloMoneda(borrador.moneda)})`}>
                     <input type="number" step="0.01" className={claseInput} value={borrador.monto_total ?? ''} onChange={(e) => set('monto_total', e.target.value === '' ? null : (e.target.value as unknown as number))} />
                   </Campo>
                   <Campo etiqueta="Modalidad">
-                    <select className={claseInput} value={borrador.modalidad} onChange={(e) => set('modalidad', e.target.value as ClienteCrm['modalidad'])}>
+                    <Selector className={claseInput} value={borrador.modalidad} onChange={(e) => set('modalidad', e.target.value as ClienteCrm['modalidad'])}>
                       <option value="Cuotas">Cuotas</option>
                       <option value="PIF">PIF (pago total)</option>
-                    </select>
+                    </Selector>
                   </Campo>
                   <Campo etiqueta="Onboarding">
-                    <input type="datetime-local" className={claseInput} value={aLocal(borrador.fecha_onboarding)} onChange={(e) => set('fecha_onboarding', e.target.value ? new Date(e.target.value).toISOString() : null)} />
+                    <Fecha type="datetime-local" className={claseInput} value={aLocal(borrador.fecha_onboarding)} onChange={(e) => set('fecha_onboarding', e.target.value ? new Date(e.target.value).toISOString() : null)} />
                   </Campo>
                   {(
                     [
                       ['closer_id', 'Closer', ['closer']],
                       ['setter_id', 'Setter', ['setter']],
-                      ['responsable_id', 'Responsable (CSM o AM)', ['csm', 'account_manager']],
+                      ['responsable_id', 'Account Manager', ['account_manager']],
                     ] as const
                   ).map(([campo, etiqueta, roles]) => (
                     <Campo key={campo} etiqueta={etiqueta}>
-                      <select className={claseInput} value={borrador[campo] ?? ''} onChange={(e) => set(campo, e.target.value || null)}>
+                      <Selector className={claseInput} value={borrador[campo] ?? ''} onChange={(e) => set(campo, e.target.value || null)}>
                         <option value="">Sin asignar</option>
                         {equipo
                           // Activos con ese rol primero; el asignado se muestra aunque hoy esté inactivo o tenga otro rol.
@@ -535,11 +539,11 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                               {!m.activo ? ' · inactivo' : ''}
                             </option>
                           ))}
-                      </select>
+                      </Selector>
                     </Campo>
                   ))}
                   {borrador.responsable && !borrador.responsable_id && (
-                    <Campo etiqueta="Responsable anotado a mano" ayuda="De antes del equipo. Elegí a la persona arriba y borrá esto.">
+                    <Campo etiqueta="Account Manager anotado a mano" ayuda="De antes del equipo. Elegí a la persona arriba y borrá esto.">
                       <input className={claseInput} value={borrador.responsable ?? ''} onChange={(e) => set('responsable', e.target.value)} />
                     </Campo>
                   )}
@@ -606,7 +610,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                         type="button"
                         onClick={() => void borrarCliente()}
                         disabled={guardando}
-                        className="ml-auto inline-flex items-center gap-2 h-[52px] px-4 text-sm font-medium text-peligro transition-colors duration-150 hover:bg-peligro-suave disabled:opacity-40"
+                        className={`${claseBotonHero('peligro', 'lg')} ml-auto`}
                       >
                         <Trash2 size={16} aria-hidden="true" /> Eliminar cliente
                       </button>
@@ -626,10 +630,10 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
         )}
 
         <div className="grid gap-12 desk:grid-cols-[7fr_5fr] desk:gap-14 items-start">
-          <div className="flex flex-col gap-14 min-w-0">
+          <div className="flex flex-col gap-5 min-w-0">
+          <ReunionesCliente clienteId={id} orgId={cliente.organizacion_id} equipo={equipo} responsableId={cliente.responsable_id} soloLectura={soloLectura} puedeGestionar={puedeGestionar} />
           <ComprobantesCliente clienteId={id} soloLectura={soloLectura} />
           {verCasos && <CasosCliente clienteId={id} moneda={moneda} soloLectura={soloLectura} alContar={setCasosAbiertos} />}
-          {verCasos && <AsuntosCliente clienteId={id} soloLectura={soloLectura} esFirma={esAdmin && !soloLectura} />}
           {verCasos && <PerfilCliente clienteId={id} soloLectura={soloLectura} mostrarPlan={puedeGestionar} />}
           </div>
 
@@ -690,9 +694,8 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
         </div>
 
         {/* Plan de pagos */}
-        <section>
-          <TituloSeccion eyebrow={cobranza ? 'Cobranza' : 'Condiciones contractuales'} titulo={cobranza ? 'Plan de pagos' : 'Plan de pagos pactado'} />
-          {!cobranza && <p className="text-sm text-piedra -mt-3 mb-6 max-w-[64ch]">Estas condiciones se usan para el contrato. El seguimiento de los cobros lo lleva la empresa en su propio sistema.</p>}
+        <Bloque titulo={cobranza ? 'Plan de pagos' : 'Plan de pagos pactado'}>
+          {!cobranza && <p className="text-sm text-piedra mb-4">Condiciones para el contrato. Los cobros los sigue la empresa en su sistema.</p>}
           <Cifras
             items={[
               { titulo: 'Acordado', valor: <Monto n={cliente.monto_total} moneda={moneda} /> },
@@ -711,7 +714,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                   <input required type="number" step="0.01" min="0.01" className={claseInput} value={nueva.monto} onChange={(e) => setNueva({ ...nueva, monto: e.target.value })} />
                 </Campo>
                 <Campo etiqueta={nueva.anticipo ? 'Fecha de pago' : 'Vencimiento'}>
-                  <input type="date" className={claseInput} value={nueva.fecha} onChange={(e) => setNueva({ ...nueva, fecha: e.target.value })} />
+                  <Fecha type="date" className={claseInput} value={nueva.fecha} onChange={(e) => setNueva({ ...nueva, fecha: e.target.value })} />
                 </Campo>
                 <Campo etiqueta="Nota">
                   <input className={claseInput} value={nueva.nota} onChange={(e) => setNueva({ ...nueva, nota: e.target.value })} />
@@ -736,11 +739,10 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
               )
             )}
           </fieldset>
-        </section>
+        </Bloque>
 
         {puedeGestionar && historial.length > 0 && (
-          <section>
-            <TituloSeccion eyebrow="Trazabilidad" titulo="Historial" />
+          <Bloque titulo="Historial">
             <ol className="flex flex-col">
               {historial.map((h) => (
                 <li key={h.id} className="py-3.5 text-sm border-t border-tinta/12">
@@ -759,7 +761,7 @@ export const Ficha: React.FC<{ id: string; esAdmin: boolean; puedeGestionar: boo
                 </li>
               ))}
             </ol>
-          </section>
+          </Bloque>
         )}
       </div>
     </>

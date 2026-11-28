@@ -8,10 +8,11 @@ import { useVistaPrevia } from '../vistaPrevia';
 import { BotonCopiar } from '../crm/firma';
 import { ESTADO_FIRMANTE, ESTADO_SOBRE, fechaHora } from '../../firma/comun';
 import { generaContratos, type Organizacion, type Perfil } from '../tipos';
-import { ROL_COMERCIAL, rolDe, type IntegranteEquipo, type RolComercial } from '../crm/tipos';
+import { CARGOS_ESTANDAR, ROLES_ELEGIBLES, ROL_COMERCIAL, cargoNormal, rolDe, type IntegranteEquipo, type RolComercial } from '../crm/tipos';
 import { BarraUso } from '../BarraUso';
 import { diaYMes, firmasAgotadas, firmasOcupadas, usoFirmas, whatsapp, type UsoFirmas } from '../planes';
 import { registrarLectura } from '../lecturas';
+import { mensajeAmable } from '../errores';
 import {
   COLUMNAS_FIRMANTE,
   ROTULO_EVENTO,
@@ -23,6 +24,7 @@ import {
   type Firmante,
   type Sobre,
 } from './api';
+import { claseBotonHero } from '../../Button';
 
 /**
  * Firma electrónica propia de FIRMA, dentro del portal.
@@ -69,14 +71,14 @@ const AvisoCupo: React.FC<{ uso: UsoFirmas }> = ({ uso }) => (
       href={whatsapp('Hola Agustín, llegué al límite de documentos firmados de mi plan y necesito mandar otro.')}
       target="_blank"
       rel="noopener noreferrer"
-      className="self-start inline-flex items-center gap-2 h-12 px-6 bg-bosque text-marfil font-medium text-[15px] hover:bg-bosque-dark transition-colors duration-150"
+      className={`${claseBotonHero('primary', 'lg')} self-start`}
     >
       Escribir por WhatsApp
     </a>
   </div>
 );
 
-const claseBotonPrincipal = 'inline-flex items-center gap-2 h-[52px] px-6 text-[15px] font-medium bg-bosque text-marfil transition-colors duration-150 hover:bg-bosque-dark';
+const claseBotonPrincipal = claseBotonHero('primary', 'lg');
 
 /* ==================================================================== */
 /* Listado                                                                */
@@ -458,10 +460,10 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
     // Alguien que no está en el equipo se suma ahora. Si ya hay alguien con ese nombre, se usa ese.
     let miembroId = miembro;
     if (miembro === OTRA_PERSONA) {
-      const { data: idNuevo, error: eq } = supabase ? await supabase.rpc('equipo_sumar', { org: orgEnvio, nombre: personaNueva.trim(), rol: rolNuevo, ...(rolNuevo === 'otro' && cargoNuevo.trim() ? { cargo: cargoNuevo.trim() } : {}) }) : { data: null, error: null };
+      const { data: idNuevo, error: eq } = supabase ? await supabase.rpc('equipo_sumar', { org: orgEnvio, nombre: personaNueva.trim(), rol: rolNuevo, ...(rolNuevo === 'otro' && cargoNuevo.trim() ? { cargo: cargoNormal(cargoNuevo) } : {}) }) : { data: null, error: null };
       if (eq || !idNuevo) {
         setEnviando(false);
-        return setError(eq?.message ?? 'No se pudo sumar a la persona al equipo.');
+        return setError(mensajeAmable(eq, 'No se pudo sumar a la persona al equipo.'));
       }
       miembroId = idNuevo as string;
     }
@@ -596,7 +598,7 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
                 </Campo>
                 <Campo etiqueta="Rol">
                   <select value={rolNuevo} onChange={(e) => setRolNuevo(e.target.value as RolComercial)} className={claseInput}>
-                    {(Object.keys(ROL_COMERCIAL) as RolComercial[]).map((r) => (
+                    {ROLES_ELEGIBLES.map((r) => (
                       <option key={r} value={r}>
                         {ROL_COMERCIAL[r]}
                       </option>
@@ -605,7 +607,8 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
                 </Campo>
                 {rolNuevo === 'otro' && (
                   <Campo etiqueta="¿Qué rol tiene?" ayuda="Sale al lado de su nombre en la tarjeta del contrato.">
-                    <input value={cargoNuevo} onChange={(e) => setCargoNuevo(e.target.value)} maxLength={60} className={claseInput} placeholder="Nutricionista" />
+                    <input value={cargoNuevo} onChange={(e) => setCargoNuevo(e.target.value)} maxLength={60} className={claseInput} list="cargos-estandar" placeholder="Nutricionista" />
+                <datalist id="cargos-estandar">{CARGOS_ESTANDAR.map((c) => <option key={c} value={c} />)}</datalist>
                   </Campo>
                 )}
               </div>
@@ -698,7 +701,7 @@ const Nuevo: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
             )}
             {error && <Aviso tipo="error">{error}</Aviso>}
             <Button type="submit" disabled={enviando} size="lg">
-              <Send size={18} aria-hidden="true" /> {enviando ? 'Creando' : entrega === 'enlace' ? 'Crear y copiar los enlaces' : 'Enviar a firmar'}
+              <Send size={18} aria-hidden="true" /> {enviando ? 'Creando' : entrega === 'enlace' ? 'Crear los enlaces' : 'Enviar a firmar'}
             </Button>
           </div>
         </form>

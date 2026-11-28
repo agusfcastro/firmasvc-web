@@ -61,43 +61,47 @@ const sinTildes = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLo
 /** Los comodines y separadores de los filtros de la base no forman parte de lo que se busca. */
 const limpiar = (t: string) => t.replace(/[%_,()\\*"']/g, ' ').replace(/\s+/g, ' ').trim();
 
-const ESTADO_ASUNTO: Record<string, string> = { en_curso: 'En curso', espera_cliente: 'Espera respuesta del cliente', espera_tercero: 'Espera a un tercero', finalizado: 'Finalizado' };
+const ESTADO_ASUNTO: Record<string, string> = { en_curso: 'En curso', espera_cliente: 'Esperando tu respuesta', espera_tercero: 'Espera a un tercero', finalizado: 'Finalizado' };
 const ESTADO_SOBRE: Record<string, string> = { en_curso: 'En curso', completado: 'Firmado', vencido: 'Vencido', anulado: 'Anulado', rechazado: 'Rechazado' };
 
 async function buscar(q: string, perfil: Perfil, orgId: string | null): Promise<Resultado[]> {
   if (!supabase) return [];
   const sb = supabase;
   const permisos = permisosDe(perfil.rol);
-  const patron = `%${q}%`;
+  // La base compara con tildes y la gente escribe sin ellas: «auditoria» tiene que encontrar «Auditoría».
+  // Se pide con un comodín en cada vocal y en la ñ, y acá se filtra lo que de verdad coincide sin tildes.
+  const buscado = sinTildes(q);
+  const patron = `%${buscado.replace(/[aeioun]/g, '_')}%`;
+  const coincide = (...textos: (string | null | undefined)[]) => textos.some((t) => t && sinTildes(t).includes(buscado));
   /** Título o código que contenga el texto. Con negocio (Ver como), solo los de ese negocio. */
   const enTabla = (tabla: string, columnas: string, campo: string, orden: string, ascendente: boolean) => {
     let consulta = sb.from(tabla).select(columnas).or(`${campo}.ilike.${patron},codigo.ilike.${patron}`);
     if (orgId) consulta = consulta.eq('organizacion_id', orgId);
-    return consulta.order(orden, { ascending: ascendente }).limit(POR_GRUPO);
+    return consulta.order(orden, { ascending: ascendente }).limit(POR_GRUPO * 6);
   };
 
   const [clientes, asuntos, firmas, documentos] = await Promise.all([
     permisos.crm ? enTabla('crm_clientes', 'id, nombre, codigo', 'nombre', 'nombre', true) : null,
     veAsuntos(perfil) ? enTabla('asuntos', 'id, titulo, codigo, estado', 'titulo', 'actualizado_en', false) : null,
     permisos.documentosLegales ? enTabla('firma_sobres', 'id, titulo, codigo, estado', 'titulo', 'creado_en', false) : null,
-    sb.from('documentos').select('*').eq('activo', true).ilike('titulo', patron).order('titulo').limit(20),
+    sb.from('documentos').select('*').eq('activo', true).ilike('titulo', patron).order('titulo').limit(60),
   ]);
   // Supabase devuelve el error en vez de lanzarlo.
   if (clientes?.error || asuntos?.error || firmas?.error || documentos.error) throw new Error('busqueda');
 
   const lista: Resultado[] = [];
-  for (const c of (clientes?.data ?? []) as unknown as { id: string; nombre: string; codigo: string | null }[]) {
+  for (const c of ((clientes?.data ?? []) as unknown as { id: string; nombre: string; codigo: string | null }[]).filter((x) => coincide(x.nombre, x.codigo)).slice(0, POR_GRUPO)) {
     lista.push({ clave: `c-${c.id}`, grupo: 'Clientes', titulo: c.nombre, detalle: c.codigo ?? undefined, a: `/portal/crm/${c.id}`, icono: UserRound });
   }
-  for (const a of (asuntos?.data ?? []) as unknown as { id: string; titulo: string; codigo: string | null; estado: string }[]) {
-    lista.push({ clave: `a-${a.id}`, grupo: 'Asuntos', titulo: a.titulo, detalle: [a.codigo, ESTADO_ASUNTO[a.estado]].filter(Boolean).join(' · '), a: `/portal/asuntos/${a.id}`, icono: BriefcaseBusiness });
+  for (const a of ((asuntos?.data ?? []) as unknown as { id: string; titulo: string; codigo: string | null; estado: string }[]).filter((x) => coincide(x.titulo, x.codigo)).slice(0, POR_GRUPO)) {
+    lista.push({ clave: `a-${a.id}`, grupo: 'Asuntos', titulo: a.titulo, detalle: [a.codigo, a.estado === 'espera_cliente' && perfil.rol === 'admin' ? 'Esperando al cliente' : ESTADO_ASUNTO[a.estado]].filter(Boolean).join(' · '), a: `/portal/asuntos/${a.id}`, icono: BriefcaseBusiness });
   }
-  for (const s of (firmas?.data ?? []) as unknown as { id: string; titulo: string; codigo: string | null; estado: string }[]) {
+  for (const s of ((firmas?.data ?? []) as unknown as { id: string; titulo: string; codigo: string | null; estado: string }[]).filter((x) => coincide(x.titulo, x.codigo)).slice(0, POR_GRUPO)) {
     lista.push({ clave: `f-${s.id}`, grupo: 'Firmas', titulo: s.titulo, detalle: [s.codigo, ESTADO_SOBRE[s.estado]].filter(Boolean).join(' · '), a: `/portal/firmas/${s.id}`, icono: FileSignature });
   }
   // FIRMA, sin Ver como, ve la biblioteca común. El resto, lo mismo que en Documentos y Protocolos.
   const orgDocs = perfil.rol === 'admin' ? null : orgId;
-  const docs = ((documentos.data ?? []) as Documento[]).filter((d) => visibleEnPantalla(d, perfil.rol, perfil.areas ?? [], orgDocs)).slice(0, POR_GRUPO);
+  const docs = ((documentos.data ?? []) as Documento[]).filter((d) => coincide(d.titulo) && visibleEnPantalla(d, perfil.rol, perfil.areas ?? [], orgDocs)).slice(0, POR_GRUPO);
   for (const d of docs) {
     const seccion = SECCIONES.find((s) => s.clave === d.seccion);
     lista.push({

@@ -21,6 +21,7 @@ import { Button } from '../Button';
 import { supabase } from './supabase';
 import { navegar } from './navegacion';
 import { Encabezado, Enlace, Marco } from './ui';
+import { useVistaPrevia } from './vistaPrevia';
 import type { EstadoSesion } from './useSesion';
 import { cargoDe, permisosDe, type Permisos } from './tipos';
 import { COLUMNAS_FIRMANTE, type Firmante, type Sobre } from './firmas/api';
@@ -114,9 +115,10 @@ async function cargarResumen(orgId: string, p: Permisos): Promise<Resumen> {
     p.documentosLegales
       ? sb.from('firma_sobres').select('id, codigo, titulo, estado, vence_en, creado_en, completado_en').eq('organizacion_id', orgId).in('estado', ['en_curso', 'completado']).order('creado_en', { ascending: false }).limit(40)
       : null,
-    p.documentosLegales ? sb.from('documentos').select('id, titulo, actualizado_en, es_protocolo').eq('activo', true) : null,
+    // Solo la biblioteca común y la de esta empresa. Hace falta en «Ver como», donde FIRMA ve todo.
+    p.documentosLegales ? sb.from('documentos').select('id, titulo, actualizado_en, es_protocolo').eq('activo', true).or(`organizacion_id.is.null,organizacion_id.eq.${orgId}`) : null,
     p.casos
-      ? sb.from('asunto_novedades').select('id, asunto_id, texto, tipo, interna, creado_en').eq('organizacion_id', orgId).eq('interna', false).gte('creado_en', hace30).order('creado_en', { ascending: false }).limit(8)
+      ? sb.from('asunto_novedades').select('id, asunto_id, texto, tipo, interna, autor_id, creado_en').eq('organizacion_id', orgId).eq('interna', false).gte('creado_en', hace30).order('creado_en', { ascending: false }).limit(8)
       : null,
     p.casos ? sb.from('pedidos_contrato').select('id, titulo, actualizado_en').eq('organizacion_id', orgId).is('enviado_en', null).order('actualizado_en', { ascending: false }).limit(3) : null,
     p.gestion ? sb.from('abonos').select('*').eq('organizacion_id', orgId).in('estado', ['activo', 'pendiente', 'pausado', 'con_error']).order('creado_en', { ascending: false }).limit(1) : null,
@@ -201,11 +203,14 @@ function pendientesDe(r: Resumen, email: string): Pendiente[] {
   return lista.sort((x, y) => x.orden - y.orden);
 }
 
-function actividadDe(r: Resumen): Evento[] {
+/** miId: quien mira. Lo que hizo esa persona dice «Vos»; lo de cuentas que no ve, como en el asunto, es de FIRMA. */
+function actividadDe(r: Resumen, miId: string | null): Evento[] {
   const ev: Evento[] = [];
   for (const n of r.novedades) {
     if (!n.asunto) continue;
-    ev.push({ clave: `n-${n.id}`, quien: 'FIRMA', texto: n.tipo === 'documento' ? 'subió un documento en' : n.tipo === 'estado' ? 'actualizó el estado de' : 'dejó una novedad en', objeto: n.asunto.titulo, a: `/portal/asuntos/${n.asunto_id}`, cuando: n.creado_en });
+    const yo = Boolean(miId && n.autor_id === miId);
+    const texto = n.tipo === 'documento' ? (yo ? 'subiste un documento en' : 'subió un documento en') : n.tipo === 'estado' ? (yo ? 'respondiste y cambió el estado de' : 'actualizó el estado de') : yo ? 'dejaste una novedad en' : 'dejó una novedad en';
+    ev.push({ clave: `n-${n.id}`, quien: yo ? 'Vos' : 'FIRMA', texto, objeto: n.asunto.titulo, a: `/portal/asuntos/${n.asunto_id}`, cuando: n.creado_en });
   }
   for (const s of r.sobres) {
     if (s.estado === 'completado' && s.completado_en) ev.push({ clave: `s-${s.id}`, quien: 'Firmaron todos', texto: 'el envío', objeto: s.titulo, a: `/portal/firmas/${s.id}`, cuando: s.completado_en });
@@ -335,21 +340,21 @@ const ListaPendientes: React.FC<{ items: Pendiente[]; cargando: boolean; vacio: 
       </div>
     );
   return (
-    <ul>
+    <ul className="@container">
       {items.map((p) => {
         const Icono = p.icono;
         return (
           <li key={p.clave} className="border-b border-separador last:border-b-0">
-            <Enlace a={p.a} className="group flex flex-wrap tab:flex-nowrap items-center gap-x-4 gap-y-2 px-4 desk:px-6 py-4 transition-colors duration-150 hover:bg-marfil/60">
+            <Enlace a={p.a} className="group flex flex-wrap @min-[34rem]:flex-nowrap items-center gap-x-4 gap-y-2 px-4 desk:px-6 py-4 transition-colors duration-150 hover:bg-marfil/60">
               <span className={`w-10 h-10 rounded-[12px] grid place-items-center shrink-0 ${TONO_FICHA[p.tono]}`}>
                 <Icono size={19} strokeWidth={1.75} aria-hidden="true" />
               </span>
-              <span className="flex flex-col min-w-0 flex-1 basis-[calc(100%-56px)] tab:basis-auto">
+              <span className="flex flex-col min-w-0 flex-1 basis-[calc(100%-56px)] @min-[34rem]:basis-auto">
                 <span className="font-medium text-[15px] leading-snug">{p.titulo}</span>
                 <span className="text-[13px] text-piedra leading-snug mt-0.5 line-clamp-2">{p.detalle}</span>
               </span>
-              <span className={`ml-14 tab:ml-0 shrink-0 px-2.5 py-[3px] rounded-pastilla text-[12px] font-semibold whitespace-nowrap ${TONO_CHIP[p.tono]}`}>{p.chip}</span>
-              <span className="hidden tab:inline-flex items-center gap-1.5 shrink-0 h-9 px-3.5 rounded-[10px] border border-borde-suave bg-papel text-[13.5px] font-semibold group-hover:border-tinta">
+              <span className={`ml-14 @min-[34rem]:ml-0 shrink-0 px-2.5 py-[3px] rounded-pastilla text-[12px] font-semibold whitespace-nowrap ${TONO_CHIP[p.tono]}`}>{p.chip}</span>
+              <span className="hidden @min-[34rem]:inline-flex items-center gap-1.5 shrink-0 h-9 px-3.5 rounded-[10px] border border-borde-suave bg-papel text-[13.5px] font-semibold group-hover:border-tinta">
                 {p.accion}
               </span>
             </Enlace>
@@ -432,6 +437,7 @@ const InicioCliente: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
   const [intento, setIntento] = useState(0);
   const orgId = organizacion?.id ?? null;
   const permisos = permisosDe(perfil!.rol);
+  const vista = useVistaPrevia();
 
   useEffect(() => {
     if (!supabase || !orgId) return;
@@ -453,7 +459,7 @@ const InicioCliente: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
 
   const nombre = (perfil!.nombre || '').split(' ')[0];
   const pendientes = pendientesDe(r, perfil!.email);
-  const eventos = actividadDe(r);
+  const eventos = actividadDe(r, vista ? null : perfil!.id);
   const firmasEnCurso = r.sobres.filter((s) => s.estado === 'en_curso');
   const porVencer = firmasEnCurso.filter((s) => diasHasta(s.vence_en) <= 3).length;
   const esperan = r.asuntos.filter((a) => a.estado === 'espera_cliente').length;
@@ -505,7 +511,7 @@ const InicioCliente: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
           <>
             {saludo()}
             {nombre ? ', ' : ' '}
-            <span className="ondulado whitespace-nowrap">{nombre || 'te damos la bienvenida'}</span>
+            <span className="whitespace-nowrap">{nombre || 'te damos la bienvenida'}</span>
           </>
         }
         bajada={resumen}
@@ -522,7 +528,7 @@ const InicioCliente: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
         <TarjetaAvisos />
         {datos.length > 0 && !fallo && <Datos items={datos} cargando={cargando} />}
 
-        <div className="grid grid-cols-1 wide:grid-cols-[minmax(0,1fr)_340px] gap-6 items-start">
+        <div className="grid grid-cols-1 min-[1200px]:grid-cols-[minmax(0,1fr)_340px] gap-6 items-start">
           <div className="flex flex-col gap-6 min-w-0">
             {permisos.crm && orgId && <OnboardingsDia orgId={orgId} />}
             {(permisos.casos || permisos.documentosLegales || permisos.crm) && (
@@ -663,7 +669,7 @@ const InicioFirma: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
         eyebrow="FIRMA · Administración"
         titulo={
           <>
-            {saludo()}, <span className="ondulado">{(perfil!.nombre || 'FIRMA').split(' ')[0]}</span>
+            {saludo()}, <span>{(perfil!.nombre || 'FIRMA').split(' ')[0]}</span>
           </>
         }
         bajada={cargando ? 'Juntando lo de tus clientes…' : fallo ? 'No pudimos traer todo. Lo que ves puede estar incompleto.' : pendientes.length ? `Hay ${plural(pendientes.length, 'cosa que mirar', 'cosas que mirar')} en los negocios de tus clientes.` : 'Nada urgente en los negocios de tus clientes.'}
@@ -671,7 +677,7 @@ const InicioFirma: React.FC<{ estado: EstadoSesion }> = ({ estado }) => {
       <div className="wrap pt-6 pb-10 flex flex-col gap-6">
         <TarjetaAvisos />
         {!fallo && <Datos items={datos} cargando={cargando} />}
-        <div className="grid grid-cols-1 wide:grid-cols-[minmax(0,1fr)_340px] gap-6 items-start">
+        <div className="grid grid-cols-1 min-[1200px]:grid-cols-[minmax(0,1fr)_340px] gap-6 items-start">
           <Tarjeta titulo="Para hoy" cuenta={pendientes.length} enlace={{ a: '/portal/asuntos', texto: 'Todos los asuntos' }}>
             <ListaPendientes items={pendientes} cargando={cargando} max={8} error={fallo} alReintentar={() => setIntento((n) => n + 1)} vacio="Cuando un asunto esté por vencer o falle un cobro, aparece acá." />
           </Tarjeta>

@@ -3,9 +3,9 @@ import { ArrowRight } from 'lucide-react';
 import { openCalendly } from '../lib/calendly';
 
 /**
- * Banner de promo entre el header y el hero. USD 1.500 de descuento en el plan
- * Eminent trimestral (el de 3 meses por adelantado de /planes), sin mostrar el
- * precio del plan, que se da en la llamada. El texto va en un solo renglón y la
+ * Banner de promo de Black Friday, 50% OFF en el plan Eminent, sin mostrar el
+ * precio del plan, que se da en la llamada. Va en el home, entre el header y el
+ * hero, y en /landing arriba de todo y fijo al bajar. El texto va en un solo renglón y la
  * cuenta regresiva marca el cierre, por eso no repite la fecha. Es la misma para
  * todos y no se reinicia al recargar. Pasada la fecha, el banner desaparece solo.
  * Para la próxima promo cambiá FIN_PROMO, CIERRE y el texto.
@@ -25,8 +25,8 @@ function partes(ms: number) {
   };
 }
 
-/** blackFriday es la versión de /landing: va arriba de todo, queda fija al bajar y anuncia el 50% off. */
-export const PromoBanner: React.FC<{ blackFriday?: boolean }> = ({ blackFriday = false }) => {
+/** fijo es la versión de /landing: va arriba de todo y queda fija al bajar. */
+export const PromoBanner: React.FC<{ fijo?: boolean }> = ({ fijo = false }) => {
   // Null hasta montar: el home se prerenderiza en el build y ahí no se sabe la hora de quien entra.
   const [ahora, setAhora] = useState<number | null>(null);
 
@@ -50,19 +50,10 @@ export const PromoBanner: React.FC<{ blackFriday?: boolean }> = ({ blackFriday =
   ];
 
   return (
-    <aside aria-label="Promoción del plan Eminent" className={`bg-urgente text-white ${blackFriday ? 'sticky top-0 z-50' : ''}`}>
+    <aside aria-label="Promoción del plan Eminent" className={`bg-urgente text-white ${fijo ? 'sticky top-0 z-50' : ''}`}>
       <div className="wrap flex flex-col items-center gap-2.5 py-3 text-center desk:flex-row desk:justify-between desk:gap-6 desk:text-left">
         <p className="whitespace-nowrap text-[14px] leading-snug min-[400px]:text-[15px] desk:text-[16px]">
-          {blackFriday ? (
-            <>
-              <strong className="font-semibold underline decoration-white/60 underline-offset-[3px]">50% OFF Black Friday</strong> en el plan Eminent
-            </>
-          ) : (
-            <>
-              <strong className="font-semibold underline decoration-white/60 underline-offset-[3px]">USD 1.500 de descuento</strong> en el plan
-              Eminent trimestral
-            </>
-          )}
+          <strong className="font-semibold underline decoration-white/60 underline-offset-[3px]">50% OFF Black Friday</strong> en el plan Eminent
         </p>
 
         <div className="flex shrink-0 items-center justify-center gap-3 desk:gap-5">

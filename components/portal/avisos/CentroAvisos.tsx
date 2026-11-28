@@ -98,7 +98,8 @@ function hace(iso: string): string {
 /* Campana                                                              */
 /* ------------------------------------------------------------------ */
 /** Botón con el número de avisos sin leer. Va sobre fondo oscuro: la barra lateral y la barra del celular. */
-export const CampanaAvisos: React.FC<{ className?: string; alAbrir?: () => void }> = ({ className = '', alAbrir }) => {
+/** variante barra: la de la barra de íconos de la computadora, con el nombre abajo. */
+export const CampanaAvisos: React.FC<{ className?: string; alAbrir?: () => void; variante?: 'icono' | 'barra' }> = ({ className = '', alAbrir, variante = 'icono' }) => {
   const e = useSyncExternalStore(suscribir, () => estado);
   const sinLeer = e.avisos.filter((a) => !a.leido_en).length;
 
@@ -118,6 +119,32 @@ export const CampanaAvisos: React.FC<{ className?: string; alAbrir?: () => void 
   }, []);
 
   const rotulo = sinLeer ? `Avisos, ${sinLeer} sin leer` : 'Avisos';
+  if (variante === 'barra')
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          alAbrir?.();
+          cambiar({ abierto: true });
+          void refrescarAvisos(true);
+        }}
+        aria-label={rotulo}
+        aria-haspopup="dialog"
+        aria-expanded={e.abierto}
+        title={rotulo}
+        className={`group flex flex-col items-center gap-0.5 w-[72px] py-1 rounded-[12px] text-[11px] font-medium leading-tight ${sinLeer ? 'text-marfil' : 'text-lateral-texto hover:text-marfil'} ${className}`}
+      >
+        <span className="relative w-10 h-[30px] grid place-items-center rounded-[10px] group-hover:bg-marfil/[0.08]">
+          <Bell size={19} strokeWidth={1.75} aria-hidden="true" />
+          {sinLeer > 0 && (
+            <span aria-hidden="true" className="absolute -top-1 -right-1.5 min-w-[18px] h-[18px] px-1 grid place-items-center rounded-pastilla bg-marfil text-tinta text-[10.5px] font-bold tabular-nums">
+              {sinLeer > 9 ? '9+' : sinLeer}
+            </span>
+          )}
+        </span>
+        Avisos
+      </button>
+    );
   return (
     <button
       type="button"

@@ -7,6 +7,7 @@ import { rolDe, type IntegranteEquipo } from '../crm/tipos';
 import { vencimientoContrato } from '../descargas';
 import type { Documento } from '../tipos';
 import { COLUMNAS_FIRMANTE, descargarSobre, type Firmante, type Sobre } from './api';
+import { claseBotonHero } from '../../Button';
 
 /**
  * Contratos de cada persona del equipo, en Documentos › Contratos con tu equipo.
@@ -28,8 +29,7 @@ interface Fila {
 
 const fecha = (iso: string) => new Date(iso).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
 
-const claseAccion =
-  'inline-flex items-center justify-center gap-2 h-10 px-4 rounded-[10px] bg-bosque text-marfil text-[14px] font-medium whitespace-nowrap transition-colors duration-150 hover:bg-bosque-dark disabled:opacity-60 disabled:cursor-wait';
+const claseAccion = claseBotonHero('primary', 'md');
 const claseSecundaria =
   'inline-flex items-center gap-1.5 min-h-[40px] text-[14px] font-medium text-bosque underline underline-offset-4 decoration-bosque/30 transition-colors duration-150 hover:decoration-bosque';
 

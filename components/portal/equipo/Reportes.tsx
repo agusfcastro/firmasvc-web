@@ -4,7 +4,7 @@ import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { Aviso, Campo, Etiqueta, TituloSeccion, claseInput } from '../ui';
 import { mensajeAmable } from '../errores';
-import { ROL_COMERCIAL, rolDe, type RolComercial } from '../crm/tipos';
+import { ROLES_ELEGIBLES, ROL_COMERCIAL, rolDe, type RolComercial } from '../crm/tipos';
 import type { BaseEquipo } from './EquipoApp';
 import {
   ROTULO_TIPO_CAMPO,
@@ -92,7 +92,7 @@ export const Reportes: React.FC<{ base: BaseEquipo }> = ({ base }) => {
         <section className="flex flex-col gap-4">
           <TituloSeccion eyebrow="Tuyo" titulo="Tu reporte" />
           {misReportes.length === 0 ? (
-            <p className="text-piedra text-[14px]">Tu rol todavía no tiene un reporte. Lo arma quien lidera el equipo.</p>
+            <p className="text-piedra text-[14px]">{lidera ? 'Tu rol todavía no tiene un reporte. Si querés reportar, armá uno para tu rol más abajo.' : 'Tu rol todavía no tiene un reporte. Lo arma quien lidera el equipo.'}</p>
           ) : (
             misReportes.map((r) => (
               <FormularioReporte
@@ -458,7 +458,7 @@ const ArmarReportes: React.FC<{ base: BaseEquipo; alAviso: (m: string) => void; 
           <div className="flex flex-wrap gap-2">
             {faltanDeFirma.map((p) => (
               <Button key={p.id} size="sm" variant="ghost" onClick={() => void usarPlantillas(p.rol_comercial)}>
-                Usar el de {rotuloRol(p.rol_comercial).toLowerCase()}
+                Usar el de {rotuloRol(p.rol_comercial)}
               </Button>
             ))}
           </div>
@@ -485,7 +485,7 @@ const ArmarReportes: React.FC<{ base: BaseEquipo; alAviso: (m: string) => void; 
           <div className="grid gap-5 tab:grid-cols-2">
             <Campo etiqueta="Rol">
               <select className={claseInput} value={borrador.rol_comercial} onChange={(e) => setBorrador({ ...borrador, rol_comercial: e.target.value as RolComercial })}>
-                {(Object.keys(ROL_COMERCIAL) as RolComercial[]).map((r) => (
+                {ROLES_ELEGIBLES.map((r) => (
                   <option key={r} value={r}>
                     {ROL_COMERCIAL[r]}
                   </option>

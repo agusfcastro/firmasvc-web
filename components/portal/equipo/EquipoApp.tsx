@@ -1,30 +1,34 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { FileSpreadsheet, Plus } from 'lucide-react';
+import { ArrowLeft, FileSpreadsheet, Plus } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
-import { Aviso, Encabezado, Marco, Pestanas, claseInput } from '../ui';
+import { Aviso, Encabezado, Enlace, Marco, NavegacionDePagina, Pestanas, claseInput } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
 import { mensajeAmable } from '../errores';
 import type { Organizacion, Perfil } from '../tipos';
-import type { IntegranteEquipo } from '../crm/tipos';
+import { rolDe, type IntegranteEquipo } from '../crm/tipos';
 import { Victorias } from './Victorias';
 import { Objetivos } from './Objetivos';
 import { Reportes } from './Reportes';
+import { Personas } from './Personas';
+import { FichaPersona } from './FichaPersona';
 import { armarExcel, descargar, logoFirma, nombreArchivo } from './excel';
 import { hoy, lideraEquipo, mesDe, reporteSeguro, type Hito, type Objetivo, type Reporte, type Respuesta, type Victoria } from './tipos';
 
 /**
  * Equipo. Objetivos, victorias y reportes de la gente de cada empresa
  * (migración 0076). Nada de esto usa la IA.
- *   /portal/equipo             victorias, el muro y lo que falta validar
- *   /portal/equipo/objetivos   objetivos con su avance e hitos por rol
+ *   /portal/equipo                tarjeta por persona con lo que tiene entre manos y calendario del equipo
+ *   /portal/equipo/persona/<id>   ficha de una persona
+ *   /portal/equipo/victorias      victorias, el muro y lo que falta validar
+ *   /portal/equipo/objetivos      objetivos con su avance e hitos por rol
  *   /portal/equipo/reportes    el reporte de cada uno y quién lo entregó
  * Lideran el equipo FIRMA, el titular y quien tiene el área Operaciones:
  * validan victorias, ponen objetivos, arman los reportes y bajan el Excel.
  */
 
-type Pestana = 'victorias' | 'objetivos' | 'reportes';
+type Pestana = 'personas' | 'victorias' | 'objetivos' | 'reportes';
 
 /** Lo que comparten las tres pestañas. */
 export interface BaseEquipo {
@@ -32,6 +36,8 @@ export interface BaseEquipo {
   equipo: IntegranteEquipo[];
   /** El lugar en el equipo de quien usa el portal, si tiene uno. */
   yo: IntegranteEquipo | null;
+  /** Su lugar en el equipo aunque sea de FIRMA, para conectar su propio Google Calendar. */
+  miCuenta: IntegranteEquipo | null;
   lidera: boolean;
   esAdmin: boolean;
   soloLectura: boolean;
@@ -49,7 +55,8 @@ export const EquipoApp: React.FC<{ perfil: Perfil; organizacion: Organizacion | 
   const vista = useVistaPrevia();
   const soloLectura = Boolean(vista);
   const lidera = lideraEquipo(perfil);
-  const pestana: Pestana = ruta.endsWith('/objetivos') ? 'objetivos' : ruta.endsWith('/reportes') ? 'reportes' : 'victorias';
+  const pestana: Pestana = ruta.endsWith('/objetivos') ? 'objetivos' : ruta.endsWith('/reportes') ? 'reportes' : ruta.endsWith('/victorias') ? 'victorias' : 'personas';
+  const personaId = ruta.match(/^\/portal\/equipo\/persona\/([0-9a-f-]{36})/)?.[1] ?? null;
 
   const [orgs, setOrgs] = useState<Organizacion[]>([]);
   const [orgId, setOrgId] = useState<string | null>(() => {
@@ -164,8 +171,10 @@ export const EquipoApp: React.FC<{ perfil: Perfil; organizacion: Organizacion | 
     setExcel(null);
   }
 
-  const base: BaseEquipo | null = orgId ? { orgId, equipo, yo, lidera, esAdmin, soloLectura, objetivos, hitos, reportes, monedas, recargar } : null;
-  const ir = (p: Pestana) => navegar(p === 'victorias' ? '/portal/equipo' : `/portal/equipo/${p}`);
+  const miCuenta = equipo.find((m) => m.usuario_id === perfil.id && m.activo) ?? null;
+  const base: BaseEquipo | null = orgId ? { orgId, equipo, yo, miCuenta, lidera, esAdmin, soloLectura, objetivos, hitos, reportes, monedas, recargar } : null;
+  const ir = (p: Pestana) => navegar(p === 'personas' ? '/portal/equipo' : `/portal/equipo/${p}`);
+  const persona = personaId ? equipo.find((x) => x.id === personaId) ?? null : null;
 
   const selector =
     esAdmin && orgs.length > 1 ? (
@@ -184,15 +193,27 @@ export const EquipoApp: React.FC<{ perfil: Perfil; organizacion: Organizacion | 
   return (
     <Marco perfil={perfil} orgId={orgId}>
       <Encabezado
-        eyebrow="Equipo"
-        titulo={
-          <>
-            Equipo de <span className="text-bosque">{org?.nombre ?? vista?.orgNombre ?? 'tu empresa'}</span>
-          </>
+        eyebrow={
+          personaId ? (
+            <Enlace a="/portal/equipo" className="inline-flex items-center gap-1.5 hover:text-bosque">
+              <ArrowLeft size={13} aria-hidden="true" /> Equipo de {org?.nombre ?? vista?.orgNombre ?? 'tu empresa'}
+            </Enlace>
+          ) : (
+            'Equipo'
+          )
         }
-        bajada="Objetivos, victorias y reportes de la gente que trabaja con vos."
+        titulo={
+          personaId ? (
+            persona?.nombre ?? 'Persona del equipo'
+          ) : (
+            <>
+              Equipo de <span className="text-bosque">{org?.nombre ?? vista?.orgNombre ?? 'tu empresa'}</span>
+            </>
+          )
+        }
+        bajada={personaId ? (persona ? [rolDe(persona), persona.email].filter(Boolean).join(' · ') : undefined) : 'La gente que trabaja con vos, lo que tiene entre manos, sus objetivos, victorias y reportes.'}
         acciones={
-          orgId && !soloLectura ? (
+          orgId && !soloLectura && !personaId ? (
             <>
               {lidera && (
                 <Button variant="ghost" onClick={() => setExcel(excel ? null : { mes: hoy().slice(0, 7), bajando: false })}>
@@ -231,8 +252,11 @@ export const EquipoApp: React.FC<{ perfil: Perfil; organizacion: Organizacion | 
         {!esAdmin && cargado && !yo && !lidera && (
           <Aviso tipo="info">Todavía no estás en el equipo de la empresa. Pedile al titular que te sume y vas a poder cargar tus victorias y tus reportes.</Aviso>
         )}
+        {!personaId && (
+        <NavegacionDePagina>
         <Pestanas<Pestana>
           items={[
+            { clave: 'personas', titulo: 'Personas' },
             { clave: 'victorias', titulo: 'Victorias' },
             { clave: 'objetivos', titulo: 'Objetivos' },
             { clave: 'reportes', titulo: 'Reportes' },
@@ -240,10 +264,16 @@ export const EquipoApp: React.FC<{ perfil: Perfil; organizacion: Organizacion | 
           activa={pestana}
           alCambiar={ir}
         />
+        </NavegacionDePagina>
+        )}
         {!base || !cargado ? (
           <p className="text-piedra text-sm" role="status">
             Cargando…
           </p>
+        ) : personaId ? (
+          <FichaPersona base={base} id={personaId} />
+        ) : pestana === 'personas' ? (
+          <Personas base={base} />
         ) : pestana === 'objetivos' ? (
           <Objetivos base={base} />
         ) : pestana === 'reportes' ? (

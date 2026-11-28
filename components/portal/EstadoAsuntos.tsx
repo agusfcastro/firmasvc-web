@@ -47,11 +47,12 @@ import {
   type TipoAsunto,
 } from './asuntos';
 import { mensajeAmable } from './errores';
+import { claseBotonHero } from '../Button';
 
 /**
  * Estado de asuntos en /portal/asuntos y /portal/asuntos/:id.
  * Una sola gestión para los trámites con FIRMA y los conflictos de la
- * empresa. Los crean FIRMA o el cliente (titular y CSM) y pueden vincularse
+ * empresa. Los crean FIRMA o el cliente (titular y Account Manager) y pueden vincularse
  * a un cliente del CRM. Un reclamo de reembolso o contracargo lleva además
  * su caso de conflicto, con los indicadores del protocolo (CRM › Casos de
  * conflicto). Cada asunto tiene un chat en vivo, una bitácora con notas
@@ -59,7 +60,7 @@ import { mensajeAmable } from './errores';
  * salen por mail.
  */
 
-const claseTextarea = `${claseInput.replace('h-12', 'min-h-[110px]')} py-3 leading-[1.5]`;
+const claseTextarea = `${claseInput.replace('h-10', 'min-h-[110px]')} py-3 leading-[1.5]`;
 
 const rotuloEstado = (e: EstadoAsunto, esFirma: boolean) => (esFirma ? ESTADO_ASUNTO[e].firma : ESTADO_ASUNTO[e].cliente);
 
@@ -241,7 +242,7 @@ const Lista: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
       .single();
     if (e1 || !data) {
       setGuardando(false);
-      return setError(e1?.message ?? 'No se pudo crear el asunto.');
+      return setError(mensajeAmable(e1, 'No se pudo crear el asunto.'));
     }
     const avisos: string[] = [];
     if (conCaso) {
@@ -299,7 +300,7 @@ const Lista: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
         }
         bajada={
           esFirma
-            ? 'Trámites y conflictos de cada empresa. Las novedades que sumás le llegan por mail al titular y al CSM.'
+            ? 'Trámites y conflictos de cada empresa. Las novedades que sumás le llegan por mail al titular y al Account Manager.'
             : 'Trámites y conflictos de tu empresa, con su estado, el próximo paso y las novedades. Cuando algo cambia, te avisamos por mail.'
         }
         acciones={
@@ -440,7 +441,7 @@ const Lista: React.FC<{ perfil: Perfil; organizacion: Organizacion | null }> = (
             {esFirma && borrador.novedad.trim() && (
               <label className="flex items-center gap-3 text-[15px] cursor-pointer">
                 <input type="checkbox" className="w-4 h-4 accent-bosque" checked={borrador.avisar} onChange={(e) => cambiar({ avisar: e.target.checked })} />
-                Avisar por mail al titular y al CSM de la empresa
+                Avisar por mail al titular y al Account Manager de la empresa
               </label>
             )}
             <div className="flex flex-wrap gap-3">
@@ -1075,7 +1076,7 @@ const Chat: React.FC<{
     alError(null);
     const { data, error } = await supabase.from('asunto_mensajes').insert({ asunto_id: asuntoId, texto: t }).select('*').single();
     setEnviando(false);
-    if (error || !data) return alError(error?.message ?? 'No se pudo mandar el mensaje.');
+    if (error || !data) return alError(mensajeAmable(error, 'No se pudo mandar el mensaje.'));
     setTexto('');
     alEnviar(data as Mensaje);
     // Si la otra parte tiene el asunto abierto, lo ve en el momento. Si no, le llega un mail, como mucho uno cada 15 minutos.
@@ -1127,7 +1128,7 @@ const Chat: React.FC<{
             rows={2}
             maxLength={4000}
             placeholder="Escribí un mensaje. Enter envía, Shift + Enter hace un salto de línea."
-            className={`${claseInput.replace('h-12', 'min-h-[52px]')} py-3 leading-[1.4] resize-none`}
+            className={`${claseInput.replace('h-10', 'min-h-[52px]')} py-3 leading-[1.4] resize-none`}
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
             onKeyDown={(e) => {
@@ -1187,7 +1188,7 @@ const Bitacora: React.FC<{
       const { data, error } = await supabase.from('asunto_novedades').insert({ asunto_id: asunto.id, texto: t, interna }).select('id').single();
       if (error || !data) {
         setGuardando(false);
-        return alError(error?.message ?? 'No se pudo guardar la nota.');
+        return alError(mensajeAmable(error, 'No se pudo guardar la nota.'));
       }
       nota = interna ? 'Nota interna guardada. Solo la ve FIRMA.' : 'Nota guardada.';
       if (!interna && avisar) {
@@ -1328,18 +1329,18 @@ const Documentos: React.FC<{
     const { error: e1 } = await supabase.storage.from(BUCKET_ASUNTOS).upload(ruta, cuerpo, { contentType: mime, upsert: false });
     if (e1) {
       setOcupado('');
-      return alError(`No se pudo subir el archivo. ${e1.message}`);
+      return alError(mensajeAmable(e1, 'No se pudo subir el archivo.'));
     }
     const { data, error: e2 } = await supabase.from('asunto_archivos').insert({ asunto_id: asunto.id, nombre: archivo.name.slice(0, 200), ruta, bytes: archivo.size }).select('id').single();
     if (e2 || !data) {
       await supabase.storage.from(BUCKET_ASUNTOS).remove([ruta]);
       setOcupado('');
-      return alError(e2?.message ?? 'No se pudo guardar el archivo.');
+      return alError(mensajeAmable(e2, 'No se pudo guardar el archivo.'));
     }
     const r = await avisarPorMail('archivo', data.id);
     setOcupado('');
     if (entrada.current) entrada.current.value = '';
-    alCambiar(r.ok && r.avisados ? `Archivo subido. Le avisamos por mail a ${esFirma ? 'la empresa' : 'FIRMA'}.` : 'Archivo subido.');
+    alCambiar(r.ok && r.avisados ? `Subiste ${archivo.name}. Le avisamos por mail a ${esFirma ? 'la empresa' : 'FIRMA'}.` : `Subiste ${archivo.name}.`);
   }
 
   async function descargar(a: Archivo) {
@@ -1370,7 +1371,7 @@ const Documentos: React.FC<{
           <p className="text-[15px] leading-[1.5] text-piedra max-w-[46ch]">
             Subí documentos del asunto: PDF, Word, Excel o imágenes, hasta 20 MB. {esFirma ? 'La empresa' : 'FIRMA'} recibe un aviso por mail. Los PDF y Word se pueden ver y comentar acá mismo.
           </p>
-          <label className={`inline-flex items-center justify-center gap-2 h-[52px] px-6 bg-bosque text-marfil text-[15px] font-medium whitespace-nowrap transition-colors duration-150 hover:bg-bosque-dark ${ocupado ? 'opacity-60 pointer-events-none' : 'cursor-pointer'}`}>
+          <label className={`${claseBotonHero('primary', 'lg')} has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-tinta ${ocupado ? 'opacity-60 pointer-events-none' : 'cursor-pointer'}`}>
             <Upload size={16} aria-hidden="true" />
             {ocupado === 'subir' ? 'Subiendo…' : 'Subir documento'}
             <input

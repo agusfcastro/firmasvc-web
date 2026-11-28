@@ -32,10 +32,11 @@ import {
   type Valor,
 } from './formulario';
 import { mensajeAmable } from '../errores';
+import { claseBotonHero } from '../../Button';
 
 /**
  * Pedidos de contrato en /portal/pedidos/<modelo> (nuevo) y /portal/pedidos/<id>.
- * El titular o el CSM responden por pasos y el borrador se guarda solo.
+ * El titular o el Account Manager responden por pasos y el borrador se guarda solo.
  * Al enviarlo se abre un asunto de tipo Contrato con las respuestas en la
  * pestaña Formulario. Los datos de la persona pueden quedar para después y
  * completarse desde el asunto. Las condiciones se guardan como esquema de
@@ -93,7 +94,7 @@ async function guardarEsquemaDe(modelo: Modelo, orgId: string, r: Respuestas, ex
   return e ? e.message : null;
 }
 
-const claseTextarea = `${claseInput.replace('h-12', 'min-h-[96px]')} py-3 leading-[1.5]`;
+const claseTextarea = `${claseInput.replace('h-10', 'min-h-[96px]')} py-3 leading-[1.5]`;
 const ZONA = 'America/Argentina/Buenos_Aires';
 const fecha = (iso: string) => new Date(iso).toLocaleDateString('es-AR', { timeZone: ZONA, day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -258,6 +259,14 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
     return () => window.clearTimeout(t);
   }, [respuestas, guardar]);
 
+  // Si un guardado falló (por ejemplo, sin conexión), se reintenta solo cuando vuelve la conexión.
+  useEffect(() => {
+    if (guardado !== 'error') return;
+    const reintentar = () => void guardar(respuestas);
+    window.addEventListener('online', reintentar);
+    return () => window.removeEventListener('online', reintentar);
+  }, [guardado, respuestas, guardar]);
+
   const cambiar = (clave: string, valor: Valor) => {
     sucio.current = true;
     setRespuestas((r) => ({ ...r, [clave]: valor }));
@@ -299,7 +308,7 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
       const { data, error: e1 } = await sb.from('asuntos').insert({ organizacion_id: orgId, titulo, tipo: 'contrato', estado: 'en_curso', creado_por: perfil.id }).select('id').single();
       if (e1 || !data) {
         setEnviando(false);
-        return setError(e1?.message ?? 'No se pudo abrir el asunto.');
+        return setError(mensajeAmable(e1, 'No se pudo abrir el asunto.'));
       }
       asuntoCreado.current = data.id as string;
       const nombre = texto(respuestas, modelo.claveTitulo).trim();
@@ -412,13 +421,26 @@ export const Pedido: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
             ? `Enviado a FIRMA el ${fecha(pedido.enviado_en)}.`
             : 'Solo lectura.'
           : prueba
-            ? 'Vista previa: así lo completan el titular y el CSM. Podés recorrerlo, pero no se guarda ni se envía.'
+            ? 'Vista previa: así lo completan el titular y el Account Manager. Podés recorrerlo, pero no se guarda ni se envía.'
             : modelo.bajada
       }
       acciones={
         soloLectura || prueba ? undefined : (
           <span className="text-sm text-piedra self-center" aria-live="polite">
-            {guardado === 'guardando' ? 'Guardando…' : guardado === 'error' ? <span className="text-peligro">No se pudo guardar</span> : guardado === 'listo' ? 'Borrador guardado' : ''}
+            {guardado === 'guardando' ? (
+              'Guardando…'
+            ) : guardado === 'error' ? (
+              <span className="text-peligro">
+                No se guardó el último cambio.{' '}
+                <button type="button" onClick={() => void guardar(respuestas)} className="underline underline-offset-4 font-medium">
+                  Reintentar
+                </button>
+              </span>
+            ) : guardado === 'listo' ? (
+              'Borrador guardado'
+            ) : (
+              ''
+            )}
           </span>
         )
       }
@@ -968,8 +990,7 @@ const EntregarModelo: React.FC<{ pedido: PedidoContrato; modelo: ClaveModelo }> 
 /* ------------------------------------------------------------------ */
 /* Acceso desde Documentos › Contratos con tu equipo                    */
 /* ------------------------------------------------------------------ */
-const claseAccion =
-  'inline-flex items-center justify-center gap-2 h-11 px-5 bg-marfil text-tinta text-sm font-medium whitespace-nowrap transition-colors duration-150 hover:bg-white';
+const claseAccion = claseBotonHero('light', 'md');
 
 /** vistaPrevia: FIRMA o Ver como, que abren el formulario sin guardar. Una tarjeta por modelo. */
 export const PedidosEquipo: React.FC<{ orgId: string | null; vistaPrevia: boolean }> = ({ orgId, vistaPrevia }) => {
@@ -1092,7 +1113,7 @@ const TarjetaPedido: React.FC<{
   }
 
   return (
-    <article className="card">
+    <article className="tarjeta-servicio">
       <div className="relative flex items-center gap-4">
         <div className="icon-box">
           <ClipboardList size={26} strokeWidth={1.8} />

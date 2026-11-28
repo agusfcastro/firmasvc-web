@@ -6,8 +6,8 @@ import { supabase } from './supabase';
  * página segura de dLocal Go, este portal nunca la ve.
  * Desde noviembre de 2026 los abonos de la oferta llevan un esquema (0061):
  * tres cuotas y después la cuota posterior, o un pago completo que cubre
- * cuatro meses y después la cuota posterior congelada. En pesos se cobran al
- * dólar MEP.
+ * tres meses y después la cuota posterior. En pesos se cobran al dólar cripto
+ * del día, promedio entre compra y venta (api/_lib/cotizacion.ts).
  */
 
 export type EstadoAbono = 'borrador' | 'pendiente' | 'activo' | 'pausado' | 'cancelado' | 'con_error';
@@ -47,7 +47,7 @@ export interface Abono {
   /** AAAA-MM-DD hasta la que la cuota posterior no cambia. */
   congelado_hasta?: string | null;
   precio_fundador?: boolean;
-  /** En pesos al dólar MEP: monto es pesos y monto_usd la referencia en dólares. */
+  /** En pesos al dólar cripto: monto es pesos y monto_usd la referencia en dólares. */
   al_mep?: boolean;
   monto_usd?: number | string | null;
   cotizacion_mep?: number | string | null;
@@ -100,7 +100,7 @@ export interface Oferta {
   posterior: number;
   /** Cuotas al monto inicial. Solo en cuotas. */
   cuotas?: number;
-  /** Meses que cubre el pago completo: los tres pagos más el cuarto sin cargo. */
+  /** Meses que cubre el pago completo. */
   meses?: number;
   /** Meses que la cuota posterior queda congelada. Solo en pago completo. */
   congela?: number;
@@ -108,19 +108,17 @@ export interface Oferta {
 }
 
 export const OFERTAS: Oferta[] = [
-  { id: 'eminent-cuotas', titulo: 'Eminent en tres cuotas de USD 750, después USD 500', plan: 'eminent', modalidad: 'cuotas', concepto: 'Plan Eminent de FIRMA', inicial: 750, posterior: 500, cuotas: 3 },
-  { id: 'eminent-completo', titulo: 'Eminent con pago completo de USD 1.800, después USD 500', plan: 'eminent', modalidad: 'pago_completo', concepto: 'Plan Eminent de FIRMA', inicial: 1800, posterior: 500, meses: 4, congela: 12 },
-  { id: 'eminent-fundador', titulo: 'Eminent precio fundador, pago completo de USD 1.500, después USD 500', plan: 'eminent', modalidad: 'pago_completo', concepto: 'Plan Eminent de FIRMA, precio fundador', inicial: 1500, posterior: 500, meses: 4, congela: 12, fundador: true },
-  { id: 'starter-cuotas', titulo: 'Starter en tres cuotas de USD 400, después USD 250', plan: 'starter', modalidad: 'cuotas', concepto: 'Plan Starter de FIRMA', inicial: 400, posterior: 250, cuotas: 3 },
-  { id: 'starter-completo', titulo: 'Starter con pago completo de USD 1.000, después USD 250', plan: 'starter', modalidad: 'pago_completo', concepto: 'Plan Starter de FIRMA', inicial: 1000, posterior: 250, meses: 4, congela: 12 },
-  { id: 'starter-fundador', titulo: 'Starter precio fundador, pago completo de USD 800, después USD 250', plan: 'starter', modalidad: 'pago_completo', concepto: 'Plan Starter de FIRMA, precio fundador', inicial: 800, posterior: 250, meses: 4, congela: 12, fundador: true },
+  { id: 'eminent-cuotas', titulo: 'Eminent en tres cuotas de USD 1.000, después USD 500', plan: 'eminent', modalidad: 'cuotas', concepto: 'Plan Eminent de FIRMA', inicial: 1000, posterior: 500, cuotas: 3 },
+  { id: 'eminent-completo', titulo: 'Eminent con pago completo de USD 2.500 por tres meses, después USD 500', plan: 'eminent', modalidad: 'pago_completo', concepto: 'Plan Eminent de FIRMA', inicial: 2500, posterior: 500, meses: 3 },
+  { id: 'starter-cuotas', titulo: 'Starter en tres cuotas de USD 500, después USD 250', plan: 'starter', modalidad: 'cuotas', concepto: 'Plan Starter de FIRMA', inicial: 500, posterior: 250, cuotas: 3 },
+  { id: 'starter-completo', titulo: 'Starter con pago completo de USD 1.000 por tres meses, después USD 250', plan: 'starter', modalidad: 'pago_completo', concepto: 'Plan Starter de FIRMA', inicial: 1000, posterior: 250, meses: 3 },
 ];
 
-/** Precio fundador: las primeras 5 empresas o hasta el 31/12/2026. La base también lo controla. */
+/** Precio fundador: ya no se ofrece desde el 26/11/2026. Queda para los abonos que lo tienen. La base también lo controla. */
 export const FUNDADOR_CUPO = 5;
 export const FUNDADOR_HASTA = '2026-12-31';
 
-/** Moneda de los montos del esquema: dólares si se cobra en pesos al MEP. */
+/** Moneda de los montos del esquema: dólares si se cobra en pesos al dólar cripto. */
 export const monedaReferencia = (a: Pick<Abono, 'al_mep' | 'moneda'>): string => (a.al_mep ? 'USD' : a.moneda);
 
 /** Lo que se cobra ahora, en la moneda de referencia. Es lo que acepta el titular. */
@@ -154,8 +152,8 @@ export function resumenEsquema(a: Abono): string {
 /** Pago único del pago completo, en dLocal Go. */
 export const esPagoUnico = (p: PagoAbono): boolean => p.detalle?.procesador === 'dlocalgo_unico';
 
-/** Dólar MEP del día, para mostrar los pesos. null si no se pudo consultar. */
-export async function consultarMep(): Promise<{ valor: number; fuente: string; fecha: string } | null> {
+/** Dólar cripto del día, para mostrar los pesos. null si no se pudo consultar. */
+export async function consultarDolar(): Promise<{ valor: number; fuente: string; fecha: string } | null> {
   const t = await token();
   if (!t) return null;
   try {
@@ -169,8 +167,8 @@ export async function consultarMep(): Promise<{ valor: number; fuente: string; f
   }
 }
 
-/** Dólares a pesos con el MEP, sin centavos. Igual que en el servidor. */
-export const pesosAlMep = (usd: number, mep: number): number => Math.round(usd * mep);
+/** Dólares a pesos con el dólar cripto, sin centavos. Igual que en el servidor. */
+export const pesosAlDolar = (usd: number, mep: number): number => Math.round(usd * mep);
 
 /** Países que dLocal Go habilita por defecto y la moneda en la que paga cada uno. */
 export const PAISES_DLOCALGO: Record<string, { nombre: string; moneda: string }> = {

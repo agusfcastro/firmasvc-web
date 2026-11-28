@@ -339,7 +339,7 @@ async function juntarAlertas(sb: SupabaseClient, orgIds: string[], hoy: string, 
     alertas.push({
       organizacion_id: a.organizacion_id,
       clave: `alerta:cuota:${a.id}:${dia}:${umbral}`,
-      texto: `El pago completo de <a href="${base}/portal/pagos" style="${ENLACE}">${escapar(a.concepto)}</a> cubre hasta ${cuando(dia, hoy)}. Autorizá en Pagos el débito de ${monto} por mes${a.al_mep ? ' al dólar MEP' : ''} para seguir sin cortes.`,
+      texto: `El pago completo de <a href="${base}/portal/pagos" style="${ENLACE}">${escapar(a.concepto)}</a> cubre hasta ${cuando(dia, hoy)}. Autorizá en Pagos el débito de ${monto} por mes${a.al_mep ? ' al dólar cripto' : ''} para seguir sin cortes.`,
       soloTitular: true,
     });
   }
@@ -717,7 +717,7 @@ export async function GET(request: Request): Promise<Response> {
 
   const clave = process.env.CRON_SECRET;
   if (!clave || !iguales(request.headers.get('authorization') || '', `Bearer ${clave}`)) return error('No autorizado.', 401);
-  // Abonos en cuotas y en pesos al MEP. Corre en su propia función, sin demorar los mails.
+  // Abonos en cuotas y en pesos al dólar cripto. Corre en su propia función, sin demorar los mails.
   waitUntil(fetch(`${basePortal()}/api/pagos/gestionar`, { headers: { authorization: `Bearer ${clave}` }, signal: AbortSignal.timeout(55_000) }).catch(() => undefined));
   if (!process.env.PORTAL_CLAVE_AVISOS) return error('El servidor no tiene configurada PORTAL_CLAVE_AVISOS.', 500);
   if (!mailDisponible()) return error('El envío de mails no está configurado.', 503);

@@ -1,6 +1,7 @@
 import React from 'react';
 import { claseInput } from '../ui';
 import type { VariablePropia } from './tipos';
+import { Selector, Fecha } from '../campos';
 
 /**
  * Campo para cargar el valor de una variable propia del negocio. Lo usan la
@@ -16,22 +17,22 @@ export const CampoVariable: React.FC<{ v: VariablePropia; valor: unknown; alCamb
 }) => {
   if (v.tipo === 'booleano')
     return (
-      <select className={claseInput} disabled={deshabilitado} value={valor === true ? 'si' : valor === false ? 'no' : ''} onChange={(e) => alCambiar(e.target.value === '' ? null : e.target.value === 'si')}>
+      <Selector className={claseInput} disabled={deshabilitado} value={valor === true ? 'si' : valor === false ? 'no' : ''} onChange={(e) => alCambiar(e.target.value === '' ? null : e.target.value === 'si')}>
         <option value="">Sin dato</option>
         <option value="si">Sí</option>
         <option value="no">No</option>
-      </select>
+      </Selector>
     );
   if (v.tipo === 'opcion')
     return (
-      <select className={claseInput} disabled={deshabilitado} value={typeof valor === 'string' ? valor : ''} onChange={(e) => alCambiar(e.target.value || null)}>
+      <Selector className={claseInput} disabled={deshabilitado} value={typeof valor === 'string' ? valor : ''} onChange={(e) => alCambiar(e.target.value || null)}>
         <option value="">Sin dato</option>
         {(v.opciones ?? []).map((o) => (
           <option key={o} value={o}>
             {o}
           </option>
         ))}
-      </select>
+      </Selector>
     );
   if (v.tipo === 'numero' || v.tipo === 'monto')
     return (
@@ -46,7 +47,7 @@ export const CampoVariable: React.FC<{ v: VariablePropia; valor: unknown; alCamb
       />
     );
   if (v.tipo === 'fecha')
-    return <input type="date" className={claseInput} disabled={deshabilitado} value={typeof valor === 'string' ? valor : ''} onChange={(e) => alCambiar(e.target.value || null)} />;
+    return <Fecha type="date" className={claseInput} disabled={deshabilitado} value={typeof valor === 'string' ? valor : ''} onChange={(e) => alCambiar(e.target.value || null)} />;
   return <input className={claseInput} disabled={deshabilitado} maxLength={2000} value={typeof valor === 'string' ? valor : ''} onChange={(e) => alCambiar(e.target.value === '' ? null : e.target.value)} />;
 };
 

@@ -3,7 +3,7 @@ import { ArrowLeft, Mail, MessageCircle } from 'lucide-react';
 import { Logo } from './Logo';
 import { Footer } from './Footer';
 
-const LAST_UPDATED = '16 de octubre de 2026';
+const LAST_UPDATED = '26 de noviembre de 2026';
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <section className="mb-10">
@@ -42,7 +42,7 @@ export const TermsOfService: React.FC = () => {
             Términos y Condiciones del Servicio
           </h1>
           <p className="text-sm text-gray-500 mb-12">
-            Última actualización: {LAST_UPDATED}
+            Última actualización {LAST_UPDATED}
           </p>
 
           <Section title="1. Titular">
@@ -57,11 +57,12 @@ export const TermsOfService: React.FC = () => {
             <p>
               Firma presta servicios profesionales de asesoramiento y consultoría legal para
               empresas y negocios digitales, incluyendo, entre otros, estructuración societaria,
-              redacción de contratos, diseño de protocolos internos y registro de marcas.
+              redacción de contratos, diseño de protocolos internos y registro de marcas. Para
+              prestarlos, Firma pone a disposición de sus clientes un portal de clientes.
             </p>
             <p>
-              Los servicios <strong>no se contratan a través de este sitio web</strong>. Este sitio
-              es meramente informativo y no constituye una oferta dirigida al público. Los medios de
+              Los servicios <strong>no se contratan a través de este sitio web</strong>. El sitio
+              público es informativo y no constituye una oferta dirigida al público. Los medios de
               pago que Firma pone a disposición, incluidas las suscripciones, se utilizan únicamente
               para gestionar el cobro de los servicios contratados por clientes activos con quienes
               existe un acuerdo previo.
@@ -81,7 +82,46 @@ export const TermsOfService: React.FC = () => {
             </p>
           </Section>
 
-          <Section title="4. Pagos y suscripciones">
+          <Section title="4. Portal de clientes">
+            <p>
+              El portal de clientes (firmasvc.com/portal) es la herramienta con la que Firma presta
+              sus servicios a los clientes activos. Lo usan el cliente y las personas de su equipo
+              que el cliente habilita, cada una con su propio usuario.
+            </p>
+            <p>
+              Cada usuario es responsable de cuidar sus credenciales y de lo que se haga con su
+              cuenta. El cliente es responsable de los datos que carga en el portal sobre sus
+              clientes, prospectos y equipo, y de contar con una base legal para hacerlo.
+            </p>
+            <p>
+              Las respuestas y los análisis que produce la inteligencia artificial del portal son
+              orientativos y no constituyen asesoramiento legal. Ninguna interpretación legal se
+              entrega sin la revisión de un abogado de Firma.
+            </p>
+            <p>
+              Firma puede suspender el acceso de un usuario ante un uso indebido, un riesgo de
+              seguridad o la falta de pago, y puede darlo de baja cuando termina la relación con el
+              cliente.
+            </p>
+          </Section>
+
+          <Section title="5. Conexión con Google">
+            <p>
+              Cada persona puede conectar su cuenta de Google al portal para ver su agenda en el
+              calendario del equipo y crear en su Google Calendar las reuniones que se agendan desde
+              el portal. La conexión es opcional y se puede quitar en cualquier momento desde el
+              portal o desde la configuración de la cuenta de Google.
+            </p>
+            <p>
+              El uso de los datos que Firma recibe de Google se rige por la{' '}
+              <a href="/privacidad#google" className="text-firma hover:underline">
+                Política de Privacidad
+              </a>
+              . El uso de los servicios de Google queda sujeto además a los términos de Google.
+            </p>
+          </Section>
+
+          <Section title="6. Pagos y suscripciones">
             <p>
               Los pagos online se procesan a través de <strong>dLocal Go</strong>, una plataforma de
               pagos de terceros. Firma no recibe ni almacena los datos de las tarjetas u otros
@@ -96,7 +136,7 @@ export const TermsOfService: React.FC = () => {
             </p>
           </Section>
 
-          <Section title="5. Política de no reembolso">
+          <Section title="7. Política de no reembolso">
             <p>
               Atento a la naturaleza profesional de los servicios, los montos abonados{' '}
               <strong>no son reembolsables</strong>, total ni parcialmente, salvo que las
@@ -104,7 +144,7 @@ export const TermsOfService: React.FC = () => {
             </p>
           </Section>
 
-          <Section title="6. Baja de la suscripción">
+          <Section title="8. Baja de la suscripción">
             <p>
               El cliente puede solicitar la baja de su suscripción en cualquier momento,
               comunicándola por escrito a{' '}
@@ -118,7 +158,7 @@ export const TermsOfService: React.FC = () => {
             </p>
           </Section>
 
-          <Section title="7. Confidencialidad">
+          <Section title="9. Confidencialidad">
             <p>
               La información que el cliente comparta con Firma está amparada por el secreto
               profesional y es tratada conforme a nuestra{' '}
@@ -129,15 +169,20 @@ export const TermsOfService: React.FC = () => {
             </p>
           </Section>
 
-          <Section title="8. Responsabilidad">
+          <Section title="10. Responsabilidad">
             <p>
               Firma presta sus servicios con la diligencia profesional exigible, asumiendo
               obligaciones de medios y no de resultado. El resultado de trámites que dependen de
               terceros o de organismos públicos no puede garantizarse.
             </p>
+            <p>
+              La responsabilidad total de Firma frente al cliente, por cualquier causa vinculada con
+              los servicios o con el portal, se limita al monto efectivamente abonado por el cliente
+              en los tres meses anteriores al hecho que la origina, salvo dolo.
+            </p>
           </Section>
 
-          <Section title="9. Modificaciones">
+          <Section title="11. Modificaciones">
             <p>
               Firma puede modificar estos Términos y Condiciones en cualquier momento. Las
               modificaciones se publican en esta página y no alteran las Condiciones Particulares
@@ -145,7 +190,7 @@ export const TermsOfService: React.FC = () => {
             </p>
           </Section>
 
-          <Section title="10. Ley aplicable y jurisdicción">
+          <Section title="12. Ley aplicable y jurisdicción">
             <p>
               Estos Términos y Condiciones se rigen por las leyes de la República Argentina.
               Cualquier controversia se someterá a los tribunales ordinarios de la Ciudad Autónoma
@@ -153,7 +198,7 @@ export const TermsOfService: React.FC = () => {
             </p>
           </Section>
 
-          <Section title="11. Contacto">
+          <Section title="13. Contacto">
             <ul className="space-y-3">
               <li>
                 <a

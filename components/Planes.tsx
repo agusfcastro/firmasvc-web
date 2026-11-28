@@ -8,8 +8,9 @@ import { agendarPlan } from '../lib/calendly';
  * Se comparte solo durante las llamadas de venta.
  * Cada botón abre Calendly con el plan elegido: primero hay una reunión y después
  * FIRMA arma el abono, que el cliente paga desde el portal con dLocal Go.
- * La oferta es la de noviembre de 2026 (CLAUDE.md, Planes): tres cuotas o pago
- * completo, y después la cuota posterior. Los montos del portal están en
+ * Precios de lista desde el 26/11/2026 (CLAUDE.md, Planes): tres cuotas o pago
+ * completo por los tres meses, y después la cuota posterior. Sin ofertas: el
+ * descuento se arregla en la llamada. Los montos del portal están en
  * components/portal/abonos.ts (OFERTAS). Si cambian, se cambian en los dos.
  */
 
@@ -35,9 +36,9 @@ export const PLANES: Plan[] = [
   {
     id: 'starter',
     nombre: 'Starter',
-    precio: 'USD 400',
+    precio: 'USD 500',
     periodo: 'por mes, tres cuotas',
-    extra: 'O USD 1.000 en un pago, con el cuarto mes sin cargo y la cuota congelada por 12 meses.',
+    extra: 'O USD 1.000 en un pago por los tres meses.',
     despues: 'Desde el cuarto mes, USD 250 por mes.',
     titular: 'Las herramientas de FIRMA para operar con orden',
     bajada:
@@ -53,18 +54,18 @@ export const PLANES: Plan[] = [
   {
     id: 'eminent',
     nombre: 'Eminent',
-    precio: 'USD 750',
+    precio: 'USD 1.000',
     periodo: 'por mes, tres cuotas',
-    extra: 'O USD 1.800 en un pago, con el cuarto mes sin cargo y la cuota congelada por 12 meses.',
+    extra: 'O USD 2.500 en un pago por los tres meses.',
     despues: 'Desde el cuarto mes, USD 500 por mes.',
     badge: 'Más elegido',
     titular: 'Tu departamento legal, con un abogado detrás de cada respuesta',
     bajada:
-      'Eminent es tener a FIRMA adentro de tu negocio. Acceso directo conmigo, Tina con derivación al equipo, todos los documentos que necesites y la gestión de los conflictos con clientes, socios y equipo.',
+      'Eminent es tener a FIRMA adentro de tu negocio. Acceso directo conmigo, todos los documentos que necesites y la gestión de los conflictos con clientes, socios y equipo.',
     incluye: [
       'Todo lo de Starter, con agenda y firmas sin límite',
       'Acceso directo a Agustín Castro',
-      'Tina, la asistente con IA del portal, con derivación de tus casos al equipo de FIRMA',
+      'Próximamente, Tina, la asistente con IA del portal, con derivación de tus casos al equipo de FIRMA',
       'Redacción y optimización de tus contratos y documentos',
       'Gestión de conflictos con clientes, socios y equipo',
       'Contacto telefónico en urgencias',
@@ -76,7 +77,7 @@ export const PLANES: Plan[] = [
 type Valor = boolean | string;
 const COMPARATIVA: { item: string; starter: Valor; eminent: Valor }[] = [
   { item: 'CRM legal con perfilado de clientes', starter: true, eminent: true },
-  { item: 'Tina, asistente con IA', starter: false, eminent: 'Con derivación al equipo' },
+  { item: 'Tina, asistente con IA', starter: false, eminent: 'Próximamente' },
   { item: 'Firma electrónica', starter: 'Hasta 20 por mes', eminent: 'Sin límite' },
   { item: 'Consultoría', starter: '1 h general por semana', eminent: 'Sin límite' },
   { item: 'Asesoramiento sobre tus casos', starter: false, eminent: true },
@@ -86,8 +87,8 @@ const COMPARATIVA: { item: string; starter: Valor; eminent: Valor }[] = [
 ];
 
 const PRECIOS: { item: string; starter: string; eminent: string }[] = [
-  { item: 'Tres cuotas, por mes', starter: 'USD 400', eminent: 'USD 750' },
-  { item: 'Pago completo, cuatro meses', starter: 'USD 1.000', eminent: 'USD 1.800' },
+  { item: 'Tres cuotas, por mes', starter: 'USD 500', eminent: 'USD 1.000' },
+  { item: 'Pago completo, tres meses', starter: 'USD 1.000', eminent: 'USD 2.500' },
   { item: 'Desde el cuarto mes, por mes', starter: 'USD 250', eminent: 'USD 500' },
 ];
 
@@ -208,9 +209,6 @@ export const Planes: React.FC = () => {
         </section>
 
         <section className="wrap">
-          <p className="max-w-3xl mx-auto mb-10 text-center text-[15px] font-medium text-bosque bg-bosque-suave px-5 py-4">
-            Precio fundador para las primeras 5 empresas o hasta el 31 de diciembre de 2026. Eminent a USD 1.500 y Starter a USD 800, con pago completo.
-          </p>
           <div className="grid gap-8 wide:grid-cols-2 items-stretch max-w-5xl mx-auto">
             {PLANES.map((p) => (
               <Tarjeta key={p.id} plan={p} />
@@ -249,7 +247,7 @@ export const Planes: React.FC = () => {
           </div>
 
           <p className="mt-10 text-sm text-piedra text-center max-w-2xl mx-auto">
-            Si pagás en pesos, se cobra al equivalente del dólar MEP. Los abonos no incluyen juicios
+            Si pagás en pesos, se cobra al dólar cripto del día, promedio entre compra y venta. Los abonos no incluyen juicios
             ni constitución de sociedades en el extranjero, que se cotizan por separado con descuento
             para clientes activos.
           </p>

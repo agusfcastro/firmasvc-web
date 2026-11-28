@@ -162,7 +162,7 @@ export const Victorias: React.FC<{ base: BaseEquipo; nueva: boolean; cerrarNueva
 
       {pendientes.length > 0 && (
         <section>
-          <TituloSeccion eyebrow="Te toca" titulo="Para validar" />
+          <TituloSeccion eyebrow={pendientes.some(puedoValidar) ? 'Te toca' : 'Esperan validación'} titulo="Para validar" />
           <ul className="grid gap-3 desk:grid-cols-2">
             {pendientes.map((v) =>
               tarjeta(
@@ -273,6 +273,7 @@ const NuevaVictoria: React.FC<{ base: BaseEquipo; alCerrar: () => void; alGuarda
   const [vinculo, setVinculo] = useState('');
   const [enlace, setEnlace] = useState('');
   const [archivo, setArchivo] = useState<File | null>(null);
+  const [errorArchivo, setErrorArchivo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
 
@@ -346,7 +347,6 @@ const NuevaVictoria: React.FC<{ base: BaseEquipo; alCerrar: () => void; alGuarda
   return (
     <form onSubmit={guardar} className="bg-marfil-oscuro p-6 desk:p-8 flex flex-col gap-5 max-w-[720px]">
       <h2 className="h3">Cargar una victoria</h2>
-      {error && <Aviso tipo="error">{error}</Aviso>}
       {lidera ? (
         <Campo etiqueta="¿De quién es?">
           <select className={claseInput} value={miembroId} onChange={(e) => setMiembroId(e.target.value)}>
@@ -376,7 +376,7 @@ const NuevaVictoria: React.FC<{ base: BaseEquipo; alCerrar: () => void; alGuarda
         <Campo etiqueta="Fecha">
           <input type="date" required className={claseInput} max={hoyIso} value={fecha} onChange={(e) => setFecha(e.target.value)} />
         </Campo>
-        <Campo etiqueta="Valor (opcional)">
+        <Campo etiqueta={`Valor en ${moneda} (opcional)`}>
           <input inputMode="decimal" className={claseInput} placeholder="2000" value={valor} onChange={(e) => setValor(e.target.value)} />
         </Campo>
         {monedas.length > 1 ? (
@@ -418,17 +418,37 @@ const NuevaVictoria: React.FC<{ base: BaseEquipo; alCerrar: () => void; alGuarda
       )}
       <div className="grid gap-5 tab:grid-cols-2">
         <Campo etiqueta="Evidencia, un archivo (opcional)" ayuda="Captura, audio o PDF, hasta 10 MB.">
+          {/* El selector nativo sale en el idioma del navegador; este botón dice lo mismo en castellano. */}
+          <span className="flex items-center gap-3">
+            <span className="inline-flex items-center gap-2 h-10 px-4 border border-borde bg-white rounded-control text-[14px] font-medium cursor-pointer hover:border-tinta">
+              <Paperclip size={15} aria-hidden="true" /> Elegir archivo
+            </span>
+            <span className="text-[13.5px] text-piedra truncate">{archivo ? archivo.name : 'Ninguno elegido'}</span>
+          </span>
           <input
             type="file"
             accept={TIPOS_EVIDENCIA}
-            className="block w-full text-[14px] file:mr-3 file:h-10 file:px-4 file:border file:border-borde file:bg-white file:rounded-control file:text-[14px]"
-            onChange={(e) => setArchivo(e.target.files?.[0] ?? null)}
+            className="sr-only"
+            onChange={(e) => {
+              const elegido = e.target.files?.[0] ?? null;
+              // El límite se avisa al elegir, al lado del campo, y no recién al guardar.
+              if (elegido && elegido.size > MAX_EVIDENCIA) {
+                setErrorArchivo(`${elegido.name} pesa más de 10 MB. Elegí uno más liviano o pegá un enlace.`);
+                setArchivo(null);
+                e.target.value = '';
+                return;
+              }
+              setErrorArchivo(null);
+              setArchivo(elegido);
+            }}
           />
+          {errorArchivo && <span className="block text-[13px] text-peligro-fuerte mt-1.5">{errorArchivo}</span>}
         </Campo>
         <Campo etiqueta="O un enlace (opcional)">
           <input type="url" className={claseInput} placeholder="https://" value={enlace} onChange={(e) => setEnlace(e.target.value)} />
         </Campo>
       </div>
+      {error && <Aviso tipo="error">{error}</Aviso>}
       <div className="flex gap-3">
         <Button type="submit" disabled={guardando}>
           {guardando ? 'Guardando…' : 'Guardar'}

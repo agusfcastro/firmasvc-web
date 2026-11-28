@@ -10,6 +10,7 @@ import { mensajeAmable } from '../errores';
 import { AnalisisLlamada } from './AnalisisLlamada';
 import { CargarTranscripcion } from './CargarTranscripcion';
 import { etiquetaAnalisis, type AnalisisFila } from './analisis';
+import { Selector } from '../campos';
 
 /**
  * Llamadas de Fathom (migraciones 0049 y 0050).
@@ -23,9 +24,9 @@ import { etiquetaAnalisis, type AnalisisFila } from './analisis';
  *                desconecta.
  *   Llamadas     las recibidas; las que no se atribuyeron por el mail se
  *                asignan a mano.
- * Titular, CSM y FIRMA ven todo el negocio. Un closer ve «Mi Fathom» para
+ * Titular, Account Manager y FIRMA ven todo el negocio. Un closer ve «Mi Fathom» para
  * conectar la suya y solo sus llamadas. La transcripción no se muestra acá.
- * Análisis (migración 0067), para titular, CSM y FIRMA: la columna Análisis
+ * Análisis (migración 0067), para titular, Account Manager y FIRMA: la columna Análisis
  * muestra el estado de cada llamada y abre el informe (AnalisisLlamada). El
  * negocio ve «En revisión de FIRMA» hasta que FIRMA lo aprueba. «Cargar
  * transcripción» suma una llamada que no vino por Fathom.
@@ -266,7 +267,7 @@ export const Llamadas: React.FC<{ orgId: string; orgNombre: string; puedeGestion
     setOk(null);
     const { data, error: e } = await supabase.rpc('integracion_fathom_conectar', { p_integrante: integrante.id });
     setOcupado(false);
-    if (e || typeof data !== 'string') return setError(e?.message ?? 'No pudimos generar la URL.');
+    if (e || typeof data !== 'string') return setError(mensajeAmable(e, 'No pudimos generar la URL.'));
     setEnlace(null);
     setNueva({ integranteId: integrante.id, url: urlWebhook(data) });
     await cargar();
@@ -280,7 +281,7 @@ export const Llamadas: React.FC<{ orgId: string; orgNombre: string; puedeGestion
     setOk(null);
     const { data, error: e } = await supabase.rpc('integracion_fathom_invitar', { p_integrante: integrante.id });
     setOcupado(false);
-    if (e || typeof data !== 'string') return setError(e?.message ?? 'No pudimos generar el enlace.');
+    if (e || typeof data !== 'string') return setError(mensajeAmable(e, 'No pudimos generar el enlace.'));
     setNueva(null);
     setSecreto(null);
     setEnlace({ integranteId: integrante.id, url: `${window.location.origin}/conectar-fathom/${data}` });
@@ -743,7 +744,7 @@ export const Llamadas: React.FC<{ orgId: string; orgNombre: string; puedeGestion
                           <td className="tabular-nums">{minutos(l.duracion_seg)}</td>
                           <td>
                             {verTodo ? (
-                              <select
+                              <Selector
                                 className={`${claseInput} min-w-[200px]`}
                                 aria-label="Cliente de la llamada"
                                 disabled={ocupado || vistaPrevia}
@@ -762,7 +763,7 @@ export const Llamadas: React.FC<{ orgId: string; orgNombre: string; puedeGestion
                                     {c.codigo ? ` (${c.codigo})` : ''}
                                   </option>
                                 ))}
-                              </select>
+                              </Selector>
                             ) : l.cliente_id ? (
                               <Enlace a={`/portal/crm/${l.cliente_id}`} className="underline underline-offset-4 hover:text-bosque">
                                 Ver ficha

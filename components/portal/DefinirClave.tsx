@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '../Button';
 import { supabase } from './supabase';
 import { navegar } from './navegacion';
-import { Aviso, Campo, claseInput } from './ui';
+import { Aviso, Campo, claseInput } from '../uiClasica';
 import { LayoutAcceso } from './LayoutAcceso';
 import type { EstadoSesion } from './useSesion';
 

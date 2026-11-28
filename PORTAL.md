@@ -142,11 +142,11 @@ Entrá a `firmasvc.com/portal`.
 |---|---|
 | Admin FIRMA | Todo, de todos los clientes, y el panel de administración |
 | Titular | Todo lo de su empresa, incluida la administración: equipo, pagos y servicios |
-| CSM | Todo menos la administración de la empresa. Si le marcás áreas, los documentos se limitan a esas |
+| Account Manager | Todo menos la administración de la empresa. Si le marcás áreas, los documentos se limitan a esas. Por dentro el rol se llama `csm`; en pantalla dice Account Manager desde la 0078 |
 | Closer | CRM y agenda, sin casos de conflicto. De documentos, solo protocolos y formación |
 | Setter | Solo protocolos y formación |
 
-Las cuentas viejas con rol Miembro del equipo funcionan como CSM. Para que rijan estos roles corré `supabase/migrations/0012_roles_equipo.sql` en **SQL Editor**. Un documento cuenta como protocolo o formación cuando tiene marcada esa casilla en **Administración › Documentos**; la migración la marca sola en los protocolos que ya estaban.
+Las cuentas viejas con rol Miembro del equipo funcionan como Account Manager. Para que rijan estos roles corré `supabase/migrations/0012_roles_equipo.sql` en **SQL Editor**. Un documento cuenta como protocolo o formación cuando tiene marcada esa casilla en **Administración › Documentos**; la migración la marca sola en los protocolos que ya estaban.
 
 Los permisos los aplica la base de datos. Aunque alguien manipule la página, un cliente no puede leer datos de otro.
 
@@ -476,7 +476,7 @@ Este módulo cobra pero no emite facturas. La facturación electrónica de cada 
 | `components/portal/admin/Abonos.tsx` | Pestaña Abonos de Administración |
 | `components/portal/abonos.ts` | Tipos, rótulos, países, formatos y llamadas a la API |
 
-Las tres funciones de `api/pagos` comparten un bloque común idéntico, con el cliente de dLocal Go y la sincronización, porque cada función de Vercel es autocontenida. Si se cambia en una, se cambia igual en las tres.
+Las tres funciones de `api/pagos` comparten un bloque común idéntico, con el cliente de dLocal Go y la sincronización, porque cada función de Vercel es autocontenida. Si se cambia en una, se cambia igual en las tres. La cotización del dólar es la excepción y vive en `api/_lib/cotizacion.ts`.
 
 ### Oferta de noviembre de 2026
 
@@ -484,32 +484,34 @@ Desde la migración `0061_abonos_oferta.sql` cada abono puede llevar el esquema 
 
 | Opción | Cómo cobra |
 |---|---|
-| Starter o Eminent en tres cuotas | USD 400 o USD 750 por mes durante tres débitos y después USD 250 o USD 500, sin que el titular vuelva a suscribirse |
-| Starter o Eminent con pago completo | Un pago único de USD 1.000 o USD 1.800 que cubre cuatro meses. Después USD 250 o USD 500 por mes, congelados 12 meses |
-| Precio fundador | Pago completo de USD 800 (Starter) o USD 1.500 (Eminent). Primeras 5 empresas o hasta el 31/12/2026. La base no deja pasar la sexta |
+| Starter o Eminent en tres cuotas | USD 500 o USD 1.000 por mes durante tres débitos y después USD 250 o USD 500, sin que el titular vuelva a suscribirse |
+| Starter o Eminent con pago completo | Un pago único de USD 1.000 o USD 2.500 que cubre tres meses. Después USD 250 o USD 500 por mes |
+
+Son los precios de lista desde el 26 de noviembre de 2026, sin ofertas. El descuento se arregla en la llamada y se carga cambiando los montos. Ya no se ofrecen el precio fundador, el cuarto mes sin cargo ni la cuota congelada. Los abonos que ya los tienen siguen igual y la base sigue controlando el cupo fundador (0061).
 
 Se arma en **Administración › Abonos** con **Oferta**, que completa concepto y montos. Los montos se pueden cambiar si se negoció otro precio. **Monto especial, sin esquema** es el abono de siempre.
 
-**Cobro.** En dólares, dLocal Go convierte a la moneda del cliente en cada pago. En pesos al dólar MEP, los montos quedan en dólares y el portal calcula los pesos con el MEP de venta (dolarapi.com y, si no responde, argentinadatos.com). Los recalcula al activar y, antes de cada débito, la tarea diaria pasa el plan al MEP del día si se movió más de medio punto.
+**Cobro.** En dólares, dLocal Go convierte a la moneda del cliente en cada pago. En pesos, los montos quedan en dólares y el portal calcula los pesos con el dólar cripto del día, promedio entre compra y venta (`api/_lib/cotizacion.ts`). Lo lee de dolarhoy.com, donde figura como Dólar Digital (USDC), y si no responde o cambió la página usa el cripto de dolarapi.com y después el de argentinadatos.com. Rige para todos los abonos en pesos desde el 26 de noviembre de 2026; antes era el MEP. Las columnas siguen llamándose `al_mep` y `cotizacion_mep`. Los recalcula al activar y, antes de cada débito, la tarea diaria pasa el plan al dólar del día si se movió más de medio punto.
 
 **Tres cuotas.** Es un plan mensual al monto inicial. Cuando se aprueba la última cuota inicial, la sincronización le pide a dLocal Go que el plan pase al monto posterior. Si dLocal Go no lo acepta, el abono sigue en la etapa inicial, queda el error en el registro, Administración muestra el aviso y se reintenta en cada sincronización.
 
-**Pago completo.** El titular ve en Pagos el monto, los meses que cubre y la cuota posterior, acepta y paga una sola vez en la página de dLocal Go. Al acreditarse, el abono queda al día por cuatro meses y la cuota posterior congelada 12 meses desde que arranca. Desde una semana antes de que venza lo pagado, el titular autoriza en Pagos el débito de la cuota posterior, con los días que faltan sin cobro, y le llega un mail a los 7 días y el día anterior. Si paga por transferencia o cripto, FIRMA registra el pago manual y el primero cuenta como pago completo.
+**Pago completo.** El titular ve en Pagos el monto, los meses que cubre y la cuota posterior, acepta y paga una sola vez en la página de dLocal Go. Al acreditarse, el abono queda al día por los meses que cubre (tres en los precios de lista) y, si se cargó, la cuota posterior queda congelada esos meses desde que arranca. Desde una semana antes de que venza lo pagado, el titular autoriza en Pagos el débito de la cuota posterior, con los días que faltan sin cobro, y le llega un mail a los 7 días y el día anterior. Si paga por transferencia o cripto, FIRMA registra el pago manual y el primero cuenta como pago completo.
 
-**Tarea diaria.** `/api/portal/resumen` dispara cada mañana `GET /api/pagos/gestionar` con `CRON_SECRET`. Sincroniza los abonos vigentes, así la cuota baja aunque se haya perdido un aviso, y actualiza los pesos de los abonos al MEP con un cobro en los próximos 3 días. No suma ninguna función ni tarea programada en Vercel.
+**Tarea diaria.** `/api/portal/resumen` dispara cada mañana `GET /api/pagos/gestionar` con `CRON_SECRET`. Sincroniza los abonos vigentes, así la cuota baja aunque se haya perdido un aviso, y actualiza los pesos de los abonos en pesos con un cobro en los próximos 3 días. No suma ninguna función ni tarea programada en Vercel.
 
 **Verificar en sandbox antes de cobrar.** Además de lo de la prueba completa de arriba.
 
-1. En **Probar conexión con dLocal Go** tienen que salir bien los pasos 8 (cambiar el monto de un plan) y 9 (crear y leer un pago único). Si el 8 falla, las cuotas y el MEP no bajan solos. Si el 9 falla, el pago completo con tarjeta no anda y se cobra por transferencia o cripto.
+1. En **Probar conexión con dLocal Go** tienen que salir bien los pasos 8 (cambiar el monto de un plan) y 9 (crear y leer un pago único). Si el 8 falla, las cuotas y los pesos no se actualizan solos. Si el 9 falla, el pago completo con tarjeta no anda y se cobra por transferencia o cripto.
 2. Armá un abono en cuotas de USD 3, después USD 1, con 3 cuotas. Suscribite y esperá los débitos, o probá con 1 cuota. Revisá que el débito siguiente sea de USD 1. Es lo único que el paso 8 no prueba, que el monto nuevo rija para la suscripción que ya existe.
 3. Armá un pago completo de USD 2 que cubra 1 mes, con cuota posterior de USD 1. Pagalo, revisá que quede al día y que la cuota se pueda autorizar recién una semana antes del vencimiento, y que el primer débito caiga ese día.
-4. Armá uno en pesos al MEP y revisá los pesos en el checkout.
+4. Armá uno en pesos y revisá los pesos en el checkout contra el Dólar Digital (USDC) de dolarhoy.com.
 
 | Archivo | Qué suma |
 |---|---|
 | `supabase/migrations/0061_abonos_oferta.sql` | Columnas del esquema, reglas, cupo del precio fundador y permisos |
 | `supabase/pruebas/abonos_oferta.sql` | Pruebas del esquema y del cupo fundador |
-| `api/pagos/*` (bloque común) | Pago único, etapas, recálculo sin plan, cotización MEP |
+| `api/pagos/*` (bloque común) | Pago único, etapas, recálculo sin plan |
+| `api/_lib/cotizacion.ts` | Dólar cripto del día, promedio entre compra y venta, con pruebas en `scripts/pruebas/cotizacion.mjs` |
 | `api/pagos/activar.ts` | Pago único, autorización de la cuota posterior, `?mep=1` y pasos 8 y 9 de la prueba |
 | `api/pagos/gestionar.ts` | Tarea diaria |
 | `api/portal/resumen.ts` | Dispara la tarea diaria y avisa al titular que autorice la cuota |
@@ -1192,9 +1194,83 @@ Es lo único de la auditoría que gasta crédito de la API, así que corre solo 
 
 Pruebas en `supabase/pruebas/ia_corridas.sql`, `supabase/pruebas/ia_calidad.sql` y `scripts/pruebas/evaluador.mjs`.
 
+## Reuniones del CRM
+
+Migración 0078. Pantalla `/portal/crm/reuniones` (botón **Reuniones** en el CRM) y sección **Reuniones con el equipo** en la ficha de cada cliente. Archivos en `components/portal/crm/`: `reuniones.ts` (tipos, asistencia y cierre), `ReunionUI.tsx` (formulario y fila), `ReunionesCliente.tsx` (la sección de la ficha) y `Reuniones.tsx` (la pantalla).
+
+### Qué es una reunión
+
+Cada encuentro del equipo con un cliente del CRM o con un prospecto, en `crm_reuniones`. Tiene tipo (venta, onboarding, seguimiento, renovación, reclamo u otra), fecha y hora, la persona del equipo que la tiene, quién la agendó (por ejemplo el setter), estado (agendada, hecha, no asistió, cancelada o reprogramada), el resultado de las de venta (cerró, no cerró o queda en seguimiento), el link de la grabación y notas.
+
+El tipo lo marca una persona porque Fathom no distingue un seguimiento de un cierre. El resultado solo se carga en una venta hecha, y una reunión que todavía no pasó no se marca como hecha ni como faltazo. La base lo controla.
+
+### Las llamadas de Fathom
+
+Cada llamada que llega de Fathom se convierte sola en una reunión hecha, con su link (trigger `interacciones_reuniones`). Si la persona que grabó tenía una reunión agendada entre una hora y media antes y una hora después, la llamada completa esa reunión. Si no, se crea una nueva **sin tipo** y aparece en **Por completar** para que alguien elija el tipo. Cuando la llamada se vincula a un cliente, la reunión queda con ese cliente. El link se copia a la reunión porque el contenido de la llamada se borra a los 90 días. Al correr la migración, las llamadas que ya estaban también quedan como reuniones.
+
+### Pantalla
+
+Pestañas Próximas, Por completar (sin tipo, o agendadas que pasaron sin marcar si se hicieron), Pasadas y Todas, agrupadas por día. Filtros por persona, tipo, período y búsqueda; `?cliente=` deja solo las de un cliente. Desde cada fila se elige el tipo, se marca si se hizo o si el cliente no vino y se carga el resultado de una venta, sin abrir el formulario. Arriba, próximos 7 días, por completar, asistencia y cierre de ventas. Abajo, la tabla por persona del equipo con reuniones, asistencia, asistencia a seguimientos (la de un Account Manager con sus clientes), cierre y cuántas agendó.
+
+La asistencia cuenta las hechas contra las que el cliente faltó; las canceladas y reprogramadas no cuentan. El cierre son las ventas que cerraron sobre las ventas hechas con resultado.
+
+En el listado de clientes hay columna **Próxima reunión**, la pestaña **Sin reunión agendada** y filtros por Account Manager, closer, setter y servicio, que quedan guardados por empresa.
+
+### Quién ve qué
+
+Ven y cargan reuniones quienes ven el CRM de la empresa (titular, Account Manager, closer y FIRMA). Quien no lo ve, como un setter, solo las que tiene o las que agendó. Borran el titular y quien la cargó.
+
+### Un solo nombre por rol
+
+CSM y Account Manager son lo mismo. La 0078 pasa a `account_manager` todo lo que estaba como `csm` en el equipo, en hitos, reportes y objetivos, y un trigger lo normaliza de acá en más. Las plantillas de CSM de FIRMA se retiraron porque repetían las de Account Manager. Los cargos de dirección se guardan siempre igual (CEO, COO, CFO, CCO, CMO, CTO, CPO, CRO) y el campo de cargo sugiere una lista estándar (`CARGOS_ESTANDAR` en `crm/tipos.ts`).
+
+### Puesta en marcha
+
+Correr `supabase/migrations/0078_crm_reuniones_roles.sql` en **SQL Editor**. Pruebas en `supabase/pruebas/crm_reuniones_roles.sql`.
+
+## Línea de tiempo de clientes y ficha
+
+Migración 0079. En Clientes hay dos vistas, Lista y Línea de tiempo, y queda guardada la última que se usó. La línea de tiempo muestra una barra por cliente desde el onboarding hasta el fin del contrato, en doce meses que se corren de a tres. El fin es la fecha de onboarding más la duración del servicio (`crm_servicios.duracion_meses`, que se carga en Servicios; los códigos como 3M o 6M la tomaron de ahí al correr la migración). Las dos primeras semanas se marcan como onboarding, la firma pendiente va punteada, las bajas rayadas y aparece un aviso cuando faltan 45 días o menos (`components/portal/crm/LineaTiempo.tsx`). Sin duración cargada, la barra se desvanece y lo dice. El fin del contrato también se ve al costado de la ficha.
+
+La ficha del cliente usa bloques con un solo título (`Bloque` en `components/portal/ui.tsx`), sin volanta arriba, y ya no muestra Asuntos: los asuntos son de FIRMA con el dueño del negocio y viven en su sección, abajo en Tu negocio. El menú lateral quedó con Inicio, Clientes, Equipo y Agenda arriba, sin título, y Pagos, Protocolos, Documentos, Firmas y Asuntos abajo, en Tu negocio.
+
+## Google Calendar
+
+Migración 0080. Cada persona del equipo conecta su propio Google Calendar desde Equipo (el aviso arriba de las tarjetas o el bloque Contacto de su ficha), una vez por negocio, porque puede usar una cuenta distinta en cada uno. Nadie conecta el calendario de otra persona.
+
+### Cómo funciona
+
+`/api/google/calendario` arma la dirección de Google con un estado firmado (quién, en qué negocio y para qué persona del equipo, vence a los 15 minutos) y deja una cookie con un nonce. `/api/google/callback` verifica el estado y la cookie, canjea el código, confirma que se dio el permiso del calendario y guarda la conexión con `google_conexion_guardar`: el token de actualización queda cifrado con la clave `google_tokens` de Vault y solo lo leen las funciones del servidor. El token de acceso se pide en cada uso y no se guarda.
+
+Con la conexión, el calendario del equipo trae la agenda de Google de cada persona (punteado, con su color) junto a las reuniones del portal. Quien lidera ve a todos y el resto solo la suya; lo que en Google es privado se muestra como Ocupado a los demás. Al agendar una reunión desde el portal para alguien conectado, se puede crear el evento en su Google Calendar con link de Meet e invitar al cliente por mail; la reunión guarda `google_evento_id` y `enlace_reunion` y muestra el botón Unirse. Cambiar la hora en el portal todavía no la cambia en Google. Desconectar revoca el permiso en Google y borra el token. Si Google deja de aceptar el token, la conexión queda en error y la persona ve el aviso para volver a conectar.
+
+Permisos que se piden: `openid`, `userinfo.email` y `calendar.events.owned`. La política de privacidad (`/privacidad`, sección 4) explica el uso de los datos de Google como pide la revisión.
+
+### Ingreso con Google
+
+En la pantalla de ingreso está el botón Continuar con Google (Supabase Auth, proveedor Google). Las altas siguen siendo por invitación: en Supabase está apagado «Allow new users to sign up», así que una cuenta de Google que no corresponde a un usuario invitado no entra y ve el aviso. Si el mail de Google es el de la invitación, Supabase lo vincula a la misma cuenta y entra con sus permisos de siempre. Las cuentas de FIRMA siguen pidiendo el segundo factor. El ingreso con Google queda anotado en la bitácora igual que el ingreso con contraseña.
+
+Para prenderlo, en Google Cloud (mismo proyecto FIRMA Portal) se crea otro cliente OAuth web con la dirección de regreso `https://jkmraudlfwgrjnyhxblm.supabase.co/auth/v1/callback`, y su ID y secreto se cargan en Supabase › Authentication › Sign In / Providers › Google. Mientras la app de Google esté en prueba, solo pueden ingresar con Google las personas de prueba; para abrirlo a todos hay que publicarla, y para ingresar solo se piden permisos básicos (mail y perfil).
+
+### Puesta en marcha
+
+1. En Google Cloud, proyecto FIRMA Portal dentro de la organización firmasvc.com, con Google Calendar API activada.
+2. Google Auth Platform: branding con página principal https://firmasvc.com y política https://firmasvc.com/privacidad, dominio autorizado firmasvc.com (verificado en Search Console), público Externo, los tres permisos de arriba y personas de prueba mientras esté en prueba.
+3. Cliente OAuth de tipo Aplicación web con la dirección de regreso `https://www.firmasvc.com/api/google/callback`.
+4. En Vercel, `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET`. `GOOGLE_REDIRECT_URI` es opcional y solo hace falta si la dirección de regreso es otra.
+5. Correr `supabase/migrations/0080_google_calendario.sql` en SQL Editor. Pruebas en `supabase/pruebas/google_calendario.sql`.
+6. Para publicar la app a todos, la revisión de Google pide un video con la conexión funcionando y la pantalla de permisos en inglés.
+
 ## Equipo: objetivos, victorias y reportes
 
 Sección Equipo del portal (`/portal/equipo`, `components/portal/equipo/`), migración 0076. Es lo que el equipo de cada empresa usa todos los días y no llama a la IA. La ve toda la gente de la empresa, también closers y setters; FIRMA elige la empresa arriba.
+
+
+### Personas y calendario del equipo
+
+La primera pestaña de Equipo es Personas (`components/portal/equipo/Personas.tsx`). Cada persona tiene una tarjeta con la lista numerada de lo que tiene entre manos, un ícono por estado (necesita atención, falta completar, agendada, en curso, hecha), tres números según su rol y la barra de rendimiento. A un Account Manager le aparecen sus clientes, con el contrato que vence en 45 días o menos, cuotas vencidas, firma pendiente, onboarding en curso, la próxima reunión o que no tiene ninguna agendada. A un closer o un setter le aparecen sus reuniones, lo que falta marcar o clasificar y los cierres de la semana. A todos se les suman los objetivos suyos y de su rol. El rendimiento es el promedio de la asistencia a sus reuniones de los últimos 90 días y del avance de sus objetivos. La lógica está en `equipo/personas.ts`.
+
+Quien lidera el equipo ve a todos y filtra por rol. El resto ve solo su tarjeta. La vista Calendario del equipo muestra la semana con un color por persona y las reuniones del portal; tocando un hueco se agenda a esa hora. La ficha de cada persona (`/portal/equipo/persona/<id>`, `FichaPersona.tsx`) suma sus reuniones, victorias, números, objetivos y, solo para quien lidera, el riesgo legal del vínculo. Ese puntaje orientativo sube si no hay contrato firmado en el portal, si se mandó a firmar y no se firmó, si venció o vence en 30 días y si su rol tiene un reporte diario. Cuando se conecte Google Calendar, el calendario va a sumar la agenda de cada persona.
 
 ### Quién hace qué
 

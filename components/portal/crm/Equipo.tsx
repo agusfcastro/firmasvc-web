@@ -4,11 +4,12 @@ import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { Aviso, Campo, Encabezado, Enlace, Etiqueta, claseInput } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
-import { ROL_COMERCIAL, rolDe, type IntegranteEquipo, type RolComercial } from './tipos';
+import { CARGOS_ESTANDAR, ROLES_ELEGIBLES, ROL_COMERCIAL, cargoNormal, rolDe, type IntegranteEquipo, type RolComercial } from './tipos';
 import { mensajeAmable } from '../errores';
+import { Selector } from '../campos';
 
 /**
- * Equipo comercial de la empresa: closers, setters, account managers y CSM,
+ * Equipo comercial de la empresa: closers, setters y Account Managers,
  * tengan o no cuenta en el portal. Los usuarios de la empresa entran solos
  * (migración 0058); el resto lo carga el titular (o FIRMA) y lo ve todo
  * el equipo. Cada cliente del CRM puede llevar su closer, su setter y su
@@ -59,7 +60,7 @@ export const Equipo: React.FC<{ orgId: string; orgNombre: string; puedeGestionar
     setGuardando(true);
     setError(null);
     setOk(null);
-    const cargo = borrador.rol_comercial === 'otro' ? borrador.cargo.trim() : '';
+    const cargo = borrador.rol_comercial === 'otro' ? cargoNormal(borrador.cargo) : '';
     if (cargo.length === 1) return setError('Escribí el rol completo.');
     const tenia = Boolean(borrador.id && lista.find((m) => m.id === borrador.id)?.cargo);
     // El cargo viaja solo si se escribió o hay que borrarlo, así sin la migración 0069 el resto sigue andando.
@@ -108,17 +109,18 @@ export const Equipo: React.FC<{ orgId: string; orgNombre: string; puedeGestionar
               <input required className={claseInput} maxLength={120} value={borrador.nombre} onChange={(e) => setBorrador({ ...borrador, nombre: e.target.value })} />
             </Campo>
             <Campo etiqueta="Rol">
-              <select className={claseInput} value={borrador.rol_comercial} onChange={(e) => setBorrador({ ...borrador, rol_comercial: e.target.value as RolComercial })}>
-                {(Object.keys(ROL_COMERCIAL) as RolComercial[]).map((r) => (
+              <Selector className={claseInput} value={borrador.rol_comercial} onChange={(e) => setBorrador({ ...borrador, rol_comercial: e.target.value as RolComercial })}>
+                {ROLES_ELEGIBLES.map((r) => (
                   <option key={r} value={r}>
                     {ROL_COMERCIAL[r]}
                   </option>
                 ))}
-              </select>
+              </Selector>
             </Campo>
             {borrador.rol_comercial === 'otro' && (
-              <Campo etiqueta="¿Qué rol tiene?" ayuda="Por ejemplo Nutricionista, Editor o Diseñador. Sale al lado de su nombre.">
-                <input className={claseInput} maxLength={60} value={borrador.cargo} onChange={(e) => setBorrador({ ...borrador, cargo: e.target.value })} />
+              <Campo etiqueta="¿Qué rol tiene?" ayuda="Por ejemplo COO, CFO, Nutricionista o Editor. Los cargos de la lista se guardan siempre con el mismo nombre. Sale al lado de su nombre.">
+                <input className={claseInput} maxLength={60} list="cargos-estandar" value={borrador.cargo} onChange={(e) => setBorrador({ ...borrador, cargo: e.target.value })} />
+                <datalist id="cargos-estandar">{CARGOS_ESTANDAR.map((c) => <option key={c} value={c} />)}</datalist>
               </Campo>
             )}
             <Campo etiqueta="Mail (opcional)" ayuda="El mail con el que entra a las llamadas. Sirve para atribuirle cada llamada.">

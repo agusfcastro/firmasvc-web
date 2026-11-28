@@ -11,7 +11,9 @@ import { Equipo } from './Equipo';
 import { Variables } from './Variables';
 import { Llamadas } from './Llamadas';
 import { Comprobantes } from './Comprobantes';
+import { Reuniones } from './Reuniones';
 import { registrarLectura } from '../lecturas';
+import { Selector } from '../campos';
 
 /**
  * CRM legal de cada cliente de FIRMA.
@@ -19,10 +21,11 @@ import { registrarLectura } from '../lecturas';
  *   /portal/crm/nuevo          alta
  *   /portal/crm/casos          casos de conflicto e indicadores del protocolo
  *   /portal/crm/servicios      servicios que vende la empresa, con ticket opcional y modelo de contrato
- *   /portal/crm/equipo         closers, setters, account managers y CSM de la empresa
+ *   /portal/crm/equipo         closers, setters y Account Managers de la empresa
  *   /portal/crm/variables      variables propias de la empresa para los contratos modelo
  *   /portal/crm/llamadas       Fathom de cada integrante y llamadas recibidas (un closer ve solo las suyas)
  *   /portal/crm/comprobantes   invoices y recibos a los clientes, con numeración correlativa
+ *   /portal/crm/reuniones      reuniones del equipo con clientes y prospectos, con las llamadas de Fathom (?cliente= filtra uno)
  *   /portal/crm/<id>           ficha del cliente final
  */
 export const CrmApp: React.FC<{ perfil: Perfil; organizacion: Organizacion | null; ruta: string }> = ({ perfil, organizacion, ruta }) => {
@@ -101,7 +104,7 @@ export const CrmApp: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
     esAdmin && orgs.length > 1 ? (
       <label className="flex flex-col gap-2">
         <span className="text-[12.5px] font-medium text-piedra">Cliente de FIRMA</span>
-        <select
+        <Selector
           className="h-12 pl-3.5 pr-10 bg-white border border-tinta font-medium text-[15px] focus:outline-none focus:ring-1 focus:ring-bosque"
           value={orgId ?? ''}
           onChange={(e) => setOrgId(e.target.value)}
@@ -111,7 +114,7 @@ export const CrmApp: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
               {o.nombre}
             </option>
           ))}
-        </select>
+        </Selector>
       </label>
     ) : null;
 
@@ -129,6 +132,8 @@ export const CrmApp: React.FC<{ perfil: Perfil; organizacion: Organizacion | nul
         <Variables orgId={orgId} orgNombre={orgActual?.nombre ?? ''} puedeGestionar={puedeGestionar} />
       ) : sub === 'llamadas' ? (
         <Llamadas orgId={orgId} orgNombre={orgActual?.nombre ?? ''} puedeGestionar={puedeGestionar} verTodo={verCasos} />
+      ) : sub === 'reuniones' ? (
+        <Reuniones orgId={orgId} orgNombre={orgActual?.nombre ?? ''} puedeGestionar={puedeGestionar} />
       ) : sub === 'comprobantes' || sub.startsWith('comprobantes/') ? (
         <Comprobantes orgId={orgId} orgNombre={orgActual?.nombre ?? ''} ruta={ruta} puedeGestionar={puedeGestionar} selector={selector} />
       ) : sub === 'casos' ? (

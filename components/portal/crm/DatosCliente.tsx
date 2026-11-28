@@ -70,9 +70,9 @@ export const DatosCliente: React.FC<{ d: Identidad; alCambiar: (k: keyof Identid
         {TIPOS.map(([clave, rotulo, ayuda]) => (
           <label
             key={clave}
-            className={`flex items-start gap-3 p-4 border cursor-pointer ${d.tipo === clave ? 'border-tinta bg-white' : 'border-tinta/18 hover:border-tinta'}`}
+            className={`flex items-start gap-3 p-4 border rounded-[14px] cursor-pointer transition-colors duration-150 ${d.tipo === clave ? 'border-tinta bg-white' : 'border-borde-suave bg-white/60 hover:border-tinta'}`}
           >
-            <input type="radio" name={nombreGrupo} checked={d.tipo === clave} onChange={() => alCambiar('tipo', clave)} className="mt-1 w-4 h-4 accent-bosque shrink-0" />
+            <input type="radio" name={nombreGrupo} checked={d.tipo === clave} onChange={() => alCambiar('tipo', clave)} className="mt-0.5" />
             <span className="flex flex-col gap-0.5">
               <span className="text-sm font-medium">{rotulo}</span>
               <span className="text-xs text-piedra leading-[1.5]">{ayuda}</span>

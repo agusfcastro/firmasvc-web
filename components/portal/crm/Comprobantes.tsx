@@ -11,6 +11,7 @@ import { MONEDAS, TITULO_TIPO, datosNuevos, faltantes, formatoMonto, leerDatos, 
 import { descargar, generarPdf, logoParaPdf, nombreArchivo, type Logo } from '../../comprobantes/pdf';
 import { descargarSobre } from '../firmas/api';
 import { CuadroFirma, firmarYDescargar, type Firma } from './FirmarRecibo';
+import { Selector } from '../campos';
 
 const Visor = React.lazy(() => import('../../firma/Visor').then((m) => ({ default: m.Visor })));
 
@@ -456,7 +457,7 @@ const Nuevo: React.FC<{ orgId: string; orgNombre: string; puedeFirmar: boolean }
             }
             antesReceptor={
               <Campo etiqueta="Cliente del CRM" ayuda="Completa sus datos. También podés escribirlos a mano para alguien que no está en el CRM.">
-                <select className={claseInput} value={clienteId} onChange={(e) => setClienteId(e.target.value)}>
+                <Selector className={claseInput} value={clienteId} onChange={(e) => setClienteId(e.target.value)}>
                   <option value="">Sin vincular</option>
                   {clientes.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -464,7 +465,7 @@ const Nuevo: React.FC<{ orgId: string; orgNombre: string; puedeFirmar: boolean }
                       {c.codigo ? ` · ${c.codigo}` : ''}
                     </option>
                   ))}
-                </select>
+                </Selector>
               </Campo>
             }
             logo={logo}

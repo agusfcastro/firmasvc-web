@@ -7,6 +7,7 @@ import { Hero } from './components/Hero';
 import { Vitrina } from './components/home/Vitrina';
 import { Repartido } from './components/home/Repartido';
 import { Process } from './components/Process';
+import { PortalClientes } from './components/PortalClientes';
 import { Testimonials } from './components/Testimonials';
 import { Contact } from './components/Contact';
 import { Footer } from './components/Footer';
@@ -100,7 +101,7 @@ function App({ ruta }: { ruta?: string }) {
   if (path === '/landing') {
     return (
       <div className="landing landing-corta min-h-screen bg-marfil">
-        <PromoBanner blackFriday />
+        <PromoBanner fijo />
         <main>
           <Hero deLanding />
           <Testimonials />
@@ -122,6 +123,7 @@ function App({ ruta }: { ruta?: string }) {
         <Vitrina />
         <Repartido />
         <Process />
+        <PortalClientes />
         <Testimonials />
         <Contact />
       </main>

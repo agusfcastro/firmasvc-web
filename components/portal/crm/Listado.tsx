@@ -1,14 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ChevronLeft, ChevronRight, Download, Layers, Phone, Plus, ReceiptText, Search, ShieldAlert, Users } from 'lucide-react';
+import { AlertTriangle, CalendarDays, Download, GanttChart, Layers, List, Phone, Plus, ReceiptText, ShieldAlert, Users } from 'lucide-react';
+import { Button as BotonHero, Label, ListBox, Pagination, SearchField, Select, ToggleButton, ToggleButtonGroup } from '@heroui/react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
-import { Aviso, Cifras, Encabezado, Enlace, Etiqueta, MontosPorMoneda, Pestanas, claseInput } from '../ui';
+import { Aviso, Cifras, Encabezado, Enlace, Etiqueta, MontosPorMoneda, NavegacionDePagina, Pestanas } from '../ui';
 import { useVistaPrevia } from '../vistaPrevia';
 import { TONO_FIRMA, dinero, fecha, hoyISO, type ClienteResumen, type IntegranteEquipo } from './tipos';
+import { TIPO_REUNION, fechaHora, type TipoReunion } from './reuniones';
+import { LineaTiempo, ordenTimeline } from './LineaTiempo';
 import { mensajeAmable } from '../errores';
 
-type Filtro = 'todos' | 'vencidas' | 'revisar' | 'Pendiente' | 'En firma' | 'Firmado' | 'Baja';
+type Filtro = 'todos' | 'vencidas' | 'revisar' | 'Pendiente' | 'En firma' | 'Firmado' | 'Baja' | 'sin_reunion';
 
 const FILTROS: { clave: Filtro; titulo: string }[] = [
   { clave: 'todos', titulo: 'Todos' },
@@ -18,9 +21,24 @@ const FILTROS: { clave: Filtro; titulo: string }[] = [
   { clave: 'Firmado', titulo: 'Firmados' },
   { clave: 'Baja', titulo: 'Bajas' },
   { clave: 'revisar', titulo: 'A revisar' },
+  { clave: 'sin_reunion', titulo: 'Sin reunión agendada' },
 ];
 
-function csv(filas: ClienteResumen[], nombre: (id: string | null | undefined) => string | null): string {
+/** Filtros por persona y servicio. Vacío es todos; «sin» es sin asignar. */
+interface Filtros {
+  am: string;
+  closer: string;
+  setter: string;
+  servicio: string;
+}
+const SIN_FILTROS: Filtros = { am: '', closer: '', setter: '', servicio: '' };
+
+interface ProximaReunion {
+  inicio: string;
+  tipo: TipoReunion | null;
+}
+
+function csv(filas: ClienteResumen[], nombre: (id: string | null | undefined) => string | null, proxima: (id: string) => ProximaReunion | undefined): string {
   const cols: [string, (c: ClienteResumen) => unknown][] = [
     ['Código', (c) => c.codigo],
     ['Nombre o razón social', (c) => c.nombre],
@@ -40,8 +58,10 @@ function csv(filas: ClienteResumen[], nombre: (id: string | null | undefined) =>
     ['Monto próxima cuota', (c) => c.proxima_cuota_monto],
     ['Por cobrar en 30 días', (c) => c.por_cobrar_30_dias],
     ['Estado firma', (c) => c.estado_firma],
-    ['Responsable', (c) => nombre(c.responsable_id) ?? c.responsable],
+    ['Account Manager', (c) => nombre(c.responsable_id) ?? c.responsable],
     ['Closer', (c) => nombre(c.closer_id)],
+    ['Setter', (c) => nombre(c.setter_id)],
+    ['Próxima reunión', (c) => proxima(c.id)?.inicio.slice(0, 16).replace('T', ' ')],
     ['Onboarding', (c) => c.fecha_onboarding?.slice(0, 16).replace('T', ' ')],
     ['Notas', (c) => c.notas],
   ];
@@ -132,6 +152,100 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
   }, [orgId]);
   const nombreEquipo = (id: string | null | undefined) => (id ? equipo.find((m) => m.id === id)?.nombre ?? null : null);
 
+  // Filtros por Account Manager, closer, setter y servicio. Quedan guardados por empresa.
+  const claveFiltros = `firma-crm-filtros:${orgId}`;
+  const [filtros, setFiltros] = useState<Filtros>(SIN_FILTROS);
+  useEffect(() => {
+    try {
+      const guardados = JSON.parse(window.localStorage.getItem(claveFiltros) || 'null') as Partial<Filtros> | null;
+      setFiltros({ ...SIN_FILTROS, ...(guardados ?? {}) });
+    } catch {
+      setFiltros(SIN_FILTROS);
+    }
+  }, [claveFiltros]);
+  function cambiarFiltro(campo: keyof Filtros, valor: string) {
+    const nuevos = { ...filtros, [campo]: valor };
+    setFiltros(nuevos);
+    try {
+      window.localStorage.setItem(claveFiltros, JSON.stringify(nuevos));
+    } catch {
+      /* sin almacenamiento */
+    }
+  }
+  const hayFiltros = Object.values(filtros).some(Boolean);
+
+  // Lista o línea de tiempo. Queda guardada para la próxima vez.
+  const [vista, setVista] = useState<'lista' | 'tiempo'>(() => {
+    try {
+      return window.localStorage.getItem('firma-crm-vista') === 'tiempo' ? 'tiempo' : 'lista';
+    } catch {
+      return 'lista';
+    }
+  });
+  function cambiarVista(v: 'lista' | 'tiempo') {
+    setVista(v);
+    try {
+      window.localStorage.setItem('firma-crm-vista', v);
+    } catch {
+      /* sin almacenamiento */
+    }
+  }
+
+  // Duración de cada servicio en meses (0079), para el fin del contrato.
+  const [duraciones, setDuraciones] = useState<Record<string, number>>({});
+  useEffect(() => {
+    if (!supabase) return;
+    let vigente = true;
+    supabase
+      .from('crm_servicios')
+      .select('*')
+      .eq('organizacion_id', orgId)
+      .then(({ data }) => {
+        if (!vigente) return;
+        const mapa: Record<string, number> = {};
+        for (const s of (data ?? []) as { clave: string; duracion_meses?: number | null }[]) if (s.duracion_meses) mapa[s.clave] = s.duracion_meses;
+        setDuraciones(mapa);
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [orgId]);
+
+  // Próxima reunión agendada de cada cliente y reuniones que falta completar (sin tipo o agendadas que ya pasaron).
+  const [proximas, setProximas] = useState<Record<string, ProximaReunion>>({});
+  const [porCompletar, setPorCompletar] = useState<number | null>(null);
+  useEffect(() => {
+    if (!supabase) return;
+    let vigente = true;
+    const ahora = new Date().toISOString();
+    Promise.all([
+      supabase.from('crm_reuniones').select('cliente_id, inicio, tipo').eq('organizacion_id', orgId).eq('estado', 'agendada').gte('inicio', ahora).not('cliente_id', 'is', null).order('inicio').limit(2000),
+      supabase
+        .from('crm_reuniones')
+        .select('id', { count: 'exact', head: true })
+        .eq('organizacion_id', orgId)
+        .or(`tipo.is.null,and(estado.eq.agendada,inicio.lt.${ahora})`),
+    ]).then(([a, b]) => {
+      if (!vigente) return;
+      // Sin la migración 0078 la tabla no existe: no se muestra nada de reuniones.
+      const mapa: Record<string, ProximaReunion> = {};
+      for (const r of (a.data ?? []) as { cliente_id: string; inicio: string; tipo: TipoReunion | null }[]) if (!(r.cliente_id in mapa)) mapa[r.cliente_id] = { inicio: r.inicio, tipo: r.tipo };
+      setProximas(mapa);
+      setPorCompletar(b.error ? null : (b.count ?? 0));
+    });
+    return () => {
+      vigente = false;
+    };
+  }, [orgId]);
+  const conRol = (roles: string[], campo: 'responsable_id' | 'closer_id' | 'setter_id') =>
+    equipo
+      .filter((m) => (m.activo && roles.includes(m.rol_comercial)) || filas.some((f) => f[campo] === m.id))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  const opcionesAm = conRol(['account_manager', 'csm'], 'responsable_id');
+  const opcionesCloser = conRol(['closer'], 'closer_id');
+  const opcionesSetter = conRol(['setter'], 'setter_id');
+  const servicios = Array.from(new Set(filas.map((f) => f.servicio).filter((x): x is string => Boolean(x)))).sort((a, b) => a.localeCompare(b, 'es'));
+
   const cobranzaRef = cobranza;
   useEffect(() => {
     if (!supabase) return;
@@ -167,28 +281,57 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
   };
   const monedasActivas = Object.keys(resumen.acordado);
   const variasMonedas = monedasActivas.length > 1;
+  const coincide = (valor: string | null | undefined, filtro: string) => !filtro || (filtro === 'sin' ? !valor : valor === filtro);
+  const filtradas = filas.filter(
+    (f) => coincide(f.responsable_id, filtros.am) && coincide(f.closer_id, filtros.closer) && coincide(f.setter_id, filtros.setter) && coincide(f.servicio, filtros.servicio),
+  );
+  const sinReunion = (f: ClienteResumen) => f.estado_firma !== 'Baja' && !proximas[f.id];
   const cuenta = (c: Filtro) =>
-    c === 'todos' ? filas.length : c === 'vencidas' ? conVencidas.length : c === 'revisar' ? filas.filter((f) => f.revisar_pagos).length : filas.filter((f) => f.estado_firma === c).length;
+    c === 'todos'
+      ? filtradas.length
+      : c === 'vencidas'
+        ? filtradas.filter((f) => f.cuotas_vencidas > 0 && f.estado_firma !== 'Baja').length
+        : c === 'revisar'
+          ? filtradas.filter((f) => f.revisar_pagos).length
+          : c === 'sin_reunion'
+            ? filtradas.filter(sinReunion).length
+            : filtradas.filter((f) => f.estado_firma === c).length;
 
   const visibles = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
-    return filas.filter((f) => {
+    return filtradas.filter((f) => {
+      if (filtro === 'sin_reunion' && !sinReunion(f)) return false;
       if (filtro === 'vencidas' && !(f.cuotas_vencidas > 0 && f.estado_firma !== 'Baja')) return false;
       if (filtro === 'revisar' && !f.revisar_pagos) return false;
       if ((filtro === 'Pendiente' || filtro === 'En firma' || filtro === 'Firmado' || filtro === 'Baja') && f.estado_firma !== filtro) return false;
       if (!q) return true;
-      return [f.codigo, f.nombre, f.representante, f.id_fiscal, f.email, f.dni, f.responsable, nombreEquipo(f.responsable_id), nombreEquipo(f.closer_id)].some((v) => (v ?? '').toLowerCase().includes(q));
+      return [f.codigo, f.nombre, f.representante, f.id_fiscal, f.email, f.dni, f.responsable, nombreEquipo(f.responsable_id), nombreEquipo(f.closer_id), nombreEquipo(f.setter_id)].some((v) =>
+        (v ?? '').toLowerCase().includes(q),
+      );
     });
-  }, [filas, filtro, busqueda, equipo]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [filas, filtro, busqueda, equipo, filtros, proximas]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Paginación de la tabla. Vuelve a la primera página al cambiar el filtro o la búsqueda.
   useEffect(() => {
     setPagina(0);
-  }, [filtro, busqueda, porPagina, orgId]);
-  const paginas = Math.max(1, Math.ceil(visibles.length / porPagina));
+  }, [filtro, busqueda, porPagina, orgId, filtros, vista]);
+  // La lista va por código; la línea de tiempo, por fecha de onboarding. Las dos muestran de a porPagina.
+  const enOrden = useMemo(() => (vista === 'tiempo' ? ordenTimeline(visibles, (s) => (s ? duraciones[s] ?? null : null)) : visibles), [vista, visibles, duraciones]);
+  const paginas = Math.max(1, Math.ceil(enOrden.length / porPagina));
   const paginaActual = Math.min(pagina, paginas - 1);
   const desde = paginaActual * porPagina;
-  const filasPagina = visibles.slice(desde, desde + porPagina);
+  const filasPagina = enOrden.slice(desde, desde + porPagina);
+  // Números de página: todos si son pocos; si no, la primera, la última y las vecinas de la actual.
+  const numeros: (number | 'antes' | 'despues')[] =
+    paginas <= 7
+      ? Array.from({ length: paginas }, (_, i) => i)
+      : [
+          0,
+          ...(paginaActual > 2 ? (['antes'] as const) : []),
+          ...[paginaActual - 1, paginaActual, paginaActual + 1].filter((p) => p > 0 && p < paginas - 1),
+          ...(paginaActual < paginas - 3 ? (['despues'] as const) : []),
+          paginas - 1,
+        ];
 
   function cambiarPorPagina(n: number) {
     setPorPagina(n);
@@ -200,7 +343,7 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
   }
 
   function descargar() {
-    const blob = new Blob(['\ufeff' + csv(visibles, nombreEquipo)], { type: 'text/csv;charset=utf-8' });
+    const blob = new Blob(['\ufeff' + csv(visibles, nombreEquipo, (id) => proximas[id])], { type: 'text/csv;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `crm-${hoyISO()}.csv`;
@@ -212,6 +355,62 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
   const unica = monedasActivas[0];
   const pct = !variasMonedas && unica && resumen.acordado[unica] ? Math.round(((resumen.cobrado[unica] ?? 0) / resumen.acordado[unica]) * 100) : 0;
   const notaMonedas = variasMonedas ? 'Por moneda, sin convertir' : undefined;
+
+  const paginador = (
+    <div className="flex flex-wrap items-center justify-between gap-4 text-sm">
+      <div className="flex items-center gap-2.5 text-piedra">
+        Mostrar
+        <Select aria-label="Clientes por página" value={String(porPagina)} onChange={(v) => v && cambiarPorPagina(Number(v))} className="w-[88px]">
+          <Select.Trigger>
+            <Select.Value />
+            <Select.Indicator />
+          </Select.Trigger>
+          <Select.Popover>
+            <ListBox>
+              {[10, 20, 50].map((n) => (
+                <ListBox.Item key={n} id={String(n)} textValue={String(n)}>
+                  {n}
+                  <ListBox.ItemIndicator />
+                </ListBox.Item>
+              ))}
+            </ListBox>
+          </Select.Popover>
+        </Select>
+        clientes por página
+      </div>
+      <Pagination size="sm" className="w-auto gap-4">
+        <Pagination.Summary className="tabular-nums">
+          {enOrden.length === 0 ? '0' : `${desde + 1} a ${Math.min(desde + porPagina, enOrden.length)}`} de {enOrden.length}
+          {enOrden.length !== filas.length ? ` (${filas.length} en total)` : ''}
+        </Pagination.Summary>
+        <Pagination.Content>
+          <Pagination.Item>
+            <Pagination.Previous isDisabled={paginaActual === 0} onPress={() => setPagina(paginaActual - 1)} aria-label="Página anterior">
+              <Pagination.PreviousIcon />
+            </Pagination.Previous>
+          </Pagination.Item>
+          {numeros.map((p) =>
+            typeof p === 'number' ? (
+              <Pagination.Item key={p}>
+                <Pagination.Link isActive={p === paginaActual} onPress={() => setPagina(p)} aria-label={`Página ${p + 1}`}>
+                  {p + 1}
+                </Pagination.Link>
+              </Pagination.Item>
+            ) : (
+              <Pagination.Item key={p}>
+                <Pagination.Ellipsis />
+              </Pagination.Item>
+            ),
+          )}
+          <Pagination.Item>
+            <Pagination.Next isDisabled={paginaActual >= paginas - 1} onPress={() => setPagina(paginaActual + 1)} aria-label="Página siguiente">
+              <Pagination.NextIcon />
+            </Pagination.Next>
+          </Pagination.Item>
+        </Pagination.Content>
+      </Pagination>
+    </div>
+  );
 
   return (
     <>
@@ -225,6 +424,7 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
         acciones={
           <>
             {selector}
+            <NavegacionDePagina>
             {verCasos && (
               <Button variant="ghost" size="lg" onClick={() => navegar('/portal/crm/casos')} className="self-end">
                 <ShieldAlert size={18} /> Casos de conflicto
@@ -242,16 +442,26 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
             <Button variant="ghost" size="lg" onClick={() => navegar('/portal/crm/equipo')} className="self-end">
               <Users size={18} /> Equipo
             </Button>
+            <Button variant="ghost" size="lg" onClick={() => navegar('/portal/crm/reuniones')} className="self-end">
+              <CalendarDays size={18} /> Reuniones
+              {porCompletar ? (
+                <span className="inline-flex items-center justify-center min-w-6 h-6 px-1.5 rounded-pastilla bg-tinta text-marfil text-xs font-semibold tabular-nums">
+                  {porCompletar}
+                  <span className="sr-only">{porCompletar === 1 ? ' reunión por completar' : ' reuniones por completar'}</span>
+                </span>
+              ) : null}
+            </Button>
             <Button variant="ghost" size="lg" onClick={() => navegar('/portal/crm/llamadas')} className="self-end">
               <Phone size={18} /> Llamadas
             </Button>
             <Button variant="ghost" size="lg" onClick={() => navegar('/portal/crm/comprobantes')} className="self-end">
               <ReceiptText size={18} /> Invoices y recibos
             </Button>
+            </NavegacionDePagina>
             {!soloLectura && (
-              <Button size="lg" onClick={() => navegar('/portal/crm/nuevo')} className="self-end">
-                <Plus size={18} /> Nuevo cliente
-              </Button>
+              <BotonHero size="lg" onPress={() => navegar('/portal/crm/nuevo')} className="self-end">
+                <Plus size={18} aria-hidden="true" /> Nuevo cliente
+              </BotonHero>
             )}
           </>
         }
@@ -281,28 +491,101 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
 
         <div className="flex flex-col gap-6">
           <div className="flex flex-wrap gap-3 items-center justify-between">
-            <div className="relative flex-1 min-w-[220px] max-w-[420px]">
-              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-piedra" aria-hidden="true" />
-              <input className={`${claseInput} pl-10`} placeholder="Buscar por nombre, código, mail o DNI" aria-label="Buscar cliente" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
+            <SearchField aria-label="Buscar cliente" value={busqueda} onChange={setBusqueda} className="flex-1 min-w-[220px] max-w-[420px]">
+              <SearchField.Group>
+                <SearchField.SearchIcon />
+                <SearchField.Input placeholder="Buscar por nombre, código, mail o DNI" />
+                <SearchField.ClearButton aria-label="Borrar la búsqueda" />
+              </SearchField.Group>
+            </SearchField>
+            <div className="flex flex-wrap items-center gap-3">
+              <ToggleButtonGroup
+                aria-label="Vista"
+                selectionMode="single"
+                disallowEmptySelection
+                selectedKeys={new Set([vista])}
+                onSelectionChange={(k) => {
+                  const v = [...k][0];
+                  if (v === 'lista' || v === 'tiempo') cambiarVista(v);
+                }}
+              >
+                <ToggleButton id="lista">
+                  <List size={15} aria-hidden="true" /> Lista
+                </ToggleButton>
+                <ToggleButton id="tiempo">
+                  <ToggleButtonGroup.Separator />
+                  <GanttChart size={15} aria-hidden="true" /> Línea de tiempo
+                </ToggleButton>
+              </ToggleButtonGroup>
+              <BotonHero variant="outline" size="sm" onPress={descargar} isDisabled={!visibles.length}>
+                <Download size={16} aria-hidden="true" /> Exportar CSV
+              </BotonHero>
             </div>
-            <Button variant="ghost" size="sm" onClick={descargar} disabled={!visibles.length}>
-              <Download size={16} /> Exportar CSV
-            </Button>
           </div>
+
+          <div className="grid gap-3 tab:grid-cols-2 desk:grid-cols-4 items-end">
+            {(
+              [
+                ['am', 'Account Manager', opcionesAm.map((m) => [m.id, m.nombre + (m.activo ? '' : ' · inactivo')])],
+                ['closer', 'Closer', opcionesCloser.map((m) => [m.id, m.nombre + (m.activo ? '' : ' · inactivo')])],
+                ['setter', 'Setter', opcionesSetter.map((m) => [m.id, m.nombre + (m.activo ? '' : ' · inactivo')])],
+                ['servicio', 'Servicio', servicios.map((x) => [x, x])],
+              ] as [keyof Filtros, string, [string, string][]][]
+            ).map(([campo, etiqueta, opciones]) => (
+              <Select key={campo} value={filtros[campo] || 'todos'} onChange={(v) => cambiarFiltro(campo, !v || v === 'todos' ? '' : String(v))} className="w-full">
+                <Label className="text-[12.5px] font-medium text-piedra">{etiqueta}</Label>
+                <Select.Trigger>
+                  <Select.Value />
+                  <Select.Indicator />
+                </Select.Trigger>
+                <Select.Popover>
+                  <ListBox>
+                    {[['todos', 'Todos'], ['sin', 'Sin asignar'], ...opciones].map(([valor, texto]) => (
+                      <ListBox.Item key={valor} id={valor} textValue={texto}>
+                        {texto}
+                        <ListBox.ItemIndicator />
+                      </ListBox.Item>
+                    ))}
+                  </ListBox>
+                </Select.Popover>
+              </Select>
+            ))}
+          </div>
+          {hayFiltros && (
+            <div className="-mt-3">
+              <button type="button" className="text-sm text-piedra underline underline-offset-4 hover:text-bosque" onClick={() => {
+                setFiltros(SIN_FILTROS);
+                try {
+                  window.localStorage.removeItem(claveFiltros);
+                } catch {
+                  /* sin almacenamiento */
+                }
+              }}>
+                Quitar los filtros
+              </button>
+            </div>
+          )}
 
           <Pestanas<Filtro> items={FILTROS.filter((f) => cobranza || f.clave !== 'vencidas').map((f) => ({ ...f, cuenta: cargando ? undefined : cuenta(f.clave) }))} activa={filtro} alCambiar={setFiltro} />
 
+          {vista === 'tiempo' ? (
+            <>
+              <LineaTiempo filas={filasPagina} cargando={cargando} duracion={(s) => (s ? duraciones[s] ?? null : null)} nombreEquipo={nombreEquipo} conPagos={cobranza} conCasos={verCasos} />
+              {paginador}
+            </>
+          ) : (
+          <>
           <div className="overflow-x-auto">
-            <table className="tabla min-w-[900px]">
+            <table className="tabla min-w-[980px]">
               <thead>
                 <tr>
                   <th>Cliente</th>
-                  <th>Servicio</th>
                   <th className="num">Acordado</th>
                   <th>{cobranza ? 'Cobrado' : 'Plan pactado'}</th>
                   {cobranza && <th>Próxima cuota</th>}
                   <th>Firma</th>
-                  <th>Responsable</th>
+                  <th>Próxima reunión</th>
+                  <th>Equipo</th>
                 </tr>
               </thead>
               <tbody>
@@ -324,6 +607,7 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
                         </Enlace>
                         <div className="text-xs text-piedra mt-1 flex flex-wrap items-center gap-x-2">
                           <span className="tabular-nums">{f.codigo}</span>
+                          {f.servicio && <span className="font-medium text-tinta">{f.servicio}</span>}
                           {f.tipo === 'empresa' && <span>{f.representante ? `Empresa · ${f.representante}` : 'Empresa'}</span>}
                           {f.revisar_pagos && (
                             <span className="inline-flex items-center gap-1 text-peligro">
@@ -331,9 +615,6 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
                             </span>
                           )}
                         </div>
-                      </td>
-                      <td>
-                        <span className="font-medium">{f.servicio ?? '·'}</span>
                       </td>
                       <td className="num">{dinero(f.monto_total, f.moneda)}</td>
                       <td className="min-w-[150px]">
@@ -370,9 +651,29 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
                           {f.estado_firma === 'Pendiente' && envioFallido[f.id] && <Etiqueta tono="alerta">{ENVIO_FALLIDO[envioFallido[f.id]]}</Etiqueta>}
                         </div>
                       </td>
+                      <td className="whitespace-nowrap">
+                        {proximas[f.id] ? (
+                          <>
+                            <div>{fechaHora(proximas[f.id].inicio)}</div>
+                            <div className="text-xs text-piedra mt-0.5">{proximas[f.id].tipo ? TIPO_REUNION[proximas[f.id].tipo as TipoReunion] : 'Sin tipo'}</div>
+                          </>
+                        ) : (
+                          <span className="text-piedra">·</span>
+                        )}
+                      </td>
                       <td className="text-piedra">
-                        <div>{nombreEquipo(f.responsable_id) ?? f.responsable ?? '·'}</div>
-                        {nombreEquipo(f.closer_id) && <div className="text-xs mt-0.5">Closer {nombreEquipo(f.closer_id)}</div>}
+                        {nombreEquipo(f.responsable_id) ? (
+                          <div className="leading-tight">
+                            <span className="block text-[11.5px]">Account Manager</span>
+                            <span className="text-tinta whitespace-nowrap">{nombreEquipo(f.responsable_id)}</span>
+                          </div>
+                        ) : f.responsable ? (
+                          <div title="Anotado a mano antes de Equipo. Asignalo desde la ficha.">{f.responsable} · sin asignar</div>
+                        ) : (
+                          !nombreEquipo(f.closer_id) && !nombreEquipo(f.setter_id) && <div>·</div>
+                        )}
+                        {nombreEquipo(f.closer_id) && <div className="text-xs mt-0.5 whitespace-nowrap">Closer {nombreEquipo(f.closer_id)}</div>}
+                        {nombreEquipo(f.setter_id) && <div className="text-xs mt-0.5 whitespace-nowrap">Setter {nombreEquipo(f.setter_id)}</div>}
                       </td>
                     </tr>
                   );
@@ -380,50 +681,9 @@ export const Listado: React.FC<{ orgId: string; orgNombre: string; selector?: Re
               </tbody>
             </table>
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-4 text-sm">
-            <label className="flex items-center gap-2.5 text-piedra">
-              Mostrar
-              <select
-                className="h-10 pl-3 pr-8 bg-white border border-tinta/22 text-tinta font-medium focus:outline-none focus:border-bosque focus:ring-1 focus:ring-bosque"
-                value={porPagina}
-                onChange={(e) => cambiarPorPagina(Number(e.target.value))}
-              >
-                {[10, 20, 50].map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </select>
-              clientes por página
-            </label>
-            <div className="flex items-center gap-3">
-              <span className="text-piedra tabular-nums">
-                {visibles.length === 0 ? '0' : `${desde + 1}–${Math.min(desde + porPagina, visibles.length)}`} de {visibles.length}
-                {visibles.length !== filas.length ? ` (${filas.length} en total)` : ''}
-              </span>
-              <button
-                type="button"
-                aria-label="Página anterior"
-                disabled={paginaActual === 0}
-                onClick={() => setPagina(paginaActual - 1)}
-                className="w-10 h-10 inline-flex items-center justify-center border border-tinta/22 bg-white transition-colors duration-150 hover:border-tinta disabled:opacity-40 disabled:hover:border-tinta/22"
-              >
-                <ChevronLeft size={16} aria-hidden="true" />
-              </button>
-              <span className="tabular-nums font-medium">
-                {paginaActual + 1} / {paginas}
-              </span>
-              <button
-                type="button"
-                aria-label="Página siguiente"
-                disabled={paginaActual >= paginas - 1}
-                onClick={() => setPagina(paginaActual + 1)}
-                className="w-10 h-10 inline-flex items-center justify-center border border-tinta/22 bg-white transition-colors duration-150 hover:border-tinta disabled:opacity-40 disabled:hover:border-tinta/22"
-              >
-                <ChevronRight size={16} aria-hidden="true" />
-              </button>
-            </div>
-          </div>
+          {paginador}
+          </>
+          )}
         </div>
       </div>
     </>

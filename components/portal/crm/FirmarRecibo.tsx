@@ -6,6 +6,7 @@ import { llamarSobres } from '../firmas/api';
 import { Lienzo, nombreComoImagen } from '../../firma/Lienzo';
 import { descargar, generarPdfConLugar, nombreArchivo, type Logo } from '../../comprobantes/pdf';
 import type { DatosComprobante } from '../../comprobantes/modelo';
+import { Opciones } from '../campos';
 
 /** El mismo texto que registra el servidor (api/firma/firmar.ts, CONSENTIMIENTO). */
 const CONSENTIMIENTO =
@@ -81,25 +82,16 @@ export const CuadroFirma: React.FC<{ abierto: boolean; nombre: string; ocupado: 
           </button>
         </div>
 
-        <div className="flex border border-tinta self-start" role="tablist">
-          {(
-            [
-              ['dibujada', 'Dibujar', PenLine],
-              ['escrita', 'Escribir', Type],
-            ] as const
-          ).map(([clave, rotulo, Icono]) => (
-            <button
-              key={clave}
-              type="button"
-              role="tab"
-              aria-selected={modo === clave}
-              onClick={() => setModo(clave)}
-              className={`inline-flex items-center gap-2 h-10 px-4 text-sm font-medium ${modo === clave ? 'bg-tinta text-marfil' : 'hover:bg-marfil-oscuro'}`}
-            >
-              <Icono size={15} aria-hidden="true" /> {rotulo}
-            </button>
-          ))}
-        </div>
+        <Opciones
+          etiqueta="Cómo firmar"
+          className="self-start"
+          valor={modo}
+          alCambiar={setModo}
+          opciones={[
+            { valor: 'dibujada', texto: <><PenLine size={15} aria-hidden="true" /> Dibujar</> },
+            { valor: 'escrita', texto: <><Type size={15} aria-hidden="true" /> Escribir</> },
+          ]}
+        />
 
         {modo === 'dibujada' ? (
           <Lienzo alCambiar={setDibujo} />

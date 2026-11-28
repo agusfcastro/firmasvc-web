@@ -8,6 +8,7 @@ import { BotonCopiar } from './firma';
 import { CampoVariable } from './variablesPropias';
 import { TIPO_VARIABLE, type AmbitoVariable, type TipoVariable, type VariablePropia } from './tipos';
 import { mensajeAmable } from '../errores';
+import { Selector } from '../campos';
 
 /**
  * Variables propias de la empresa para los contratos modelo, además de las
@@ -171,19 +172,19 @@ export const Variables: React.FC<{ orgId: string; orgNombre: string; puedeGestio
             </Campo>
             <div className="grid gap-4 tab:grid-cols-2">
               <Campo etiqueta="De quién es el dato" ayuda={borrador.id ? 'No se cambia después del alta.' : undefined}>
-                <select className={claseInput} disabled={Boolean(borrador.id)} value={borrador.ambito} onChange={(e) => setBorrador({ ...borrador, ambito: e.target.value as AmbitoVariable })}>
+                <Selector className={claseInput} disabled={Boolean(borrador.id)} value={borrador.ambito} onChange={(e) => setBorrador({ ...borrador, ambito: e.target.value as AmbitoVariable })}>
                   <option value="negocio">De la empresa, uno para todos los contratos</option>
                   <option value="cliente">De cada cliente, se carga en su ficha</option>
-                </select>
+                </Selector>
               </Campo>
               <Campo etiqueta="Tipo" ayuda={borrador.id ? 'No se cambia después del alta.' : undefined}>
-                <select className={claseInput} disabled={Boolean(borrador.id)} value={borrador.tipo} onChange={(e) => setBorrador({ ...borrador, tipo: e.target.value as TipoVariable })}>
+                <Selector className={claseInput} disabled={Boolean(borrador.id)} value={borrador.tipo} onChange={(e) => setBorrador({ ...borrador, tipo: e.target.value as TipoVariable })}>
                   {(Object.keys(TIPO_VARIABLE) as TipoVariable[]).map((t) => (
                     <option key={t} value={t}>
                       {TIPO_VARIABLE[t]}
                     </option>
                   ))}
-                </select>
+                </Selector>
               </Campo>
             </div>
             {borrador.tipo === 'opcion' && (

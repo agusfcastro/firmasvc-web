@@ -1,15 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { Button } from '../../Button';
 import { supabase } from '../supabase';
 import { navegar } from '../navegacion';
 import { Aviso, Campo, Encabezado, Enlace, TituloSeccion, claseInput } from '../ui';
+import { mensajeAmable } from '../errores';
 import { useVistaPrevia } from '../vistaPrevia';
 import { generarContratoFirma } from './contratoFirma';
 import { rolDe, dinero, hoyISO, nombreMonedaCrm, type IntegranteEquipo, type Servicio, type TipoCliente, type VariablePropia } from './tipos';
 import { simboloMoneda } from '../../../api/_lib/variables';
 import { CampoVariable, sinVacios } from './variablesPropias';
 import { DatosCliente, filaIdentidad } from './DatosCliente';
+import { Selector, Fecha } from '../campos';
 
 /** Valor de la lista para asignar a alguien que todavía no está en Equipo. */
 const NUEVO = '__nuevo__';
@@ -48,13 +50,25 @@ function repartir(saldo: number, cantidad: number, primera: string): Cuota[] {
   return Array.from({ length: cantidad }, (_, i) => ({ monto: aTexto(i === cantidad - 1 ? base + resto : base), vencimiento: sumarMeses(primera, i) }));
 }
 
+/** Guarda el alta en la pestaña. Sin nombre, mail, documento ni monto no hay nada que guardar. */
+function guardarBorrador(clave: string, b: { f: { nombre: string; email: string; dni: string; monto_total: string }; extra: Record<string, unknown>; cuotas: unknown[]; manual: boolean } | null) {
+  if (!b) return;
+  try {
+    if (!b.f.nombre.trim() && !b.f.email.trim() && !b.f.dni.trim() && !b.f.monto_total) window.sessionStorage.removeItem(clave);
+    else window.sessionStorage.setItem(clave, JSON.stringify(b));
+  } catch {
+    /* sin almacenamiento */
+  }
+}
+
 export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre: string; cobranza: boolean; monedas: string[] }> = ({ orgId, esAdmin, orgNombre, monedas }) => {
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [equipo, setEquipo] = useState<IntegranteEquipo[]>([]);
-  const [f, setF] = useState({
+  const inicial = () => ({
     tipo: 'persona' as TipoCliente, nombre: '', id_fiscal: '', representante: '', cargo: '', dni: '', email: '', telefono: '', domicilio: '', servicio: '', monto_total: '', moneda: monedas[0] ?? 'USD', modalidad: 'Cuotas' as 'Cuotas' | 'PIF',
     fecha_onboarding: '', closer_id: '', responsable_id: '', closer_nuevo: '', responsable_nuevo: '', notas: '', condiciones: '', anticipo: '', cantidad: '2', primera: hoyISO(),
   });
+  const [f, setF] = useState(inicial);
   // Datos propios de la empresa que van por cliente, como el plazo del programa.
   const [variables, setVariables] = useState<VariablePropia[]>([]);
   const [extra, setExtra] = useState<Record<string, unknown>>({});
@@ -81,6 +95,64 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
     };
   }, [f.nombre, orgId]);
   const soloLectura = Boolean(useVistaPrevia());
+
+  // Borrador del alta en esta pestaña, por persona y empresa. Si la sesión se corta a mitad del alta,
+  // al volver a entrar está todo como lo dejó. Se borra al crear el cliente, al empezar de cero o al tocar Salir.
+  const [claveBorrador, setClaveBorrador] = useState<string | null>(null);
+  const [recuperado, setRecuperado] = useState(false);
+  const creado = useRef(false);
+  const ultimo = useRef<{ f: typeof f; extra: Record<string, unknown>; cuotas: Cuota[]; manual: boolean } | null>(null);
+  useEffect(() => {
+    if (soloLectura || !supabase) return;
+    let vivo = true;
+    void supabase.auth.getSession().then(({ data }) => {
+      const uid = data.session?.user.id;
+      if (!vivo || !uid) return;
+      const clave = `firma-alta-borrador:${uid}:${orgId}`;
+      try {
+        const guardado = window.sessionStorage.getItem(clave);
+        const b = guardado ? (JSON.parse(guardado) as typeof ultimo.current) : null;
+        if (b?.f) {
+          setF((x) => ({ ...x, ...b.f }));
+          setExtra(b.extra ?? {});
+          if (b.manual) {
+            setManual(true);
+            setCuotas(b.cuotas ?? []);
+          }
+          setRecuperado(true);
+        }
+      } catch {
+        /* sin almacenamiento o borrador ilegible: se empieza de cero */
+      }
+      setClaveBorrador(clave);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [orgId, soloLectura]);
+  useEffect(() => {
+    ultimo.current = { f, extra, cuotas, manual };
+    if (!claveBorrador || creado.current) return;
+    const t = window.setTimeout(() => guardarBorrador(claveBorrador, ultimo.current), 400);
+    return () => window.clearTimeout(t);
+  }, [claveBorrador, f, extra, cuotas, manual]);
+  // Al salir de la pantalla (también cuando la sesión se corta) se guarda lo último, sin esperar.
+  useEffect(() => () => {
+    if (claveBorrador && !creado.current) guardarBorrador(claveBorrador, ultimo.current);
+  }, [claveBorrador]);
+  function empezarDeCero() {
+    if (claveBorrador) {
+      try {
+        window.sessionStorage.removeItem(claveBorrador);
+      } catch {
+        /* nada */
+      }
+    }
+    setF(inicial());
+    setExtra({});
+    setManual(false);
+    setRecuperado(false);
+  }
   // Las monedas de la empresa llegan después del primer render. Si la elegida no está habilitada, se usa la primera.
   const claveMonedas = monedas.join(',');
   useEffect(() => {
@@ -181,13 +253,13 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
     const asignados: Record<'closer_id' | 'responsable_id', string | null> = { closer_id: f.closer_id || null, responsable_id: f.responsable_id || null };
     for (const [campo, nuevo, rol] of [
       ['closer_id', f.closer_nuevo, 'closer'],
-      ['responsable_id', f.responsable_nuevo, 'csm'],
+      ['responsable_id', f.responsable_nuevo, 'account_manager'],
     ] as const) {
       if (f[campo] !== NUEVO) continue;
       const { data: idNuevo, error: eq } = await supabase.rpc('equipo_sumar', { org: orgId, nombre: nuevo.trim(), rol });
       if (eq || !idNuevo) {
         setEtapa('');
-        return setError(eq?.message ?? 'No se pudo sumar a la persona al equipo.');
+        return setError(mensajeAmable(eq, 'No se pudo sumar a la persona al equipo.'));
       }
       asignados[campo] = idNuevo as string;
     }
@@ -210,7 +282,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
       .single();
     if (e1 || !data) {
       setEtapa('');
-      return setError(e1?.message ?? 'No se pudo crear.');
+      return setError(mensajeAmable(e1, 'No se pudo crear el cliente.'));
     }
     const filas = [
       ...(anticipo > 0 ? [{ cliente_id: data.id, organizacion_id: orgId, monto: anticipo / 100, estado: 'pagado', fecha_pago: hoyISO(), nota: esPif ? 'Pago total' : 'Anticipo' }] : []),
@@ -224,6 +296,14 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
     // El contrato se arma con el plan completo y no se espera: la ficha muestra el estado,
     // la vista previa y el botón para mandarlo a firmar.
     if (planOk) void generarContratoFirma(data.id);
+    creado.current = true;
+    if (claveBorrador) {
+      try {
+        window.sessionStorage.removeItem(claveBorrador);
+      } catch {
+        /* nada */
+      }
+    }
     setEtapa('');
     navegar(`/portal/crm/${data.id}${planOk ? '?armando=1' : ''}`);
   }
@@ -261,6 +341,15 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
     <form onSubmit={guardar} className="wrap py-10 desk:py-14 flex flex-col gap-10 max-w-[860px] desk:ml-0">
       <TituloSeccion eyebrow="Paso 1" titulo="Datos del cliente" />
       {error && <Aviso tipo="error">{error}</Aviso>}
+      {recuperado && (
+        <Aviso tipo="info">
+          Recuperamos lo que estabas cargando. Revisalo antes de crear el cliente o{' '}
+          <button type="button" onClick={empezarDeCero} className="underline underline-offset-4 font-medium">
+            empezá de cero
+          </button>
+          .
+        </Aviso>
+      )}
       {!esAdmin && (
         <Aviso tipo="info">
           El cliente queda con la firma pendiente. El contrato se arma solo, FIRMA lo revisa, lo envía a firmar y actualiza el estado.
@@ -280,7 +369,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
 
       <div className="grid gap-5 tab:grid-cols-2">
         <Campo etiqueta="Servicio">
-          <select
+          <Selector
             required
             className={claseInput}
             value={f.servicio}
@@ -299,29 +388,29 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
                 {s.nombre ? ` · ${s.nombre}` : ''}
               </option>
             ))}
-          </select>
+          </Selector>
         </Campo>
         {monedas.length > 1 && (
           <Campo etiqueta="Moneda" ayuda="Es la del contrato y la del plan de pagos.">
-            <select className={claseInput} value={f.moneda} onChange={(e) => set('moneda', e.target.value)}>
+            <Selector className={claseInput} value={f.moneda} onChange={(e) => set('moneda', e.target.value)}>
               {monedas.map((m) => (
                 <option key={m} value={m}>
                   {nombreMonedaCrm(m)}
                 </option>
               ))}
-            </select>
+            </Selector>
           </Campo>
         )}
         <Campo etiqueta={`Monto total acordado (${simbolo})`} ayuda="Arranca con el ticket del servicio, si tiene. Cambialo si hubo descuento.">
           <input required type="number" step="0.01" min="1" className={claseInput} value={f.monto_total} onChange={(e) => set('monto_total', e.target.value)} />
         </Campo>
         <Campo etiqueta="Onboarding">
-          <input type="datetime-local" className={claseInput} value={f.fecha_onboarding} onChange={(e) => set('fecha_onboarding', e.target.value)} />
+          <Fecha type="datetime-local" className={claseInput} value={f.fecha_onboarding} onChange={(e) => set('fecha_onboarding', e.target.value)} />
         </Campo>
         {(
           [
             ['closer_id', 'Closer', ['closer']],
-            ['responsable_id', 'Responsable (CSM o AM)', ['csm', 'account_manager']],
+            ['responsable_id', 'Account Manager', ['account_manager']],
           ] as const
         ).map(([campo, etiqueta, roles]) => {
           // Primero los de ese rol; si no hay ninguno, cualquiera del equipo con su rol al lado.
@@ -331,7 +420,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
           return (
             <Campo key={campo} etiqueta={etiqueta}>
               <div className="flex flex-col gap-2">
-                <select className={claseInput} value={f[campo]} onChange={(e) => set(campo, e.target.value)}>
+                <Selector className={claseInput} value={f[campo]} onChange={(e) => set(campo, e.target.value)}>
                   <option value="">Sin asignar</option>
                   {delRol.map((m) => (
                     <option key={m.id} value={m.id}>
@@ -348,7 +437,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
                     </optgroup>
                   )}
                   <option value={NUEVO}>+ Alguien que no está en el equipo</option>
-                </select>
+                </Selector>
                 {f[campo] === NUEVO && (
                   <input
                     required
@@ -391,7 +480,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
         <TituloSeccion eyebrow="Paso 2" titulo="Plan de pagos" />
         <div className="grid gap-5 tab:grid-cols-2 desk:grid-cols-4">
           <Campo etiqueta="Modalidad">
-            <select
+            <Selector
               className={claseInput}
               value={f.modalidad}
               onChange={(e) => {
@@ -401,7 +490,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
             >
               <option value="Cuotas">Cuotas</option>
               <option value="PIF">PIF (pago total)</option>
-            </select>
+            </Selector>
           </Campo>
           {!esPif && (
             <Campo etiqueta={`Anticipo (${simbolo}) *`} ayuda="* Todo lo que se pague antes del día del onboarding.">
@@ -433,7 +522,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
           )}
           {!esPif && (
             <Campo etiqueta="Primera cuota">
-              <input type="date" className={claseInput} value={f.primera} onChange={(e) => cambiarPrimera(e.target.value)} />
+              <Fecha type="date" className={claseInput} value={f.primera} onChange={(e) => cambiarPrimera(e.target.value)} />
             </Campo>
           )}
         </div>
@@ -460,8 +549,7 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
                 value={c.monto}
                 onChange={(e) => editarCuota(i, { monto: e.target.value })}
               />
-              <input
-                type="date"
+              <Fecha
                 aria-label={`Vencimiento de la cuota ${i + 1}`}
                 className={claseInput}
                 value={c.vencimiento}
@@ -514,12 +602,12 @@ export const AltaCliente: React.FC<{ orgId: string; esAdmin: boolean; orgNombre:
 
       <Campo
         etiqueta="Condiciones acordadas (opcional)"
-        ayuda="Escribilo como lo pactaste: descuentos, pagos especiales, bonificaciones o cualquier cosa que no entre en el plan. Claude lo interpreta al armar el contrato."
+        ayuda="Va tal cual al contrato, como cláusula de condiciones particulares, y nadie lo reescribe. Escribilo como querés que lo lea el cliente, con montos, plazos y fechas concretas. Si no sabés cómo ponerlo, pedinos la redacción antes de mandar a firmar."
       >
         <textarea
           rows={3}
           className={`${claseInput} h-auto py-2`}
-          placeholder="Ej. 10% off por pago en 48 h, la segunda cuota la paga cuando cobre la comisión de octubre"
+          placeholder="Ej. Si EL CLIENTE abona el total dentro de las 48 horas de la firma, se bonifica el 10% del precio."
           value={f.condiciones}
           onChange={(e) => set('condiciones', e.target.value)}
         />

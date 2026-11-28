@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, Check, FileUp, ShieldCheck, X } from 'lucide-react';
 import { Button } from '../Button';
-import { Aviso, Campo, Etiqueta, claseInput } from '../portal/ui';
+import { Aviso, Campo, Etiqueta, claseInput } from '../uiClasica';
 import { ESTADO_FIRMANTE, ESTADO_SOBRE, MarcoPublico, fechaHora, llamarFirma, usePaginaPrivada } from './comun';
 
 /**
@@ -42,6 +42,14 @@ async function hashDe(archivo: File): Promise<string> {
 export const Verificar: React.FC<{ codigoInicial?: string }> = ({ codigoInicial = '' }) => {
   usePaginaPrivada('Verificar documento firmado · FIRMA');
   const [codigo, setCodigo] = useState(codigoInicial.toUpperCase());
+  // El código usa números y letras de la A a la F. Una O se lee como cero; lo demás se avisa en vez de borrarlo en silencio.
+  const [descartado, setDescartado] = useState(false);
+  function escribirCodigo(t: string) {
+    const crudo = t.toUpperCase().replace(/\s|-/g, '').replace(/O/g, '0');
+    const limpio = crudo.replace(/[^0-9A-F]/g, '');
+    setDescartado(limpio.length !== crudo.length);
+    setCodigo(limpio.slice(0, 12));
+  }
   const [archivo, setArchivo] = useState<File | null>(null);
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -120,12 +128,13 @@ export const Verificar: React.FC<{ codigoInicial?: string }> = ({ codigoInicial 
             <Campo etiqueta="O buscá por código">
               <input
                 value={codigo}
-                onChange={(e) => setCodigo(e.target.value.toUpperCase().replace(/[^0-9A-F]/g, '').slice(0, 12))}
+                onChange={(e) => escribirCodigo(e.target.value)}
                 placeholder="12 caracteres"
                 className={`${claseInput} tracking-[0.2em] uppercase`}
                 spellCheck={false}
               />
             </Campo>
+            {descartado && <p className="text-[13px] text-peligro-fuerte">El código lleva solo números y letras de la A a la F. Revisalo en el pie de la hoja.</p>}
             <Button type="submit" variant="ghost" disabled={ocupado || codigo.length !== 12}>
               Buscar
             </Button>
@@ -144,7 +153,7 @@ export const Verificar: React.FC<{ codigoInicial?: string }> = ({ codigoInicial 
               <p className="text-[15px] leading-[1.6]">
                 {archivo
                   ? 'Este PDF no coincide con ningún documento firmado con FIRMA. Si lo modificaron, aunque sea una coma, o lo volvieron a guardar, la huella cambia.'
-                  : 'No hay ningún envío con ese código.'}
+                  : 'No hay ningún envío con ese código. Revisá que sea igual al del pie de la hoja, con números y letras de la A a la F. Si coincide y no aparece, escribinos a agustin@firmasvc.com.'}
               </p>
             </div>
           )}

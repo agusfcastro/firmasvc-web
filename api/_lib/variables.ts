@@ -23,7 +23,7 @@ export const VARIABLES: [string, string][] = [
   ['SERVICIO', 'Nombre del servicio contratado'],
   ['MODALIDAD', 'Cuotas o Pago total'],
   ['EMPRESA', 'Razón social de la empresa, o su nombre'],
-  ['RESPONSABLE', 'CSM o AM a cargo'],
+  ['RESPONSABLE', 'Account Manager a cargo'],
   ['MONEDA', 'Moneda, por ejemplo USD, o S/ si son soles'],
   ['MONEDA_LETRAS', 'Moneda en letras, por ejemplo DÓLARES ESTADOUNIDENSES'],
   ['MONTO_TOTAL', 'Monto total en números, por ejemplo 3.000'],
